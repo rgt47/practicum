@@ -3,21 +3,22 @@
 ::: {.callout-note}
 ## Sources
 
-Blog posts `22-serversetupawscli`, `23-serversetupawsconsole`,
-`48-ttyd_setup`, and `20-researchbackupsystem`.
+Blog posts `22-serversetupawscli`,
+`23-serversetupawsconsole`, `48-ttyd_setup`, and
+`20-researchbackupsystem`.
 :::
 
 ## Prerequisites
 
-Answer the following questions to see if you can bypass this
-chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-06.
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-06.
 
 1. What is the main reason a biostatistician might move a
    long-running simulation to a cloud instance rather than
    running it on a laptop?
-2. What is the difference between the AWS Management Console
-   and the AWS CLI, and when would you use each?
+2. What is the difference between the AWS Management
+   Console and the AWS CLI, and when would you use each?
 3. How do you run an R script on a remote server without
    keeping your SSH session open?
 
@@ -26,104 +27,518 @@ chapter. You can find the answers at the end of the chapter in
 By the end of this chapter you should be able to:
 
 - Launch an EC2 instance appropriate for a statistical
-  workload.
+  workload (CPU, memory, storage).
 - Connect to a remote server by SSH and run an R session
   there.
 - Run a long job with `nohup`, `screen`, or `tmux` so it
   survives a dropped connection.
-- Cost a cloud job approximately before launching it.
-- Transfer data to and from an instance with `scp` or `rsync`.
+- Estimate the cost of a cloud job before launching it.
+- Transfer data to and from an instance with `scp` or
+  `rsync`, and to S3 for archival storage.
+- Recognise when a university HPC cluster is a better fit
+  than a public cloud.
 
 ## Orientation
 
 Some analyses outgrow a laptop: multi-core simulations,
-genome-scale pipelines, multi-hour deep learning fits. Cloud
-compute is the pragmatic answer, but it adds its own
-complications: costs, security, data transfer, and process
-management. This chapter covers the minimum you need to use
-cloud compute safely.
+genome-scale pipelines, multi-hour deep learning fits.
+Cloud compute is the pragmatic answer, but it adds its
+own complications: costs, security, data transfer, and
+process management. This chapter covers the minimum you
+need to use cloud compute safely.
+
+The dominant providers (AWS, Google Cloud, Azure)
+overlap heavily; this chapter uses AWS for concreteness.
+The concepts transfer. University HPC clusters serve a
+similar purpose with different pricing and access
+mechanisms; for many academic biostatisticians, an HPC
+cluster is the first choice when one is available.
+
+## The statistician's contribution {#sec-cloud-human}
+
+Cloud compute is mostly mechanical. The judgements:
+
+**Pick the right instance.** A simulation that uses 4
+cores does not benefit from a 32-core instance. A model
+fit that uses 50 GB of RAM cannot run on a 16 GB
+instance. Knowing the bottleneck before provisioning
+prevents both under-spending (slow) and over-spending
+(expensive idle cores).
+
+**Cost discipline.** A `g4dn.12xlarge` GPU instance left
+running for a weekend costs more than a small laptop.
+Set budget alerts; use spot instances for fault-tolerant
+work; auto-shutdown after job completion. Forgetting to
+shut down is the most common cloud-cost surprise.
+
+**Data hygiene.** Protected health data on a personal
+AWS account is a compliance violation in most
+institutions. Use institutional accounts; use VPC
+peering to keep data inside the institutional network;
+use S3 with appropriate access policies. Treat 'I'll
+just upload the CSV to my personal bucket for testing'
+as a red flag.
+
+**Reproducibility off the laptop.** A cloud instance
+needs the same environment specification as the laptop
+that ran the analysis. Docker (chapter 9) is the
+standard answer; a `Dockerfile` plus an `renv.lock`
+makes the cloud instance setup automatable.
+
+These judgements determine whether cloud compute is a
+multiplier or a money pit.
 
 ## When to use cloud compute
 
-TODO: compute-bound vs memory-bound vs latency-sensitive
-tradeoffs.
+Three patterns where cloud helps:
 
-## The AWS Management Console in one page
+**Compute-bound, parallelisable.** A simulation with
+10,000 independent replicates. Run on 16 cores instead
+of 8: roughly 2× faster. Cost: linear in cores; usually
+favourable for a one-off job.
 
-TODO: EC2, IAM, security groups, key pairs.
+**Memory-bound.** A genome-scale analysis that needs
+128 GB RAM. Your laptop has 16. Cloud instances scale
+to 24 TB. The wall-clock time may be similar to a
+laptop; you just can't run the analysis at all on the
+laptop.
 
-## The AWS CLI in one page
+**Long-running, robust.** A 24-hour MCMC. You don't want
+your laptop tethered to the analysis for a day. A cloud
+instance runs it; you check in periodically.
 
-TODO: `aws configure`, `aws ec2 run-instances`, tagging.
+Patterns where cloud does not help:
+
+**Interactive exploration.** Running R interactively over
+SSH on a cloud instance is laggy and unpleasant. Use a
+laptop for exploration; move to cloud when the analysis
+is final and you want to scale.
+
+**Latency-sensitive.** Anything with a tight feedback
+loop (a Shiny app you are debugging) is faster locally.
+
+**Tiny.** A 30-second analysis is not worth provisioning.
+
+## AWS in two pages
+
+The Amazon Web Services landscape is vast; the subset
+you need for biostatistics is small.
+
+**EC2** (Elastic Compute Cloud): the virtual machines.
+Pick an instance type (`t3.large`, `c6i.4xlarge`, etc.)
+and pay per hour.
+
+**IAM** (Identity and Access Management): users, roles,
+and permissions. Create a user for yourself, generate
+access keys, configure them in the AWS CLI.
+
+**S3** (Simple Storage Service): object storage. Cheaper
+than EBS for archival data; transfer to/from EC2 by
+`aws s3 cp` or `rsync` over SSH.
+
+**EBS** (Elastic Block Store): block storage for EC2.
+The instance's root volume is EBS; data persists when
+the instance is stopped, is gone when the instance is
+terminated.
+
+**Security Groups**: virtual firewalls. Set rules to
+allow SSH (port 22) from your IP only.
+
+**Key pairs**: SSH key pairs managed by AWS. Generate
+one when you launch your first instance.
+
+The AWS Management Console (browser GUI) is good for
+learning the platform and for one-off operations. The
+AWS CLI (`aws ec2 run-instances ...`) is essential for
+automation and scripting.
+
+```bash
+# install
+brew install awscli                  # macOS
+pip install awscli                   # cross-platform
+
+# configure once
+aws configure                        # prompts for key, secret, region
+
+# list instances
+aws ec2 describe-instances --query \
+  'Reservations[].Instances[].[InstanceId,InstanceType,State.Name]' \
+  --output table
+```
+
+## Launching an EC2 instance
+
+Via the Console: EC2 → Launch Instance → choose AMI
+(Ubuntu LTS is a good default), choose type
+(`t3.large` is a reasonable starting point at 2 vCPU,
+8 GB RAM), choose a key pair, configure security
+group (SSH from your IP), launch.
+
+Via the CLI:
+
+```bash
+aws ec2 run-instances \
+  --image-id ami-0c7217cdde317cfec \
+  --instance-type t3.large \
+  --key-name my-keypair \
+  --security-group-ids sg-0abcd1234 \
+  --subnet-id subnet-0abcd1234 \
+  --tag-specifications \
+    'ResourceType=instance,Tags=[{Key=Project,Value=readmissions}]'
+```
+
+Connect:
+
+```bash
+ssh -i ~/.ssh/my-keypair.pem ubuntu@<public-ip>
+```
+
+Once on the instance:
+
+```bash
+# install R
+sudo apt update
+sudo apt install -y r-base r-base-dev git
+
+# clone your project
+git clone https://github.com/you/project.git
+cd project
+Rscript -e 'install.packages("renv"); renv::restore()'
+```
+
+Or, more reproducibly, run a Docker container with the
+environment baked in (chapter 9):
+
+```bash
+docker run -v $(pwd):/work my-analysis-image:v1.0 \
+  Rscript /work/scripts/main.R
+```
 
 ## Long-running jobs
 
-TODO: `nohup`, `screen`, `tmux`, process survival.
+The challenge: you SSH in, start a job, and your laptop
+goes to sleep or your hotel WiFi drops. Without
+intervention, the job dies with your shell.
+
+Three solutions:
+
+**`nohup`** (no hangup): runs the command immune to
+hangup signals.
+
+```bash
+nohup Rscript analysis.R > analysis.log 2>&1 &
+disown                               # detach from shell
+```
+
+The process continues; output goes to `analysis.log`;
+you can reconnect later and check progress with
+`tail -f analysis.log`.
+
+**`tmux`** (or `screen`, the older equivalent): a
+terminal multiplexer. Start a tmux session, run the job
+inside; when you disconnect, the tmux session keeps
+running; reconnect with `tmux attach`.
+
+```bash
+ssh user@server
+tmux new -s analysis
+# inside tmux:
+Rscript analysis.R
+# detach with Ctrl-b d
+# logout safely; come back later with:
+ssh user@server
+tmux attach -t analysis
+```
+
+`tmux` is also useful interactively: split panes, named
+windows, persistent sessions.
+
+**`systemd` services** for production deployments: more
+involved, but appropriate when the analysis is something
+that should run on a schedule.
+
+For most ad-hoc biostatistical work, `nohup` or `tmux` is
+sufficient.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: detached jobs
+
+**Question.** You SSH into an EC2 instance, start a long
+analysis with `Rscript analysis.R`, and close your
+laptop. What happens to the analysis?
+
+::: {.content-visible when-format="html"}
+<details><summary>Answer</summary>
+:::
+
+When the SSH connection drops (or your shell exits),
+the analysis process receives a hangup (SIGHUP) signal
+and terminates. The job is dead; the partial output is
+gone. Three remedies: (1) `nohup Rscript analysis.R &`
+keeps the process running and writes its output to a
+file; (2) `tmux` and `screen` provide persistent
+sessions you can detach from and reattach to;
+(3) systemd services run as background daemons. The
+common solution for ad-hoc biostatistical work is
+`tmux`. Forgetting this is the classic 'I let it run
+overnight and it died' surprise.
+
+::: {.content-visible when-format="html"}
+</details>
+:::
+:::
 
 ## Data transfer
 
-TODO: `scp`, `rsync`, `aws s3 cp`, cost implications.
+To copy a file to the instance:
+
+```bash
+scp -i ~/.ssh/my-keypair.pem data.csv ubuntu@<ip>:/home/ubuntu/data/
+```
+
+For directories or incremental sync:
+
+```bash
+rsync -avz -e "ssh -i ~/.ssh/my-keypair.pem" \
+  ./data/ ubuntu@<ip>:/home/ubuntu/data/
+```
+
+`rsync` only transfers changed files; useful when
+iterating.
+
+For larger or longer-term storage, S3:
+
+```bash
+# from instance to S3
+aws s3 cp results.rds s3://my-bucket/project/results.rds
+
+# from S3 to laptop
+aws s3 cp s3://my-bucket/project/results.rds .
+
+# sync directories
+aws s3 sync ./output s3://my-bucket/project/output/
+```
+
+S3 is much cheaper than EBS for cold data ($0.023/GB/month
+vs. $0.10 for general-purpose EBS). For data the analysis
+finishes with, archive to S3.
+
+Egress (data leaving AWS) is charged; ingress is free.
+Plan large transfers accordingly.
 
 ## Cost control
 
-TODO: spot instances, budget alerts, auto-shutdown scripts.
+Three habits prevent surprise bills:
+
+**Set budget alerts.** AWS Budgets → set a monthly
+threshold; get an email when spend exceeds it.
+Catches forgotten instances quickly.
+
+**Use spot instances** for fault-tolerant work. Spot
+instances are excess capacity sold at a steep discount
+(60--80% off on-demand prices); the catch is that AWS
+can reclaim them with two minutes' notice. For
+embarrassingly-parallel simulations with checkpointing,
+spot is essentially free money.
+
+```bash
+aws ec2 run-instances --instance-type c6i.xlarge \
+  --instance-market-options 'MarketType=spot' \
+  ...
+```
+
+**Auto-shutdown.** End your job script with `sudo shutdown -h now`
+on the instance, and configure the instance to stop
+(not terminate) on shutdown. The instance stops billing
+once stopped (you still pay for EBS, much cheaper).
+
+For a typical job:
+
+```bash
+# wrapper script
+#!/usr/bin/env bash
+Rscript analysis.R
+aws s3 cp results/ s3://my-bucket/project/results/ --recursive
+sudo shutdown -h now
+```
+
+The instance does the analysis, uploads results, shuts
+down. You wake up to results in S3 and a stopped
+instance.
 
 ## Alternatives to AWS
 
-TODO: Google Cloud, Azure, DigitalOcean, university HPC.
+**Google Cloud Platform** (GCP). Comparable to AWS;
+slightly different terminology. Strong for ML-heavy
+workloads via Vertex AI.
 
-## With AI assistance {.unnumbered}
+**Azure**. Microsoft's cloud. Strong if your
+institution is in the Microsoft ecosystem (Office 365
+single-sign-on, Active Directory).
 
-::: {.callout-tip}
-## Prompts to try
+**DigitalOcean**, **Linode**. Simpler, cheaper for
+small-scale work. Less to learn; fewer features.
 
-1. Paste a simulation script's runtime profile and ask the
-   LLM to recommend an EC2 instance type. Verify its
-   recommendation against the current AWS pricing page.
-2. Ask the LLM to write a shell script that launches an EC2
-   instance, runs a single R script on it, and shuts the
-   instance down when finished. Audit the script for cost
-   risks (what if the script fails partway?).
-3. Ask the LLM to explain the difference between an instance
-   store volume and an EBS volume. Verify the answer against
-   current AWS documentation.
-:::
+**University HPC clusters**. SLURM-based job
+submission, often free for affiliated researchers,
+typically have R, Python, and standard scientific
+libraries pre-installed. The right first stop for
+academic work when available; the queue waits and
+shared environment are the trade-offs.
+
+For most academic biostatistics work, the priority
+ordering is: laptop (interactive), university HPC
+(batch), AWS/GCP (when HPC is unavailable or
+inadequate).
+
+## Worked example: a simulation on AWS
+
+```bash
+# 1. provision
+aws ec2 run-instances \
+  --image-id ami-0c7217cdde317cfec \
+  --instance-type c6i.4xlarge \
+  --key-name my-keypair \
+  --security-group-ids sg-0abcd1234 \
+  --subnet-id subnet-0abcd1234 \
+  --instance-initiated-shutdown-behavior stop \
+  --user-data file://bootstrap.sh \
+  --tag-specifications \
+    'ResourceType=instance,Tags=[{Key=Project,Value=sim2026}]'
+
+# bootstrap.sh installs R, clones the repo, runs the simulation,
+# uploads results to S3, and shuts down
+
+# 2. wait for it to finish (and shut down)
+aws ec2 describe-instances --instance-ids <id> \
+  --query 'Reservations[].Instances[].State.Name'
+
+# 3. retrieve results
+aws s3 cp s3://my-bucket/sim2026/results.rds .
+
+# 4. terminate the instance (delete it for good)
+aws ec2 terminate-instances --instance-ids <id>
+```
+
+The cost: a 4-hour run on `c6i.4xlarge` (16 vCPU, 32 GB)
+at $0.68/hour is about $2.72. EBS storage another
+$0.50. S3 egress for the results, pennies.
+
+For a simulation that took 32 hours on a laptop, this is
+a 8× speedup at $3 in costs. The judgement is whether
+the time saved is worth $3.
+
+## Collaborating with an LLM on cloud setup
+
+LLMs handle AWS recipes well; they sometimes generate
+shell scripts with subtle cost or security issues.
+
+**Prompt 1: choosing an instance.** Describe the
+workload (cores, memory, expected runtime, parallel
+nature) and ask: 'recommend an EC2 instance type and
+estimate the cost.'
+
+*What to watch for.* Verify against the current AWS
+pricing page (LLMs may quote out-of-date prices).
+Double-check the instance type matches the workload
+type (compute-optimised vs. memory-optimised).
+
+*Verification.* The AWS pricing calculator is the
+ground truth.
+
+**Prompt 2: scripting a cloud job.** Describe the job
+and ask the LLM to write a shell script that
+provisions, runs, and cleans up.
+
+*What to watch for.* Failure handling: what if the
+script crashes partway? Does the instance still shut
+down? Does the data still upload to S3? LLM scripts
+often miss these.
+
+*Verification.* Run the script with a deliberate failure
+inserted; verify cleanup still happens.
+
+**Prompt 3: diagnosing AWS errors.** Paste the error
+message and ask the LLM to diagnose.
+
+*What to watch for.* Common errors (security group not
+allowing SSH, instance not yet running, key pair
+mismatch) are easy. Less common errors (IAM role
+issues, VPC peering) get mixed answers; verify against
+AWS documentation.
+
+*Verification.* The AWS console is the source of truth
+for instance state; check it before assuming the LLM is
+right.
+
+## Principle in use
+
+Three habits define defensible cloud use:
+
+1. **Provision deliberately, shut down promptly.** The
+   instance is billed every hour it runs, including
+   while you sleep.
+2. **Script it.** A shell script that provisions, runs,
+   and cleans up is the only way to make a cloud job
+   reproducible.
+3. **Use the right tier.** University HPC for free
+   academic compute; AWS/GCP when scale demands; spot
+   instances for fault-tolerant parallel work; on-demand
+   only when you must.
 
 ## Exercises
 
-1. Launch a `t3.medium` EC2 instance in the AWS free tier
-   (or equivalent). Install R, clone a GitHub repository, and
-   run a simple analysis. Shut the instance down when
-   finished. Document every cost.
-2. Run a 1-hour simulation on an EC2 instance using `nohup`.
-   Disconnect your laptop and reconnect; verify the
-   simulation is still running.
-3. Set up an S3 bucket and transfer a dataset to and from
-   your EC2 instance. Compute the data-transfer charge.
+1. Launch a `t3.medium` EC2 instance in the AWS free
+   tier (or equivalent). Install R, clone a GitHub
+   repository, and run a simple analysis. Shut the
+   instance down when finished. Document every cost.
+2. Run a 1-hour simulation on an EC2 instance using
+   `nohup`. Disconnect your laptop and reconnect; verify
+   the simulation is still running.
+3. Set up an S3 bucket and transfer a dataset to and
+   from your EC2 instance. Compute the data-transfer
+   charge.
+4. Compare the cost of running a 4-hour simulation on
+   AWS spot vs. on-demand vs. on a university HPC.
+   Document each.
+5. Write a wrapper script that provisions, runs, and
+   shuts down an EC2 instance for a single R script.
+   Test that it cleans up even when the script fails.
 
 ## Further reading
 
-- AWS EC2 documentation at `aws.amazon.com/ec2` --- authoritative platform reference.
-- The RStudio AMI on AWS Marketplace --- one-click RStudio in the cloud.
-- The `googleComputeEngineR` package --- GCP provisioning from R.
+- AWS EC2 documentation at `aws.amazon.com/ec2` ---
+  authoritative platform reference.
+- The RStudio AMI on AWS Marketplace --- one-click
+  RStudio in the cloud.
+- The `googleComputeEngineR` package --- GCP
+  provisioning from R.
+- *AWS in Action*, 2nd ed. (Wittig & Wittig, Manning)
+  --- accessible book-length introduction.
 
 ## Prerequisites answers {#sec-quiz-answers-06}
 
-1. Cloud compute provides more resources (CPU, RAM, storage)
-   than a laptop, on demand, without capital investment. A
-   10-hour simulation on a laptop can be a 1-hour simulation
-   on an 8-core cloud instance, and the laptop stays free
-   for other work. Cloud compute also keeps research data off
-   personal machines and provides audit logs.
-2. The AWS Management Console is a browser-based GUI; good
-   for one-off instance launches, inspecting state, and
-   learning the platform. The AWS CLI is a command-line tool;
-   essential for automation, scripting, and reproducible
-   infrastructure setup. Most professional workflows use the
-   CLI for routine work and the Console for debugging.
-3. Use `nohup Rscript analysis.R > analysis.log 2>&1 &` to
-   detach the process from the shell, or launch inside a
-   `tmux` or `screen` session that persists after logout.
-   The process continues running; its output goes to the log
-   file; you reconnect later with `tail -f analysis.log` or
-   `tmux attach`.
+1. Cloud compute provides more resources (CPU, RAM,
+   storage) than a laptop, on demand, without capital
+   investment. A 10-hour simulation on a laptop can be
+   a 1-hour simulation on an 8-core cloud instance, and
+   the laptop stays free for other work. Cloud compute
+   also keeps research data off personal machines and
+   provides audit logs. The trade-off is cost, security
+   complexity, and data-transfer overhead.
+2. The AWS Management Console is a browser-based GUI;
+   good for one-off instance launches, inspecting
+   state, and learning the platform. The AWS CLI is a
+   command-line tool; essential for automation,
+   scripting, and reproducible infrastructure setup.
+   Most professional workflows use the CLI for routine
+   work and the Console for debugging. The CLI also
+   composes naturally with shell scripts and `make`.
+3. Use `nohup Rscript analysis.R > analysis.log 2>&1 &`
+   to detach the process from the shell, or launch
+   inside a `tmux` or `screen` session that persists
+   after logout. The process continues running; its
+   output goes to the log file; you reconnect later
+   with `tail -f analysis.log` or `tmux attach`.
+   Without one of these, closing your shell kills the
+   job.

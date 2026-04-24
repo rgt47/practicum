@@ -3,19 +3,20 @@
 ::: {.callout-note}
 ## Sources
 
-Adapted from author's lecture notes and supporting materials for a graduate practicum in biostatistics.
+Adapted from author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
 :::
 
 ## Prerequisites
 
-Answer the following questions to see if you can bypass this
-chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-08.
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-08.
 
-1. What does `renv::init()` do to a project directory, and
-   what new files does it create?
-2. What is stored in `renv.lock`, and why is the lock file
-   version-controlled while `renv/library/` is not?
+1. What does `renv::init()` do to a project directory,
+   and what new files does it create?
+2. What is stored in `renv.lock`, and why is the lock
+   file version-controlled while `renv/library/` is not?
 3. What is the difference between `renv::snapshot()` and
    `renv::restore()`?
 
@@ -25,101 +26,468 @@ By the end of this chapter you should be able to:
 
 - Initialise `renv` in a new or existing project.
 - Snapshot and restore a project's package state.
-- Diagnose lockfile issues with `renv::status()` and
-  `zzrenvcheck`.
-- Handle packages installed from GitHub and Bioconductor.
+- Diagnose lockfile issues with `renv::status()` and the
+  in-house `zzrenvcheck` tool.
+- Handle packages installed from GitHub and
+  Bioconductor.
 - Write a Docker layer that restores a project's `renv`
   cleanly.
+- Migrate an existing project (with informal dependency
+  declarations) to `renv`.
 
 ## Orientation
 
-Package versions drift. A project that worked in January may
-fail in July because a dependency introduced a breaking
-change. `renv` pins the exact versions your project uses and
-writes them to a lockfile, so `renv::restore()` reproduces the
-environment on any machine. This chapter covers the common
-workflow and the in-house `zzrenvcheck` tool that audits it.
+Package versions drift. A project that worked in
+January may fail in July because a dependency
+introduced a breaking change. `renv` pins the exact
+versions your project uses and writes them to a
+lockfile, so `renv::restore()` reproduces the
+environment on any machine. This chapter covers the
+common workflow and the in-house `zzrenvcheck` tool
+that audits it.
+
+`renv` succeeded `packrat` (which is now deprecated)
+and is itself maintained by Posit. It is the modern
+standard for project-level R package management.
+
+## The statistician's contribution {#sec-renv-human}
+
+`renv` mechanics are simple: init, snapshot, restore.
+The judgements:
+
+**Snapshot at meaningful moments, not constantly.** A
+snapshot after every `install.packages()` is overkill
+and produces noisy commits. Snapshot at: project start,
+before each manuscript submission, when dependencies
+intentionally change. The lockfile in git tells the
+story of dependency changes; keep it readable.
+
+**Track upgrades intentionally.** `renv` will not update
+your packages without you asking. This is a feature, not
+a bug. When a security update or a useful new feature
+appears, update deliberately, snapshot, test, commit.
+Avoid the temptation to update everything at once.
+
+**Decide the bootstrap.** `renv::init()` adds an
+`.Rprofile` that activates renv on session start. This
+is the right default; it ensures collaborators get the
+project library without thinking. Disable it
+deliberately (e.g., for a project where multiple users
+have different package versions) only if you have a
+specific reason.
+
+**Keep the lockfile portable.** Pinning a Linux-specific
+build of a package on a macOS development machine
+breaks the lockfile for Linux collaborators. The
+default `renv::snapshot(type = "implicit")` records
+sources rather than binaries, which is platform-
+neutral.
+
+These judgements are what make renv a useful tool
+rather than another source of friction.
 
 ## Initialising renv
 
-TODO: `renv::init()`, `.Rprofile` activation, the project
-library.
+```r
+# in a new or existing project
+renv::init()
+```
+
+This creates:
+
+- `renv/activate.R`: the bootstrap script. Sourced from
+  `.Rprofile` on every session start.
+- `renv/library/`: the project library (gitignored).
+- `renv/settings.json`: project-specific renv settings.
+- `.Rprofile`: contains `source("renv/activate.R")`.
+- `renv.lock`: the lockfile (initially empty or
+  containing whatever was loaded at init).
+
+After `init()`, `.libPaths()` returns the project library
+first, so `install.packages("dplyr")` installs into the
+project's library, not the user's global library.
+
+```r
+.libPaths()
+#> [1] "/path/to/project/renv/library/macos/R-4.4/x86_64"
+#> [2] "/Users/you/Library/Caches/org.R-project.R/R/renv/sandbox/..."
+```
+
+The cache (the second entry) is shared across projects
+on the same machine, so installing a package one
+project has already installed is fast.
 
 ## Snapshotting and restoring
 
-TODO: `renv::snapshot()`, `renv::restore()`, conflict
-resolution.
+The core workflow:
 
-## renv.lock in depth
+```r
+# install a new package
+install.packages("ggplot2")
 
-TODO: structure of the JSON; Package, Version, Source,
-Repository, RemoteType fields.
+# tell renv to record this state
+renv::snapshot()
 
-## Audit with zzrenvcheck
+# commit the updated lockfile
+# git add renv.lock && git commit -m "Add ggplot2"
+```
 
-TODO: what `zzrenvcheck::check()` looks for: missing packages,
-uncommitted changes, outdated snapshots.
+`renv::snapshot()` reads the packages currently loaded
+or referenced in your code and updates `renv.lock`
+accordingly. The lockfile is JSON, version-controlled,
+and human-readable.
 
-## renv + Docker
+To recreate the environment elsewhere:
 
-TODO: two-stage Docker build; `COPY renv.lock` then
-`renv::restore()`.
+```r
+# clone the repo, then:
+renv::restore()
+```
+
+This reads `renv.lock` and installs exactly those
+versions of those packages into the project library.
+The first restore takes a while (downloads and builds);
+subsequent restores reuse the cache.
+
+```r
+# audit the state
+renv::status()
+#> The following package(s) are out of sync with renv.lock:
+#>   - dplyr  [installed 1.1.4, recorded 1.1.0]
+```
+
+`status()` flags discrepancies. Resolve by either
+updating the lockfile (`renv::snapshot()`) or restoring
+the recorded version (`renv::restore()`).
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: snapshot vs. restore
+
+**Question.** You install `dplyr` 1.1.4 in your project,
+work for a week, then realise the snapshot still records
+1.1.0. What happens if you `restore()` instead of
+`snapshot()`?
+
+::: {.content-visible when-format="html"}
+<details><summary>Answer</summary>
+:::
+
+`restore()` reads the lockfile and installs *that*
+version into the project library. So `restore()` would
+downgrade `dplyr` from 1.1.4 (currently installed) to
+1.1.0 (recorded in lockfile). If you want to keep
+`dplyr` 1.1.4, you should `snapshot()` instead, which
+*updates* the lockfile to reflect what you have
+installed. The mnemonic: snapshot writes from library
+to lockfile; restore writes from lockfile to library.
+The conflict that `status()` flags means you have to
+decide which direction to go. Restore when the lockfile
+is the truth (e.g., on a fresh clone). Snapshot when
+the library is the truth (e.g., you intentionally
+upgraded).
+
+::: {.content-visible when-format="html"}
+</details>
+:::
+:::
+
+## `renv.lock` in depth
+
+The lockfile is JSON:
+
+```json
+{
+  "R": {
+    "Version": "4.4.0",
+    "Repositories": [
+      {"Name": "CRAN", "URL": "https://cloud.r-project.org"}
+    ]
+  },
+  "Packages": {
+    "dplyr": {
+      "Package": "dplyr",
+      "Version": "1.1.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "fedd9d00c2944ff00a0e2696ccf048ec"
+    },
+    "myinternalpkg": {
+      "Package": "myinternalpkg",
+      "Version": "0.2.1",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "myorg",
+      "RemoteRepo": "myinternalpkg",
+      "RemoteSha": "a3f9c8d..."
+    }
+  }
+}
+```
+
+Key fields:
+
+- `Version`: the version installed.
+- `Source`: where the package came from (Repository =
+  CRAN/Bioconductor; GitHub; Bitbucket; local).
+- `Hash`: a content hash for binary verification.
+- `RemoteSha`: for GitHub-installed packages, the exact
+  commit SHA that was installed. This pins development
+  packages exactly.
+
+The lockfile is platform-independent: it records what
+to install, not the binaries. Different machines build
+binaries appropriate to their architecture.
+
+## Packages from GitHub and Bioconductor
+
+Some packages live outside CRAN. `renv` handles them
+transparently:
+
+```r
+# from GitHub
+renv::install("benmarwick/rrtools")
+renv::snapshot()
+
+# from Bioconductor
+renv::install("bioc::DESeq2")
+renv::snapshot()
+```
+
+The lockfile records the source (GitHub remote SHA;
+Bioconductor version). `restore()` re-installs from
+the same source. For GitHub packages, the SHA pinning
+is exact; later commits to the GitHub repository do
+not affect your project unless you upgrade
+deliberately.
+
+## Auditing with `zzrenvcheck`
+
+The in-house `zzrenvcheck` package (chapter 7) runs a
+suite of audits on the project's renv state:
+
+- Are all packages used in the code present in the
+  lockfile?
+- Are there packages in the lockfile not used in the
+  code?
+- Is the library in sync with the lockfile?
+- Are there uncommitted changes to `renv.lock`?
+- Are any packages substantially out of date relative
+  to current CRAN?
+
+```r
+zzrenvcheck::check()
+```
+
+The audit catches common drift: a forgotten
+`renv::snapshot()`, a package added without lockfile
+update, a colleague's machine that has run
+`update.packages()` outside of renv.
+
+For a project being submitted for publication or
+deposited to Zenodo, run `zzrenvcheck::check()` and
+resolve all warnings before tagging the release.
+
+## `renv` plus Docker
+
+For maximum reproducibility, combine renv with Docker:
+
+```dockerfile
+FROM rocker/r-ver:4.4.0
+
+# system libraries that R packages require
+RUN apt-get update && apt-get install -y \
+    libcurl4-openssl-dev libssl-dev libxml2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# install renv (a known version)
+RUN R -e 'install.packages("renv", repos = "https://cloud.r-project.org")'
+
+# copy the lockfile, restore the environment
+WORKDIR /work
+COPY renv.lock renv.lock
+RUN R -e 'renv::restore()'
+
+# copy the project
+COPY . .
+
+# default command: render the paper
+CMD R -e 'rmarkdown::render("analysis/paper/paper.qmd")'
+```
+
+The two-step pattern (lockfile first, then the project)
+is important: Docker caches each layer, so changes to
+the project files do not invalidate the (slow)
+package-installation layer. Only changes to
+`renv.lock` invalidate the package layer, which is
+correct: when dependencies change, the layer should
+rebuild.
 
 ## Migrating an existing project
 
-TODO: from `DESCRIPTION`/`Depends:` to renv.
+For a project that has been using packages without
+renv:
 
-## With AI assistance {.unnumbered}
+```r
+# from inside the project
+renv::init()
+```
 
-::: {.callout-tip}
-## Prompts to try
+`init()` scans the project's R/Rmd/qmd files for
+`library()` and `require()` calls, identifies the
+packages, and creates an initial lockfile pinning the
+versions currently installed. Review the lockfile;
+sometimes init misses packages used via `pkg::fn()`
+without an explicit `library()`. Run the analysis once
+to confirm everything still works.
 
-1. Paste an `renv.lock` and ask the LLM to identify any
-   packages that are more than one minor version behind the
-   current CRAN release. Decide which to upgrade.
-2. Paste `renv::status()` output showing a disagreement
-   between the lockfile and the library. Ask the LLM to
-   diagnose and propose a fix.
-3. Ask the LLM to write a Dockerfile layer that restores an
-   `renv.lock` using the `rocker/r-ver:4.4.0` base image.
-   Check for common errors (missing system libraries, cache
-   invalidation).
-:::
+If the project has a `DESCRIPTION` file with `Imports:`
+declarations, renv uses those as a starting point.
+Pure-script projects without `DESCRIPTION` are scanned
+heuristically.
+
+## Worked example: lifecycle of a project's renv
+
+```r
+# day 1: start the project
+renv::init()
+install.packages(c("dplyr", "ggplot2"))
+renv::snapshot()
+# git add renv.lock && git commit -m "Initial deps"
+
+# week 4: add a new dependency
+install.packages("survival")
+renv::snapshot()
+# git add renv.lock && git commit -m "Add survival"
+
+# week 8: upgrade dplyr deliberately
+install.packages("dplyr")           # latest version
+renv::status()
+# (review what changed)
+renv::snapshot()
+# rerun analysis to confirm no regressions
+# git add renv.lock && git commit -m "Upgrade dplyr to 1.1.4"
+
+# week 12: collaborator joins, clones the repo
+# (collaborator's machine)
+renv::restore()
+# (collaborator now has identical environment)
+
+# week 24: submit
+git tag -a v1.0-jbs-submission \
+  -m "Submitted to JBS, renv pinned to 4.4.0/dplyr 1.1.4/etc"
+git push origin v1.0-jbs-submission
+```
+
+The lockfile evolves through the project's life,
+recording dependency changes as commits. The submission
+tag captures the exact environment at submission for
+later reproduction.
+
+## Collaborating with an LLM on renv
+
+LLMs handle renv basics; the migration and audit cases
+need human judgement.
+
+**Prompt 1: diagnosing a `status()` warning.** Paste
+the output of `renv::status()` and ask: 'what is going
+on, and what should I do?'
+
+*What to watch for.* Standard answers (snapshot to
+record changes, restore to apply lockfile). LLMs may
+confuse the directions; verify which side is the truth
+in your case.
+
+*Verification.* Re-run `status()` after taking action.
+
+**Prompt 2: writing a Dockerfile.** Ask: 'write a
+Dockerfile that restores this project's renv.lock on
+the rocker/r-ver:4.4.0 base.'
+
+*What to watch for.* Layer ordering (lockfile copied
+before project files), system dependencies (the LLM
+may forget that some R packages need `libcurl4-openssl-dev`
+or similar), reproducibility (using a specific
+rocker tag rather than `latest`).
+
+*Verification.* `docker build` and inspect; iterate on
+missing system libraries.
+
+**Prompt 3: lockfile audit.** Paste the lockfile and
+ask: 'identify any packages more than one minor version
+behind current CRAN, and recommend whether to upgrade.'
+
+*What to watch for.* The LLM may quote out-of-date
+'current' versions. Cross-check against CRAN.
+
+*Verification.* `available.packages()` returns the
+current available versions; compare.
+
+## Principle in use
+
+Three habits define defensible renv use:
+
+1. **Snapshot at meaningful moments.** Project start,
+   each major dependency change, before each
+   submission. Not after every install.
+2. **Audit before submission.** `zzrenvcheck::check()`
+   catches drift before it becomes a reproducibility
+   bug.
+3. **Pair with Docker for environment-level
+   reproducibility.** `renv` pins R packages; Docker
+   pins everything else (OS, system libraries, R
+   itself).
 
 ## Exercises
 
-1. Initialise `renv` in an existing project of yours. Commit
-   the lockfile. Clone the project on a clean machine (or
-   Docker container) and run `renv::restore()`. Verify that
-   the scripts still produce identical output.
+1. Initialise `renv` in an existing project of yours.
+   Commit the lockfile. Clone the project on a clean
+   machine (or Docker container) and run
+   `renv::restore()`. Verify that the scripts still
+   produce identical output.
 2. Add a GitHub-sourced package to your project
-   (`renv::install('user/repo')`), snapshot, and check that
-   the lockfile captures the commit SHA.
-3. Run `zzrenvcheck::check()` on your project. Fix any issues
-   it reports.
+   (`renv::install('user/repo')`), snapshot, and check
+   that the lockfile captures the commit SHA.
+3. Run `zzrenvcheck::check()` on your project. Fix any
+   issues it reports.
+4. Write a Dockerfile that restores your project's
+   renv.lock. Build it; verify `sessionInfo()` from
+   inside the container matches the lockfile.
+5. Migrate a 'no renv' project of your own to renv.
+   Document the steps and any issues encountered.
 
 ## Further reading
 
-- `renv` documentation at `rstudio.github.io/renv` --- definitive reference.
-- The `renv` CRAN vignettes --- start with 'Introduction to renv'.
+- `renv` documentation at `rstudio.github.io/renv` ---
+  definitive reference.
+- The `renv` CRAN vignettes --- start with
+  'Introduction to renv'.
+- Posit's *Reproducible environments* technical guide.
 
 ## Prerequisites answers {#sec-quiz-answers-08}
 
-1. `renv::init()` creates an `renv/` subdirectory (with an
-   `activate.R` bootstrap script), an `.Rprofile` that calls
-   it, and an initial `renv.lock`. From then on the project
-   uses a private library isolated from the user's global
+1. `renv::init()` creates an `renv/` subdirectory
+   (with an `activate.R` bootstrap script), an
+   `.Rprofile` that calls it, and an initial
+   `renv.lock`. From then on the project uses a private
+   library isolated from the user's global library;
+   `install.packages()` installs into the project
+   library, not the user library.
+2. `renv.lock` is a JSON file listing the R version and
+   the exact package versions and sources used by the
+   project. It is plain text and is version-controlled.
+   The `renv/library/` directory contains the actual
+   installed binaries, which are large, platform-
+   specific, and reproducible from the lockfile, so
+   they are in `.gitignore`. The lockfile is the
+   portable specification; the library is a local
+   build product.
+3. `renv::snapshot()` reads the currently loaded
+   packages and writes them into `renv.lock`. You call
+   it after installing a new package or upgrading.
+   `renv::restore()` reads `renv.lock` and installs
+   exactly those packages into the project library.
+   You call it after cloning a project on a new
+   machine. The mnemonic: snapshot writes from library
+   to lockfile; restore writes from lockfile to
    library.
-2. `renv.lock` is a JSON file listing the R version and the
-   exact package versions and sources used by the project.
-   It is plain text and is version-controlled. The
-   `renv/library/` directory contains the actual installed
-   binaries, which are large, platform-specific, and
-   reproducible from the lockfile, so they are in
-   `.gitignore`.
-3. `renv::snapshot()` reads the currently loaded packages and
-   writes them into `renv.lock`. You call it after
-   installing a new package. `renv::restore()` reads
-   `renv.lock` and installs exactly those packages into the
-   project library. You call it after cloning a project on a
-   new machine.

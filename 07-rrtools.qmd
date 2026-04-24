@@ -3,21 +3,23 @@
 ::: {.callout-note}
 ## Sources
 
-Adapted from author's lecture notes and supporting materials for a graduate practicum in biostatistics.
+Adapted from author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
 :::
 
 ## Prerequisites
 
-Answer the following questions to see if you can bypass this
-chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-07.
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-07.
 
-1. What is a 'research compendium' as described by Marwick,
-   Boettiger, and Mullen (2018) [@marwick2018packaging]?
-2. What are the three essential components of an `rrtools`
-   compendium?
-3. How does an `rrtools` compendium differ from a regular R
-   package?
+1. What is a 'research compendium' as described by
+   Marwick, Boettiger, and Mullen (2018)
+   [@marwick2018packaging]?
+2. What are the three essential components of an
+   `rrtools` compendium?
+3. How does an `rrtools` compendium differ from a
+   regular R package?
 
 ## Learning objectives
 
@@ -25,93 +27,465 @@ By the end of this chapter you should be able to:
 
 - Scaffold a new research compendium with
   `rrtools::use_compendium()`.
-- Add analysis, data, and documentation to the compendium in
-  the right directories.
-- Write a paper as a Quarto document inside the compendium.
+- Add analysis, data, and documentation to the
+  compendium in the right directories.
+- Write a paper as a Quarto document inside the
+  compendium.
 - Build the compendium as a Docker image for long-term
   reproducibility.
+- Choose between an R-package-style compendium
+  (`rrtools`) and a project-style compendium for a
+  given project.
 
 ## Orientation
 
 A research compendium is a single directory that bundles
-everything a reader needs to reproduce a study: code, data,
-text, and environment. The `rrtools` package turns an R
-package into a compendium by adding an `analysis/` directory
-for narrative and data, plus Docker integration for the
-environment.
+everything a reader needs to reproduce a study: code,
+data, text, and environment. The `rrtools` package
+turns an R package into a compendium by adding an
+`analysis/` directory for narrative and data, plus
+Docker integration for the environment.
 
-## What is a compendium?
+The compendium is the unit of reproducibility. A paper
+without its compendium is a description of an analysis;
+a compendium without a paper is just code. Together,
+they constitute a study artefact that survives the loss
+of any individual file or person.
 
-TODO: the three criteria (code, data, text in one place;
-computable; self-describing).
+## The statistician's contribution {#sec-rrtools-human}
 
-## Scaffolding with rrtools
+Compendium tools handle the layout. The judgements:
 
-TODO: `rrtools::use_compendium()` step by step.
+**Pick the right scaffolding.** `rrtools` is one
+choice; a plain Quarto book is another; a project
+template specific to a research group is a third. The
+right tool depends on the project's complexity, the
+audience for the paper, and the team's existing
+conventions. Defaulting to `rrtools` is reasonable;
+defaulting to it without thought is not.
 
-## The directory layout
+**Where does this file go?** Functions that may be
+reused: `R/`. The paper itself: `analysis/paper/`. Raw
+data: `analysis/data/raw_data/`. Processed data:
+`analysis/data/derived_data/`. Figures: produced by
+the analysis, into `analysis/figures/`, and gitignored
+unless small. Getting these conventions right makes
+the compendium navigable; getting them wrong makes
+every file a hunt.
 
-TODO: `R/`, `analysis/`, `data/`, `Dockerfile`, `README.Rmd`.
+**What goes in the README?** The README is the entry
+point. It should explain: what the project is, how to
+build it (one command), where to find the paper, where
+to find the data, and how to cite it. Long technical
+documentation lives elsewhere; the README is the
+elevator pitch.
 
-## Adding a paper
+**When to commit data, when not to.** Small derived
+data (under 10 MB) can go in the compendium. Raw data
+usually cannot (size, sensitivity, license). The
+README documents how to obtain raw data, even when not
+shipped.
 
-TODO: `analysis/paper/paper.qmd`; using `rticles` templates.
+These decisions shape whether the compendium ages well.
+
+## What is a research compendium?
+
+The Marwick, Boettiger, Mullen (2018) definition has
+three criteria:
+
+1. **Single directory** containing code, data, and
+   narrative.
+2. **Computable**: the analyses can be re-run by another
+   user with reasonable effort.
+3. **Self-describing**: the layout follows established
+   conventions so a stranger can navigate it.
+
+R packages already satisfy criterion 3 (every R
+package has the same conventional layout) and partly
+satisfy criterion 1 (`R/`, `data/`, `vignettes/`). The
+gap is criterion 2: a CRAN R package is a library of
+functions, not a study with data and a paper.
+
+`rrtools` extends an R package with what it lacks:
+
+- An `analysis/` directory for data, paper, and
+  figures.
+- A Dockerfile for environment reproducibility.
+- A `README.Rmd` that knits to a `README.md` for the
+  GitHub landing page.
+- Continuous-integration scaffolding.
+
+## Scaffolding with `rrtools`
+
+```r
+# install
+install.packages("remotes")
+remotes::install_github("benmarwick/rrtools")
+
+# create a new compendium
+rrtools::use_compendium("~/research/readmissions")
+# (this also runs usethis::create_package internally)
+
+# add the analysis directories
+rrtools::use_analysis()
+
+# add a Dockerfile for env reproducibility
+rrtools::use_dockerfile()
+
+# add CI for automated rebuild
+rrtools::use_github_actions()
+
+# add a README.Rmd
+rrtools::use_readme_qmd()    # or use_readme_rmd()
+```
+
+The scaffolding produces:
+
+```
+readmissions/
+├── DESCRIPTION
+├── NAMESPACE
+├── R/                       # reusable functions
+├── man/
+├── analysis/
+│   ├── data/
+│   │   ├── raw_data/
+│   │   └── derived_data/
+│   ├── figures/
+│   ├── paper/
+│   │   ├── paper.qmd
+│   │   └── references.bib
+│   └── supplementary-materials/
+├── Dockerfile
+├── .github/
+│   └── workflows/
+├── README.qmd
+├── README.md
+└── readmissions.Rproj
+```
+
+## Where files go
+
+**`R/`** holds reusable functions. Anything you would
+extract from the analysis to call from multiple
+scripts: data cleaning helpers, plotting wrappers,
+modelling utilities. Document with roxygen.
+
+**`analysis/data/raw_data/`** is for unmodified raw
+data. Often gitignored; included only if small and
+unrestricted.
+
+**`analysis/data/derived_data/`** is for data produced
+by your scripts: cleaned datasets, processed features.
+These can be regenerated, so committing is optional;
+commit only if regeneration is expensive or
+non-deterministic.
+
+**`analysis/paper/paper.qmd`** is the manuscript itself,
+written in Quarto with code chunks that produce the
+tables and figures.
+
+**`analysis/figures/`** is for produced figures. Often
+gitignored; the source code that generates them lives
+in the paper or in `R/`.
+
+**`analysis/supplementary-materials/`** for appendix
+content, additional tables, sensitivity analyses.
+
+The conventions matter because a reader who has seen
+one rrtools compendium can navigate any other one
+without instruction.
+
+## Writing the paper in Quarto
+
+`analysis/paper/paper.qmd` is the manuscript. It uses
+Quarto's full feature set: code chunks for analyses,
+inline references, figure cross-references, citations
+from `references.bib`.
+
+```qmd
+---
+title: "Effect of post-discharge home health visits on 30-day readmission"
+author:
+  - name: A. Author
+  - name: B. Coauthor
+format:
+  pdf: default
+  html: default
+bibliography: references.bib
+---
+
+# Methods
+
+We analysed `r nrow(d)` patients from the institutional
+EHR cohort. The primary outcome was 30-day all-cause
+readmission. We fit a multivariable logistic regression
+adjusting for age, sex, baseline ejection fraction, and
+discharge medications, with a propensity score for
+home-health-visit receipt as the exposure.
+
+```{r}
+fit <- glm(readmit ~ home_health + age + sex + ef + meds,
+           family = binomial, data = d)
+broom::tidy(fit, exponentiate = TRUE, conf.int = TRUE)
+```
+
+The adjusted odds ratio for home-health-visit receipt
+was `r round(exp(coef(fit)["home_health"]), 2)` (95% CI
+`r ...`). [@bryan2019happygit]
+```
+
+For journal-specific formatting, the `rticles` package
+provides templates for many major journals (JAMA, NEJM,
+Annals of Internal Medicine, etc.):
+
+```r
+rticles::ima_article         # template list
+```
+
+In `paper.qmd`, set the format to one of these:
+
+```yaml
+format:
+  rticles::nejm_article: default
+```
+
+The result is a manuscript with the journal's required
+formatting, ready for submission.
 
 ## Building and sharing
 
-TODO: `docker build`, `devtools::build()`, Zenodo deposit
-with a DOI.
+The compendium can be built three ways:
 
-## With AI assistance {.unnumbered}
+**Render the paper locally.** Open `paper.qmd` in
+RStudio, click Render. Useful during writing.
 
-::: {.callout-tip}
-## Prompts to try
+**Run all the code.** `devtools::load_all()` plus
+sourcing the analysis scripts in order. Useful for
+regenerating cached results.
 
-1. Paste a messy 'scripts-and-data' project directory and ask
-   the LLM to convert it into an rrtools layout. Does it
-   preserve all existing files and correctly assign them to
-   `R/`, `analysis/`, or `data/`?
-2. Ask the LLM to draft a `README.Rmd` for a small study,
-   including a reproducibility section describing how to
-   rebuild the Docker image.
-3. Ask the LLM to write the `analysis/paper/paper.qmd`
-   frontmatter for a JAMA submission. Verify against an
-   `rticles` template.
+**Build the Docker image.** From the compendium root:
+
+```bash
+docker build -t readmissions:v1.0 .
+docker run -it -v $(pwd):/work readmissions:v1.0 \
+  R -e 'devtools::load_all(); rmarkdown::render("analysis/paper/paper.qmd")'
+```
+
+The Dockerfile pins the OS, the R version, the system
+libraries, and the package versions. A reader with
+Docker can rebuild exactly the environment that
+produced the paper.
+
+For deposition, follow the chapter 2 workflow: GitHub
+for the working repository, Zenodo for a DOI'd archive
+at submission, dbGaP/TCIA/etc. for any restricted-access
+primary data.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: package vs. compendium
+
+**Question.** Why does `rrtools` reuse the R package
+structure instead of inventing a new layout?
+
+::: {.content-visible when-format="html"}
+<details><summary>Answer</summary>
 :::
+
+Three practical reasons. First, the R package structure
+is the only widely-recognised layout in the R
+ecosystem; using it gives the compendium navigability
+for free. Second, the package gives dependency
+management: `DESCRIPTION:Imports` declares what is
+needed; `renv` (chapter 8) pins versions. Third, the
+package gives function management: helpers in `R/` are
+documented, tested, and importable into the analysis.
+A bespoke layout would have to reinvent all of this.
+The trade-off is that an `rrtools` compendium has
+package files that are not really being used as a
+package (no CRAN submission, no users importing it).
+That is a small cost for the structural payoff.
+
+::: {.content-visible when-format="html"}
+</details>
+:::
+:::
+
+## Worked example: a small compendium
+
+```r
+# scaffold
+rrtools::use_compendium("~/research/sim2026")
+setwd("~/research/sim2026")
+rrtools::use_analysis()
+rrtools::use_dockerfile()
+rrtools::use_readme_qmd()
+
+# add the simulation function
+usethis::use_r("simulate")
+# (write R/simulate.R with a documented function)
+devtools::document()
+
+# add the paper
+file.edit("analysis/paper/paper.qmd")
+# (write the manuscript using simulate() from the package)
+
+# render
+rmarkdown::render("analysis/paper/paper.qmd")
+
+# version control
+usethis::use_git()
+usethis::use_github(private = TRUE)
+git2r::add(path = ".")
+git2r::commit(message = "Initial compendium")
+
+# tag a milestone
+git2r::tag(name = "v0.1-draft",
+           message = "Initial draft for PI review")
+```
+
+The compendium is now: a self-contained directory, with
+package-style code organisation, a paper that uses the
+code, a Dockerfile that pins the environment, version-
+controlled, and tagged at a meaningful milestone. Total
+setup: about thirty minutes.
+
+## Alternatives to `rrtools`
+
+`rrtools` is not the only option. For different
+project shapes:
+
+**A plain Quarto book.** If the output is more book-
+like than paper-like (this practicum, for example), a
+Quarto book without the package backbone is simpler.
+Less infrastructure; less ceremony.
+
+**The Posit Quarto manuscript template.** A newer
+option specifically for research papers in Quarto. Less
+established than `rrtools` but well-maintained.
+
+**A project template specific to your group.** Many
+research groups have their own scaffolding. If yours
+does, use it for consistency with your colleagues.
+
+**The TIER Protocol.** A general research-compendium
+template, more elaborate than `rrtools`, popular in
+social sciences.
+
+For a typical biostatistical paper-with-code, `rrtools`
+is the modern default. For a book-length project, a
+Quarto book. For a group with conventions, the group's
+template.
+
+## Collaborating with an LLM on compendium setup
+
+LLMs handle the scaffolding well; the file-placement
+judgement is harder.
+
+**Prompt 1: converting a messy directory.** Paste a
+`tree` listing of your existing project directory and
+ask: 'restructure this into an rrtools compendium.
+Place each existing file in its appropriate location.'
+
+*What to watch for.* Files that fit none of the
+categories cleanly (logbook entries, exploratory
+notebooks, data-cleaning scripts that are part of the
+analysis but not in `R/`). The LLM will assign them
+somewhere; verify the assignment makes sense.
+
+*Verification.* Walk through the proposed layout
+yourself. Does each file belong where the LLM put it?
+Move any that do not.
+
+**Prompt 2: drafting a README.** Paste the project
+description and ask the LLM to draft a README.qmd that
+includes the standard sections: what the project is,
+how to build it, where the paper is, how to cite.
+
+*What to watch for.* The build instructions should be
+specific to your Dockerfile and your renv.lock. Generic
+instructions ('install R and run the script') are not
+enough.
+
+*Verification.* Have a colleague follow the README
+instructions on a fresh machine. The first version
+will probably fail in a small way; iterate.
+
+**Prompt 3: drafting `paper.qmd`.** Paste the analysis
+plan and a methods outline; ask the LLM to draft the
+methods section as Quarto with code chunks for the
+key results.
+
+*What to watch for.* The chunks should reference the
+data and functions in the compendium correctly. The
+chunks should be self-contained (do not depend on a
+hidden environment).
+
+*Verification.* Render the paper. Inspect the rendered
+output for correctness.
+
+## Principle in use
+
+Three habits define defensible compendium use:
+
+1. **Use a recognised layout.** `rrtools` or a Quarto
+   book; not a bespoke directory.
+2. **Make 'rebuild' a single command.** Whether
+   `docker run ...` or `make all`, a reader should be
+   able to regenerate the paper without reading the
+   code.
+3. **Tag the milestones.** Compendium plus git tag plus
+   Zenodo DOI gives a citable, durable artefact.
 
 ## Exercises
 
-1. Create a new rrtools compendium for a small completed
-   analysis of your own. Commit it to a fresh GitHub
-   repository.
-2. Write a one-paragraph `README.Rmd` introduction and the
-   skeleton of `paper.qmd` with one figure and one citation.
-3. Build the Docker image for the compendium and run an R
-   session inside it. Verify that `sessionInfo()` matches your
-   expectations.
+1. Create a new rrtools compendium for a small
+   completed analysis of your own. Commit it to a
+   fresh GitHub repository.
+2. Write a one-paragraph `README.qmd` introduction and
+   the skeleton of `paper.qmd` with one figure and one
+   citation.
+3. Build the Docker image for the compendium and run
+   an R session inside it. Verify that `sessionInfo()`
+   matches your expectations.
+4. Convert a 'scripts and data' project of your own
+   into rrtools layout. Document the per-file
+   reasoning.
+5. Pick a major journal in your field and use
+   `rticles` to scaffold a `paper.qmd` matching its
+   style.
 
 ## Further reading
 
 - [@marwick2018rrtools] --- the `rrtools` package.
-- [@marwick2018packaging] --- the original paper on research compendia.
+- [@marwick2018packaging] --- the original paper on
+  research compendia.
+- The `rticles` package documentation for journal-
+  specific templates.
+- Quarto's manuscript template at
+  `quarto.org/docs/manuscripts/`.
 
 ## Prerequisites answers {#sec-quiz-answers-07}
 
-1. A research compendium is a directory tree that bundles a
-   study's code, data, and narrative in one place, with a
-   standardised layout. The reader can rerun the analyses
-   and regenerate the paper with a single command. Marwick
-   et al. (2018) [@marwick2018packaging] argue the compendium
-   is the appropriate unit of reproducible research in R.
+1. A research compendium is a directory tree that
+   bundles a study's code, data, and narrative in one
+   place, with a standardised layout. The reader can
+   rerun the analyses and regenerate the paper with a
+   single command. Marwick et al. (2018) argue the
+   compendium is the appropriate unit of reproducible
+   research in R.
 2. An R package backbone (`DESCRIPTION`, `R/`), an
    `analysis/` directory for data and the paper, and a
-   Dockerfile for the computing environment. The package
-   backbone gives dependency management (`Imports:`); the
-   `analysis/` directory gives context; the Dockerfile gives
-   environment reproducibility.
-3. A regular R package exports functions for reuse by others;
-   it has no data or narrative. An `rrtools` compendium adds
-   `analysis/` (data + paper) and a Dockerfile, turning the
-   package into a self-contained study with its own paper.
-   The package structure is repurposed as an infrastructure
+   Dockerfile for the computing environment. The
+   package backbone gives dependency management
+   (`Imports:`); the `analysis/` directory gives
+   context; the Dockerfile gives environment
+   reproducibility. Together they make the compendium
+   self-contained.
+3. A regular R package exports functions for reuse by
+   others; it has no data or narrative. An `rrtools`
+   compendium adds `analysis/` (data + paper) and a
+   Dockerfile, turning the package into a
+   self-contained study with its own paper. The
+   package structure is repurposed as an infrastructure
    convenience, not for distribution on CRAN.
