@@ -1,0 +1,126 @@
+project:
+  type: book
+  output-dir: _book
+
+book:
+  title: 'Biostatistics Practicum'
+  subtitle: 'Everything that comes up in data analysis except modelling and inference'
+  author: 'R. Glenn Thomas'
+  date: today
+  date-format: 'YYYY-MM-DD'
+
+  # Cover image: drop the file at images/cover.png and uncomment
+  # cover-image: images/cover.png
+
+  site-url: https://rgtlab.org/practicum
+  repo-url: https://github.com/rgt47/practicum
+  repo-branch: main
+  repo-actions: [edit, issue]
+
+  search: true
+  page-navigation: true
+  bread-crumbs: true
+  sidebar:
+    style: docked
+    collapse-level: 1
+
+  chapters:
+    - index.qmd
+    - preface.qmd
+    - 00-intro.qmd
+
+    - part: 'Reproducibility Mindset'
+      chapters:
+        - 01-why.qmd
+        - 02-federal.qmd
+        - 03-team-science.qmd
+
+    - part: 'Data Science Workstation'
+      chapters:
+        - 04-workstation.qmd
+        - 05-git-solo.qmd
+        - 06-cloud.qmd
+
+    - part: 'Reproducible Infrastructure'
+      chapters:
+        - 07-rrtools.qmd
+        - 08-renv.qmd
+        - 09-docker.qmd
+        - 10-zzcollab.qmd
+
+    - part: 'Reproducible Reporting'
+      chapters:
+        - 11-quarto.qmd
+        - 12-rmd-workflow.qmd
+
+    - part: 'Data Wrangling and Graphics'
+      chapters:
+        - 13-wrangling.qmd
+        - 14-types.qmd
+        - 15-joins.qmd
+        - 16-graphics.qmd
+
+    - part: 'Analysis Practice'
+      chapters:
+        - 17-analysis-plan.qmd
+        - 18-cdisc.qmd
+        - 19-testing.qmd
+        - 20-ai-coding.qmd
+
+    - part: 'Case Studies and Synthesis'
+      chapters:
+        - 21-penguins.qmd
+        - 22-adni.qmd
+        - 23-synthesis.qmd
+
+    - references.qmd
+
+  appendices:
+    - credits.qmd
+
+format:
+  html:
+    theme:
+      - cosmo
+      - practicum.scss
+    code-link: true
+    code-copy: true
+    code-overflow: wrap
+    fig-width: 7
+    fig-height: 4.5
+    fig-align: center
+    tbl-cap-location: top
+    toc-depth: 3
+    anchor-sections: true
+    smooth-scroll: true
+
+  pdf:
+    documentclass: scrbook
+    classoption: [11pt]
+    geometry:
+      - paperwidth=6.5in
+      - paperheight=9in
+      - top=0.9in
+      - bottom=0.9in
+      - inner=0.9in
+      - outer=0.7in
+    include-in-header:
+      text: |
+        \usepackage{fontspec}
+        \setmonofont{DejaVu Sans Mono}[Scale=0.9]
+
+bibliography: references.bib
+csl: https://www.zotero.org/styles/apa
+
+execute:
+  freeze: auto
+  echo: true
+  warning: false
+  message: false
+
+knitr:
+  opts_chunk:
+    comment: '#>'
+    collapse: true
+    fig.retina: 2
+    dpi: 150

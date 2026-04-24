@@ -1,0 +1,131 @@
+# Plotting with ggplot2 and purrr {#sec-graphics}
+
+::: {.callout-note}
+## Sources
+
+Stat 545 Part VII; blog posts `16-plotsfrompurrr`,
+`38-tableplacementrmarkdown`; `zzlongplot` for longitudinal
+examples (@sec-adni).
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-16.
+
+1. How do you produce one plot per level of a categorical
+   variable, returning the results as a named list of
+   `ggplot` objects?
+2. What does `patchwork::wrap_plots()` provide that
+   `facet_wrap()` does not?
+3. Why might you save a figure as PDF rather than PNG for a
+   journal submission, and when would you choose PNG
+   instead?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Build publication-quality `ggplot2` figures for continuous,
+  categorical, and time-varying outcomes.
+- Generate many plots programmatically with `purrr::map()`
+  over a list of groups.
+- Compose multi-panel figures with `patchwork` and arrange
+  shared legends cleanly.
+- Produce PDF and PNG outputs at appropriate DPIs for journal
+  and Word submissions.
+- Build a house theme via `theme_*()` function and reuse it
+  across the book's figures.
+
+## Orientation
+
+A figure that survives peer review is a figure whose data,
+encoding, and aesthetic choices all serve the single claim
+the figure exists to make. This chapter covers the
+mechanical skills; the principles of effective visualisation
+are covered in the companion book.
+
+## One plot per group with purrr
+
+TODO: `split()` + `map()`, `group_by() |> group_map()`,
+named lists, saving with `walk2`.
+
+## Multi-panel figures with patchwork
+
+TODO: `+` for juxtaposition, `/` for stacking,
+`plot_layout(guides = 'collect')` for shared legends.
+
+## House themes
+
+TODO: defining `theme_practicum()`; using
+`theme_set(theme_practicum())` at the top of a `.qmd`.
+
+## Export formats: PDF, PNG, SVG
+
+TODO: when each is right; `ggsave()` defaults; DPI for
+journals.
+
+## Integrating with zzlongplot and zztable1
+
+TODO: when to reach for the in-house packages; what each
+gives you over rolling your own ggplot / `gt` table.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste a simple `ggplot` call and ask the LLM to wrap
+   it in a `purrr::map()` over a grouping variable,
+   returning a list of plots with descriptive names.
+   Verify that the names propagate through `walk2()` when
+   saving files.
+2. Ask the LLM to combine four plots into a 2x2 grid with
+   a single shared legend. Does it use `patchwork`,
+   `cowplot`, or a manual grid arrangement?
+3. Ask the LLM to produce a `theme_practicum()` function
+   with serif body text, sans-serif axis labels, and a
+   colour-blind-safe default palette. Verify the palette
+   passes the Coblis simulator for deuteranopia.
+:::
+
+## Exercises
+
+1. Using the `palmerpenguins` data, build a three-panel
+   patchwork: (a) scatter of body mass vs flipper length
+   coloured by species; (b) residuals from a linear fit
+   of (a); (c) QQ plot of residuals. Share the species
+   legend across all three.
+2. Write a function `plot_per_site(data, site_col,
+   outcome)` that returns a named list of ggplot objects
+   (one per site level) and a helper that saves each to
+   `figures/<site>.pdf`.
+3. Define `theme_practicum()` and apply it to three plots
+   from any prior exercise. Verify the plots render
+   consistently in HTML, PDF, and Word output.
+
+## Quiz answers {#sec-quiz-answers-16}
+
+1. Use `split(data, data$group) |> map(\(d) ggplot(d,
+    aes(x, y)) + geom_point())` to produce a named list
+   of plots, one per group. Alternatively, in a tidyverse
+   pipeline: `data |> group_by(group) |> group_map(\(d,
+    k) ggplot(d, aes(x, y)) + geom_point())` (note:
+   `group_map` returns a list, with names taken from the
+   group keys if you pass `.keep = TRUE` and post-process).
+2. `facet_wrap()` splits a single plot into panels by a
+   factor. Every panel shares the same `aes` mapping,
+   same geom, same scales. `patchwork::wrap_plots()`
+   composes *distinct* plots that can differ in every
+   respect (different geoms, different data, different
+   scales). Use `facet_wrap()` for small-multiples of the
+   same plot; `wrap_plots()` for multi-panel figures
+   showing different views.
+3. PDF is a vector format: it scales cleanly, looks
+   crisp at any zoom level, embeds fonts, and is what
+   journal production systems prefer for typeset PDFs.
+   PNG is raster: appropriate for embedding in Word
+   documents, PowerPoint slides, or web pages where
+   vector support is limited. Save PDF for LaTeX
+   submissions, PNG at 300 DPI for Word and web.

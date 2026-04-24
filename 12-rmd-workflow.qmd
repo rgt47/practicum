@@ -1,0 +1,120 @@
+# Rmd Workflow: Conversions and Tables {#sec-rmd-workflow}
+
+::: {.callout-note}
+## Sources
+
+Blog posts `17-rapidconversionRtoRmd`,
+`38-tableplacementrmarkdown`, `07-multilanguagequartodemo`.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-12.
+
+1. What is the quickest way to convert an existing `.R`
+   script into an `.Rmd` or `.qmd`, preserving comments as
+   prose?
+2. Why do tables and figures in rendered PDFs often appear in
+   unexpected places, and what do `fig.pos` and `tbl-pos` do?
+3. How do you ensure that a figure or table label defined in
+   an Rmd is clickable (hyperlinked) in both the HTML and the
+   PDF outputs?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Convert between `.R`, `.Rmd`, and `.qmd` quickly and
+  losslessly.
+- Control LaTeX float placement with `fig.pos`/`tbl-pos` and
+  inline anchoring (`[H]`).
+- Produce cross-referenced figures and tables that hyperlink
+  correctly in HTML, PDF, and Word outputs.
+- Switch a project's engine between `knitr` and Quarto without
+  rewriting chunks.
+- Run a multi-language document (R, Python, Julia) in a single
+  render.
+
+## Orientation
+
+A mature Rmd workflow is the difference between an analysis
+that can be quickly iterated on and one that is a maze of
+manual edits. This chapter collects the practical tricks that
+pay off on the fifth rendered version of a document.
+
+## Converting between formats
+
+TODO: `knitr::spin()` for `.R` → `.Rmd`; `knitr::purl()` for
+`.Rmd` → `.R`; `quarto convert` for `.ipynb` ↔ `.qmd`.
+
+## Float placement in PDF
+
+TODO: why LaTeX floats rearrange; `fig.pos = 'H'`; the
+`float` package; `tbl-pos: 'H'` in Quarto.
+
+## Cross-references
+
+TODO: `{#fig-scatter}` / `{#tbl-demog}` and their `@fig-`
+companions. When HTML and PDF disagree.
+
+## Engine choice: knitr vs Quarto
+
+TODO: differences in chunk options; options that work in both;
+migration strategies.
+
+## Multi-language documents
+
+TODO: a `.qmd` with R, Python, and Julia chunks, all talking
+to each other via `reticulate`.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste a `.R` script and ask the LLM to convert it to a
+   `.qmd` with appropriate chunk options. Compare to
+   `knitr::spin()`'s output. Does the LLM preserve all
+   comments as prose or silently drop some?
+2. Paste a PDF showing a misplaced figure and ask the LLM to
+   diagnose. Does it propose `fig.pos = 'H'`? If yes, does
+   it also warn that `H` requires `\usepackage{float}`?
+3. Ask the LLM to write a minimal multi-engine `.qmd` that
+   runs an R chunk, passes a value to Python via
+   `reticulate`, and prints the result. Verify the render
+   succeeds.
+:::
+
+## Exercises
+
+1. Take a recent `.R` analysis and convert it to a `.qmd`
+   via `knitr::spin`. Re-render. Note what `spin` handles
+   well and what needs manual cleanup.
+2. In a Quarto PDF, force every table to appear exactly
+   where declared in the source (no LaTeX float
+   rearrangement). Verify with a three-table document.
+3. Build a minimal reproducible example (MWE) of a
+   cross-reference that works in HTML but not in PDF. File
+   the bug upstream or post it on the Quarto discussion
+   forum.
+
+## Quiz answers {#sec-quiz-answers-12}
+
+1. `knitr::spin('script.R')` is the canonical fast path: it
+   turns a commented `.R` file into a rendered `.Rmd` by
+   treating any comment starting with `#'` as prose and
+   everything else as code chunks. For `.qmd`, the same
+   convention works under `quarto convert`.
+2. LaTeX treats figures and tables as floats and rearranges
+   them by default to avoid bad page breaks. `fig.pos = 'H'`
+   (requires the `float` package) and `tbl-pos: 'H'` in
+   Quarto YAML tell LaTeX 'place this exactly here, no
+   reflow'. In chunks, `fig.pos = 'htbp'` means 'try here,
+   then top, then bottom, then a float page' in order.
+3. Use Quarto's cross-reference system:
+   `{#fig-scatter}` on the figure plus `@fig-scatter` in the
+   prose. Quarto handles HTML and PDF (and Word) anchoring
+   with the same source syntax. Hand-rolled `\label{}` /
+   `\ref{}` works only in PDF.

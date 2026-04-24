@@ -1,0 +1,133 @@
+# Reproducible Reports with Quarto {#sec-quarto}
+
+::: {.callout-note}
+## Sources
+
+Stat 545 Chapter 4 (Jenny Bryan, UBC); blog posts
+`29-setupquarto`, `07-multilanguagequartodemo`,
+`17-rapidconversionRtoRmd`.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-11.
+
+1. What is 'literate programming', and how does a `.qmd` file
+   embody it?
+2. Given a Quarto document that contains R code and prose, what
+   single command renders it to an HTML file, and how does
+   Quarto decide which output format to produce?
+3. What is the purpose of `execute: freeze: auto` in a Quarto
+   document, and what problem does it solve?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Explain the relationship among R scripts, R Markdown,
+  Jupyter notebooks, and Quarto.
+- Create a `.qmd` file that produces HTML, PDF, and Word
+  outputs from the same source.
+- Control code chunks with chunk options.
+- Add cross-references to figures, tables, sections, and
+  equations that resolve in both HTML and PDF output.
+- Use `bibliography` and `csl` to cite published work.
+- Parameterise a report with YAML `params:` and render
+  multiple variants.
+- Cache computation with `freeze` to avoid re-running
+  expensive code on every render.
+
+## Orientation
+
+An analysis is not finished when the code runs. It is
+finished when a collaborator can reproduce the plots, tables,
+and paragraphs of your paper from your source files with one
+command. Quarto is the current standard tool for doing that
+in R.
+
+## Literate programming
+
+TODO: Knuth's original idea; mixing code and prose; contrast
+with the 'paste output into Word' workflow.
+
+## The minimum Quarto document
+
+TODO: a three-line `.qmd` that renders to HTML.
+
+## Code chunks and chunk options
+
+TODO: `echo`, `eval`, `include`, `warning`, `message`,
+`fig-cap`, `fig-width`, `cache`.
+
+## Cross-references
+
+TODO: `{#fig-...}`, `{#tbl-...}`, `{#eq-...}`, and the
+matching `@fig-...` references.
+
+## YAML front matter
+
+TODO: `title`, `author`, `date`, `format`, `bibliography`,
+`execute`, `params`.
+
+## Bibliographies and citations
+
+TODO: linking a `.bib`, `@ref`, `[@ref]`, style via `csl`.
+
+## Caching with freeze
+
+TODO: how `_freeze/` works, when to use `freeze: auto` vs
+`freeze: true`.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste the `.qmd` source of a report and ask the LLM to
+   add appropriate `fig-cap` and cross-references to each
+   figure. Render both versions and diff for unexpected
+   changes.
+2. Ask the LLM to set up a parameterised report that loops
+   over three datasets and generates one HTML file per
+   dataset. Check whether it uses Quarto's `params:`
+   feature.
+3. Give the LLM a Word document of a draft paper and ask
+   it to convert the prose into a `.qmd` with placeholders
+   for the R code that generated each figure. Verify every
+   figure caption survives.
+:::
+
+## Exercises
+
+1. Convert a short `.R` script into a `.qmd` that renders
+   to both HTML and PDF, with one figure caption and one
+   cross-reference.
+2. Add `bibliography: references.bib` and cite at least
+   one paper. Verify the reference appears in both HTML
+   and PDF outputs.
+3. Parameterise the document to take a `data_file`
+   parameter from YAML; render three versions from three
+   different CSV files using
+   `quarto render --to html -P data_file=foo.csv`.
+
+## Quiz answers {#sec-quiz-answers-11}
+
+1. Literate programming (coined by Knuth) interleaves code
+   with the prose that explains it, so the same source
+   file is the authoritative record of both the
+   computation and its interpretation. A Quarto `.qmd`
+   file embodies this by letting you write narrative
+   Markdown and executable R (or Python, Julia) code
+   chunks in one document.
+2. `quarto render file.qmd` produces the default output
+   format declared in the document's YAML `format:` key
+   (HTML if no `format:` is present). To force a format,
+   use `quarto render file.qmd --to html` (or `--to pdf`,
+   `--to docx`).
+3. `execute: freeze: auto` caches the executed output of
+   each code chunk into `_freeze/` on first render.
+   Subsequent renders reuse the cached output if the chunk
+   source is unchanged, avoiding re-running expensive code
+   during every render and making CI deployments fast.

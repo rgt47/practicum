@@ -1,0 +1,141 @@
+# CDISC Data Standards {#sec-cdisc}
+
+::: {.callout-warning}
+## Source material missing at scaffold time
+
+The intended source directory
+`~/Dropbox/prj/tch/01-phb228-stat-computing/phb228-2026/textbook/cdisc-lecture/`
+is not present. This chapter is a content skeleton based on
+general CDISC knowledge; please point me at the actual
+lecture materials and I will replace this with the
+course-specific content.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-18.
+
+1. What is CDISC, and what organisation sets its standards?
+2. What is the difference between SDTM and ADaM, and in
+   which order are they produced during a clinical trial?
+3. Why must clinical trial sponsors submit CDISC-compliant
+   data to the FDA?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Name the principal CDISC standards (CDASH, SDTM, ADaM,
+  Define-XML) and the point in the clinical trial workflow
+  at which each applies.
+- Read an SDTM domain dataset and identify the mandatory
+  variables.
+- Derive an ADaM dataset from SDTM input following the
+  ADaM Implementation Guide principles (traceability,
+  one-proc reporting, analysis-ready structure).
+- Locate and consult the CDISC standard documents at
+  cdisc.org.
+- Identify when an R analysis pipeline must produce
+  CDISC-compliant output.
+
+## Orientation
+
+CDISC (the Clinical Data Interchange Standards Consortium)
+publishes the data standards that pharmaceutical sponsors
+must follow when submitting clinical trial data to the FDA.
+For a biostatistician working on regulated trials, CDISC
+fluency is non-optional; for academic biostatisticians it
+is less frequently required but still appears in
+investigator-initiated trials and industry collaborations.
+
+## What CDISC covers
+
+TODO: the standards suite.
+
+| Standard     | Purpose                                       |
+| ------------ | --------------------------------------------- |
+| CDASH        | Data collection (case report form standards)  |
+| SDTM         | Tabulation of source data                     |
+| ADaM         | Analysis-ready datasets                       |
+| Define-XML   | Metadata and documentation                    |
+| SEND         | Non-clinical (animal) study data              |
+
+## The SDTM data model
+
+TODO: domain structure (DM, AE, VS, LB, etc.); vertical vs
+horizontal organisation; mandatory variables.
+
+## The ADaM data model
+
+TODO: the three principles (analysis-ready, traceability,
+one-proc reporting); ADSL; BDS and OCCDS structures.
+
+## Define-XML
+
+TODO: machine-readable metadata describing every dataset,
+variable, code list, and derivation.
+
+## CDISC in R
+
+TODO: Pharmaverse ecosystem (`admiral`, `metatools`,
+`metacore`, `xportr`); `haven` for reading SAS transport
+files; `zzlongplot` and `zztable1` for CDISC-styled output.
+
+## When you need CDISC and when you do not
+
+TODO: FDA submissions vs academic trials; SNF vs IIS; the
+'regulatory defensibility' continuum.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste the variable list of a non-CDISC clinical dataset
+   and ask the LLM to map it onto SDTM domains. Does it
+   correctly identify DM, AE, VS, LB assignments? Which
+   variables does it leave unmapped?
+2. Ask the LLM to derive a simple ADSL (Subject-Level
+   Analysis Dataset) from a SDTM DM domain. Does the
+   result satisfy the three ADaM principles?
+3. Paste a Define-XML snippet and ask the LLM to summarise
+   what it specifies. Does it understand the
+   `ItemGroupDef`, `ItemDef`, `MethodDef` elements?
+:::
+
+## Exercises
+
+1. Download a publicly available SDTM example dataset
+   (CDISC Pilot Project) and identify the mandatory
+   variables in the DM, AE, and VS domains.
+2. Using the DM domain from exercise 1, derive an ADSL
+   following the three ADaM principles. Document every
+   derivation in a comment.
+3. Produce a Table 1 from the ADSL using `zztable1` with
+   `theme = 'regulatory'`. Compare the output to a
+   CDISC-style reference table.
+
+## Quiz answers {#sec-quiz-answers-18}
+
+1. CDISC (Clinical Data Interchange Standards Consortium)
+   is a global non-profit that develops standards for
+   clinical research data. Its standards cover data
+   collection (CDASH), tabulation (SDTM), analysis
+   (ADaM), and metadata (Define-XML). Membership
+   includes pharmaceutical sponsors, CROs, regulators
+   (FDA, PMDA), and academic institutions.
+2. SDTM (Study Data Tabulation Model) represents source
+   data from a clinical trial in a standardised tabular
+   format, organised by domain (Demographics, Adverse
+   Events, Laboratory, etc.). ADaM (Analysis Data Model)
+   represents analysis-ready datasets derived from SDTM,
+   structured so a single SAS or R procedure produces
+   the final analytic table. SDTM is produced first;
+   ADaM is derived from it.
+3. Since December 2016 the FDA has required CDISC-
+   compliant SDTM and ADaM data as part of electronic
+   submissions for NDAs (New Drug Applications) and BLAs
+   (Biologics License Applications). Non-compliant
+   submissions are refused and must be resubmitted.

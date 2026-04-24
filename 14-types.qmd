@@ -1,0 +1,119 @@
+# Factors, Strings, and Dates {#sec-types}
+
+::: {.callout-note}
+## Sources
+
+Stat 545 Chapters 10-13 (Jenny Bryan, UBC); the `forcats`,
+`stringr`, and `lubridate` packages.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-14.
+
+1. Why has `stringsAsFactors = FALSE` been the default since
+   R 4.0, and what problems did the old default cause?
+2. What does `stringr::str_detect()` return, and how does it
+   differ from `stringr::str_extract()`?
+3. Given `c('2026-04-23', '04/23/2026', 'April 23, 2026')`,
+   write one `lubridate`/`readr` pipeline that parses all
+   three into `Date` objects.
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Manage factors idiomatically with `forcats` (reorder,
+  lump, relevel, drop).
+- Use `stringr` verbs confidently for detection, extraction,
+  replacement, splitting, and interpolation.
+- Parse dates robustly with `lubridate`, including mixed
+  formats and time zones.
+- Diagnose and fix the common 'character vs factor vs ordered
+  factor' decision that causes modelling errors downstream.
+
+## Orientation
+
+After the numeric columns, the next most common source of
+analysis bugs is the handling of text, categories, and
+dates. This chapter covers the three packages that make each
+category tractable. Master them and roughly one-third of
+biomedical data cleaning becomes routine.
+
+## Factors with forcats
+
+TODO: `fct_reorder`, `fct_lump`, `fct_relevel`, `fct_drop`,
+`fct_infreq`. When to convert, when to keep as character.
+
+## Strings with stringr
+
+TODO: `str_detect`, `str_extract`, `str_replace`,
+`str_split`, `str_glue`, and the regex fundamentals you
+need.
+
+## Dates with lubridate
+
+TODO: `ymd`, `mdy`, `dmy`, `as_date`, `parse_date_time`,
+time-zone handling, intervals.
+
+## Common pitfalls
+
+TODO: Excel dates as numbers; mixed-locale month names;
+midnight-boundary bugs.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste a factor column with eight levels whose counts
+   are highly skewed and ask the LLM to collapse small
+   levels into 'Other'. Does it use `fct_lump_n()`,
+   `fct_lump_min()`, or hand-rolled logic?
+2. Ask the LLM to write a regex that extracts a US ZIP
+   code from a free-text address column. Test with 10
+   realistic inputs; count false positives and negatives.
+3. Paste a date column with mixed formats and `NA`s and
+   ask the LLM to parse it. Does it use
+   `lubridate::parse_date_time()` with multiple formats,
+   or brittle `ifelse` chains?
+:::
+
+## Exercises
+
+1. Using `palmerpenguins::penguins`, reorder the `species`
+   factor by mean body mass (ascending) using
+   `fct_reorder()`. Produce a bar plot that reflects the
+   new order.
+2. A character column contains hospital names like
+   `'UC San Diego Medical Center'`, `'UCSD Jacobs'`,
+   `'U.C.S.D.'`. Write a regex-based cleaning pipeline
+   that collapses these into a single level `'UCSD'`.
+3. A dataset has a `visit_date` column in mixed formats.
+   Write a pipeline that parses everything with
+   `parse_date_time()` and flags rows that fail to parse.
+
+## Quiz answers {#sec-quiz-answers-14}
+
+1. Before R 4.0, `read.csv()` and `data.frame()` converted
+   character columns to factors by default, causing
+   surprise when levels were invented, ordered, or
+   appeared where a character string was expected (e.g.,
+   as merge keys). Downstream analysts had to remember
+   `stringsAsFactors = FALSE` or suffer silent coercion.
+   R 4.0 made `FALSE` the default; the old default is
+   remembered only when reading elderly code.
+2. `str_detect(string, pattern)` returns a logical vector
+   of the same length as `string`: `TRUE` where the
+   pattern matched, `FALSE` elsewhere. `str_extract()`
+   returns a character vector: the first matching substring
+   per input, or `NA_character_` where there was no match.
+   `str_detect` is for filtering; `str_extract` is for
+   pulling out parts.
+3. `parse_date_time(x, orders = c('ymd', 'mdy', 'Bdy'))`
+   (or with `readr::parse_date` and multiple format
+   strings). `lubridate::parse_date_time()` tries each
+   order against each input and returns the first that
+   parses.

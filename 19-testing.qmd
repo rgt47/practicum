@@ -1,0 +1,139 @@
+# Testing Data Analysis Workflows {#sec-testing}
+
+::: {.callout-note}
+## Sources
+
+PHB 243B Lecture 8 (`slides.qmd`, `scripts/`); blog post
+`40-testingfordataanalysisworkflow`; the `testthat` package.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-19.
+
+1. Why would you test a one-off data analysis script that
+   will only ever run on a single dataset?
+2. What is the difference between a unit test, an
+   integration test, and an end-to-end test in the context
+   of a data analysis pipeline?
+3. What does `testthat::expect_snapshot()` capture, and
+   when is a snapshot test preferable to a direct
+   value-comparison test?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Write unit tests for analytic helper functions with
+  `testthat`.
+- Add an integration test that exercises the full data
+  pipeline on a small synthetic dataset.
+- Use `expect_snapshot()` to capture complex outputs
+  (printed objects, plots, summary tables).
+- Run the test suite locally via `testthat::test_local()`
+  and in CI via GitHub Actions.
+- Identify test smells (tests that pass for the wrong
+  reason, tests that hide bugs, flaky tests).
+
+## Orientation
+
+Tests are how you convince a reader (including future-you)
+that your code actually does what you think it does.
+Analysis code rarely gets tests, and the lack of them is a
+major source of reproducibility failures. This chapter
+brings the habits of software engineering to bear on the
+practice of data analysis.
+
+## Why test analyses?
+
+TODO: three reasons: catch regressions after refactors,
+document expected behaviour, catch upstream data changes.
+
+## Unit tests with testthat
+
+TODO: `test_that()` blocks, `expect_equal`,
+`expect_error`, `expect_true`.
+
+## Integration tests on synthetic data
+
+TODO: creating a small fake dataset that exercises every
+branch; running the pipeline end-to-end in under a second.
+
+## Snapshot tests
+
+TODO: `expect_snapshot()`, `expect_snapshot_value()`, when
+to accept a change and when to investigate.
+
+## Testing plots
+
+TODO: `vdiffr::expect_doppelganger()` for visual
+regression testing.
+
+## Continuous integration
+
+TODO: `usethis::use_github_action_check_standard()`; a
+minimal workflow that runs tests on every push.
+
+## Test smells
+
+TODO: tautological tests, brittle snapshots, overly
+permissive tolerances, tests that mock the thing being
+tested.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste an analytic helper function and ask the LLM to
+   write `testthat` tests that 'cover the edge cases'.
+   Delete a line from the function and re-run the tests;
+   do they catch the regression?
+2. Paste a data-cleaning pipeline and ask the LLM to write
+   an integration test on a small synthetic dataset.
+   Check: does the test actually exercise every cleaning
+   step, or only the happy path?
+3. Ask the LLM to diagnose a flaky test (pastes the test
+   plus its random failures). Does it identify the source
+   of non-determinism?
+:::
+
+## Exercises
+
+1. Add unit tests for two functions from an existing
+   analysis of yours. Aim for at least: a happy-path
+   test, an edge-case test, and an error-path test.
+2. Write an integration test: a 20-line synthetic dataset
+   that exercises every branch of your pipeline. Run the
+   full pipeline in under a second.
+3. Set up GitHub Actions with
+   `usethis::use_github_action_check_standard()`. Push
+   and verify the workflow runs green.
+
+## Quiz answers {#sec-quiz-answers-19}
+
+1. Even a one-off analysis benefits from tests: they
+   catch regressions when you refactor mid-analysis,
+   they serve as executable documentation of expected
+   behaviour, and they detect silent failures when
+   upstream data changes format. The cost of writing a
+   handful of tests is small; the cost of silently
+   mis-analysing data is much larger.
+2. A unit test exercises a single function with known
+   inputs and checks the output. An integration test
+   runs a pipeline segment (multiple functions) on
+   synthetic data and checks the pipeline's output. An
+   end-to-end test runs the full analysis pipeline from
+   raw data to final figures/tables. Unit tests are fast
+   and narrow; end-to-end tests are slow and broad;
+   integration tests sit in between.
+3. `expect_snapshot()` captures the output of an
+   expression (printed text, numerical result, plot) to
+   a file on first run. On subsequent runs it compares
+   the new output against the saved snapshot. Use it
+   when the output is complex (a printed object, a plot,
+   a formatted table) and not easily expressed as a
+   literal value. Review changes manually when they
+   occur.

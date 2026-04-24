@@ -1,0 +1,121 @@
+# Team Science for Biostatisticians {#sec-team-science}
+
+::: {.callout-note}
+## Sources
+
+PHB 243B Lecture 2 team-science materials
+(`~/Dropbox/prj/tch/02-phb243b-biostat/lec02/team-science-skills.qmd`
+and supporting PDF).
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-03.
+
+1. What distinguishes a 'collaborative' biostatistician role
+   from a 'consulting' role?
+2. Name three communication skills essential for
+   biostatisticians on interdisciplinary research teams.
+3. Why does team science succeed or fail on clear expectations
+   about authorship and credit?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Describe the spectrum of biostatistician involvement
+  (consultant, collaborator, co-investigator, PI).
+- Explain ICMJE authorship criteria and apply them to a
+  hypothetical paper.
+- Hold a structured intake conversation with a new clinical
+  collaborator.
+- Write a short scope-of-work document that pre-empts common
+  misunderstandings.
+
+## Orientation
+
+Most biostatisticians spend the majority of their careers on
+teams with people who cannot read their code and do not share
+their vocabulary. Effective collaboration across this gap is
+a learned skill, not a personality trait. This chapter covers
+the norms, conversations, and documents that make interdisciplinary
+research teams work.
+
+## The collaboration spectrum
+
+TODO: consulting vs collaboration vs co-investigator vs PI.
+
+## ICMJE authorship and the statistician
+
+TODO: the four criteria; when a statistician qualifies; when
+acknowledgement is the right call.
+
+## The intake conversation
+
+TODO: the first meeting; what to ask; red flags.
+
+## Scope of work documents
+
+TODO: writing an SOW that clarifies inputs, outputs,
+deadlines, and revisions.
+
+## Communicating statistical results to non-statisticians
+
+TODO: the effect-size-first principle; uncertainty bands over
+p-values; plots over tables.
+
+## Handling disagreement
+
+TODO: when to push back; how to pick your battles.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste a short draft of a results section and ask the LLM to
+   flag any claim that overstates the evidence. Check its
+   edits against your own reading: does it catch the same
+   sins?
+2. Ask the LLM to role-play a sceptical PI asking why you
+   insist on a pre-registered analysis plan. Practise your
+   response until you can defend the plan in two sentences.
+3. Ask the LLM to draft an ICMJE-criteria-based authorship
+   contribution statement for a hypothetical paper with six
+   authors. Evaluate whether each contribution is distinct
+   and meaningful.
+:::
+
+## Exercises
+
+1. Take a paper you have contributed to and draft a
+   CRediT-format contribution statement for every author,
+   based only on the paper's content.
+2. Write a one-page intake document you would share with a new
+   clinical collaborator before the first meeting.
+3. Find a published paper whose results are overstated
+   relative to the evidence. Write a two-paragraph critique
+   suitable for a peer review.
+
+## Quiz answers {#sec-quiz-answers-03}
+
+1. Consulting is typically transactional: a question is
+   brought, a statistical analysis is delivered, and the
+   relationship ends. Collaboration is sustained: the
+   statistician is a team member involved across study
+   design, data collection, analysis, and manuscript writing,
+   and shares authorship responsibility for the final
+   product.
+2. Active listening (understanding the scientific question
+   before proposing a method), precise writing (producing
+   analysis plans and memos that non-statisticians can
+   audit), and calibrated language (distinguishing 'verified',
+   'likely', 'assumed', and 'unknown' in reports).
+3. Authorship determines credit in an academic system where
+   credit allocates grants, promotions, and prestige.
+   Unresolved authorship disputes sour collaborations and
+   sometimes terminate them. ICMJE-style agreement at the
+   outset (and written down) avoids the confrontation at the
+   end.

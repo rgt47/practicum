@@ -1,0 +1,121 @@
+# renv for Package Management {#sec-renv}
+
+::: {.callout-note}
+## Sources
+
+PHB 243B Lectures 6, 12; `renv.pdf` in lec02; the in-house
+`zzrenvcheck` package at `~/prj/sfw/08-zzrenvcheck/`.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-08.
+
+1. What does `renv::init()` do to a project directory, and
+   what new files does it create?
+2. What is stored in `renv.lock`, and why is the lock file
+   version-controlled while `renv/library/` is not?
+3. What is the difference between `renv::snapshot()` and
+   `renv::restore()`?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Initialise `renv` in a new or existing project.
+- Snapshot and restore a project's package state.
+- Diagnose lockfile issues with `renv::status()` and
+  `zzrenvcheck`.
+- Handle packages installed from GitHub and Bioconductor.
+- Write a Docker layer that restores a project's `renv`
+  cleanly.
+
+## Orientation
+
+Package versions drift. A project that worked in January may
+fail in July because a dependency introduced a breaking
+change. `renv` pins the exact versions your project uses and
+writes them to a lockfile, so `renv::restore()` reproduces the
+environment on any machine. This chapter covers the common
+workflow and the in-house `zzrenvcheck` tool that audits it.
+
+## Initialising renv
+
+TODO: `renv::init()`, `.Rprofile` activation, the project
+library.
+
+## Snapshotting and restoring
+
+TODO: `renv::snapshot()`, `renv::restore()`, conflict
+resolution.
+
+## renv.lock in depth
+
+TODO: structure of the JSON; Package, Version, Source,
+Repository, RemoteType fields.
+
+## Audit with zzrenvcheck
+
+TODO: what `zzrenvcheck::check()` looks for: missing packages,
+uncommitted changes, outdated snapshots.
+
+## renv + Docker
+
+TODO: two-stage Docker build; `COPY renv.lock` then
+`renv::restore()`.
+
+## Migrating an existing project
+
+TODO: from `DESCRIPTION`/`Depends:` to renv.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste an `renv.lock` and ask the LLM to identify any
+   packages that are more than one minor version behind the
+   current CRAN release. Decide which to upgrade.
+2. Paste `renv::status()` output showing a disagreement
+   between the lockfile and the library. Ask the LLM to
+   diagnose and propose a fix.
+3. Ask the LLM to write a Dockerfile layer that restores an
+   `renv.lock` using the `rocker/r-ver:4.4.0` base image.
+   Check for common errors (missing system libraries, cache
+   invalidation).
+:::
+
+## Exercises
+
+1. Initialise `renv` in an existing project of yours. Commit
+   the lockfile. Clone the project on a clean machine (or
+   Docker container) and run `renv::restore()`. Verify that
+   the scripts still produce identical output.
+2. Add a GitHub-sourced package to your project
+   (`renv::install('user/repo')`), snapshot, and check that
+   the lockfile captures the commit SHA.
+3. Run `zzrenvcheck::check()` on your project. Fix any issues
+   it reports.
+
+## Quiz answers {#sec-quiz-answers-08}
+
+1. `renv::init()` creates an `renv/` subdirectory (with an
+   `activate.R` bootstrap script), an `.Rprofile` that calls
+   it, and an initial `renv.lock`. From then on the project
+   uses a private library isolated from the user's global
+   library.
+2. `renv.lock` is a JSON file listing the R version and the
+   exact package versions and sources used by the project.
+   It is plain text and is version-controlled. The
+   `renv/library/` directory contains the actual installed
+   binaries, which are large, platform-specific, and
+   reproducible from the lockfile, so they are in
+   `.gitignore`.
+3. `renv::snapshot()` reads the currently loaded packages and
+   writes them into `renv.lock`. You call it after
+   installing a new package. `renv::restore()` reads
+   `renv.lock` and installs exactly those packages into the
+   project library. You call it after cloning a project on a
+   new machine.

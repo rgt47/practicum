@@ -1,0 +1,179 @@
+# Case Study: Palmer Penguins {#sec-penguins}
+
+::: {.callout-note}
+## Sources
+
+PHB 243B Lectures 5, 7, 10; blog posts
+`08-palmerpenguinspart1` through
+`13-palmerpenguinsregression`, `14-penguins1zzcollab`; the
+`palmerpenguins` package [@horst2022palmerpenguins].
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-21.
+
+1. What data integrity issues does the
+   `palmerpenguins::penguins` dataset contain, and how
+   should they be handled?
+2. What is the appropriate directory structure for a Palmer
+   Penguins analysis compendium, and what one-line command
+   produces it?
+3. In a simple regression of `body_mass_g` on
+   `flipper_length_mm`, what is the first diagnostic plot
+   you should produce before interpreting any coefficient?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Scaffold a reproducible compendium for the Palmer
+  Penguins dataset using `zzcollab`.
+- Produce a Table 1 of penguin demographics (species, sex,
+  island) using `zztable1`.
+- Produce exploratory scatter plots coloured and faceted by
+  species.
+- Fit and diagnose a simple linear regression of body mass
+  on flipper length, with species as a stratification
+  factor.
+- Deposit the final compendium to Zenodo with a DOI.
+
+## Orientation
+
+The Palmer Penguins dataset [@horst2022palmerpenguins] is
+the successor to `iris`: it has enough structure to
+illustrate the full arc of an analysis (wrangling,
+descriptives, inference, reporting) without the colonial
+baggage that accompanies Fisher's dataset. This chapter
+works the dataset end-to-end as a template for every
+subsequent analysis you will do.
+
+## The dataset
+
+TODO: 344 penguins, three species, two islands, 2007-2009.
+Variables: bill length and depth, flipper length, body
+mass, sex, year.
+
+## Scaffolding with zzcollab
+
+```bash
+mkdir penguins-analysis
+cd penguins-analysis
+zzc analysis             # tidyverse + palmerpenguins profile
+make r                   # enter the container
+```
+
+TODO: verify Pillars are present with
+`zzrenvcheck::check()`.
+
+## Reading and cleaning
+
+TODO: `palmerpenguins::penguins` has 11 rows with missing
+sex or other variables. Decide complete-case vs imputation
+before analysis.
+
+## Table 1 with zztable1
+
+```{r eval=FALSE}
+library(zztable1)
+
+table1(
+  data    = penguins,
+  vars    = c('bill_length_mm', 'bill_depth_mm',
+              'flipper_length_mm', 'body_mass_g', 'sex'),
+  strata  = 'species',
+  overall = TRUE,
+  output  = 'latex'
+) |>
+  zztab2fig::to_pdf('figures/table1.pdf')
+```
+
+TODO: show the produced table and discuss the formatting
+choices.
+
+## Exploratory scatter plots
+
+TODO: `ggplot(penguins, aes(flipper_length_mm, body_mass_g,
+colour = species)) + geom_point() + facet_wrap(~ island)`.
+Observations: three species cluster by flipper length;
+Gentoos are the heaviest.
+
+## Linear regression: flipper length predicts mass
+
+TODO: `lm(body_mass_g ~ flipper_length_mm + species,
+data = penguins)`; interpret the species main effect; no
+interaction.
+
+## Diagnostic plots
+
+TODO: `plot(fit)` quartet. Look for non-linearity,
+non-constant variance, heavy tails, influential points.
+
+## Reporting
+
+TODO: the compendium's `analysis/paper/paper.qmd` renders
+HTML and PDF with Table 1, the scatter plot, and a
+regression coefficient table. `make render` inside the
+container to reproduce.
+
+## Deposit
+
+TODO: Zenodo + DOI + a README that explains how to
+reproduce in under two commands.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste the penguins data dictionary and ask the LLM to
+   suggest three additional plots that could reveal
+   interesting structure. Evaluate: are the suggestions
+   motivated by the variables, or are they generic ggplot
+   templates?
+2. Ask the LLM to propose a sensible imputation strategy
+   for the 11 rows with missing sex. Does it consider
+   MICE, single imputation from sex-specific mass
+   distributions, or complete-case analysis?
+3. Give the LLM the fitted regression and ask it to write
+   the paper's results paragraph. Check: does it correctly
+   handle the reference level (`Adelie`), report CIs
+   rather than just p-values, and avoid overclaiming?
+:::
+
+## Exercises
+
+1. Reproduce this chapter's compendium from scratch. Run
+   `make render` and verify the outputs match the ones
+   checked into the reference repository.
+2. Extend the analysis: fit an interaction model
+   `body_mass_g ~ flipper_length_mm * species`. Test the
+   interaction; report AIC against the main-effects model.
+3. Write a second Table 1 stratifying by year (2007, 2008,
+   2009) rather than species. What does the difference
+   between the two tables tell you about the data
+   collection design?
+
+## Quiz answers {#sec-quiz-answers-21}
+
+1. `palmerpenguins::penguins` contains 11 rows with at
+   least one missing value (most commonly `sex`). The
+   appropriate handling is first to document the missing
+   pattern (`visdat::vis_miss()`), then to choose a
+   strategy before analysis: complete-case if the
+   missingness is MCAR and the fraction is small;
+   imputation if more than ~5% of rows are affected or if
+   missingness is informative.
+2. A `zzcollab` compendium with the `analysis` profile:
+   `mkdir penguins && cd penguins && zzc analysis`
+   produces the Five Pillars (@sec-zzcollab). The
+   command completes in under a minute and the resulting
+   directory renders out of the box.
+3. A residuals-vs-fitted plot. It reveals non-linearity,
+   non-constant variance, and systematic lack of fit in
+   a single view. Only once the residual plot looks
+   featureless (and the other three diagnostic plots
+   agree) should you interpret the regression
+   coefficient as a flipper-length effect on body mass.

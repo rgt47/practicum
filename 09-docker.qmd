@@ -1,0 +1,121 @@
+# Docker for Reproducibility {#sec-docker}
+
+::: {.callout-note}
+## Sources
+
+Blog posts `32-sharermdcodeviadocker`,
+`33-shareshinycodeviadocker`; `rocker` project; PHB 243B L12
+Docker + renv demo.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-09.
+
+1. What is the difference between a Docker image and a Docker
+   container?
+2. Why might a data analyst prefer Docker over `renv` for
+   long-term reproducibility, and what does Docker capture
+   that `renv` alone does not?
+3. What does the base image `rocker/tidyverse:4.4.0` give you
+   out of the box?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Pull a `rocker` base image and start an R session inside a
+  container.
+- Write a `Dockerfile` that layers system dependencies, R
+  packages via `renv`, and your project source.
+- Run RStudio Server in a container accessible from a
+  browser.
+- Use Docker Compose for multi-service analyses (R + database,
+  R + Shiny).
+- Deposit a built image in Docker Hub or GitHub Container
+  Registry for persistent distribution.
+
+## Orientation
+
+`renv` pins R packages but not the operating system, the
+system libraries, or the R build itself. Docker captures all
+three. For analyses that must reproduce exactly years later,
+or that depend on tricky system libraries (e.g.,
+geospatial), Docker is the right tool.
+
+## Images, containers, and layers
+
+TODO: Docker's mental model.
+
+## The rocker project
+
+TODO: `rocker/r-ver`, `rocker/rstudio`, `rocker/tidyverse`,
+`rocker/geospatial`.
+
+## Writing a Dockerfile for a research compendium
+
+TODO: base image, system deps, `renv::restore()`, COPY
+source, CMD.
+
+## Running RStudio Server in a container
+
+TODO: `docker run -d -p 8787:8787 -e PASSWORD=xxx
+rocker/rstudio:4.4.0`.
+
+## Sharing a container
+
+TODO: Docker Hub, GitHub Container Registry, Zenodo deposit.
+
+## Docker Compose for multi-service analyses
+
+TODO: R + Postgres example.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste an `renv.lock` and a project structure and ask the
+   LLM to write a Dockerfile that builds reproducibly. Audit
+   the result: does it pin OS versions? Does it take
+   advantage of build-cache layering?
+2. Ask the LLM to diagnose a Docker build error pasted
+   inline. Does it identify whether the issue is with a
+   system dependency, a missing R package, or an `renv`
+   configuration?
+3. Ask the LLM to compare the tradeoffs of `rocker/r-ver`,
+   `rocker/rstudio`, and `rocker/tidyverse` for a specific
+   project. Check the answer against the README in each
+   image.
+:::
+
+## Exercises
+
+1. Dockerise a simple existing analysis of yours. Build the
+   image, run it, and verify it produces identical output.
+2. Run RStudio Server in a Docker container, connect from
+   your browser, and render one Quarto document inside.
+3. Push your image to Docker Hub. Pull it from a different
+   machine and verify it reproduces the analysis.
+
+## Quiz answers {#sec-quiz-answers-09}
+
+1. A Docker image is an immutable read-only template that
+   includes an OS, system libraries, and application code.
+   A container is a running instance of an image, with its
+   own writable filesystem layer. Many containers can be run
+   from one image; terminating a container does not modify
+   the image.
+2. `renv` captures R packages only. Docker captures the
+   operating system, system libraries (BLAS, geospatial
+   libs, compilers), the R build itself, *and* R packages.
+   When an analysis depends on a specific OS or system lib,
+   only Docker can guarantee bit-identical reproduction
+   years later.
+3. `rocker/tidyverse:4.4.0` provides: Ubuntu LTS; R 4.4.0;
+   RStudio Server; and the tidyverse package suite
+   pre-installed. A container starts immediately without
+   package installation, useful for teaching and for
+   rapid-turnaround collaborative analyses.

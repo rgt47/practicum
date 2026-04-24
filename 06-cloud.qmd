@@ -1,0 +1,123 @@
+# Cloud Compute and Remote Servers {#sec-cloud}
+
+::: {.callout-note}
+## Sources
+
+Blog posts `22-serversetupawscli`, `23-serversetupawsconsole`,
+`48-ttyd_setup`, and `20-researchbackupsystem`.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-06.
+
+1. What is the main reason a biostatistician might move a
+   long-running simulation to a cloud instance rather than
+   running it on a laptop?
+2. What is the difference between the AWS Management Console
+   and the AWS CLI, and when would you use each?
+3. How do you run an R script on a remote server without
+   keeping your SSH session open?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Launch an EC2 instance appropriate for a statistical
+  workload.
+- Connect to a remote server by SSH and run an R session
+  there.
+- Run a long job with `nohup`, `screen`, or `tmux` so it
+  survives a dropped connection.
+- Cost a cloud job approximately before launching it.
+- Transfer data to and from an instance with `scp` or `rsync`.
+
+## Orientation
+
+Some analyses outgrow a laptop: multi-core simulations,
+genome-scale pipelines, multi-hour deep learning fits. Cloud
+compute is the pragmatic answer, but it adds its own
+complications: costs, security, data transfer, and process
+management. This chapter covers the minimum you need to use
+cloud compute safely.
+
+## When to use cloud compute
+
+TODO: compute-bound vs memory-bound vs latency-sensitive
+tradeoffs.
+
+## The AWS Management Console in one page
+
+TODO: EC2, IAM, security groups, key pairs.
+
+## The AWS CLI in one page
+
+TODO: `aws configure`, `aws ec2 run-instances`, tagging.
+
+## Long-running jobs
+
+TODO: `nohup`, `screen`, `tmux`, process survival.
+
+## Data transfer
+
+TODO: `scp`, `rsync`, `aws s3 cp`, cost implications.
+
+## Cost control
+
+TODO: spot instances, budget alerts, auto-shutdown scripts.
+
+## Alternatives to AWS
+
+TODO: Google Cloud, Azure, DigitalOcean, university HPC.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste a simulation script's runtime profile and ask the
+   LLM to recommend an EC2 instance type. Verify its
+   recommendation against the current AWS pricing page.
+2. Ask the LLM to write a shell script that launches an EC2
+   instance, runs a single R script on it, and shuts the
+   instance down when finished. Audit the script for cost
+   risks (what if the script fails partway?).
+3. Ask the LLM to explain the difference between an instance
+   store volume and an EBS volume. Verify the answer against
+   current AWS documentation.
+:::
+
+## Exercises
+
+1. Launch a `t3.medium` EC2 instance in the AWS free tier
+   (or equivalent). Install R, clone a GitHub repository, and
+   run a simple analysis. Shut the instance down when
+   finished. Document every cost.
+2. Run a 1-hour simulation on an EC2 instance using `nohup`.
+   Disconnect your laptop and reconnect; verify the
+   simulation is still running.
+3. Set up an S3 bucket and transfer a dataset to and from
+   your EC2 instance. Compute the data-transfer charge.
+
+## Quiz answers {#sec-quiz-answers-06}
+
+1. Cloud compute provides more resources (CPU, RAM, storage)
+   than a laptop, on demand, without capital investment. A
+   10-hour simulation on a laptop can be a 1-hour simulation
+   on an 8-core cloud instance, and the laptop stays free
+   for other work. Cloud compute also keeps research data off
+   personal machines and provides audit logs.
+2. The AWS Management Console is a browser-based GUI; good
+   for one-off instance launches, inspecting state, and
+   learning the platform. The AWS CLI is a command-line tool;
+   essential for automation, scripting, and reproducible
+   infrastructure setup. Most professional workflows use the
+   CLI for routine work and the Console for debugging.
+3. Use `nohup Rscript analysis.R > analysis.log 2>&1 &` to
+   detach the process from the shell, or launch inside a
+   `tmux` or `screen` session that persists after logout.
+   The process continues running; its output goes to the log
+   file; you reconnect later with `tail -f analysis.log` or
+   `tmux attach`.

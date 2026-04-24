@@ -1,0 +1,115 @@
+# Why Reproducible Research {#sec-why}
+
+::: {.callout-note}
+## Sources
+
+PHB 243B Lecture 2 (`~/Dropbox/prj/tch/02-phb243b-biostat/lec02/`,
+including `lecture_2.qmd`, `team-science-skills.qmd`,
+`renv.pdf`, `rrtools.pdf`).
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-01.
+
+1. What does 'reproducible' mean in the context of a
+   statistical analysis, and how is it different from
+   'replicable'?
+2. What three artefacts must you share to make an analysis
+   fully reproducible?
+3. Why is a reproducible analysis not necessarily a correct
+   analysis? Give an example where the two diverge.
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Distinguish among reproducibility, replicability, and
+  correctness.
+- List the ingredients of a minimum reproducible compendium.
+- Argue the case for reproducibility to a sceptical principal
+  investigator.
+- Diagnose the common threats to reproducibility: missing
+  seeds, unpinned package versions, undocumented manual steps.
+
+## Orientation
+
+Reproducibility is the lowest bar a scientific analysis must
+clear. It says nothing about whether the analysis is correct,
+important, or even sensible; it only says that a second
+analyst with the same inputs can obtain the same outputs. And
+yet a substantial minority of published biomedical analyses
+fail this bar when audited. Fixing that is cheap but only if
+you build in the habits up front.
+
+## What 'reproducible' actually means
+
+TODO: reproducibility vs replicability (Goodman, Fanelli, and
+Ioannidis 2016); the Stodden/Claerbout hierarchy; why the
+biostatistician is the team member responsible.
+
+## The anatomy of a reproducible analysis
+
+TODO: code + data + environment; minimum compendium; when
+each is missing.
+
+## Common failure modes
+
+TODO: unpinned seeds, manual steps, 'works on my machine',
+floating dependencies.
+
+## The cost-benefit case
+
+TODO: reproducibility as selfishness (future-you), not
+altruism.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste the methods section of a recent biomedical paper and
+   ask the LLM to list every piece of information you would
+   need to reproduce the primary analysis. Score the paper:
+   fraction of items present vs absent.
+2. Ask the LLM to design a minimum reproducible compendium for
+   a small clinical trial analysis. Does it mention
+   `renv.lock`, a Dockerfile, a README, and a session-info
+   file?
+3. Give the LLM a plausible but incomplete R script and ask
+   'what would prevent this from running on another machine?'
+   Compare its answer to your own audit.
+:::
+
+## Exercises
+
+1. Take the last analysis you wrote. List every piece of
+   information that is not in the script but would be needed
+   to reproduce the output. For each item, say how you would
+   capture it programmatically.
+2. Find a published paper in your field with public code. Try
+   to reproduce one figure. Log what went wrong.
+3. Write a one-page policy statement for a research group on
+   what 'reproducible' means and what every team member must
+   do before submitting an analysis.
+
+## Quiz answers {#sec-quiz-answers-01}
+
+1. A reproducible analysis is one where a collaborator given
+   the same data and code can obtain identical output on their
+   own machine. Replicable is stronger: it means the
+   conclusions hold when the study is repeated with new data.
+   Reproducibility is about the computational chain;
+   replicability is about the scientific claim.
+2. Code, data, and the computational environment (R version,
+   package versions, operating system). Without all three,
+   results may differ silently on another machine.
+3. Reproducible means the analysis can be run again and
+   produce the same answer. A correct analysis uses a valid
+   statistical method on appropriate data. A reproducible
+   analysis can still be wrong (e.g., it consistently applies
+   the wrong test); a correct analysis can fail reproducibility
+   if random seeds are not set or package versions are not
+   pinned.

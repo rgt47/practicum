@@ -1,0 +1,62 @@
+# Introduction {#sec-intro}
+
+::: {.callout-note}
+## Sources
+
+Derived from PHB 243B lecture 1 (Introductions) and the course
+syllabus.
+:::
+
+## What is 'practicum'?
+
+A practicum is a supervised, hands-on course of study. This
+book is a practicum in the fullest sense: it teaches skills
+that cannot be acquired by reading, only by doing. Every
+chapter ends with exercises that require you to sit at a
+keyboard and produce an artefact, whether that is a Git
+commit, a Docker container, or a finished analysis report.
+
+## What this book covers
+
+This book covers the practical craft of biostatistical data
+analysis:
+
+- Reproducible research infrastructure: Git, `renv`, Docker,
+  `rrtools`, `zzcollab`.
+- Data wrangling: the tidyverse stack.
+- Reporting: Quarto and R Markdown.
+- Analysis planning: writing and executing a Statistical
+  Analysis Plan.
+- Communication: figures that survive peer review.
+- Professional norms: team science, federal requirements for
+  reproducibility.
+- AI-assisted workflows: how to use LLMs in daily coding
+  without sacrificing rigour.
+
+## What this book does not cover
+
+- The statistical theory underlying specific models (linear,
+  generalised linear, mixed, survival). For that, see the
+  companion book **Statistical Computing in the Age of AI**
+  or a standard reference.
+- Experimental design, sample-size calculation, or causal
+  inference beyond what is needed to execute an analysis plan.
+
+## How to read this book
+
+For each chapter, the recommended workflow is:
+
+1. **Read** the chapter through once, without running code.
+2. **Replicate** the examples in your own environment. Type,
+   do not copy-paste.
+3. **Do** the exercises without consulting an LLM.
+4. **Extend** by pasting the AI-assisted practice prompts into
+   an LLM and critiquing the responses.
+
+## The Prereq quiz pattern
+
+Every chapter opens with three open-ended **Prerequisites**
+questions, in the style of *Advanced R* [@wickham2019advr].
+Answer them honestly; if all three are easy, you can bypass
+the chapter. Answers appear in the terminal `Quiz answers`
+section of each chapter.

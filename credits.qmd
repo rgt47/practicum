@@ -1,0 +1,41 @@
+# Credits {.unnumbered}
+
+## Cover
+
+TODO: add source and licence of the cover image here once
+chosen.
+
+## Portraits
+
+The portraits of foundational figures in reproducible research
+and the R ecosystem appear in this book with attribution to
+their original sources. Each image is reproduced under the
+terms stated; please contact the book author for removal if any
+attribution is incorrect.
+
+| Figure            | Where             | Source                                   | Licence          |
+| ----------------- | ----------------- | ---------------------------------------- | ---------------- |
+| Jenny Bryan       | @sec-git-solo     | TODO                                     | TODO             |
+| Ben Marwick       | @sec-rrtools      | TODO                                     | TODO             |
+| JJ Allaire        | @sec-quarto       | TODO                                     | TODO             |
+| Yihui Xie         | @sec-rmd-workflow | TODO                                     | TODO             |
+| Hadley Wickham    | @sec-wrangling    | TODO                                     | TODO             |
+
+## Data sources
+
+- `palmerpenguins::penguins` under CC0.
+- Examples drawn from `ADNIMERGE` are subject to the ADNI Data
+  Use Agreement and are not redistributed.
+
+## Third-party tools used as examples
+
+- `rrtools` (Marwick), MIT license.
+- `renv` (Ushey, Posit), MIT license.
+- Quarto (Posit), MIT license.
+- In-house tools `zzcollab`, `zztable1`, `zzlongplot`,
+  `zzrenvcheck`, `zzgit`, `zztab2fig`: GPL-3.
+
+## Code snippets
+
+Unless otherwise stated, code blocks in this book are released
+under the MIT License.

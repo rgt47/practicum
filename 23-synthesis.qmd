@@ -1,0 +1,93 @@
+# Course Synthesis and Review {#sec-synthesis}
+
+::: {.callout-note}
+## Sources
+
+PHB 243B Lecture 19 (`slides.qmd`, `speaker_notes.qmd`).
+:::
+
+## Prerequisites
+
+No Prerequisites quiz for this chapter. Quiz answers appear
+anyway, in case you want to self-assess what you have taken
+away from the book. See @sec-quiz-answers-23.
+
+## What the Practicum covered
+
+This book took you through six arcs:
+
+1. **Reproducibility as a professional norm.** Why it
+   matters, what federal funders require, and what it
+   means to practise it in a research team (@sec-why,
+   @sec-federal, @sec-team-science).
+2. **A reproducible workstation.** Shell, editor, Git,
+   cloud (@sec-workstation through @sec-cloud).
+3. **Reproducible infrastructure.** Research compendia,
+   `renv`, Docker, `zzcollab` (@sec-rrtools through
+   @sec-zzcollab).
+4. **Reproducible reporting and wrangling.** Quarto,
+   Rmd workflow, the tidyverse, publication graphics
+   (@sec-quarto through @sec-graphics).
+5. **Analysis practice.** Statistical analysis plans,
+   CDISC data standards, testing workflows, AI-assisted
+   coding (@sec-analysis-plan through @sec-ai-coding).
+6. **Case studies.** Palmer Penguins and ADNI MCI
+   prediction (@sec-penguins, @sec-adni).
+
+## The habits you should take forward
+
+A concise list of practices that every chapter pointed at:
+
+- Every analysis lives in a compendium.
+- Every compendium is Dockerised before it leaves your
+  machine.
+- Every chunk of analysis code is under version control.
+- Every clinically meaningful analysis has a pre-specified
+  SAP, tagged in Git before data lock.
+- Every non-trivial function has at least one unit test.
+- Every figure in a paper is regenerable by `make render`.
+- Every LLM suggestion is treated as a hypothesis until
+  verified.
+
+## What this book did not cover
+
+- **Statistical theory and inference.** Covered in the
+  companion book *Statistical Computing in the Age of
+  AI*.
+- **Bayesian computation.** A topic area of comparable
+  weight to this entire book.
+- **Modern machine learning.** `tidymodels`, deep
+  learning, and MLOps are one-book subjects on their
+  own.
+- **Collaboration at industrial scale.** Multi-sponsor
+  pharma collaborations and contract research
+  organisations operate under CDISC conventions beyond
+  what @sec-cdisc introduces.
+
+## What to read next
+
+TODO: curated reading list for the next two years:
+
+- *R Packages* [@wickham2023rpkgs] for package development.
+- *R for Data Science* [@wickham2023r4ds] for tidyverse
+  deep dives.
+- *Advanced R* [@wickham2019advr] for the R language
+  itself.
+- *Happy Git with R* [@bryan2019happygit] for version
+  control in depth.
+- *The R Packages book* for expanding your package
+  practice.
+
+## Quiz answers {#sec-quiz-answers-23}
+
+(No quiz for this chapter; this section exists to keep
+cross-reference anchors consistent across the book. If you
+would like a self-assessment, write a two-sentence answer
+to each of the following.)
+
+1. If a former collaborator emails in three years asking
+   you to reproduce one of your figures, what three files
+   do you need to have kept?
+2. What is one practice from this book you will carry into
+   the next project you start?
+3. What is the next book on your reading list?

@@ -1,0 +1,114 @@
+# Research Compendia with rrtools {#sec-rrtools}
+
+::: {.callout-note}
+## Sources
+
+PHB 243B `rrtools.pdf` and Lecture 2; blog post
+`28-setupormodifytorrtoolsanalysisrepo`; Marwick, Boettiger,
+and Mullen (2018).
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-07.
+
+1. What is a 'research compendium' as described by Marwick,
+   Boettiger, and Mullen (2018) [@marwick2018packaging]?
+2. What are the three essential components of an `rrtools`
+   compendium?
+3. How does an `rrtools` compendium differ from a regular R
+   package?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Scaffold a new research compendium with
+  `rrtools::use_compendium()`.
+- Add analysis, data, and documentation to the compendium in
+  the right directories.
+- Write a paper as a Quarto document inside the compendium.
+- Build the compendium as a Docker image for long-term
+  reproducibility.
+
+## Orientation
+
+A research compendium is a single directory that bundles
+everything a reader needs to reproduce a study: code, data,
+text, and environment. The `rrtools` package turns an R
+package into a compendium by adding an `analysis/` directory
+for narrative and data, plus Docker integration for the
+environment.
+
+## What is a compendium?
+
+TODO: the three criteria (code, data, text in one place;
+computable; self-describing).
+
+## Scaffolding with rrtools
+
+TODO: `rrtools::use_compendium()` step by step.
+
+## The directory layout
+
+TODO: `R/`, `analysis/`, `data/`, `Dockerfile`, `README.Rmd`.
+
+## Adding a paper
+
+TODO: `analysis/paper/paper.qmd`; using `rticles` templates.
+
+## Building and sharing
+
+TODO: `docker build`, `devtools::build()`, Zenodo deposit
+with a DOI.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste a messy 'scripts-and-data' project directory and ask
+   the LLM to convert it into an rrtools layout. Does it
+   preserve all existing files and correctly assign them to
+   `R/`, `analysis/`, or `data/`?
+2. Ask the LLM to draft a `README.Rmd` for a small study,
+   including a reproducibility section describing how to
+   rebuild the Docker image.
+3. Ask the LLM to write the `analysis/paper/paper.qmd`
+   frontmatter for a JAMA submission. Verify against an
+   `rticles` template.
+:::
+
+## Exercises
+
+1. Create a new rrtools compendium for a small completed
+   analysis of your own. Commit it to a fresh GitHub
+   repository.
+2. Write a one-paragraph `README.Rmd` introduction and the
+   skeleton of `paper.qmd` with one figure and one citation.
+3. Build the Docker image for the compendium and run an R
+   session inside it. Verify that `sessionInfo()` matches your
+   expectations.
+
+## Quiz answers {#sec-quiz-answers-07}
+
+1. A research compendium is a directory tree that bundles a
+   study's code, data, and narrative in one place, with a
+   standardised layout. The reader can rerun the analyses
+   and regenerate the paper with a single command. Marwick
+   et al. (2018) [@marwick2018packaging] argue the compendium
+   is the appropriate unit of reproducible research in R.
+2. An R package backbone (`DESCRIPTION`, `R/`), an
+   `analysis/` directory for data and the paper, and a
+   Dockerfile for the computing environment. The package
+   backbone gives dependency management (`Imports:`); the
+   `analysis/` directory gives context; the Dockerfile gives
+   environment reproducibility.
+3. A regular R package exports functions for reuse by others;
+   it has no data or narrative. An `rrtools` compendium adds
+   `analysis/` (data + paper) and a Dockerfile, turning the
+   package into a self-contained study with its own paper.
+   The package structure is repurposed as an infrastructure
+   convenience, not for distribution on CRAN.

@@ -1,0 +1,124 @@
+# Git and GitHub for Solo Developers {#sec-git-solo}
+
+::: {.callout-note}
+## Sources
+
+PHB 243B Lecture 4 (`slides.qmd`, `branching_solo_handout.qmd`,
+`github_auth_handout.qmd`, Bryan's 'Excuse me, do you have a
+moment to talk about version control?', PLOS Git paper) and
+blog posts `25-setupgit`, `49-zzgit`.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-05.
+
+1. Why should a solo biostatistician use Git for a project
+   that no one else will ever see?
+2. What is the difference between a commit, a branch, and a
+   tag?
+3. Name one common scenario in which `git stash` saves you
+   from data loss.
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Initialise a Git repository, make commits, and push to
+  GitHub from the command line.
+- Use branches to experiment without risking your main line
+  of work.
+- Resolve a merge conflict in R source.
+- Authenticate to GitHub with an SSH key or a personal access
+  token.
+- Use `git tag` to mark release points (e.g., submission to a
+  journal).
+
+## Orientation
+
+Git is the time machine you wish you had the last time you
+overwrote a working analysis. For a solo developer it is
+still worth the learning investment: the branching workflow
+lets you try risky refactors without fear, and the history
+lets you answer 'when did this break?' in seconds rather than
+hours.
+
+## Why Git for solo work
+
+TODO: time-travel, branching for experiments, irreversible
+pre-submission tagging.
+
+## Minimum viable Git
+
+TODO: init, add, commit, log, status, diff.
+
+## Branching and merging
+
+TODO: `branch`, `switch`, `merge`, `rebase`. When to prefer
+each.
+
+## Remotes: GitHub, GitLab, Gitea
+
+TODO: push, pull, fetch, clone.
+
+## Authentication: SSH and PAT
+
+TODO: setting up an SSH key; creating a PAT.
+
+## Tagging for submissions
+
+TODO: `git tag -a v1.0 -m 'submitted to JBS'`.
+
+## When things go wrong
+
+TODO: `stash`, `reset`, `reflog`, `checkout` of old files.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste `git log --oneline -10` and `git status` and ask the
+   LLM to summarise the state of your repo in two sentences.
+2. Ask the LLM to resolve a synthetic merge conflict pasted
+   inline. Verify the proposed resolution against what you
+   would pick.
+3. Ask the LLM to describe what `git reflog` recovers in three
+   different scenarios. Check the answer against the official
+   `git-reflog` documentation.
+:::
+
+## Exercises
+
+1. Create a new GitHub repository, clone it locally, add a
+   single `.R` file, and push one commit. Verify the commit
+   appears on GitHub.
+2. Create and resolve a merge conflict intentionally: make a
+   branch, edit line 1 of `README.md`, commit, switch back to
+   main, edit line 1 differently, commit, and merge.
+3. Tag a completed analysis with `v1.0` and push the tag to
+   GitHub. Verify the tagged release is visible in the GitHub
+   UI.
+
+## Quiz answers {#sec-quiz-answers-05}
+
+1. Even for solo work, Git provides: a time machine (roll
+   back to any prior state), a branching workflow (try risky
+   refactors without fear), a structured log of what you did
+   and when, and an off-site backup if you push to a remote.
+   The cost is a one-time learning curve; the benefit
+   compounds for the rest of your career.
+2. A commit is a snapshot of the repository at a point in
+   time, with a parent commit, an author, a message, and a
+   unique hash. A branch is a movable pointer to a commit,
+   used to develop features or experiments in isolation. A
+   tag is an immovable pointer to a commit, used to mark
+   release points.
+3. You are in the middle of editing files but need to pull
+   changes from the remote or switch to another branch
+   urgently. `git stash` puts your uncommitted work
+   temporarily aside; `git stash pop` restores it later. This
+   avoids committing half-finished work just to unblock a
+   branch switch.

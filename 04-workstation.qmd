@@ -1,0 +1,125 @@
+# Setting Up Your Workstation {#sec-workstation}
+
+::: {.callout-note}
+## Sources
+
+PHB 243B Lecture 6 (`slides.qmd`, `student_checklist.md`) and
+blog posts `01-configtermzsh`, `03-installmintonmacbook`,
+`06-markdowntoblog`, `26-setupneovim`, `27-setupobs`,
+`30-setupRvimtex`, `31-setupyabai`, `37-simplevimplugin`,
+`45-setupultisnip`, `48-ttyd_setup`.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-04.
+
+1. When you install a new R package on your workstation, where
+   does R store the compiled binary by default, and how would
+   you check that location?
+2. What is a 'dotfile', and name three commonly dotfiled
+   tools a biostatistician might configure.
+3. How does an integrated development environment like
+   RStudio differ from a terminal-plus-editor combination such
+   as tmux + Neovim, and what tradeoffs does each impose?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Install and configure R, Quarto, Git, and a choice of editor
+  on a new workstation.
+- Reason about where R looks for packages (`.libPaths()`) and
+  why project-level libraries matter.
+- Version-control your personal configuration (dotfiles) and
+  sync it across machines.
+- Choose between RStudio and a terminal workflow for a given
+  task.
+
+## Orientation
+
+A poorly configured workstation silently adds friction to
+every analysis. Paths get hardcoded, package versions drift,
+and context-switching between projects becomes expensive. This
+chapter builds the minimum viable workstation of a professional
+biostatistician in 2026.
+
+## Installing R and Quarto
+
+TODO: Mac, Linux, Windows paths. Version pinning with `rig` on
+macOS.
+
+## Choosing an editor
+
+TODO: RStudio vs VS Code vs Neovim. When each is the right
+call.
+
+## Shells and terminal setup
+
+TODO: `zsh`, `bash`, starship, tmux.
+
+## Package library layout
+
+TODO: `.libPaths()`, user vs system libraries, project
+libraries via `renv`.
+
+## Version-controlled dotfiles
+
+TODO: GNU stow, `~/.dotfiles/`, public vs private configs.
+
+## Fonts, ligatures, and readable code
+
+TODO: JetBrains Mono, Fira Code, nerd fonts.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Ask the LLM to generate a `.zshrc` that sets up a tidy
+   prompt, history, and R-friendly aliases. Run it on a
+   scratch machine and inspect the behaviour.
+2. Paste your `sessionInfo()` and ask the LLM to identify any
+   package that is older than its current CRAN version by
+   more than one minor release. Decide what to upgrade.
+3. Ask the LLM to write a Neovim configuration for R editing
+   that includes syntax highlighting, a REPL pane, and snippet
+   expansion. Compare it against a curated reference like
+   Jose Sanchez-Mazas's R-Nvim.
+:::
+
+## Exercises
+
+1. From a fresh user account, install R, Quarto, and Git, and
+   render this book's index chapter. Document every manual
+   step you took.
+2. Set up a dotfiles repository. Include your editor config,
+   shell config, and Git config. Clone it on a second machine
+   and verify the configs apply.
+3. For a completed analysis of your own, identify three
+   hardcoded paths or machine-specific assumptions and
+   refactor them away.
+
+## Quiz answers {#sec-quiz-answers-04}
+
+1. R stores installed packages in the directory returned by
+   `.libPaths()[1]`, typically `~/Library/R/...` on macOS or
+   `~/R/x86_64-pc-linux-gnu-library/...` on Linux. With
+   `renv` active in a project, the project's private
+   library under `renv/library/` takes precedence.
+2. A dotfile is a hidden configuration file whose name begins
+   with a period (e.g., `.zshrc`, `.gitconfig`). Common
+   biostatistician dotfiles: `.Rprofile`, `.gitconfig`,
+   `.zshrc`/`.bashrc`, `.tmux.conf`, editor configs
+   (`init.vim`, `.vscode/settings.json`).
+3. RStudio provides an integrated IDE: editor, console, plots,
+   help, and Git panes in one window, with R-specific
+   conveniences. A terminal + Neovim + tmux workflow gives
+   more flexibility (remote editing over SSH, editing non-R
+   languages, scripting the environment) at the cost of a
+   steeper setup curve and less R-specific polish. RStudio is
+   optimal for project-focused interactive work; a terminal
+   workflow is optimal for server-based, multi-language, or
+   script-heavy work.

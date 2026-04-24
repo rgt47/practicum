@@ -1,0 +1,150 @@
+# Statistical Analysis Plans {#sec-analysis-plan}
+
+::: {.callout-note}
+## Sources
+
+PHB 243B Lectures 5 and 7 (Palmer Penguins SAP), Lectures
+13-17 (ADNI SAP); `analysis_plan_template.qmd` from
+`~/Dropbox/prj/tch/02-phb243b-biostat/lec05/` and `lec13/`.
+In-house `zzpower` for sample-size calculations.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-17.
+
+1. What is the primary purpose of a pre-registered
+   Statistical Analysis Plan (SAP)?
+2. Name at least five sections every clinical SAP should
+   contain.
+3. Why is it important, both scientifically and ethically,
+   to distinguish pre-specified from exploratory analyses
+   in the body of a SAP?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Draft a SAP using the 243B template as a starting point.
+- Pre-specify primary, secondary, and exploratory analyses
+  with enough detail that a collaborator could execute them
+  without further instruction.
+- Compute sample-size requirements with `zzpower` and report
+  them in the SAP.
+- Define missing-data strategies, sensitivity analyses, and
+  multiple-testing corrections explicitly.
+- Version-control the SAP and tag the submitted version
+  before data access.
+
+## Orientation
+
+The SAP is the professional biostatistician's most
+important non-code document. It locks in the analysis
+before the data are seen, so that the published results
+reflect hypotheses rather than post-hoc choices. Federally
+funded trials require it; so do most journals for
+confirmatory analyses; so should you for your own integrity.
+
+## Why pre-register?
+
+TODO: researcher degrees of freedom; garden of forking
+paths; the difference between confirmatory and exploratory
+work.
+
+## The SAP template
+
+TODO: structure of the 243B template:
+
+1. Background and rationale
+2. Research questions and hypotheses
+3. Study design / cohort definition
+4. Inclusion and exclusion criteria
+5. Primary outcome definition
+6. Secondary outcomes
+7. Covariates
+8. Primary analysis
+9. Secondary analyses
+10. Sensitivity analyses
+11. Missing-data handling
+12. Multiple testing
+13. Reporting
+
+## Sample size with zzpower
+
+TODO: `zzpower` for standard clinical trial designs
+(parallel-group, crossover, stratified); putting the
+calculation into the SAP with CI.
+
+## Pre-specified vs exploratory
+
+TODO: what each label means; the commitment a
+pre-specification implies; how to add exploratory analyses
+without contaminating the pre-specification.
+
+## Version control and tagging
+
+TODO: the SAP lives in Git; you tag `sap-v1.0-locked` at the
+moment of data lock; any later change goes into an
+amendment with a timestamp.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste a rough research question and ask the LLM to
+   draft the 'Inclusion/Exclusion' and 'Primary outcome
+   definition' sections. Audit: is the outcome operationally
+   defined enough that two analysts would produce the
+   same variable?
+2. Ask the LLM to compute the required sample size for a
+   given effect size, alpha, and power. Verify against a
+   `zzpower` calculation. Which answer does it use (normal
+   approximation, simulation, formula from a specific
+   textbook)?
+3. Ask the LLM to distinguish, for a given analysis plan,
+   which analyses are pre-specified and which are
+   exploratory. Do you agree with its classification?
+:::
+
+## Exercises
+
+1. Draft a SAP (skeleton only) for a hypothetical cluster
+   randomised trial of a patient-education intervention.
+   Use the 243B template.
+2. Use `zzpower` to compute the required sample size for
+   the primary analysis in exercise 1 under three
+   plausible effect sizes (small, medium, large). Include
+   the table in the SAP.
+3. Locate a published paper with a publicly available
+   SAP. Audit whether the paper's analyses match the
+   SAP. Identify any deviations; classify them as
+   amendments, exploratory, or unreported.
+
+## Quiz answers {#sec-quiz-answers-17}
+
+1. The SAP locks in the analysis plan before data access,
+   so that the eventual published results reflect
+   hypotheses formed in advance rather than post-hoc
+   choices made in the light of the data. It limits the
+   'garden of forking paths' that would otherwise inflate
+   Type-I error and enable p-hacking.
+2. (Any five of:) background and rationale; research
+   questions and hypotheses; study design / cohort
+   definition; inclusion/exclusion criteria; primary
+   outcome definition; secondary outcomes; covariates;
+   primary analysis; secondary analyses; sensitivity
+   analyses; missing-data handling; multiple-testing
+   correction; reporting/publication plan.
+3. Pre-specified analyses represent commitments made
+   before data access; they carry the full inferential
+   authority of the study's sampling plan. Exploratory
+   analyses are generated after seeing the data; they
+   are hypothesis-generating, not confirmatory, and
+   should be reported with appropriate caution.
+   Conflating the two misleads readers about the
+   evidential strength of the findings and is one of the
+   most common sources of reproducibility failure in
+   biomedical research.

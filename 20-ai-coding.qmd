@@ -1,0 +1,139 @@
+# AI-Assisted Coding {#sec-ai-coding}
+
+::: {.callout-note}
+## Sources
+
+Blog posts `46-ellmerinRcoding` (ellmer package),
+`36-simpleshinyappwithchatgpt`; the `ellmer` package from
+Posit; direct experience with Claude Code during the
+development of this book.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-20.
+
+1. What does the `ellmer` R package provide that a
+   browser-based chatbot does not?
+2. What are three classes of bug that large language models
+   routinely introduce into R code?
+3. Why is it important to write the first draft of a
+   non-trivial function without AI assistance before asking
+   an LLM to refine it?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Use an LLM as a code-review assistant rather than a code
+  generator.
+- Call an LLM programmatically from R with `ellmer`.
+- Set up Claude Code, ChatGPT, or a local LLM for
+  terminal-based workflows.
+- Identify and avoid the LLM-specific failure modes that
+  appear in R code (hallucinated APIs, silent type
+  coercions, misuse of functions with confusing defaults).
+- Adopt the 'verify, then trust' workflow for every piece
+  of AI-generated code.
+
+## Orientation
+
+Large language models are now capable of producing working
+R code for the majority of exercises in this book. This is a
+new fact, and it deserves an explicit response. The
+position taken here is: **use LLMs as an amplifier, not a
+replacement**. Treat every line of generated code as a
+hypothesis to be tested, not a result to be trusted.
+
+## The ellmer package
+
+TODO: `chat_claude()`, `chat_openai()`, `chat_gemini()`;
+programmatic interaction from R sessions; streaming tools.
+
+## Claude Code for book-sized work
+
+TODO: the terminal agent; multi-turn tool use; skills and
+hooks; when to reach for an interactive CLI over a chat
+window.
+
+## LLM failure modes in R
+
+TODO: hallucinated APIs, silent type coercion, `T` vs
+`TRUE`, misuse of `filter` in base vs `dplyr`, brittle
+regexes, tidyverse/base inconsistencies.
+
+## The verify-first workflow
+
+TODO: steps you do not skip even when the LLM gave you
+what looks like a working answer.
+
+1. Read the proposed code end-to-end before running it.
+2. Run it on the happy path.
+3. Run it on edge cases (NA, empty input, wrong type, zero
+   rows).
+4. Write a unit test that locks the behaviour in.
+5. Only then commit.
+
+## When *not* to reach for an LLM
+
+TODO: tasks where the cognitive cost of evaluating the
+output exceeds the cost of writing it yourself.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Ask an LLM to write a function you already know how to
+   write. Compare its code against yours. What would it
+   take to convince you to adopt the LLM's version?
+2. Paste a working R function and ask the LLM to critique
+   it. How much of the critique is correct, and how much
+   is stylistic opinion masquerading as correctness?
+3. Ask the LLM to generate five adversarial inputs that
+   break your function. Keep the ones that actually
+   break. Write tests for them.
+:::
+
+## Exercises
+
+1. Install `ellmer`. Write a short R function that uses
+   `chat_claude()` to summarise a block of code you paste
+   in. Keep the function under 20 lines.
+2. Pick a function from an earlier chapter and ask an LLM
+   to rewrite it. Score the rewrite against: correctness,
+   style, test coverage, documentation. Decide whether to
+   adopt the rewrite and why.
+3. Find an instance in your own recent code where an LLM
+   gave you working-looking but wrong code. Write up the
+   failure mode as a one-page case study for your
+   research group.
+
+## Quiz answers {#sec-quiz-answers-20}
+
+1. `ellmer` provides a standard R interface to multiple
+   LLM backends (Anthropic, OpenAI, Google, etc.) with
+   multi-turn history, streaming output, and tool-calling
+   support. It lets you invoke the model from scripts,
+   parameterise prompts with R values, and build a
+   programmatic layer over what would otherwise be
+   manual copy-paste. A browser chatbot is interactive
+   only.
+2. (Any three of:) hallucinated APIs (calling functions
+   or arguments that do not exist), silent type
+   coercions that change results subtly, misuse of
+   functions whose defaults differ from their names
+   (e.g., `t.test()` defaults to Welch's correction),
+   brittle regexes that look right but miss edge cases,
+   hybrid base/tidyverse code that conflicts (`filter`
+   from base vs `dplyr`), and pasting outdated package
+   APIs from the model's training cut-off.
+3. Writing the first draft yourself forces you to
+   understand the problem. Without that understanding,
+   you cannot evaluate the LLM's proposal: you will
+   accept plausible-looking code whose bugs you cannot
+   see. With it, you can judge the LLM's suggestion on
+   its merits and spot the small differences that
+   matter.

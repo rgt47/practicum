@@ -1,0 +1,120 @@
+# Federal Reproducibility Requirements {#sec-federal}
+
+::: {.callout-note}
+## Sources
+
+PHB 243B Lecture 3 (`~/Dropbox/prj/tch/02-phb243b-biostat/lec03/`,
+including `federal_reproducibility_requirements.qmd`,
+`namespace_vs_renv.Rmd`, `breaking_changes_whitepaper.Rmd`).
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-02.
+
+1. What does the 2022 OSTP 'Nelson memo' require of federally
+   funded research, and by when does each requirement take
+   effect?
+2. What are the main components of an NIH Data Management and
+   Sharing Plan (DMSP) under the 2023 policy?
+3. Why might a funded investigator prefer `renv` over simply
+   listing package dependencies in a `DESCRIPTION` file's
+   `Depends:` field?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Summarise the main federal (US) policies governing access to
+  publications, data, and code for federally funded research.
+- Draft a Data Management and Sharing Plan section that meets
+  NIH expectations.
+- Choose an appropriate public repository (Zenodo, OSF, Dryad,
+  GitHub) for a given artefact.
+- Identify when `renv` alone suffices and when Docker is
+  additionally required.
+
+## Orientation
+
+Federal agencies now require public access to the
+publications, data, and (increasingly) the code produced with
+federal funds. Meeting these requirements is not optional, and
+the biostatistician is often the team member best placed to
+implement them. This chapter covers the current policy
+landscape and the technical practices that satisfy it.
+
+## The 2022 OSTP Nelson memo
+
+TODO: immediate public access to publications and data;
+effective 2025.
+
+## NIH DMSP (2023)
+
+TODO: required for all grants; structure of the plan.
+
+## NSF and other agencies
+
+TODO: NSF's public access policy; CDC data sharing; FDA
+CDISC submissions.
+
+## Choosing a repository
+
+TODO: Zenodo, OSF, Dryad, institutional repositories. DOIs
+and minting.
+
+## Namespace vs renv
+
+TODO: why `DESCRIPTION:Imports` does not pin; why `renv.lock`
+does.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste a draft research proposal and ask the LLM to draft a
+   DMSP section that addresses each NIH element. Audit it:
+   does it mention preservation, access, licensing, and
+   metadata?
+2. Ask the LLM to compare three public data repositories for a
+   specific study design (e.g., a small pilot trial).
+   Evaluate: are the repository selection criteria complete?
+3. Ask the LLM to critique a sample DMSP that contains obvious
+   omissions (e.g., no mention of data access timeline).
+   Check whether it catches all omissions.
+:::
+
+## Exercises
+
+1. Locate the current NIH DMSP template and write a complete
+   plan for a hypothetical 100-patient observational study.
+2. Pick a recent biomedical paper. Check whether its data and
+   code are accessible at a persistent URL with a DOI. Classify
+   the level of compliance.
+3. For a completed analysis of your own, produce a
+   `sessionInfo.txt` and an `renv.lock` and add them to the
+   compendium. Confirm the lock file captures every attached
+   package.
+
+## Quiz answers {#sec-quiz-answers-02}
+
+1. The Nelson memo (August 2022) directs federal agencies to
+   require immediate, free public access to peer-reviewed
+   publications arising from federally funded research and to
+   the scientific data underlying those publications. Agencies
+   were given until the end of 2025 to implement these
+   requirements.
+2. An NIH DMSP must describe: the data types and amounts;
+   related tools/software/code; standards to be applied;
+   access, distribution, and reuse considerations; repositories
+   where data will be preserved; and timelines for data
+   sharing. It is submitted with the grant application and
+   becomes part of the funded award's terms.
+3. `renv.lock` records the exact versions of every package
+   (including their transitive dependencies) that were used to
+   produce an analysis, along with the R version itself.
+   `Depends:`/`Imports:` in a `DESCRIPTION` only list minimum
+   acceptable versions; the actual installed versions drift as
+   packages are updated, silently changing behaviour.

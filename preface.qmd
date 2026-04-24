@@ -1,0 +1,73 @@
+# Preface {.unnumbered}
+
+## Why this book?
+
+Most biostatistics graduate curricula teach statistical theory
+thoroughly and practical data-analysis craft casually. Students
+learn likelihood theory and the fine points of hypothesis
+testing but arrive at their first collaborative project unsure
+how to set up a project directory, commit changes with `git`,
+parameterise a report, or write a defensible statistical
+analysis plan.
+
+This book aims to close that gap. It teaches the practical
+skills needed to do reproducible biostatistical work in 2026:
+the tools, the workflows, and the professional norms. It
+assumes you will also take a theory-heavy statistical computing
+course (for UCSD students, PHB 228) and treats modelling as that
+course's territory.
+
+## What is different here
+
+- **Reproducibility is the organising principle.** Each chapter
+  is framed around producing analyses that a collaborator can
+  rerun and extend. This is the animating concern of modern
+  biostatistics.
+- **AI-assisted workflows are taught explicitly.** Students in
+  2026 will use large language models in their daily work.
+  Rather than pretend otherwise, the book dedicates a chapter
+  to using LLMs responsibly in R coding, and ends every chapter
+  with adversarial prompts designed to expose model limits.
+- **Real case studies.** Two full analyses (Palmer Penguins and
+  ADNI MCI prediction) are carried end-to-end, from project
+  scaffolding to final report.
+- **Federal context.** Biostatisticians working on federally
+  funded research must meet NIH/NSF reproducibility
+  requirements. A dedicated chapter covers what those
+  requirements are and how to satisfy them.
+
+## Prerequisites
+
+Readers should have:
+
+- An undergraduate statistics background.
+- Basic R familiarity (subsetting, the pipe, writing functions).
+  Readers who lack this should first work through the early
+  chapters of the companion book or *R for Data Science*
+  [@wickham2023r4ds].
+- Access to R 4.4+, RStudio (optional), and Git.
+
+No prior Docker, `renv`, or Quarto experience is assumed.
+
+## Conventions
+
+- **Bold** for new terms on first use.
+- `monospace` for code, file paths, and package names.
+- `function()` and `pkg::function()` for R functions.
+- Code follows the tidyverse style guide and the native R pipe
+  `|>`.
+
+## Acknowledgements
+
+This book draws heavily on Jenny Bryan's STAT 545
+[@bryan2019stat545] and *Happy Git with R*
+[@bryan2019happygit], Ben Marwick and colleagues' `rrtools`
+[@marwick2018rrtools; @marwick2018packaging], and Hadley
+Wickham's book family [@wickham2023r4ds; @wickham2023rpkgs].
+
+I thank the students of PHB 243B at UCSD, whose questions have
+shaped the material substantially.
+
+R. Glenn Thomas\
+La Jolla, California\
+Spring 2026

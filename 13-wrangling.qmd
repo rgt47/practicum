@@ -1,0 +1,128 @@
+# Data Wrangling Essentials {#sec-wrangling}
+
+::: {.callout-note}
+## Sources
+
+Stat 545 Chapters 5-9 (Jenny Bryan, UBC) and blog posts
+`04-lowercasingdataframes`, `15-piping`, `43-dynamic-column-names`.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-13.
+
+1. What is 'tidy data' as defined by Wickham (2014)
+   [@wickham2014tidy], and how does it differ from a typical
+   'wide' clinical data layout?
+2. Write the `dplyr` pipeline that keeps only rows where
+   `age >= 18`, selects `age`, `sex`, and `outcome`, and
+   summarises outcome by sex.
+3. What does `tidyr::pivot_longer()` do, and when should
+   you reach for it rather than `pivot_wider()`?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Identify tidy and non-tidy data layouts.
+- Use the core `dplyr` verbs (`filter`, `select`, `mutate`,
+  `arrange`, `summarise`, `group_by`) idiomatically with the
+  native pipe `|>`.
+- Reshape data with `pivot_longer()` and `pivot_wider()`.
+- Pass dynamic column names to `dplyr` verbs using `{{ }}`
+  and `.data[[ ]]`.
+- Recognise common wrangling antipatterns and replace them
+  with tidy equivalents.
+
+## Orientation
+
+Real biomedical data arrive wide, irregular, and full of
+inconsistent coding. Most of a biostatistician's time is
+spent reshaping, joining, cleaning, and type-converting
+before a single model is fit. The tidyverse stack is the
+dominant toolkit for this work; fluency with it pays back
+on every project.
+
+## Tidy data: three rules
+
+TODO: Wickham (2014) rules; counter-examples; benefits.
+
+## The core dplyr verbs
+
+TODO: `filter`, `select`, `mutate`, `arrange`, `summarise`,
+`group_by`, `ungroup`.
+
+## The native pipe
+
+TODO: `|>` vs `%>%`; placeholder support in R 4.2+.
+
+## Reshaping with tidyr
+
+TODO: `pivot_longer()`, `pivot_wider()`, `names_sep`,
+`values_drop_na`.
+
+## Lowercasing column names and other hygiene
+
+TODO: `janitor::clean_names()` and why every dataset needs
+it on arrival.
+
+## Dynamic column names
+
+TODO: `{{ }}` (embrace), `.data[[name]]`, when each is
+appropriate.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste a wide clinical dataset (one row per patient,
+   columns for each visit) and ask the LLM to tidy it.
+   Check whether it uses `pivot_longer()` with correct
+   `names_sep` or `names_pattern` handling.
+2. Ask the LLM to write a helper function that takes a
+   column name as a string and a `dplyr` verb name and
+   runs the verb. Does it use `{{ }}`, `.data[[ ]]`, or
+   `rlang::sym()`? Which is correct?
+3. Paste messy column names like
+   `c('Patient ID', 'Age (yrs)', 'SBP mm Hg')` and ask
+   the LLM to clean them. Compare to
+   `janitor::clean_names()`.
+:::
+
+## Exercises
+
+1. Using the `palmerpenguins::penguins` data, compute the
+   mean bill length for each species-island combination,
+   dropping rows with missing bill length. Return a tidy
+   tibble with columns `species`, `island`, `mean_bill`,
+   `n`.
+2. Reshape a synthetic wide clinical dataset (one row per
+   patient, columns `bp_v1`, `bp_v2`, `bp_v3`) into long
+   format with one row per patient-visit.
+3. Write a function `summarise_col(df, col, fn)` that
+   accepts `col` as a bare column name and `fn` as a
+   function; apply it to the penguins data with
+   `col = bill_length_mm` and `fn = median`.
+
+## Quiz answers {#sec-quiz-answers-13}
+
+1. Tidy data satisfies three properties: each variable
+   forms a column, each observation forms a row, and each
+   type of observational unit forms a separate table. A
+   typical wide clinical layout has one row per patient
+   and one column per (variable, timepoint) pair, which
+   violates the first two properties: 'blood pressure at
+   visit 2' is not a variable, and one patient's row
+   contains many observations.
+2. `df |> filter(age >= 18) |> select(age, sex, outcome)
+    |> group_by(sex) |> summarise(mean_outcome =
+    mean(outcome, na.rm = TRUE))`.
+3. `pivot_longer()` reshapes from wide to long: columns
+   become values in a new column. Use it when columns
+   encode a variable (like visit number) that should be a
+   row index. Use `pivot_wider()` when rows encode a
+   variable that should be a column (e.g., computing a
+   difference between two visit values).

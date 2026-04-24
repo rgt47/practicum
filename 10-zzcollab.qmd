@@ -1,0 +1,216 @@
+# The zzcollab Framework {#sec-zzcollab}
+
+::: {.callout-note}
+## Sources
+
+In-house `zzcollab` framework at `~/prj/sfw/07-zzcollab/zzcollab/`
+(version 0.1.x). Blog posts `14-penguins1zzcollab` and
+`42-zzedcindependence`. This chapter describes `zzcollab` as it
+exists at time of writing; check the framework's `CHANGELOG.md`
+for current status.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-10.
+
+1. What are the *Five Pillars* that `zzcollab` identifies as
+   essential for a reproducible research compendium, and what
+   does each pillar capture that the other four do not?
+2. How does `zzcollab` relate to `rrtools`, `renv`, and
+   Docker? Does it replace them, wrap them, or compose them?
+3. What is the difference between the `analysis` and
+   `modeling` profiles shipped with `zzcollab`, and when
+   would you pick one over the other?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Scaffold a new research project with
+  `zzc <profile>` in one command.
+- Explain and audit the Five Pillars of a `zzcollab`
+  compendium.
+- Choose the appropriate profile (minimal, analysis,
+  modeling, publishing, shiny) for a given study.
+- Use the project `Makefile` targets (`make r`, `make
+  check-renv`, `make render`) to interact with the
+  container.
+- Extend `zzcollab` with a custom bundle that encodes your
+  research group's conventions in `templates/bundles.yaml`.
+
+## Orientation
+
+`zzcollab` is an opinionated research-compendium framework.
+It packages the ideas of `rrtools`, `renv`, and Docker into
+a single command-line workflow, trading flexibility for
+speed of setup and consistency across a research group's
+projects. You get less control over the directory layout
+than with bare `rrtools`; in exchange, every project in your
+group looks the same, collaborators know where things live,
+and you can go from `mkdir` to a reproducible container in
+under five minutes.
+
+## The Five Pillars
+
+`zzcollab` identifies five components as jointly necessary
+for reproducibility. A compendium missing any one is
+incomplete.
+
+| Pillar           | Role                                           |
+| ---------------- | ---------------------------------------------- |
+| `Dockerfile`     | Operating system, system libraries, R build    |
+| `renv.lock`      | Exact versions of every R package              |
+| `.Rprofile`      | Project-local R configuration (activates renv) |
+| Source code      | Analysis scripts and functions                 |
+| Data             | Raw and processed data (or DOI pointers)       |
+
+TODO: one paragraph per pillar with a minimal working
+example of what the pillar contains.
+
+## Profiles and bundles
+
+The command `zzc <profile>` scaffolds a project using one of
+five profiles. Each profile is defined in
+`templates/bundles.yaml` as a combination of a *system
+library bundle* (Linux packages installed via `apt-get`) and
+an *R package bundle* (R packages installed via `renv`).
+
+Current profiles (abbreviated from `bundles.yaml`):
+
+| Profile      | System libs     | R packages                     |
+| ------------ | --------------- | ------------------------------ |
+| `minimal`    | git, curl       | base R only                    |
+| `analysis`   | + XML/SSL deps  | tidyverse, palmerpenguins      |
+| `modeling`   | + libgsl-dev    | + glmnet, lme4, survival       |
+| `publishing` | + texlive, pandoc, libv8-dev | + quarto tooling |
+| `shiny`      | + nodejs        | + shiny, bslib, reactlog       |
+
+TODO: discuss when each is the right choice, with one-line
+guidance per profile.
+
+## The first-project walkthrough
+
+The minimum viable `zzcollab` session:
+
+```bash
+mkdir penguins-analysis
+cd penguins-analysis
+zzc analysis              # scaffold (Five Pillars appear)
+make r                    # enter R session inside Docker
+                          # ... do analysis ...
+make check-renv           # audit the compendium
+make render               # build final Quarto output
+```
+
+TODO: one paragraph per step describing what happens on
+disk and in the container.
+
+## The project `Makefile`
+
+Every `zzcollab` project gets a `Makefile` with a small set
+of targets:
+
+| Target         | Action                                         |
+| -------------- | ---------------------------------------------- |
+| `make help`    | List all targets                               |
+| `make r`       | Drop into R inside the project's container     |
+| `make rstudio` | Launch RStudio Server (port 8787)              |
+| `make render`  | Render `analysis/` to HTML and PDF             |
+| `make check-renv` | Validate `renv.lock` against the library    |
+| `make docker-build` | Rebuild the container (use after adding system deps) |
+
+TODO: cover the non-obvious targets with short examples.
+
+## Extending zzcollab
+
+For a research group with local conventions (a preferred
+database client, a set of in-house packages), fork
+`zzcollab` and add a custom bundle to
+`templates/bundles.yaml`. A bundle is three to ten lines
+of YAML plus a description; adding one takes minutes and
+saves every downstream project from re-enumerating the
+same dependencies.
+
+TODO: a worked example of adding a `phb228` bundle that
+includes `palmerpenguins`, `lme4`, and a local styling
+package.
+
+## When zzcollab is not the right tool
+
+`zzcollab` is overkill for:
+
+- Interactive exploration (just open RStudio).
+- One-off scripts (just write a script).
+- Teaching examples whose point is the code, not the
+  infrastructure.
+
+It is the right tool for: collaborative analyses that will
+be passed between team members, analyses that must survive
+for months or years after the lead analyst has moved on,
+and any analysis subject to federal reproducibility
+requirements (@sec-federal).
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Ask the LLM to map an existing (non-`zzcollab`) analysis
+   directory onto the Five Pillars framework. For each
+   pillar, what is missing? What would you need to add to
+   the project to make it `zzcollab`-compliant?
+2. Ask the LLM to compare `zzcollab`, `rrtools`, and
+   `workflowr` for a specific project type (say, a small
+   RCT with three tables and four figures). Check the
+   comparisons against each tool's README.
+3. Paste `templates/bundles.yaml` and ask the LLM to
+   design a `neuroimaging` profile. Does it propose
+   plausible system libraries (FSL, AFNI), R packages
+   (`oro.nifti`, `fmri`), and a sensible base image?
+:::
+
+## Exercises
+
+1. Scaffold a `zzcollab` analysis project for the Palmer
+   Penguins dataset. Run `make r`, load the data, produce
+   a single scatter plot, and save it to `analysis/`.
+2. Take an existing analysis of yours and migrate it into a
+   `zzcollab` compendium. Confirm every Pillar is present
+   and run `make check-renv` to validate.
+3. Design a custom bundle for your research niche (e.g.,
+   'survival analysis with heavy tidymodels use'). Add it
+   to a fork of `zzcollab` and use it for a real project.
+
+## Quiz answers {#sec-quiz-answers-10}
+
+1. The Five Pillars are: (1) a **Dockerfile** (captures OS
+   and system libs), (2) an **renv.lock** (captures R
+   package versions), (3) an **.Rprofile** (activates renv
+   and sets project-local R options), (4) **source code**
+   (the actual analysis), and (5) **data** (raw and
+   processed, or DOI pointers when data cannot be shared).
+   Each pillar captures a layer that the others do not:
+   Docker covers the OS below R, `renv` covers R itself,
+   `.Rprofile` covers R's runtime configuration, source
+   code is the work product, and data is the input. Remove
+   any one and the analysis cannot be reproduced.
+2. `zzcollab` *composes* the other three. It uses
+   `rrtools` for the package-backed compendium layout,
+   `renv` for R package management, and Docker for
+   environment reproduction. On top of these it adds
+   profile-based shortcuts (five ready-made bundles), a
+   build system (`Makefile`), and validation commands
+   (`make check-renv`). It does not replace any of the
+   three tools; it removes the manual wiring between them.
+3. The `analysis` profile provides tidyverse-focused R
+   packages and is the right default for descriptive
+   analyses, data wrangling, and straightforward reporting.
+   The `modeling` profile adds `glmnet`, `lme4`,
+   `survival`, and `libgsl-dev` system support, and is
+   appropriate for regression, mixed-effects, or survival
+   analyses that need compiled model-fitting packages.
+   Choose `modeling` when you will fit non-trivial models;
+   otherwise choose `analysis` for faster container builds.
