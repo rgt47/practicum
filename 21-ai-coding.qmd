@@ -111,6 +111,11 @@ output exceeds the cost of writing it yourself.
    failure mode as a one-page case study for your
    research group.
 
+## Further reading
+
+- `ellmer` documentation at `ellmer.tidyverse.org` --- the R-native interface to LLMs.
+- Anthropic Claude Code documentation at `docs.claude.com/en/docs/claude-code` --- the CLI agent used to develop this book.
+
 ## Quiz answers {#sec-quiz-answers-21}
 
 1. `ellmer` provides a standard R interface to multiple

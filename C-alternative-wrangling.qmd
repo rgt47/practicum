@@ -1,0 +1,202 @@
+# Alternative Wrangling Paradigms {#sec-alternative-wrangling}
+
+::: {.callout-note}
+## Why this appendix exists
+
+The practicum teaches the tidyverse as its default wrangling
+stack, because that is the idiom most biostatistics students
+and collaborators read and write in 2026. But a meaningful
+fraction of R code in the wild uses different tools: base R
+(always), `data.table` (industry, performance-critical code,
+several CRAN packages internally), `arrow` (Parquet and
+Python interop), and, more recently, `polars` for R.
+
+The goal here is **reading-level fluency**, not conversion.
+A finishing biostatistics student should be able to open an
+R script written by someone else and recognise whatever
+paradigm the author chose. Writing idiomatic `data.table`
+is a separate investment; this appendix does not claim to
+make you fluent, only literate.
+:::
+
+## Four paradigms
+
+| Paradigm     | Strength                                    | Typical use                                 |
+| ------------ | ------------------------------------------- | ------------------------------------------- |
+| base R       | no dependencies; works anywhere; ubiquitous | small scripts, package code, teaching       |
+| tidyverse    | readable pipelines; coherent ecosystem      | most applied biostatistics, this book       |
+| `data.table` | fastest; memory-efficient; terse            | large data, production pipelines, pharma    |
+| `arrow`      | lazy; Parquet; Python interop               | columnar data, cross-language projects      |
+| `polars`     | fast, Python-inspired; young                | experimental as of 2026                     |
+
+## base R wrangling
+
+Before the tidyverse stabilised in 2016, essentially all R
+data manipulation was base R. It is still the lingua franca
+of package development, and a student who cannot read it is
+cut off from most of CRAN.
+
+The four idioms that matter:
+
+```r
+# Subset rows: logical, numeric, or negative-numeric indexing
+adults <- df[df$age >= 18, ]
+
+# Select columns: character vector or dollar sign
+demog  <- df[, c('age', 'sex', 'race')]
+ages   <- df$age
+
+# Add or modify: assign into a column
+df$bmi <- df$weight / (df$height / 100)^2
+
+# Group and summarise: aggregate() or split()+sapply()
+aggregate(bmi ~ sex, data = df, FUN = mean)
+```
+
+Base R is verbose but predictable: no hidden NSE, no pipe
+precedence surprises, and you can always fall back to
+`[.data.frame` semantics.
+
+## `data.table`
+
+`data.table` is the high-performance alternative. Its
+syntax is a compressed `DT[i, j, by]` form that takes
+roughly a week to become fluent in but is dramatically
+faster than base or dplyr on any dataset above a few
+million rows. All modern clinical-trials R packages
+(`admiral`, `pharmaverseadam`) use `data.table` internally;
+so does `tidymodels` for its cross-validation machinery.
+
+The three mental pieces:
+
+- `i` selects rows (like `filter`).
+- `j` computes columns or does assignment (like `select`
+  plus `mutate` plus `summarise`).
+- `by` groups (like `group_by`).
+
+```r
+library(data.table)
+dt <- as.data.table(df)
+
+# Filter
+dt[age >= 18]
+
+# Select / compute
+dt[, .(age, bmi = weight / (height / 100)^2)]
+
+# Assign in place (the := operator)
+dt[, bmi := weight / (height / 100)^2]
+
+# Group and summarise
+dt[, .(mean_bmi = mean(bmi, na.rm = TRUE)), by = sex]
+
+# Chaining
+dt[age >= 18][, .(mean_bmi = mean(bmi)), by = sex]
+```
+
+TODO: why `:=` exists (modify by reference, avoiding the
+copy-on-modify cost that dplyr and base pay); `keyby` vs
+`by` (sorts); the `.SD` idiom for applying a function over
+many columns; the non-obvious gotcha that `data.table`
+returns a `data.table` on `[` where a `data.frame` would
+return a vector.
+
+## Side-by-side: eight common operations
+
+| Operation                      | tidyverse                                         | `data.table`                              | base R                                      |
+| ------------------------------ | ------------------------------------------------- | ----------------------------------------- | ------------------------------------------- |
+| Filter rows                    | `df \|> filter(age >= 18)`                        | `dt[age >= 18]`                           | `df[df$age >= 18, ]`                        |
+| Select columns                 | `df \|> select(age, sex)`                         | `dt[, .(age, sex)]`                       | `df[, c('age', 'sex')]`                     |
+| Add a column                   | `df \|> mutate(bmi = wt / ht^2)`                  | `dt[, bmi := wt / ht^2]`                  | `df$bmi <- df$wt / df$ht^2`                 |
+| Group and summarise            | `df \|> group_by(sex) \|> summarise(m = mean(x))` | `dt[, .(m = mean(x)), by = sex]`          | `aggregate(x ~ sex, df, mean)`              |
+| Sort                           | `df \|> arrange(age)`                             | `dt[order(age)]`                          | `df[order(df$age), ]`                       |
+| Rename                         | `df \|> rename(new = old)`                        | `setnames(dt, 'old', 'new')`              | `names(df)[names(df) == 'old'] <- 'new'`    |
+| Inner join                     | `inner_join(x, y, by = 'id')`                     | `x[y, on = 'id', nomatch = NULL]`         | `merge(x, y, by = 'id')`                    |
+| Pivot wide to long             | `pivot_longer(df, cols = v1:v3)`                  | `melt(dt, measure.vars = v1:v3)`          | `reshape(df, direction = 'long', ...)`      |
+
+## `arrow`
+
+The `arrow` package provides a lazy, columnar back-end to
+the tidyverse. You write `dplyr` verbs against an Arrow
+`Dataset` object, which plans the computation as a
+directed acyclic graph and executes it only when you call
+`collect()`. This makes it possible to run `dplyr`-style
+pipelines over datasets that do not fit in memory, or to
+read Parquet files at speeds that exceed native
+`data.frame` for large data.
+
+```r
+library(arrow)
+library(dplyr)
+
+# Open a Parquet dataset lazily (no RAM cost)
+ds <- open_dataset('big-trial/')
+
+# dplyr pipeline against the lazy dataset
+summary <- ds |>
+  filter(site == 'UCSD', visit == 'Baseline') |>
+  group_by(arm) |>
+  summarise(mean_age = mean(age), n = n()) |>
+  collect()
+```
+
+Use `arrow` when: (a) data is stored as Parquet or
+partitioned Parquet, (b) total data exceeds RAM, (c) you
+work with a Python colleague who sends Arrow-native
+datasets. Skip `arrow` for small single-file analyses; the
+overhead exceeds the benefit.
+
+## `polars` for R
+
+`polars` is a Rust-based data-frame library, originally
+Python-first, with an R binding released in 2023. As of
+April 2026 the R binding is usable but not mature enough
+to recommend as a default. It is worth tracking for the
+combination of `data.table`-level speed with a syntax
+that is closer to dplyr.
+
+```r
+# Illustrative; API may change
+library(polars)
+df <- pl$DataFrame(mtcars)
+df$filter(pl$col('mpg') > 20)$select('mpg', 'hp')
+```
+
+For now, prefer `data.table` if you need speed or
+`arrow` if you need lazy evaluation and Parquet. Revisit
+`polars` in 2027.
+
+## When to reach for each
+
+- **tidyverse** — the default for applied biostatistics,
+  this book's default, and what most collaborators will
+  send you.
+- **base R** — for package development, for reading older
+  code, and when minimising dependencies matters (e.g., a
+  Shiny app served from a container you want to keep
+  small).
+- **`data.table`** — when a dataset is millions of rows or
+  when pipeline speed is a bottleneck; when reading code
+  from industry pharma or CRO colleagues; when a CRAN
+  package you depend on uses it internally and the
+  underlying layout shows through.
+- **`arrow`** — when data is columnar, large, or
+  cross-language.
+- **`polars`** — not yet, in R, as of early 2026.
+
+## Exercises
+
+1. Take a wrangling pipeline from @sec-wrangling and
+   rewrite it three ways: in `data.table`, in base R, and
+   with `arrow` against a Parquet file. Time all three on
+   a 1-million-row version of the data.
+2. Read the source of one function in `admiral` (a
+   pharmaverse ADaM package). Identify the `data.table`
+   idioms used (`:=`, `.SD`, `keyby`). Write a one-
+   paragraph summary of what the function does in plain
+   English.
+3. Install `arrow`. Write a 10-million-row `data.frame`
+   as Parquet. Read it back with `open_dataset()` and run
+   a `dplyr`-style aggregation. Compare wall-clock time
+   to the equivalent `readr::read_csv()` +
+   `dplyr::group_by() |> summarise()` path.

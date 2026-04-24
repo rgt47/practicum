@@ -100,6 +100,11 @@ to each other via `reticulate`.
    the bug upstream or post it on the Quarto discussion
    forum.
 
+## Further reading
+
+- Xie, Dervieux, and Riederer (2020), *R Markdown Cookbook* --- the recipe book.
+- Xie (2020), *bookdown: Authoring Books and Technical Documents with R Markdown* --- long-form documents.
+
 ## Quiz answers {#sec-quiz-answers-12}
 
 1. `knitr::spin('script.R')` is the canonical fast path: it

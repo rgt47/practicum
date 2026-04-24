@@ -100,6 +100,11 @@ TODO: R + Postgres example.
 3. Push your image to Docker Hub. Pull it from a different
    machine and verify it reproduces the analysis.
 
+## Further reading
+
+- Boettiger (2015), *An introduction to Docker for reproducible research*, ACM SIGOPS Operating Systems Review --- the motivating paper for R.
+- The `rocker` project at `rocker-project.org` --- canonical R Docker images.
+
 ## Quiz answers {#sec-quiz-answers-09}
 
 1. A Docker image is an immutable read-only template that

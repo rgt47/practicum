@@ -102,6 +102,12 @@ TODO: JetBrains Mono, Fira Code, nerd fonts.
    hardcoded paths or machine-specific assumptions and
    refactor them away.
 
+## Further reading
+
+- Wickham's RStudio cheatsheets at `rstudio.com/resources/cheatsheets` --- print them.
+- Pro Git by Chacon and Straub at `git-scm.com/book` --- the canonical free Git book.
+- Yihui Xie's blog at `yihui.org` --- practical R workstation setup posts.
+
 ## Quiz answers {#sec-quiz-answers-04}
 
 1. R stores installed packages in the directory returned by

@@ -107,6 +107,12 @@ appropriate.
    function; apply it to the penguins data with
    `col = bill_length_mm` and `fn = median`.
 
+## Further reading
+
+- [@wickham2023r4ds] Chapters 3-7 --- canonical applied wrangling introduction.
+- [@wickham2014tidy] --- the original Tidy Data paper; essential for the three rules.
+- [@bryan2019stat545] Chapters 5-9 --- slower-paced alternative.
+
 ## Quiz answers {#sec-quiz-answers-13}
 
 1. Tidy data satisfies three properties: each variable

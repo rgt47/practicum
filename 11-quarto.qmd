@@ -112,6 +112,11 @@ TODO: how `_freeze/` works, when to use `freeze: auto` vs
    different CSV files using
    `quarto render --to html -P data_file=foo.csv`.
 
+## Further reading
+
+- Quarto documentation at `quarto.org` --- canonical reference.
+- Xie, Dervieux, and Riederer (2020), *R Markdown Cookbook* --- recipes that largely translate to Quarto.
+
 ## Quiz answers {#sec-quiz-answers-11}
 
 1. Literate programming (coined by Knuth) interleaves code

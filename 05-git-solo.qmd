@@ -102,6 +102,11 @@ TODO: `stash`, `reset`, `reflog`, `checkout` of old files.
    GitHub. Verify the tagged release is visible in the GitHub
    UI.
 
+## Further reading
+
+- [@bryan2019happygit] --- the standard reference for Git in R workflows.
+- Pro Git by Chacon and Straub at `git-scm.com/book` --- the canonical free Git book.
+
 ## Quiz answers {#sec-quiz-answers-05}
 
 1. Even for solo work, Git provides: a time machine (roll

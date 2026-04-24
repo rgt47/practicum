@@ -186,6 +186,12 @@ $\pm 0.5$ SD on the missing continuous covariate.'
    the primary approach and at least two sensitivity
    analyses.
 
+## Further reading
+
+- van Buuren (2018), *Flexible Imputation of Missing Data*, 2nd ed. --- book-length treatment of the `mice` approach.
+- Little and Rubin (2019), *Statistical Analysis with Missing Data*, 3rd ed. --- the authoritative reference.
+- The `mice` package documentation at `amices.org/mice` --- package-level.
+
 ## Quiz answers {#sec-quiz-answers-17}
 
 1. **MCAR** (Missing Completely At Random): the probability

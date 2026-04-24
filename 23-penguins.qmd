@@ -156,6 +156,11 @@ reproduce in under two commands.
    between the two tables tell you about the data
    collection design?
 
+## Further reading
+
+- [@horst2022palmerpenguins] --- the R Journal paper introducing the dataset.
+- The `palmerpenguins` package vignettes at `allisonhorst.github.io/palmerpenguins` --- teaching examples.
+
 ## Quiz answers {#sec-quiz-answers-23}
 
 1. `palmerpenguins::penguins` contains 11 rows with at

@@ -112,6 +112,11 @@ tested.
    `usethis::use_github_action_check_standard()`. Push
    and verify the workflow runs green.
 
+## Further reading
+
+- [@wickham2023rpkgs] testing chapters --- `testthat` canonical reference.
+- `vdiffr` documentation on CRAN --- visual regression testing for `ggplot2`.
+
 ## Quiz answers {#sec-quiz-answers-20}
 
 1. Even a one-off analysis benefits from tests: they
