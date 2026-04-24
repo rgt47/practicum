@@ -3,14 +3,15 @@
 ::: {.callout-note}
 ## Sources
 
-Adapted from author's lecture notes and supporting materials for a graduate practicum in biostatistics.
+Adapted from author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
 :::
 
 ## Prerequisites
 
-Answer the following questions to see if you can bypass this
-chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-01.
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-01.
 
 1. What does 'reproducible' mean in the context of a
    statistical analysis, and how is it different from
@@ -26,93 +27,332 @@ By the end of this chapter you should be able to:
 
 - Distinguish among reproducibility, replicability, and
   correctness.
-- List the ingredients of a minimum reproducible compendium.
-- Argue the case for reproducibility to a sceptical principal
-  investigator.
+- List the ingredients of a minimum reproducible
+  compendium: code, data, environment.
+- Argue the case for reproducibility to a sceptical
+  principal investigator on grounds of self-interest, not
+  morality.
 - Diagnose the common threats to reproducibility: missing
-  seeds, unpinned package versions, undocumented manual steps.
+  seeds, unpinned package versions, undocumented manual
+  steps, hidden global state.
 
 ## Orientation
 
-Reproducibility is the lowest bar a scientific analysis must
-clear. It says nothing about whether the analysis is correct,
-important, or even sensible; it only says that a second
-analyst with the same inputs can obtain the same outputs. And
-yet a substantial minority of published biomedical analyses
-fail this bar when audited. Fixing that is cheap but only if
-you build in the habits up front.
+Reproducibility is the lowest bar a scientific analysis
+must clear. It says nothing about whether the analysis is
+correct, important, or even sensible; it says only that a
+second analyst with the same inputs can obtain the same
+outputs. And yet a substantial minority of published
+biomedical analyses fail this bar when audited. Fixing that
+is cheap but only if you build in the habits up front.
+
+The biostatistician is, in most teams, the person whose
+work product is the analysis itself. The reproducibility
+of that work product is therefore your responsibility,
+even when nobody else asks for it. This chapter motivates
+the rest of the book: every subsequent chapter is a
+specific tool for clearing the reproducibility bar in
+specific ways.
 
 ## What 'reproducible' actually means
 
-TODO: reproducibility vs replicability (Goodman, Fanelli, and
-Ioannidis 2016); the Stodden/Claerbout hierarchy; why the
-biostatistician is the team member responsible.
+The terms in this space are slippery. The most useful
+definitions, taken from the influential Goodman, Fanelli,
+and Ioannidis 2016 *Science Translational Medicine*
+editorial:
+
+- **Methods reproducibility** (sometimes called
+  *computational* reproducibility): given the same data
+  and code, a second person on a second machine produces
+  identical (or numerically very close) output. This is
+  the floor.
+- **Results reproducibility** (sometimes called
+  *replicability* or *external replication*): the
+  analysis applied to new data drawn from the same
+  population produces qualitatively similar conclusions.
+- **Inferential reproducibility**: independent analysts
+  given the same data and the same scientific question
+  reach similar substantive conclusions.
+
+These are progressively harder. Methods reproducibility is
+a software engineering problem; results reproducibility is
+a sampling problem; inferential reproducibility is a
+methodological problem about how analyst degrees of
+freedom shape conclusions.
+
+This book is about methods reproducibility. Without it,
+the harder kinds are unobtainable: if you cannot reproduce
+your *own* analysis, you cannot tell whether a discrepancy
+between yours and a colleague's is a real disagreement or
+a bug.
 
 ## The anatomy of a reproducible analysis
 
-TODO: code + data + environment; minimum compendium; when
-each is missing.
+Three things must travel together for an analysis to be
+methods-reproducible:
+
+**Code.** Every step from raw input to final output, as
+executable code in a single language and stack. No 'I
+opened the file in Excel and sorted by date.' No 'I
+copied the column to a new sheet.' Every transformation
+must be in the script.
+
+**Data.** Either the actual data, or a precise description
+of how to obtain it. For protected health data, the
+description includes the access procedure (a data-use
+agreement, an institutional review board approval, a
+specific download URL). For public data, just include it.
+
+**Environment.** The computational environment that the
+code requires: R version, every package version, the
+operating system, system dependencies (LaTeX, GDAL,
+specific BLAS implementations). Without this, the same
+code on the same data on a different machine can produce
+different results. `renv.lock` (chapter 8) and Docker
+(chapter 9) are the standard tools.
+
+Missing any one of the three breaks reproducibility:
+
+- Code without data: cannot run.
+- Data without code: cannot tell what was done.
+- Code and data without environment: 'works on my
+  machine'.
+
+The minimum reproducible compendium (Marwick, Boettiger,
+Mullen 2018) is exactly this: a directory containing
+code, data, and a declared environment, structured as an
+R package or similar artefact.
 
 ## Common failure modes
 
-TODO: unpinned seeds, manual steps, 'works on my machine',
-floating dependencies.
+Specific reasons analyses fail reproducibility audits:
+
+**Missing or unset random seeds.** A bootstrap, a
+permutation test, or a simulation that uses random
+numbers without `set.seed()` produces different results
+on every run. The fix is one line; the omission is
+common.
+
+**Unpinned package versions.** The analysis was written
+when `dplyr` was 1.0.0; you re-run it three years later
+with `dplyr` 1.1.4 and the behaviour of one function has
+changed silently. `renv.lock` records the exact version
+of every package and lets you restore them.
+
+**Undocumented manual steps.** 'I removed the three
+outliers manually.' 'I edited the spreadsheet to fix a
+typo.' 'I dragged the file into a different folder.'
+None of these survive translation to another analyst.
+
+**Hidden global state.** Variables defined in `.Rprofile`
+or in another session are silently used by the script.
+The script runs on your machine and not on anyone else's.
+
+**'Works on my machine'.** A non-R dependency (a system
+library, a particular version of LaTeX, a font file)
+exists on your machine and not on others'. The
+environment must be specified end to end.
 
 ## The cost-benefit case
 
-TODO: reproducibility as selfishness (future-you), not
-altruism.
+Most arguments for reproducibility are framed in terms of
+scientific virtue. They work for some audiences and not
+for others. The selfish argument is more durable:
+reproducibility is for future-you.
 
-## With AI assistance {.unnumbered}
+Three concrete scenarios:
 
-::: {.callout-tip}
-## Prompts to try
+1. **The reviewer asks for a sensitivity analysis.** Six
+   months after submission, a reviewer wants the primary
+   analysis re-run with a different exclusion criterion.
+   With reproducible code and a pinned environment, this
+   is half an hour. Without, it is a week of
+   reconstructing what you did.
+2. **A bug appears.** You realise the unit conversion in
+   step 7 was wrong. With reproducible code, you fix it,
+   re-run, and report the corrected results. Without,
+   you do not know whether the bug applies to other
+   analyses you have done with similar data.
+3. **A collaborator joins.** A new postdoc takes over the
+   project. With a reproducible compendium, they can re-
+   run the analysis on day one and start contributing.
+   Without, they spend a month figuring out what you did,
+   most of which they get wrong.
 
-1. Paste the methods section of a recent biomedical paper and
-   ask the LLM to list every piece of information you would
-   need to reproduce the primary analysis. Score the paper:
-   fraction of items present vs absent.
-2. Ask the LLM to design a minimum reproducible compendium for
-   a small clinical trial analysis. Does it mention
-   `renv.lock`, a Dockerfile, a README, and a session-info
-   file?
-3. Give the LLM a plausible but incomplete R script and ask
-   'what would prevent this from running on another machine?'
-   Compare its answer to your own audit.
-:::
+The investment in reproducibility pays back, repeatedly,
+over the project's life. The cost is highest at the
+start; the savings compound.
+
+## The statistician's contribution
+
+Reproducibility is a workflow problem disguised as a
+software problem. Tools (`renv`, Docker, Quarto) make the
+software part easy. The workflow part --- which steps to
+script, which to skip, what counts as a 'data file', when
+to commit --- is where judgement matters.
+
+**What goes in the analysis script, and what stays in the
+README.** A `library(dplyr)` belongs in the script.
+'Download the file from the secure portal' belongs in the
+README. The boundary is whether the step can be
+automated; if it cannot, document it.
+
+**Which manual decisions to record.** When you decide to
+exclude observations with `bp > 250` because they are
+implausible, that decision belongs in the script as a
+filter, with a comment explaining the threshold. A
+comment like 'remove implausible BP values' without a
+threshold is not reproducible.
+
+**When to break the chain deliberately.** Some steps are
+irreducibly manual: you got results from a web tool, you
+manually labelled images, you transcribed a paper
+table. Document them in the README and treat their
+output as input to the reproducible chain. Do not
+pretend they were automated.
+
+These judgements are what distinguishes a research
+compendium from a directory of scripts.
+
+## Reproducibility is not correctness
+
+A reproducible analysis can still be wrong. If your code
+implements the wrong test, you will reproducibly compute
+the wrong p-value. Reproducibility ensures only that
+running the code twice gives the same answer; it does not
+ensure that the answer is right.
+
+Conversely, a correct analysis can fail reproducibility:
+if the seed was not set, the bootstrap CI may differ
+slightly between runs; if package versions are unpinned, a
+function's output may change. The analysis is correct in
+the methodological sense, but the published numbers are
+not exactly recoverable.
+
+The two qualities are independent and both necessary.
+Reproducibility ensures that what you reported can be
+reproduced; correctness ensures that what you reported is
+right. Tools address reproducibility; statistical
+training addresses correctness; both must be present.
+
+## Collaborating with an LLM on reproducibility
+
+LLMs are well-suited to spotting reproducibility gaps.
+They are less suited to deciding whether the gaps matter.
+
+**Prompt 1: auditing a script.** Paste a script and ask:
+'what would prevent this from running on another machine?'
+
+*What to watch for.* The LLM is good at flagging
+obvious gaps (no seed, hardcoded paths, undeclared
+package dependencies). It is weaker on subtle issues
+like floating-point determinism, non-deterministic
+parallel reductions, or platform-specific behaviour.
+
+*Verification.* Run the script on a different machine
+(or in a fresh Docker container). The LLM-flagged
+issues plus the ones you found yourself give the
+complete list.
+
+**Prompt 2: designing a compendium.** Describe the
+project (data, analysis, output) and ask: 'design a
+research-compendium structure for this analysis with
+file layout, dependency management, and a reproducible
+build script.'
+
+*What to watch for.* Standard layout (R package
+structure, `renv.lock`, Dockerfile, Makefile) is
+correct. The LLM may overengineer for a simple
+analysis; push back when the structure is heavier than
+the project deserves.
+
+*Verification.* Compare against the `rrtools` template
+(chapter 7). Differences may be improvements or
+regressions; evaluate each one.
+
+**Prompt 3: explaining the value to a sceptic.**
+Describe the project context and ask: 'what's the
+selfish-rather-than-virtuous case for reproducibility on
+this project?'
+
+*What to watch for.* Concrete scenarios (reviewer
+revisions, bug discovery, team transitions) are more
+persuasive than abstract appeals. The LLM tends toward
+the abstract; push for specific examples relevant to the
+PI's situation.
+
+*Verification.* Test the argument on a real sceptical
+PI; iterate.
+
+## Principle in use
+
+Three habits make reproducibility automatic:
+
+1. **Script everything that can be scripted.** No manual
+   steps in the analysis pipeline. If a step cannot be
+   scripted, document it explicitly.
+2. **Declare the environment.** `renv.lock` for R
+   packages, a Dockerfile for system dependencies, a
+   `sessionInfo()` block at the end of every Quarto
+   document.
+3. **Commit the compendium.** Code, data (or a pointer
+   to it), environment, and README all in the same
+   git repository. The repository is the unit of
+   reproducibility.
 
 ## Exercises
 
 1. Take the last analysis you wrote. List every piece of
-   information that is not in the script but would be needed
-   to reproduce the output. For each item, say how you would
-   capture it programmatically.
-2. Find a published paper in your field with public code. Try
-   to reproduce one figure. Log what went wrong.
-3. Write a one-page policy statement for a research group on
-   what 'reproducible' means and what every team member must
-   do before submitting an analysis.
+   information that is not in the script but would be
+   needed to reproduce the output. For each item, say how
+   you would capture it programmatically.
+2. Find a published paper in your field with public code.
+   Try to reproduce one figure. Log what went wrong.
+3. Write a one-page policy statement for a research
+   group on what 'reproducible' means and what every
+   team member must do before submitting an analysis.
+4. Audit a colleague's recent analysis script for
+   reproducibility gaps. Use the failure-modes list from
+   this chapter as your checklist.
+5. Draft an email to a sceptical PI explaining why
+   reproducibility is in their interest, with two
+   concrete scenarios from their own group.
 
 ## Further reading
 
-- [@marwick2018packaging] --- the research-compendium framing this book uses.
-- [@marwick2018rrtools] --- the `rrtools` package that implements the framing.
+- [@marwick2018packaging] --- the research-compendium
+  framing this book uses.
+- [@marwick2018rrtools] --- the `rrtools` package that
+  implements the framing.
+- Goodman, Fanelli, and Ioannidis (2016), 'What does
+  research reproducibility mean?', *Science
+  Translational Medicine* --- the canonical taxonomy
+  used in this chapter.
+- The TIER Protocol (`projecttier.org`) --- a complete
+  research-compendium template for the social sciences,
+  largely portable to biostatistics.
 
 ## Prerequisites answers {#sec-quiz-answers-01}
 
-1. A reproducible analysis is one where a collaborator given
-   the same data and code can obtain identical output on their
-   own machine. Replicable is stronger: it means the
-   conclusions hold when the study is repeated with new data.
-   Reproducibility is about the computational chain;
-   replicability is about the scientific claim.
-2. Code, data, and the computational environment (R version,
-   package versions, operating system). Without all three,
-   results may differ silently on another machine.
+1. A reproducible analysis is one where a collaborator
+   given the same data and code can obtain identical
+   output on their own machine. Replicable is stronger:
+   it means the conclusions hold when the study is
+   repeated with new data. Reproducibility is about the
+   computational chain; replicability is about the
+   scientific claim. Methods reproducibility is the floor
+   the rest of this book is about.
+2. Code, data, and the computational environment (R
+   version, package versions, operating system, and any
+   system dependencies). Without all three, results may
+   differ silently on another machine. `renv.lock` and a
+   Dockerfile (or Apptainer image) are the standard tools
+   for capturing the environment.
 3. Reproducible means the analysis can be run again and
-   produce the same answer. A correct analysis uses a valid
-   statistical method on appropriate data. A reproducible
-   analysis can still be wrong (e.g., it consistently applies
-   the wrong test); a correct analysis can fail reproducibility
-   if random seeds are not set or package versions are not
-   pinned.
+   produce the same answer. A correct analysis uses a
+   valid statistical method on appropriate data. A
+   reproducible analysis can still be wrong (e.g., it
+   consistently applies the wrong test); a correct
+   analysis can fail reproducibility if random seeds are
+   not set or package versions are not pinned. Both
+   qualities are necessary; neither implies the other.

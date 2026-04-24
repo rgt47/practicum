@@ -3,121 +3,461 @@
 ::: {.callout-note}
 ## Sources
 
-Adapted from author's lecture notes and supporting materials for a graduate practicum in biostatistics.
+Adapted from author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
 :::
 
 ## Prerequisites
 
-Answer the following questions to see if you can bypass this
-chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-02.
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-02.
 
-1. What does the 2022 OSTP 'Nelson memo' require of federally
-   funded research, and by when does each requirement take
-   effect?
-2. What are the main components of an NIH Data Management and
-   Sharing Plan (DMSP) under the 2023 policy?
-3. Why might a funded investigator prefer `renv` over simply
-   listing package dependencies in a `DESCRIPTION` file's
-   `Depends:` field?
+1. What does the 2022 OSTP 'Nelson memo' require of
+   federally funded research, and by when does each
+   requirement take effect?
+2. What are the main components of an NIH Data Management
+   and Sharing Plan (DMSP) under the 2023 policy?
+3. Why might a funded investigator prefer `renv` over
+   simply listing package dependencies in a
+   `DESCRIPTION` file's `Depends:` field?
 
 ## Learning objectives
 
 By the end of this chapter you should be able to:
 
-- Summarise the main federal (US) policies governing access to
-  publications, data, and code for federally funded research.
-- Draft a Data Management and Sharing Plan section that meets
-  NIH expectations.
-- Choose an appropriate public repository (Zenodo, OSF, Dryad,
-  GitHub) for a given artefact.
+- Summarise the main federal (US) policies governing
+  access to publications, data, and code for federally
+  funded research.
+- Draft a Data Management and Sharing Plan section that
+  meets NIH expectations.
+- Choose an appropriate public repository (Zenodo, OSF,
+  Dryad, GitHub) for a given artefact and obtain a DOI.
 - Identify when `renv` alone suffices and when Docker is
-  additionally required.
+  additionally required for environment preservation.
+- Recognise FDA CDISC submission requirements as a
+  domain-specific reproducibility regime.
 
 ## Orientation
 
 Federal agencies now require public access to the
-publications, data, and (increasingly) the code produced with
-federal funds. Meeting these requirements is not optional, and
-the biostatistician is often the team member best placed to
-implement them. This chapter covers the current policy
-landscape and the technical practices that satisfy it.
+publications, data, and (increasingly) the code produced
+with federal funds. Meeting these requirements is not
+optional, and the biostatistician is often the team
+member best placed to implement them. This chapter covers
+the current policy landscape and the technical practices
+that satisfy it.
 
-## The 2022 OSTP Nelson memo
+The policy direction in the United States is unambiguous:
+public access for publicly funded research, with
+shrinking embargo periods, expanding scope (data and code,
+not just papers), and increasing audit. Researchers who
+absorbed the 2008 NIH public-access policy as 'put the
+PDF in PMC' will find the 2023 NIH DMSP policy and the
+2025 OSTP implementation a substantially larger lift.
 
-TODO: immediate public access to publications and data;
-effective 2025.
+## The statistician's contribution {#sec-federal-human}
 
-## NIH DMSP (2023)
+Compliance is paperwork; making compliance produce a
+genuinely reproducible analysis is judgement.
 
-TODO: required for all grants; structure of the plan.
+**Treat the DMSP as a workflow document, not a form.** A
+plan that says 'data will be deposited at Zenodo at
+publication' is technically compliant but provides no
+mechanism to ensure it happens. A plan that integrates
+deposition into the pipeline (a deposition step at every
+preprint, a CI job that checks the data DOI is live)
+becomes self-enforcing.
+
+**Public access does not mean unsupervised release.**
+Protected health information, contractually restricted
+data, and preliminary unverified data are all
+inappropriate for unconditional public release. The
+standard response is tiered access: a synthetic or
+de-identified dataset for free public access, with a
+data-use agreement gating the underlying data.
+
+**Pin the environment, do not cite it.** A DMSP that
+'lists the R packages used' is uselessly vague. A DMSP
+that points to a `renv.lock` and a Dockerfile is
+verifiable. The difference takes ten minutes.
+
+These judgements determine whether the published artefact
+actually reproduces the published numbers, or merely
+satisfies the form.
+
+## The 2022 OSTP 'Nelson memo'
+
+In August 2022 the White House Office of Science and
+Technology Policy issued a memorandum (commonly called
+the 'Nelson memo' after the OSTP director who signed it)
+directing all federal agencies that fund research to:
+
+1. Make peer-reviewed publications resulting from
+   federally funded research **freely available
+   immediately** (no 12-month embargo, in contrast to the
+   2013 Holdren memo).
+2. Make the **scientific data** underlying those
+   publications publicly accessible at the time of
+   publication.
+3. Provide persistent identifiers (DOIs) for both
+   publications and data.
+
+Agencies were directed to publish updated public-access
+plans and implement them by the end of 2025. The result
+is a moving compliance target: NIH, NSF, DOE, NASA, and
+others have rolled out specific implementations on
+slightly different schedules.
+
+For a researcher submitting in 2026 or later, the
+practical implications are:
+
+- Plan for the publication to be open access from day
+  one (no embargo). This affects journal selection.
+- Plan for the data to be deposited and citable at the
+  time of submission. This affects timeline.
+- Plan for the code, in many cases, to be deposited as
+  well. NIH increasingly expects this, even when not
+  explicitly required.
+
+## The NIH DMSP (2023)
+
+Effective January 2023, every NIH grant application must
+include a **Data Management and Sharing Plan** of up to
+two pages. The plan addresses six elements:
+
+1. **Data type.** What data will be generated; what
+   format, what volume.
+2. **Related tools, software, and code.** What software
+   was used to generate or process the data; whether code
+   will be shared.
+3. **Standards.** What data and metadata standards will
+   be applied (e.g., DICOM for imaging, BIDS for
+   neuroimaging, CDISC for clinical trials).
+4. **Data preservation and access.** Where the data will
+   be deposited (named repository, ideally with a DOI),
+   for how long, and under what access conditions.
+5. **Access, distribution, and reuse.** Licensing
+   (Creative Commons for open data, custom DUA for
+   restricted), access mechanism, and any limitations.
+6. **Oversight.** Who is responsible for plan
+   implementation, and how compliance will be monitored.
+
+The DMSP is reviewed during peer review and becomes part
+of the funded award's terms. NIH program officers can
+require updates, and post-award compliance is monitored.
+
+A DMSP for a typical clinical study includes:
+
+- Quantitative data (CRFs, lab values, biomarker
+  measurements) deposited in dbGaP under controlled
+  access.
+- Synthetic or de-identified summary data deposited in
+  Zenodo or OSF for unconditional public access.
+- Analysis code in a public GitHub repository, mirrored
+  to Zenodo for a DOI.
+- Standards: CDISC SDTM for the underlying data
+  structure (chapter 19), Quarto reports for the
+  analysis pipeline.
 
 ## NSF and other agencies
 
-TODO: NSF's public access policy; CDC data sharing; FDA
-CDISC submissions.
+Beyond NIH, the major federal funders have their own
+public-access policies converging on similar
+requirements:
+
+- **NSF** requires a Data Management Plan (DMP) of up
+  to two pages with each proposal; data sharing is
+  expected unless legally restricted.
+- **DOE** has a public-access plan emphasising
+  publication access and high-performance computing
+  data.
+- **CDC** requires public-data sharing for surveillance
+  and epidemiologic data.
+- **FDA**, for industry-sponsored clinical trials, has
+  a separate CDISC-based regime (chapter 19) for
+  regulatory submissions, which is more structured than
+  the open-data policies but serves a similar
+  reproducibility role within the regulatory context.
+
+For a project funded by multiple agencies, the most
+restrictive policy applies. Plan accordingly.
 
 ## Choosing a repository
 
-TODO: Zenodo, OSF, Dryad, institutional repositories. DOIs
-and minting.
+For deposition, the repository should provide:
 
-## Namespace vs renv
+- A persistent identifier (DOI or equivalent).
+- Long-term preservation (the institution stands behind
+  the data persisting for at least 10--20 years).
+- Open or controlled access as needed.
+- Adequate metadata fields for the discipline.
 
-TODO: why `DESCRIPTION:Imports` does not pin; why `renv.lock`
-does.
+Common choices:
 
-## With AI assistance {.unnumbered}
+**Zenodo** (CERN). General-purpose, free, DOIs, GitHub
+integration (a release on GitHub auto-deposits). Good
+for code and supplementary materials. Integrated with
+ORCID for author identification.
 
-::: {.callout-tip}
-## Prompts to try
+**OSF (Open Science Framework)**. Center for Open
+Science. Project-oriented; supports preregistration,
+manuscript hosting, data, code. Free.
 
-1. Paste a draft research proposal and ask the LLM to draft a
-   DMSP section that addresses each NIH element. Audit it:
-   does it mention preservation, access, licensing, and
-   metadata?
-2. Ask the LLM to compare three public data repositories for a
-   specific study design (e.g., a small pilot trial).
-   Evaluate: are the repository selection criteria complete?
-3. Ask the LLM to critique a sample DMSP that contains obvious
-   omissions (e.g., no mention of data access timeline).
-   Check whether it catches all omissions.
+**Dryad**. Curated, peer-reviewed-paper-associated
+data. Charges a curation fee. Best for the data
+underlying a specific paper.
+
+**GitHub**. Code, but not designed for long-term
+preservation; pair with a Zenodo deposit for a DOI.
+
+**Domain-specific repositories**. dbGaP for genomic
+data, ClinicalTrials.gov for trial registration,
+GEO/SRA for sequencing data, NeuroVault for brain
+images, ICPSR for social-science data. Use these when
+they exist for your data type; the metadata standards
+are richer than generic repositories.
+
+**Institutional repositories**. Many universities
+maintain their own; quality varies. Acceptable backup;
+not always sufficient as the primary deposition.
+
+For a typical biostatistician, the practical pattern is:
+
+- Code in GitHub (working, version-controlled).
+- Code archived to Zenodo at each release for a DOI.
+- Data in a domain repository (dbGaP, GEO, etc.) when
+  applicable.
+- De-identified or synthetic supplementary data in
+  Zenodo for unconditional access.
+
+## `renv.lock` vs. `Imports:` in DESCRIPTION
+
+A DESCRIPTION file's `Imports:` field lists package
+*minimum* versions: 'I need dplyr 1.0.0 or later'. It
+does not record the *actual* installed version that
+produced the published results.
+
+This matters because R packages change. A function in
+`broom 1.0.0` may produce a tibble with one column
+ordering; the same function in `broom 1.0.5` may produce
+a different column ordering. The DESCRIPTION says 'broom
+1.0.0 or later'; the actual run used 1.0.3, which
+produced the published results.
+
+`renv.lock` (chapter 8) records the exact version of
+every package, including transitive dependencies, that
+was active at the moment the analysis was run. Restoring
+the lock file on a new machine reproduces the exact
+environment.
+
+For DMSP purposes, declaring 'analysis code uses renv to
+pin all package versions; renv.lock is included in the
+deposit' is concrete and verifiable. Declaring 'analysis
+uses standard R packages' is neither.
+
+For projects with non-R dependencies (a particular LaTeX
+distribution, a system library, an external command-line
+tool), `renv.lock` is necessary but not sufficient.
+Docker (chapter 9) extends the environment specification
+to system level, giving a fully bit-for-bit reproducible
+environment at the cost of more complex tooling.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: `renv` vs. `Imports:`
+
+**Question.** Your DESCRIPTION lists
+`Imports: dplyr (>= 1.0.0)`. You ran the analysis with
+dplyr 1.0.3, which produced your published Table 2. Six
+months later, dplyr 1.1.0 is released with a behaviour
+change in `summarise()`. A reviewer asks you to re-run
+the analysis. Without an `renv.lock`, what happens?
+
+::: {.content-visible when-format="html"}
+<details><summary>Answer</summary>
 :::
+
+The reviewer's machine (or yours, if you have updated
+since) has dplyr 1.1.0. Your code runs and produces a
+new Table 2 that may differ from the published one in
+some cells. The DESCRIPTION's `>= 1.0.0` is satisfied;
+the actual computation is different. You cannot tell
+from the discrepancy whether the difference is a bug in
+your code, a difference in dplyr's behaviour, or a real
+data issue --- you have lost the version-pinned baseline
+that would let you investigate. With an `renv.lock`,
+the reviewer (or you) restores the exact environment
+(dplyr 1.0.3) and reproduces the published numbers
+exactly. This is the practical case for renv: not just
+'is it reproducible' but 'when discrepancies appear,
+can I diagnose them?'
+
+::: {.content-visible when-format="html"}
+</details>
+:::
+:::
+
+## Worked example: a DMSP outline
+
+For a 200-patient observational study of postoperative
+infection rates:
+
+> **Data type.** Patient-level CRF data (demographics,
+> baseline labs, surgical details, postoperative
+> outcomes), approximately 1 MB per patient
+> ($\approx$ 200 MB total). Imaging data (CT scans)
+> separately, $\approx$ 200 GB total. Both contain PHI.
+>
+> **Related tools.** Data captured in REDCap, exported
+> to a structured CSV. Analysis in R with `renv`-pinned
+> environment (R 4.4.0, packages per `renv.lock` in
+> deposit). Docker container provided for environment
+> reproducibility.
+>
+> **Standards.** CDISC SDTM for the underlying CRF
+> structure. DICOM for imaging. Quarto for analytic
+> reports.
+>
+> **Data preservation and access.** PHI-containing CRFs
+> deposited in dbGaP under controlled access (DUA via
+> the institutional IRB). De-identified summary data
+> (Table 1, primary outcomes) deposited in Zenodo with
+> CC-BY 4.0 licence. Imaging deposited in TCIA under
+> controlled access.
+>
+> **Access, distribution, reuse.** PHI data: requestor
+> must complete DUA and IRB approval at their
+> institution. De-identified data: open access at
+> publication. Code: GitHub, mirrored to Zenodo for
+> DOI, MIT licence.
+>
+> **Oversight.** PI is responsible for plan
+> implementation. Co-investigators sign data-sharing
+> agreements at study onset. Annual review with NIH
+> program officer.
+
+This level of specificity passes review and produces a
+reproducible artefact. Vague language ('data will be
+shared appropriately') gets flagged.
+
+## Collaborating with an LLM on policy compliance
+
+LLMs can draft DMSP boilerplate and audit existing plans
+for omissions. They cannot judge whether the named
+repositories are actually appropriate or whether
+restricted-access timelines are realistic.
+
+**Prompt 1: drafting a DMSP.** Paste the project
+abstract and data description; ask: 'draft an NIH DMSP
+that addresses each of the six required elements.'
+
+*What to watch for.* The output will likely be the right
+shape. Verify the named repositories are actually
+appropriate for the data type. Verify the access
+mechanism (controlled vs. open) is correct given the
+PHI status. LLMs sometimes propose 'Zenodo' for PHI
+data, which is wrong.
+
+*Verification.* Cross-check against your IRB-approved
+data-sharing plan and the institutional data
+governance office's recommendations.
+
+**Prompt 2: auditing a draft DMSP.** Paste a draft and
+ask: 'list every missing or ambiguous element under the
+six NIH categories.'
+
+*What to watch for.* The standard elements are easy to
+audit; LLMs do this well. Subtle issues (e.g., a
+licence that conflicts with a third-party data source's
+terms) are harder; flag for human review.
+
+*Verification.* Submit the audited plan to a colleague
+who has had a DMSP reviewed by NIH program staff.
+
+**Prompt 3: choosing a repository.** Describe the data
+and ask: 'which repository is appropriate?'
+
+*What to watch for.* Domain-specific repositories
+(dbGaP, GEO, TCIA) should be preferred when applicable.
+LLMs sometimes default to Zenodo or OSF as
+'general-purpose' answers, which is fine for code or
+supplementary tables but inappropriate for primary
+genomic or imaging data.
+
+*Verification.* Cross-check against domain norms; see
+which repositories the leading papers in your field cite.
+
+## Principle in use
+
+Three habits make federal compliance painless:
+
+1. **Treat the DMSP as a workflow document.** Build
+   deposition into the analysis pipeline; do not bolt it
+   on at submission.
+2. **Pin the environment, not the policy.** A pointer to
+   `renv.lock` and a Dockerfile is more verifiable than
+   prose.
+3. **Use domain repositories when they exist.**
+   Generic repositories (Zenodo, OSF) are fine for code
+   and supplementary materials; primary data belongs in
+   the discipline's standard repository.
 
 ## Exercises
 
-1. Locate the current NIH DMSP template and write a complete
-   plan for a hypothetical 100-patient observational study.
-2. Pick a recent biomedical paper. Check whether its data and
-   code are accessible at a persistent URL with a DOI. Classify
-   the level of compliance.
+1. Locate the current NIH DMSP template and write a
+   complete plan for a hypothetical 100-patient
+   observational study.
+2. Pick a recent biomedical paper. Check whether its
+   data and code are accessible at a persistent URL with
+   a DOI. Classify the level of compliance.
 3. For a completed analysis of your own, produce a
-   `sessionInfo.txt` and an `renv.lock` and add them to the
-   compendium. Confirm the lock file captures every attached
-   package.
+   `sessionInfo.txt` and an `renv.lock` and add them to
+   the compendium. Confirm the lock file captures every
+   attached package.
+4. Identify the appropriate repository for each of:
+   (a) RNA-seq counts from a mouse experiment;
+   (b) clinical trial outcome data with PHI;
+   (c) the analysis code and data dictionary for (b);
+   (d) a synthetic dataset for reviewer access to (b).
+5. Write a one-paragraph briefing for your PI on what
+   the 2025 OSTP implementation means for their
+   submissions, and what changes (if any) the lab
+   should make.
 
 ## Further reading
 
 - [@usshi2022ostp] --- the 2022 OSTP 'Nelson memo'.
-- NIH DMSP policy at `sharing.nih.gov` --- the authoritative 2023 policy page.
+- NIH DMSP policy at `sharing.nih.gov` --- the
+  authoritative 2023 policy page.
+- The Center for Open Science (`cos.io`) materials on
+  preregistration and open data.
+- ICPSR's *Guide to Social Science Data Preparation
+  and Archiving* --- portable to biostatistics for
+  metadata practice.
 
 ## Prerequisites answers {#sec-quiz-answers-02}
 
-1. The Nelson memo (August 2022) directs federal agencies to
-   require immediate, free public access to peer-reviewed
-   publications arising from federally funded research and to
-   the scientific data underlying those publications. Agencies
-   were given until the end of 2025 to implement these
-   requirements.
-2. An NIH DMSP must describe: the data types and amounts;
-   related tools/software/code; standards to be applied;
-   access, distribution, and reuse considerations; repositories
-   where data will be preserved; and timelines for data
-   sharing. It is submitted with the grant application and
-   becomes part of the funded award's terms.
-3. `renv.lock` records the exact versions of every package
-   (including their transitive dependencies) that were used to
-   produce an analysis, along with the R version itself.
-   `Depends:`/`Imports:` in a `DESCRIPTION` only list minimum
-   acceptable versions; the actual installed versions drift as
-   packages are updated, silently changing behaviour.
+1. The Nelson memo (August 2022) directs federal
+   agencies to require immediate, free public access to
+   peer-reviewed publications arising from federally
+   funded research and to the scientific data underlying
+   those publications. Agencies were given until the end
+   of 2025 to implement these requirements. The Nelson
+   memo replaces the 2013 Holdren memo and removes the
+   12-month embargo on publication access.
+2. An NIH DMSP must describe: the data types and
+   amounts; related tools/software/code; standards to be
+   applied; access, distribution, and reuse
+   considerations; repositories where data will be
+   preserved; and oversight responsibility. It is
+   submitted with the grant application and becomes part
+   of the funded award's terms.
+3. `renv.lock` records the exact versions of every
+   package (including their transitive dependencies)
+   that were used to produce an analysis, along with
+   the R version itself. `Depends:`/`Imports:` in a
+   `DESCRIPTION` only list minimum acceptable versions;
+   the actual installed versions drift as packages are
+   updated, silently changing behaviour. For DMSP
+   compliance, `renv.lock` is concrete and verifiable;
+   `DESCRIPTION` declarations are not.
