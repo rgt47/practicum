@@ -3,95 +3,232 @@
 ::: {.callout-note}
 ## Sources
 
-Adapted from author's lecture notes and supporting materials for a graduate practicum in biostatistics.
+Adapted from author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
 :::
 
 ## Prerequisites
 
-No Prerequisites quiz for this chapter. Quiz answers appear
-anyway, in case you want to self-assess what you have taken
-away from the book. See @sec-quiz-answers-25.
+No Prerequisites quiz for this chapter. Quiz answers
+appear anyway, in case you want to self-assess what
+you have taken away from the book. See
+@sec-quiz-answers-25.
 
 ## What the Practicum covered
 
 This book took you through six arcs:
 
-1. **Reproducibility as a professional norm.** Why it
-   matters, what federal funders require, and what it
-   means to practise it in a research team (@sec-why,
-   @sec-federal, @sec-team-science).
-2. **A reproducible workstation.** Shell, editor, Git,
-   cloud (@sec-workstation through @sec-cloud).
-3. **Reproducible infrastructure.** Research compendia,
-   `renv`, Docker, `zzcollab` (@sec-rrtools through
-   @sec-zzcollab).
-4. **Reproducible reporting and wrangling.** Quarto,
-   Rmd workflow, the tidyverse, publication graphics
-   (@sec-quarto through @sec-graphics).
-5. **Analysis practice.** Statistical analysis plans,
-   CDISC data standards, testing workflows, AI-assisted
-   coding (@sec-analysis-plan through @sec-ai-coding).
-6. **Case studies.** Palmer Penguins and ADNI MCI
-   prediction (@sec-penguins, @sec-adni).
+1. **Reproducibility as a professional norm.** Why
+   it matters (@sec-why), what federal funders
+   require (@sec-federal), and what it means to
+   practise it in a research team
+   (@sec-team-science).
+
+2. **A reproducible workstation.** Setting up R,
+   editor, Git, the shell (@sec-workstation),
+   Git for solo work (@sec-git-solo), and remote
+   compute (@sec-cloud).
+
+3. **Reproducible infrastructure.** Research
+   compendia (@sec-rrtools), package version
+   pinning with renv (@sec-renv), environment
+   reproducibility with Docker (@sec-docker), and
+   the all-in-one `zzcollab` framework
+   (@sec-zzcollab).
+
+4. **Reproducible reporting and wrangling.** Quarto
+   for literate documents (@sec-quarto), Rmd
+   workflow (@sec-rmd-workflow), tidyverse
+   wrangling (@sec-wrangling), type handling
+   (@sec-types), joins (@sec-joins), and
+   publication graphics (@sec-graphics).
+
+5. **Analysis practice.** Missing data
+   (@sec-missing), statistical analysis plans
+   (@sec-analysis-plan), CDISC data standards
+   (@sec-cdisc), testing data analysis workflows
+   (@sec-testing), and AI-assisted coding
+   (@sec-ai-coding); plus the SAS bridge
+   (@sec-sas) for cross-language regulatory work.
+
+6. **Case studies.** Palmer Penguins
+   (@sec-penguins) for an end-to-end small
+   analysis, and ADNI MCI prediction
+   (@sec-adni) for a longitudinal modelling
+   exercise.
+
+The arcs are progressive: each builds on the
+previous. Reproducibility is impossible without
+infrastructure; infrastructure is wasted without
+disciplined reporting; reporting without an
+analysis plan is performative.
 
 ## The habits you should take forward
 
-A concise list of practices that every chapter pointed at:
+A concise list of practices that every chapter
+pointed at:
 
-- Every analysis lives in a compendium.
-- Every compendium is Dockerised before it leaves your
-  machine.
-- Every chunk of analysis code is under version control.
-- Every clinically meaningful analysis has a pre-specified
-  SAP, tagged in Git before data lock.
-- Every non-trivial function has at least one unit test.
-- Every figure in a paper is regenerable by `make render`.
-- Every LLM suggestion is treated as a hypothesis until
-  verified.
+- **Every analysis lives in a compendium.** A
+  research-compendium structure with `R/`,
+  `analysis/`, and a `Dockerfile` is the unit of
+  reproducibility.
+- **Every compendium is Dockerised before it
+  leaves your machine.** `renv` pins R packages;
+  Docker pins everything else.
+- **Every chunk of analysis code is under version
+  control.** Git from day one; tag at submission.
+- **Every clinically meaningful analysis has a
+  pre-specified SAP, tagged in Git before data
+  lock.** Pre-specification is what distinguishes
+  confirmatory from exploratory work.
+- **Every non-trivial function has at least one
+  unit test.** Tests catch regressions on
+  refactor and document expected behaviour.
+- **Every figure in a paper is regenerable by
+  `make render` (or its equivalent).** Manual
+  steps in figure generation are
+  reproducibility holes.
+- **Every LLM suggestion is treated as a
+  hypothesis until verified.** AI-amplified
+  workflow demands amplified verification.
+
+If you take only one habit from this book, take
+the first: every analysis lives in a compendium.
+Everything else flows from it.
 
 ## What this book did not cover
 
-- **Statistical theory and inference.** Covered in the
-  companion book *Statistical Computing in the Age of
-  AI*.
-- **Bayesian computation.** A topic area of comparable
-  weight to this entire book.
+The scope of biostatistical computing exceeds any
+one book. Topic areas explicitly out of scope here
+but worth pursuing:
+
+- **Statistical theory and inference.** Covered in
+  the companion book *Statistical Computing in the
+  Age of AI*. Linear models, GLMs, mixed-effects,
+  survival, Bayesian computation, simulation, and
+  bootstrap each get a chapter there.
+- **Bayesian computation.** A topic area of
+  comparable weight to this entire book. Covered
+  briefly in the companion's Bayesian chapter.
 - **Modern machine learning.** `tidymodels`, deep
-  learning, and MLOps are one-book subjects on their
-  own.
-- **Collaboration at industrial scale.** Multi-sponsor
-  pharma collaborations and contract research
-  organisations operate under CDISC conventions beyond
-  what @sec-cdisc introduces.
+  learning, MLOps, and the broader ML pipeline are
+  one-book subjects on their own. The Practicum's
+  reproducibility habits transfer; the methods do
+  not.
+- **Causal inference.** Pre-specification (chapter
+  18) is necessary but not sufficient. The
+  potential-outcomes framework, instrumental
+  variables, sensitivity analysis to
+  unmeasurement, and modern econometric methods
+  belong elsewhere.
+- **Collaboration at industrial scale.** Multi-
+  sponsor pharma collaborations and CROs operate
+  under CDISC conventions beyond what
+  @sec-cdisc introduces.
+
+The omissions are deliberate. The book aimed to
+cover what every biostatistician needs in their
+first two years; it cannot cover what they may
+need over a career.
 
 ## What to read next
 
-TODO: curated reading list for the next two years:
+A curated reading list, roughly two years of
+material:
 
-- *R Packages* [@wickham2023rpkgs] for package development.
-- *R for Data Science* [@wickham2023r4ds] for tidyverse
-  deep dives.
-- *Advanced R* [@wickham2019advr] for the R language
-  itself.
-- *Happy Git with R* [@bryan2019happygit] for version
-  control in depth.
-- *The R Packages book* for expanding your package
-  practice.
+**Year one (consolidation).**
 
-## Further reading
+- *R Packages*, 2nd ed. [@wickham2023rpkgs] ---
+  package development. Read end to end; build a
+  package with each chapter.
+- *R for Data Science*, 2nd ed.
+  [@wickham2023r4ds] --- tidyverse depth. The
+  Practicum touched many of these chapters; the
+  full book has more.
+- *Advanced R*, 2nd ed. [@wickham2019advr] ---
+  the R language. Memory model, functional
+  programming, environments, S4. Read when you
+  hit a corner case.
+- *Happy Git with R* [@bryan2019happygit] ---
+  Git for R users in depth.
+- *Bayesian Data Analysis*, 3rd ed.
+  [@gelman2013bda] or *Statistical Rethinking*,
+  2nd ed. [@mcelreath2020rethinking] ---
+  Bayesian computation. Pick one based on
+  preferred level.
 
-- Each of this book's chapters concludes with its own Further reading section. This chapter adds no further pointers; consult the bibliography for the full set.
+**Year two (specialisation).**
+
+- *Modeling Survival Data*
+  [@therneau2000survival] for survival
+  analysis depth.
+- *Mixed-Effects Models in S and S-PLUS*
+  [@pinheiro2000mixed] for the canonical mixed-
+  models reference (still relevant in 2026).
+- *Tidy Modeling with R* [@kuhn2022tidymodels]
+  for the tidymodels framework.
+- *Reproducible Research with R and RStudio*,
+  3rd ed. [@gandrud2020reproducible] for the
+  publishing pipeline.
+- Whatever else your domain demands. Genomics:
+  *Modern Statistics for Modern Biology*
+  [@holmes2019msmb]. Imaging: the various
+  Bioconductor and FSL/AFNI tutorials.
+  Time series: *Forecasting Principles and
+  Practice* [@hyndman2021fpp].
+
+The plan: in year one, consolidate the
+practicum's coverage into deeper proficiency. In
+year two, specialise toward your applied area.
+
+## A note on judgement
+
+The Practicum has emphasised tools and habits.
+What it could not teach directly is judgement ---
+the small decisions about which test, which
+covariate, which transformation, which audience.
+Judgement comes from practice: working on real
+problems, being wrong sometimes, learning the
+patterns of when each tool fits.
+
+The 'statistician's contribution' callouts in each
+chapter were an attempt to articulate the
+judgements explicitly. Re-read them after you have
+practised the tools for six months; they will
+read differently.
+
+## Sign-off
+
+You have finished a book that took its
+infrastructure as seriously as its statistics. The
+arc was deliberate: the biostatistician of 2026
+spends a substantial fraction of professional time
+on workflow, environment, and collaboration. A
+graduate course that taught only methods would
+leave the rest as on-the-job learning. This book
+covered the rest.
+
+The habits in this book pay for themselves at
+about the second project. By the fifth, the
+investment is invisible: it is just how you work.
+The hardest part is the first three projects,
+where the new infrastructure feels like overhead.
+The reward is permanence: a research record that
+ages well, an analysis you can re-run a decade
+later, a paper a sceptical reviewer cannot break.
+
+Good luck with the next analysis.
 
 ## Prerequisites answers {#sec-quiz-answers-25}
 
-(No quiz for this chapter; this section exists to keep
-cross-reference anchors consistent across the book. If you
-would like a self-assessment, write a two-sentence answer
-to each of the following.)
+(No quiz for this chapter; this section exists to
+keep cross-reference anchors consistent across the
+book. If you would like a self-assessment, write a
+two-sentence answer to each of the following.)
 
-1. If a former collaborator emails in three years asking
-   you to reproduce one of your figures, what three files
-   do you need to have kept?
-2. What is one practice from this book you will carry into
-   the next project you start?
+1. If a former collaborator emails in three years
+   asking you to reproduce one of your figures,
+   what three files do you need to have kept?
+2. What is one practice from this book you will
+   carry into the next project you start?
 3. What is the next book on your reading list?
