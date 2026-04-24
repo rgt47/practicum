@@ -1,15 +1,7 @@
----
-title: 'Biostatistics Practicum'
-format:
-  html:
-    page-layout: full
-  pdf:
-    include-in-header:
-      text: |
-        \thispagestyle{empty}
----
+# Biostatistics Practicum {.unnumbered}
 
 ::: {.content-visible when-format='pdf'}
+\thispagestyle{empty}
 \vspace*{4cm}
 \begin{center}
 {\Huge\bfseries Biostatistics Practicum\par}
@@ -18,4 +10,8 @@ format:
 biostatisticians\par}
 \end{center}
 \newpage
+:::
+
+::: {.content-visible when-format='html'}
+*Reproducible analysis workflows for biostatisticians.*
 :::
