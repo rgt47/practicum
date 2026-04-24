@@ -4,133 +4,515 @@
 ## Sources
 
 Stat 545 Part VII; blog posts `16-plotsfrompurrr`,
-`38-tableplacementrmarkdown`; `zzlongplot` for longitudinal
-examples (@sec-adni).
+`38-tableplacementrmarkdown`; `zzlongplot` for
+longitudinal examples (@sec-adni).
 :::
 
 ## Prerequisites
 
-Answer the following questions to see if you can bypass this
-chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-16.
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-16.
 
-1. How do you produce one plot per level of a categorical
-   variable, returning the results as a named list of
-   `ggplot` objects?
+1. How do you produce one plot per level of a
+   categorical variable, returning the results as a
+   named list of `ggplot` objects?
 2. What does `patchwork::wrap_plots()` provide that
    `facet_wrap()` does not?
-3. Why might you save a figure as PDF rather than PNG for a
-   journal submission, and when would you choose PNG
-   instead?
+3. Why might you save a figure as PDF rather than PNG
+   for a journal submission, and when would you choose
+   PNG instead?
 
 ## Learning objectives
 
 By the end of this chapter you should be able to:
 
-- Build publication-quality `ggplot2` figures for continuous,
-  categorical, and time-varying outcomes.
-- Generate many plots programmatically with `purrr::map()`
-  over a list of groups.
-- Compose multi-panel figures with `patchwork` and arrange
-  shared legends cleanly.
-- Produce PDF and PNG outputs at appropriate DPIs for journal
-  and Word submissions.
-- Build a house theme via `theme_*()` function and reuse it
-  across the book's figures.
+- Build publication-quality `ggplot2` figures for
+  continuous, categorical, and time-varying outcomes.
+- Generate many plots programmatically with
+  `purrr::map()` over a list of groups.
+- Compose multi-panel figures with `patchwork` and
+  arrange shared legends cleanly.
+- Produce PDF and PNG outputs at appropriate DPIs for
+  journal and Word submissions.
+- Build a house theme via a `theme_*()` function and
+  reuse it across all figures in a project.
+- Recognise when to reach for `zzlongplot` and
+  `zztable1` rather than rolling your own.
 
 ## Orientation
 
-A figure that survives peer review is a figure whose data,
-encoding, and aesthetic choices all serve the single claim
-the figure exists to make. This chapter covers the
-mechanical skills; the principles of effective visualisation
-are covered in the companion book.
+A figure that survives peer review is a figure whose
+data, encoding, and aesthetic choices all serve the
+single claim the figure exists to make. This chapter
+covers the mechanical skills; the principles of
+effective visualisation are covered in the companion
+textbook (chapters 15--16 of *Statistical Computing in
+the Age of AI*).
+
+The combination `ggplot2` + `purrr` + `patchwork` is
+the modern stack for going from a single exploratory
+plot to a polished multi-panel figure: ggplot2 for
+the plot, purrr for iteration over groups, patchwork
+for composition.
+
+## The statistician's contribution {#sec-graphics-human}
+
+Software handles the mechanics. The judgements:
+
+**One plot, one message.** A figure trying to convey
+three relationships succeeds at none. Three figures
+each conveying one are usually clearer. Resist the
+'pack everything into one figure to save space'
+impulse.
+
+**Encode the claim, not the data.** A scatter plot
+with 5,000 points obscures any pattern. The same
+relationship as a hex-binned plot or a 2D density
+contour shows the structure without the visual
+noise. Choose encoding for legibility, not
+faithfulness to the raw data.
+
+**Consistency across the project.** All figures in a
+paper should share fonts, colour palette, and theme
+defaults. A house theme function applied via
+`theme_set()` makes consistency the default. Without
+it, ggplot2 produces nine variants of grey.
+
+**Display uncertainty.** A point estimate without a
+CI invites over-trust. A regression line without a
+confidence band the same. The tools are simple
+(`geom_errorbar`, `se = TRUE` on `geom_smooth`); the
+discipline is the analyst's.
+
+These judgements are what make figures publishable.
 
 ## One plot per group with purrr
 
-TODO: `split()` + `map()`, `group_by() |> group_map()`,
-named lists, saving with `walk2`.
+The pattern: split data by a grouping variable, apply
+a plotting function to each group, collect into a
+named list.
+
+```r
+library(tidyverse)
+library(palmerpenguins)
+
+penguins_clean <- na.omit(penguins)
+
+# split by species
+plots <- penguins_clean |>
+  split(penguins_clean$species) |>
+  imap(\(d, name) {
+    ggplot(d, aes(flipper_length_mm, body_mass_g)) +
+      geom_point() +
+      geom_smooth(method = "lm") +
+      labs(title = name) +
+      theme_minimal()
+  })
+
+# inspect one
+plots$Adelie
+
+# save all
+walk2(plots,
+      paste0("figures/penguin-", names(plots), ".pdf"),
+      \(p, path) ggsave(path, p, width = 6, height = 4))
+```
+
+Three things to internalise:
+
+1. **`split()` returns a named list.** The names
+   propagate through `imap` and `walk2`.
+2. **`imap` and `walk2` use both the value and the
+   name.** Useful for titles, file paths, and
+   identifying which plot is which.
+3. **`walk2` for side effects.** Returns invisibly;
+   `map2` would build a list of `ggsave`'s NULL
+   returns.
+
+For a `dplyr`-native version:
+
+```r
+penguins_clean |>
+  group_by(species) |>
+  group_map(\(d, k) {
+    ggplot(d, aes(flipper_length_mm, body_mass_g)) +
+      geom_point() +
+      labs(title = k$species)
+  })
+# returns a list of plots, with the group keys in `k`
+```
 
 ## Multi-panel figures with patchwork
 
-TODO: `+` for juxtaposition, `/` for stacking,
-`plot_layout(guides = 'collect')` for shared legends.
+`patchwork` composes distinct plots into one figure.
+Where `facet_wrap` produces small multiples of the
+same plot, `wrap_plots` (or the `+` and `/`
+operators) combines independent plots that may
+differ in everything.
+
+```r
+library(patchwork)
+
+p1 <- ggplot(penguins_clean,
+             aes(flipper_length_mm, body_mass_g, colour = species)) +
+        geom_point() +
+        labs(title = "A. Body mass vs flipper length")
+
+p2 <- ggplot(penguins_clean,
+             aes(species, body_mass_g, fill = species)) +
+        geom_boxplot() +
+        labs(title = "B. Body mass by species") +
+        guides(fill = "none")     # hide redundant fill legend
+
+p3 <- ggplot(penguins_clean,
+             aes(bill_length_mm, bill_depth_mm, colour = species)) +
+        geom_point() +
+        labs(title = "C. Bill morphology")
+
+# 2x2 grid with shared legend at bottom
+(p1 + p2) / (p3 + plot_spacer()) +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
+```
+
+Operators:
+
+- `+` juxtaposes side by side.
+- `/` stacks vertically.
+- `|` is equivalent to `+` (horizontal).
+- `&` applies a theme to every plot in the
+  composition.
+- `plot_layout(guides = "collect")` collects
+  duplicate legends into one.
+
+For more control, `plot_layout` takes `widths`,
+`heights`, `nrow`, `ncol`, `byrow`, and other
+arguments.
+
+`facet_wrap` for small multiples of the same plot;
+`patchwork` for distinct plots in one figure.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: facet vs. patchwork
+
+**Question.** You have one dataset and want to show
+'distribution of body mass' as a histogram and
+'distribution of body mass by species' as boxplots,
+side by side. Should you use `facet_wrap`, `patchwork`,
+or both?
+
+::: {.content-visible when-format="html"}
+<details><summary>Answer</summary>
+:::
+
+`patchwork`. The two panels show *different views* of
+the same data: a histogram (one geom) and boxplots
+(a different geom). `facet_wrap` shows the same plot
+across panels conditioned on a variable; both panels
+must use the same geom and aesthetic mapping. Build
+each plot separately and combine with `p1 + p2`.
+
+```r
+p_hist <- ggplot(d, aes(body_mass_g)) + geom_histogram()
+p_box  <- ggplot(d, aes(species, body_mass_g)) + geom_boxplot()
+p_hist + p_box
+```
+
+If the second plot was 'histogram of body mass for
+each species' (same geom, conditioned on species),
+`facet_wrap(~species)` would be the right tool.
+
+::: {.content-visible when-format="html"}
+</details>
+:::
+:::
 
 ## House themes
 
-TODO: defining `theme_practicum()`; using
-`theme_set(theme_practicum())` at the top of a `.qmd`.
+A function that returns a `theme()` object, applied
+once per session:
 
-## Export formats: PDF, PNG, SVG
+```r
+theme_practicum <- function(base_size = 11) {
+  theme_minimal(base_size = base_size) +
+    theme(
+      plot.title         = element_text(face = "bold"),
+      plot.subtitle      = element_text(colour = "grey40"),
+      axis.title         = element_text(face = "bold"),
+      axis.text          = element_text(colour = "grey20"),
+      panel.grid.minor   = element_blank(),
+      legend.position    = "bottom",
+      strip.background   = element_rect(fill = "grey95", colour = NA),
+      strip.text         = element_text(face = "bold")
+    )
+}
 
-TODO: when each is right; `ggsave()` defaults; DPI for
-journals.
+# apply globally
+theme_set(theme_practicum())
 
-## Integrating with zzlongplot and zztable1
+# update geom defaults to match
+update_geom_defaults("point", list(size = 1.5, alpha = 0.7))
+update_geom_defaults("line",  list(linewidth = 0.6))
+```
 
-TODO: when to reach for the in-house packages; what each
-gives you over rolling your own ggplot / `gt` table.
+For project consistency, define `theme_practicum()`
+in a setup chunk at the top of every analysis file,
+or in a project-level helper that gets sourced. Every
+plot then matches without per-plot theme calls.
 
-## With AI assistance {.unnumbered}
+For palettes, define and reuse:
 
-::: {.callout-tip}
-## Prompts to try
+```r
+practicum_palette <- c(
+  "Adelie"    = "#1f4e79",
+  "Chinstrap" = "#9d2235",
+  "Gentoo"    = "#2e8b57"
+)
 
-1. Paste a simple `ggplot` call and ask the LLM to wrap
-   it in a `purrr::map()` over a grouping variable,
-   returning a list of plots with descriptive names.
-   Verify that the names propagate through `walk2()` when
-   saving files.
-2. Ask the LLM to combine four plots into a 2x2 grid with
-   a single shared legend. Does it use `patchwork`,
-   `cowplot`, or a manual grid arrangement?
-3. Ask the LLM to produce a `theme_practicum()` function
-   with serif body text, sans-serif axis labels, and a
-   colour-blind-safe default palette. Verify the palette
-   passes the Coblis simulator for deuteranopia.
-:::
+scale_colour_practicum <- function(...)
+  scale_colour_manual(values = practicum_palette, ...)
+
+# in plots
+ggplot(...) + ... + scale_colour_practicum()
+```
+
+For colour-blind safety, verify the palette with the
+Coblis simulator
+(`colorbrewer2.org/learnmore/colorblind-simulator.html`)
+or `colorBlindness::cvdPlot()`.
+
+## Export formats
+
+`ggsave()` writes to many formats, picked by
+extension:
+
+```r
+# vector for journal submission
+ggsave("figure1.pdf", plot = p, width = 6, height = 4,
+       device = cairo_pdf)
+
+# raster for Word, slides, web
+ggsave("figure1.png", plot = p, width = 6, height = 4,
+       dpi = 300)
+
+# vector for the web (preserves quality on zoom)
+ggsave("figure1.svg", plot = p, width = 6, height = 4)
+```
+
+DPI considerations:
+
+- 72 DPI: web display only.
+- 96 DPI: monitor default.
+- 300 DPI: print quality (the standard for journal
+  submission as PNG).
+- 600 DPI: high-quality scientific figures.
+
+For LaTeX submission, prefer PDF (vector). For Word,
+prefer PNG at 300 DPI. For web, SVG (vector).
+
+`device = cairo_pdf` ensures non-default fonts are
+embedded so the PDF renders correctly on a system
+that lacks the font.
+
+For journals, check size requirements (typically
+column widths of 85--90 mm or 170--180 mm) and produce
+figures at exactly the target size, not larger.
+
+## Integrating with `zzlongplot` and `zztable1`
+
+The in-house `zzlongplot` package provides
+opinionated longitudinal-study plots: spaghetti plots
+with confidence ribbons, mean trajectories with
+group-specific overlays, ICC-aware error bars. The
+defaults match this practicum's conventions.
+
+```r
+library(zzlongplot)
+spaghetti(adni_long, time = "VISIT", value = "ADAS",
+          subject = "RID", group = "DX")
+```
+
+When to reach for `zzlongplot`:
+
+- Longitudinal data with a standard time variable.
+- You want consistent styling with other figures in
+  this practicum.
+- You do not want to write fifty lines of ggplot2
+  every time.
+
+When to write your own ggplot2:
+
+- Custom encoding the package does not support.
+- Cross-sectional or non-longitudinal data.
+- You need a non-standard layout that fights the
+  package's defaults.
+
+The `zztable1` package similarly handles Table 1
+generation; covered in the analysis-plan chapter
+(@sec-analysis-plan).
+
+## Worked example: regression diagnostic figure
+
+```r
+library(tidyverse)
+library(patchwork)
+library(broom)
+
+theme_set(theme_practicum())
+
+fit <- lm(body_mass_g ~ flipper_length_mm + species,
+          data = na.omit(penguins))
+diag <- augment(fit)
+
+p_resid <- ggplot(diag, aes(.fitted, .resid)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess", se = FALSE,
+              colour = "red", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "A. Residuals vs. fitted",
+       x = "Fitted (g)", y = "Residual")
+
+p_qq <- ggplot(diag, aes(sample = .std.resid)) +
+  geom_qq(alpha = 0.5) +
+  geom_qq_line(colour = "red") +
+  labs(title = "B. Normal Q-Q",
+       x = "Theoretical", y = "Standardised residual")
+
+p_cook <- ggplot(diag, aes(seq_len(nrow(diag)), .cooksd)) +
+  geom_col(width = 0.6) +
+  geom_hline(yintercept = 4 / nrow(diag),
+             linetype = "dashed", colour = "red") +
+  labs(title = "C. Cook's distance",
+       x = "Observation", y = "Cook's distance")
+
+(p_resid + p_qq) / p_cook +
+  plot_layout(heights = c(1, 0.7))
+
+ggsave("figures/diagnostics.pdf", width = 7, height = 6,
+       device = cairo_pdf)
+```
+
+The composition reads naturally: top row two related
+diagnostics, bottom row a single observation-level
+diagnostic. House theme applied via
+`theme_set(theme_practicum())`. Saved as a
+publication-quality PDF.
+
+## Collaborating with an LLM on graphics
+
+LLMs handle ggplot well; the trap is busy plots that
+encode too much.
+
+**Prompt 1: drafting a plot.** Describe the data and
+the question, ask: 'write a ggplot that addresses
+the question. Use a colour-blind-safe palette and
+clear axis labels with units.'
+
+*What to watch for.* The default LLM plot tends to be
+busy: too many aesthetics encoded, default ggplot
+theme. Push for clarity. Multiple iterations of
+'simpler' tend to improve.
+
+*Verification.* Render the plot. Ask whether a reader
+who has never seen the data could state the message
+in one sentence.
+
+**Prompt 2: combining plots.** Describe four plots,
+ask: 'combine these into a 2x2 grid with shared
+legend, panel labels A through D.'
+
+*What to watch for.* `patchwork::plot_layout(guides = "collect")`
+for the legend. Panel labels usually go in `labs(title = "A. ...")`
+rather than `tag_levels`. The LLM may use either; both
+work.
+
+*Verification.* Render the combined plot. Are
+legends shared? Are panels labelled in the right
+order?
+
+**Prompt 3: theme function.** Ask: 'write a
+`theme_practicum()` function with serif body text,
+sans-serif axis labels, and a colour-blind-safe
+default palette.'
+
+*What to watch for.* The output is a starting point.
+Test with a few plots; iterate.
+
+*Verification.* Apply to several plots; ensure
+consistency. Verify palette via Coblis or
+`colorBlindness::cvdPlot()`.
+
+## Principle in use
+
+Three habits define defensible plotting:
+
+1. **One plot, one message.** Resist combining
+   relationships into one figure.
+2. **Set the theme once.** `theme_set(theme_practicum())`
+   at the top of every analysis script.
+3. **Export for the destination.** PDF for LaTeX,
+   PNG at 300 DPI for Word, SVG for web. Embed fonts
+   in PDFs.
 
 ## Exercises
 
-1. Using the `palmerpenguins` data, build a three-panel
-   patchwork: (a) scatter of body mass vs flipper length
-   coloured by species; (b) residuals from a linear fit
-   of (a); (c) QQ plot of residuals. Share the species
-   legend across all three.
-2. Write a function `plot_per_site(data, site_col,
-   outcome)` that returns a named list of ggplot objects
-   (one per site level) and a helper that saves each to
-   `figures/<site>.pdf`.
-3. Define `theme_practicum()` and apply it to three plots
-   from any prior exercise. Verify the plots render
-   consistently in HTML, PDF, and Word output.
+1. Using the `palmerpenguins` data, build a
+   three-panel patchwork: (a) scatter of body mass
+   vs flipper length coloured by species; (b)
+   residuals from a linear fit of (a); (c) QQ plot
+   of residuals. Share the species legend across
+   all three.
+2. Write a function `plot_per_site(data, site_col, outcome)`
+   that returns a named list of ggplot objects
+   (one per site level) and a helper that saves
+   each to `figures/<site>.pdf`.
+3. Define `theme_practicum()` and apply it to three
+   plots from any prior exercise. Verify the plots
+   render consistently in HTML, PDF, and Word
+   output.
+4. Replicate one published figure from a recent
+   biomedical paper using ggplot2. Compare your
+   replication to the original; identify what is
+   the same and what is different.
+5. Verify your colour palette with the Coblis
+   simulator. Adjust if any pair of categories
+   become indistinguishable under deuteranopia.
 
 ## Further reading
 
-- Wickham (2016), *ggplot2: Elegant Graphics for Data Analysis*, 3rd ed. at `ggplot2-book.org` --- canonical reference.
-- Wilke (2019), *Fundamentals of Data Visualization* at `clauswilke.com/dataviz` --- effective-visualisation principles.
+- Wickham (2016), *ggplot2: Elegant Graphics for
+  Data Analysis*, 3rd ed. at `ggplot2-book.org` ---
+  canonical reference.
+- Wilke (2019), *Fundamentals of Data Visualization*
+  at `clauswilke.com/dataviz` --- effective-
+  visualisation principles.
+- The `patchwork`, `cowplot`, and `gganimate`
+  package vignettes.
 
 ## Prerequisites answers {#sec-quiz-answers-16}
 
-1. Use `split(data, data$group) |> map(\(d) ggplot(d,
-    aes(x, y)) + geom_point())` to produce a named list
-   of plots, one per group. Alternatively, in a tidyverse
-   pipeline: `data |> group_by(group) |> group_map(\(d,
-    k) ggplot(d, aes(x, y)) + geom_point())` (note:
-   `group_map` returns a list, with names taken from the
-   group keys if you pass `.keep = TRUE` and post-process).
-2. `facet_wrap()` splits a single plot into panels by a
-   factor. Every panel shares the same `aes` mapping,
-   same geom, same scales. `patchwork::wrap_plots()`
-   composes *distinct* plots that can differ in every
-   respect (different geoms, different data, different
-   scales). Use `facet_wrap()` for small-multiples of the
-   same plot; `wrap_plots()` for multi-panel figures
+1. Use `split(data, data$group) |> map(\(d) ggplot(d, aes(x, y)) + geom_point())`
+   to produce a named list of plots, one per group.
+   Alternatively, in a tidyverse pipeline:
+   `data |> group_by(group) |> group_map(\(d, k) ggplot(d, aes(x, y)) + geom_point())`
+   (note: `group_map` returns a list, with names
+   taken from the group keys if you pass
+   `.keep = TRUE` and post-process).
+2. `facet_wrap()` splits a single plot into panels
+   by a factor. Every panel shares the same `aes`
+   mapping, same geom, same scales.
+   `patchwork::wrap_plots()` composes *distinct*
+   plots that can differ in every respect (different
+   geoms, different data, different scales). Use
+   `facet_wrap()` for small-multiples of the same
+   plot; `wrap_plots()` for multi-panel figures
    showing different views.
 3. PDF is a vector format: it scales cleanly, looks
-   crisp at any zoom level, embeds fonts, and is what
-   journal production systems prefer for typeset PDFs.
-   PNG is raster: appropriate for embedding in Word
-   documents, PowerPoint slides, or web pages where
-   vector support is limited. Save PDF for LaTeX
-   submissions, PNG at 300 DPI for Word and web.
+   crisp at any zoom level, embeds fonts, and is
+   what journal production systems prefer for
+   typeset PDFs. PNG is raster: appropriate for
+   embedding in Word documents, PowerPoint slides,
+   or web pages where vector support is limited.
+   Save PDF for LaTeX submissions, PNG at 300 DPI
+   for Word and web.
