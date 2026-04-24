@@ -3,21 +3,22 @@
 ::: {.callout-note}
 ## Sources
 
-Adapted from author's lecture notes and supporting materials for a graduate practicum in biostatistics.
+Adapted from author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
 :::
 
 ## Prerequisites
 
-Answer the following questions to see if you can bypass this
-chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-03.
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-03.
 
-1. What distinguishes a 'collaborative' biostatistician role
-   from a 'consulting' role?
+1. What distinguishes a 'collaborative' biostatistician
+   role from a 'consulting' role?
 2. Name three communication skills essential for
    biostatisticians on interdisciplinary research teams.
-3. Why does team science succeed or fail on clear expectations
-   about authorship and credit?
+3. Why does team science succeed or fail on clear
+   expectations about authorship and credit?
 
 ## Learning objectives
 
@@ -27,98 +28,477 @@ By the end of this chapter you should be able to:
   (consultant, collaborator, co-investigator, PI).
 - Explain ICMJE authorship criteria and apply them to a
   hypothetical paper.
-- Hold a structured intake conversation with a new clinical
-  collaborator.
-- Write a short scope-of-work document that pre-empts common
-  misunderstandings.
+- Hold a structured intake conversation with a new
+  clinical collaborator.
+- Write a short scope-of-work document that pre-empts
+  common misunderstandings.
+- Communicate statistical results to non-statisticians
+  without misrepresenting uncertainty or effect size.
+- Recognise common collaboration failure modes (scope
+  creep, last-minute pre-registration, p-hacking
+  pressure) and respond appropriately.
 
 ## Orientation
 
-Most biostatisticians spend the majority of their careers on
-teams with people who cannot read their code and do not share
-their vocabulary. Effective collaboration across this gap is
-a learned skill, not a personality trait. This chapter covers
-the norms, conversations, and documents that make interdisciplinary
-research teams work.
+Most biostatisticians spend the majority of their
+careers on teams with people who cannot read their code
+and do not share their vocabulary. Effective
+collaboration across this gap is a learned skill, not a
+personality trait. This chapter covers the norms,
+conversations, and documents that make
+interdisciplinary research teams work.
+
+The chapter is unusually narrative: the technical skills
+elsewhere in the book are only useful if you can
+deploy them in a team context, and the team context is
+governed by social and procedural conventions more than
+by software.
+
+## The statistician's contribution {#sec-team-science-human}
+
+Team science is judgement work end to end.
+
+**Recognise the role you are being asked to play.** A
+clinical PI who says 'we need a statistician' may be
+asking for a methodological consult, a hands-on
+collaborator, a co-investigator on the grant, or a hired
+labour for the analysis section of a manuscript. The
+expectations, the timeline, the authorship implications,
+and the appropriate level of pushback are different for
+each. Failing to clarify the role before doing the work
+produces friction at the end.
+
+**Pick your battles.** Not every methodological choice
+is worth a confrontation. A non-default reference level
+in a logistic regression: matter of taste; let it go. A
+proposal to dichotomise a continuous outcome to make
+the analysis 'simpler': fight, because it loses
+information and biases inference. Distinguishing
+preference from principle is what makes you a useful
+collaborator rather than a pedantic one.
+
+**Calibrate your language to the audience.** A clinical
+collaborator does not need to know the difference
+between Wald and likelihood-ratio confidence intervals.
+They do need to know whether the treatment effect is
+clinically significant and how confident you are in
+that claim. Translating between these registers is a
+core skill.
+
+**Document everything that has been agreed.** Verbal
+agreements about scope, deadlines, authorship, and
+analytical decisions evaporate. Email summaries after
+every meeting; written analysis plans before any
+analysis runs. The document is what you defend when
+expectations diverge later.
+
+These habits separate biostatisticians who are
+re-engaged for the next project from those who are not.
 
 ## The collaboration spectrum
 
-TODO: consulting vs collaboration vs co-investigator vs PI.
+A useful mental model: biostatistician involvement varies
+along a spectrum from consulting (transactional) to
+co-investigation (long-term). Common positions:
+
+**Consultant.** A clinical investigator brings a question
+or a dataset; the statistician provides analysis or
+methodological advice; the relationship ends or recurs
+transactionally. Common in academic statistical
+consulting services and industry consulting groups.
+Usually does not produce authorship; deliverables are
+the analysis or the report.
+
+**Collaborator.** Sustained involvement across study
+design, analysis, and writing; the statistician is
+substantively involved with the science. Authorship is
+expected when ICMJE criteria are met (below). Most
+academic biostatistics happens here.
+
+**Co-investigator.** Named on the grant, with
+allocated effort; partial authority over the project
+direction; deeply involved in study design. Usually
+mid-career and senior biostatisticians on funded
+research.
+
+**Principal Investigator.** Leads the project. The
+biostatistical method is itself the science.
+Methodological PIs in biostatistics; less common as
+the lead role in clinical research.
+
+The position determines the appropriate level of
+authority, the time commitment, and the credit. A
+common source of tension is mismatch: a statistician
+treated as a consultant who sees themselves as a
+collaborator, or vice versa. Clarifying which position
+is being filled is the first step in avoiding it.
 
 ## ICMJE authorship and the statistician
 
-TODO: the four criteria; when a statistician qualifies; when
-acknowledgement is the right call.
+The International Committee of Medical Journal Editors
+(ICMJE) defines authorship by four criteria, all four of
+which must be met:
+
+1. Substantial contributions to the conception or
+   design of the work; or the acquisition, analysis, or
+   interpretation of data.
+2. Drafting the work or revising it critically for
+   important intellectual content.
+3. Final approval of the version to be published.
+4. Agreement to be accountable for all aspects of the
+   work.
+
+A biostatistician who designs and executes the
+analysis (criterion 1), drafts the methods and results
+sections (criterion 2), reviews the final manuscript
+(criterion 3), and stands behind the analysis
+(criterion 4) is an author. A biostatistician who runs
+a one-off analysis without further engagement should
+be acknowledged but is not an author under ICMJE.
+
+In practice, the criteria are interpreted with some
+flexibility. Common patterns:
+
+- The lead biostatistician on a clinical trial is
+  routinely an author.
+- The biostatistician on a small consulting project
+  who runs the analysis but not the writing is
+  acknowledged.
+- The biostatistician who provides methodological
+  advice without analysis is acknowledged.
+- The biostatistician who writes the analysis but did
+  not see the manuscript before submission is in a
+  weak authorship position; they cannot meet criteria
+  3 and 4.
+
+Discussing authorship at the start of the project,
+in writing, prevents the confrontation at submission.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: authorship vs. acknowledgement
+
+**Question.** A clinical collaborator brings you a
+dataset and asks for 'a quick t-test for an
+abstract'. You run the test and email back the result.
+The abstract is accepted; you are listed as the second
+author of the abstract. Is this appropriate?
+
+::: {.content-visible when-format="html"}
+<details><summary>Answer</summary>
+:::
+
+Probably not. By ICMJE standards, you may meet
+criterion 1 (acquisition / analysis / interpretation
+of data) but criterion 2 (drafting or critically
+revising) and criterion 3 (final approval) are
+unmet --- you did not see the abstract before
+submission. Acknowledgement would be the more
+defensible attribution. The right time to clarify
+this was at the start: 'I'll do the t-test if you
+can include me on the manuscript' or 'this counts
+as a service contribution; please acknowledge'.
+The mid-stream realisation is harder to negotiate
+than the up-front agreement.
+
+::: {.content-visible when-format="html"}
+</details>
+:::
+:::
 
 ## The intake conversation
 
-TODO: the first meeting; what to ask; red flags.
+The first meeting with a new clinical collaborator
+sets the trajectory of the collaboration. A
+structured intake covers, at minimum:
 
-## Scope of work documents
+**The scientific question.** What are they trying to
+find out? What would the answer enable? Push past 'is
+treatment A better than B' to 'better in what sense,
+for which patients, in what setting'. The question
+determines the design.
 
-TODO: writing an SOW that clarifies inputs, outputs,
-deadlines, and revisions.
+**The data.** What data exist; how they were collected;
+what can and cannot be shared; whether the data exist
+yet or are to be collected. This is where most
+projects' fate is decided.
 
-## Communicating statistical results to non-statisticians
+**The deadline.** A grant deadline three months out is
+different from an exploratory question with no deadline.
+The deadline shapes what is feasible.
 
-TODO: the effect-size-first principle; uncertainty bands over
-p-values; plots over tables.
+**The authorship and acknowledgement expectation.**
+Will the statistician be a co-author? An
+acknowledgee? Hired help? Establishing this at
+intake avoids the confrontation later.
+
+**The deliverables.** A two-page memo, a Quarto
+report, a published paper, a regulatory submission?
+The format determines the time commitment.
+
+**Red flags.** A request to perform a specific test
+('we want a chi-square') without explaining the
+hypothesis. A dataset that has already been analysed
+multiple times by the team ('it didn't show what we
+hoped'). Pressure to produce results by next week.
+Vague answers about IRB or data-use agreements. Each
+warrants more questions before agreement.
+
+A standard intake document --- one page, ten
+questions --- formalises this conversation. Sending
+it before the meeting often resolves half the
+issues without the meeting.
+
+## Scope-of-work documents
+
+For any non-trivial collaboration, a written scope of
+work (SOW) defines:
+
+- **Inputs.** What data the collaborator will provide,
+  by when, in what format.
+- **Outputs.** What the statistician will produce
+  (analysis report, table for a paper, full
+  manuscript section), by when.
+- **Methodology.** The high-level analytic approach
+  (pre-registered or to-be-pre-registered).
+- **Revisions.** How many rounds of revision are
+  included; what counts as a 'major' change requiring
+  renegotiation.
+- **Authorship and acknowledgement.** As discussed at
+  intake.
+- **Boundaries.** What the statistician will *not* do
+  (e.g., implement methods outside their expertise,
+  perform the literature review).
+
+The SOW is not a legal contract; it is a shared
+understanding. When the project drifts (as projects
+do), the SOW is the document everyone returns to.
+
+## Communicating statistical results
+
+Three principles for translating statistical output
+to non-statisticians:
+
+**Effect size first, p-value last.** 'The treatment
+reduced HbA1c by 0.6 percentage points (95% CI 0.3 to
+0.9)' communicates more than 'the effect was
+significant at p = 0.002'. P-values are unintuitive
+and easily misinterpreted; effect sizes with
+uncertainty are not.
+
+**Plots over tables.** A coefficient plot with CIs
+conveys the same information as a regression table,
+faster, and is harder to misread.
+
+**Calibrated language.** Distinguish 'we found
+$X$' from 'the data are consistent with $X$' from
+'we cannot rule out $X$'. The verbs matter; the
+precision matters.
+
+**Specific examples.** 'For a 60-year-old patient with
+baseline HbA1c of 8%, the model predicts a reduction to
+about 7.4% under treatment, with a 95% CI from 7.1 to
+7.7%.' This is far more useful than the regression
+coefficient and SE that produce it.
+
+For papers and reports, write the substantive
+conclusion in plain language and include the
+quantitative support. For meetings, lead with the
+substantive conclusion, then the support if asked. The
+audience determines the order.
 
 ## Handling disagreement
 
-TODO: when to push back; how to pick your battles.
+When you and the collaborator disagree on a
+methodological choice, the path forward depends on
+what is at stake.
 
-## With AI assistance {.unnumbered}
+**Preference.** Coding style, default vs. non-default
+reference level, plotting choices. Defer to the
+collaborator unless there is a substantive reason
+not to.
 
-::: {.callout-tip}
-## Prompts to try
+**Best practice.** Multiple-testing correction,
+intention-to-treat analysis, missing-data handling.
+Argue for the standard practice; if overruled,
+document the dissent in the methods.
 
-1. Paste a short draft of a results section and ask the LLM to
-   flag any claim that overstates the evidence. Check its
-   edits against your own reading: does it catch the same
-   sins?
-2. Ask the LLM to role-play a sceptical PI asking why you
-   insist on a pre-registered analysis plan. Practise your
-   response until you can defend the plan in two sentences.
-3. Ask the LLM to draft an ICMJE-criteria-based authorship
-   contribution statement for a hypothetical paper with six
-   authors. Evaluate whether each contribution is distinct
-   and meaningful.
-:::
+**Validity.** Inappropriate test, data dredging,
+post-hoc hypothesis selection, dichotomising
+continuous outcomes. Push back firmly. If the
+disagreement persists and the analysis is
+methodologically wrong, withdraw.
+
+The middle category is where most disagreements live
+and where judgement is most consequential. Picking too
+many fights makes you a difficult collaborator;
+picking none makes you complicit in bad analyses.
+
+## Worked example: the intake document
+
+> **Project.** Effect of post-discharge home health
+> visits on 30-day readmission in heart-failure
+> patients.
+>
+> **Investigator.** Dr. X, Cardiology.
+>
+> **Question.** Does receiving at least one home
+> health visit within 7 days of discharge reduce
+> 30-day all-cause readmission?
+>
+> **Data.** Retrospective EHR cohort, $n \approx 5{,}000$,
+> obtained from the institutional research data
+> warehouse under existing IRB. Includes
+> demographics, baseline ejection fraction,
+> medication on discharge, indicator for home health
+> use, and outcome.
+>
+> **Deadline.** Manuscript draft by month 4; submit
+> month 6.
+>
+> **Methodology (to be confirmed).** Propensity-
+> matched cohort with multivariable logistic
+> regression for the primary outcome. Sensitivity
+> analyses with inverse-probability weighting.
+>
+> **Deliverables.** Pre-registered analysis plan
+> (month 1), Table 1 and primary results (month 2),
+> manuscript draft (month 4), revisions (month 5).
+>
+> **Authorship.** Statistician will be second
+> author. Will be involved in writing methods and
+> results, and revising the full manuscript.
+>
+> **Boundaries.** Statistician will not write the
+> introduction or discussion. Statistician will not
+> perform additional analyses requested after month
+> 4 without renegotiation.
+>
+> **Red flags noted.** None at intake. To revisit if
+> EHR data quality is worse than expected at first
+> exploration.
+
+This document, agreed in writing at the start, makes
+the project run smoothly even when the data turn out
+to be messier than expected.
+
+## Collaborating with an LLM on team-science work
+
+LLMs can help with the writing parts (drafting intake
+documents, proofreading methods, role-playing
+sceptical PIs). They cannot replace the judgement.
+
+**Prompt 1: drafting an intake document.** Describe
+the project briefly and ask: 'draft a one-page intake
+document that I will send to a new clinical
+collaborator before our first meeting.'
+
+*What to watch for.* The output will likely be
+generic and reasonable. Customise it for the specific
+domain (oncology has different baseline norms than
+psychiatry).
+
+*Verification.* Send it to a colleague who has run
+similar projects; iterate.
+
+**Prompt 2: red-flag detection.** Paste a short
+description of a request from a collaborator and ask:
+'are there red flags in this request?'
+
+*What to watch for.* The LLM is good at flagging
+explicit issues (no IRB, no analysis plan, vague
+hypotheses). It is weaker on subtle issues (data has
+been silently inspected by the team and the
+'hypothesis' is post-hoc).
+
+*Verification.* Bring suspicions to a senior
+biostatistician; their experience patterns the gut
+calibration.
+
+**Prompt 3: drafting an ICMJE contribution
+statement.** Paste author names and roles, ask: 'draft
+a CRediT-format contribution statement.'
+
+*What to watch for.* The output should map roles to
+ICMJE criteria. Each contribution should be specific
+and meaningful; vague statements ('contributed to
+the project') are red flags for ghost authorship.
+
+*Verification.* Have each named author confirm the
+description is accurate before submission.
+
+## Principle in use
+
+Three habits define defensible team-science practice:
+
+1. **Document agreements at the time, not at the
+   end.** Email summaries after every meeting;
+   written SOWs and intake documents.
+2. **Distinguish preference from principle.** Pick the
+   methodological battles that affect validity; defer
+   on the rest.
+3. **Translate between registers.** Effect-size
+   language for clinical readers; technical language
+   for methods sections; calibrated uncertainty
+   language for both.
 
 ## Exercises
 
 1. Take a paper you have contributed to and draft a
-   CRediT-format contribution statement for every author,
-   based only on the paper's content.
-2. Write a one-page intake document you would share with a new
-   clinical collaborator before the first meeting.
+   CRediT-format contribution statement for every
+   author, based only on the paper's content.
+2. Write a one-page intake document you would share
+   with a new clinical collaborator before the first
+   meeting.
 3. Find a published paper whose results are overstated
-   relative to the evidence. Write a two-paragraph critique
-   suitable for a peer review.
+   relative to the evidence. Write a two-paragraph
+   critique suitable for a peer review.
+4. Role-play a difficult conversation: a senior PI
+   asks you to dichotomise a continuous outcome to
+   produce an OR for a press release. Draft your
+   response.
+5. Audit your own most recent project: which of the
+   ICMJE criteria did you meet? Was your authorship
+   position appropriate?
 
 ## Further reading
 
-- [@perez2020team] --- essential team-science skills for biostatisticians.
-- ICMJE authorship criteria at `icmje.org` --- the defining reference for authorship norms.
+- [@perez2020team] --- essential team-science skills
+  for biostatisticians.
+- ICMJE authorship criteria at `icmje.org` --- the
+  defining reference for authorship norms.
+- The CRediT taxonomy at `casrai.org/credit` --- the
+  contribution-role vocabulary for finer-grained
+  attribution.
+- *Working with collaborators in clinical research*
+  at the National Academies website --- a useful
+  practical guide.
 
 ## Prerequisites answers {#sec-quiz-answers-03}
 
-1. Consulting is typically transactional: a question is
-   brought, a statistical analysis is delivered, and the
-   relationship ends. Collaboration is sustained: the
-   statistician is a team member involved across study
-   design, data collection, analysis, and manuscript writing,
-   and shares authorship responsibility for the final
-   product.
-2. Active listening (understanding the scientific question
-   before proposing a method), precise writing (producing
-   analysis plans and memos that non-statisticians can
-   audit), and calibrated language (distinguishing 'verified',
-   'likely', 'assumed', and 'unknown' in reports).
-3. Authorship determines credit in an academic system where
-   credit allocates grants, promotions, and prestige.
-   Unresolved authorship disputes sour collaborations and
-   sometimes terminate them. ICMJE-style agreement at the
-   outset (and written down) avoids the confrontation at the
-   end.
+1. Consulting is typically transactional: a question
+   is brought, a statistical analysis is delivered,
+   and the relationship ends. Collaboration is
+   sustained: the statistician is a team member
+   involved across study design, data collection,
+   analysis, and manuscript writing, and shares
+   authorship responsibility for the final product.
+   The middle ground (a few sustained interactions
+   that do not span the whole project) is where most
+   role disputes happen.
+2. Active listening (understanding the scientific
+   question before proposing a method), precise
+   writing (producing analysis plans and memos that
+   non-statisticians can audit), and calibrated
+   language (distinguishing 'verified', 'likely',
+   'assumed', and 'unknown' in reports). Many
+   biostatisticians' technical skill outpaces their
+   communication; the gap shows up as 'difficult to
+   work with'.
+3. Authorship determines credit in an academic
+   system where credit allocates grants, promotions,
+   and prestige. Unresolved authorship disputes sour
+   collaborations and sometimes terminate them.
+   ICMJE-style agreement at the outset (and written
+   down) avoids the confrontation at the end. The
+   conversation is uncomfortable up front and far
+   more uncomfortable later; have it early.
