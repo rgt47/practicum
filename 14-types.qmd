@@ -88,9 +88,9 @@ midnight-boundary bugs.
    `fct_reorder()`. Produce a bar plot that reflects the
    new order.
 2. A character column contains hospital names like
-   `'UC San Diego Medical Center'`, `'UCSD Jacobs'`,
-   `'U.C.S.D.'`. Write a regex-based cleaning pipeline
-   that collapses these into a single level `'UCSD'`.
+   `'General Hospital Main Campus'`, `'Gen. Hospital'`,
+   `'GENHOSP'`. Write a regex-based cleaning pipeline that
+   collapses these into a single canonical level.
 3. A dataset has a `visit_date` column in mixed formats.
    Write a pipeline that parses everything with
    `parse_date_time()` and flags rows that fail to parse.

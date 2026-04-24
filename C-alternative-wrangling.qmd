@@ -134,7 +134,7 @@ ds <- open_dataset('big-trial/')
 
 # dplyr pipeline against the lazy dataset
 summary <- ds |>
-  filter(site == 'UCSD', visit == 'Baseline') |>
+  filter(site == 'SITE01', visit == 'Baseline') |>
   group_by(arm) |>
   summarise(mean_age = mean(age), n = n()) |>
   collect()
