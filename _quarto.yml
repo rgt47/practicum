@@ -59,19 +59,21 @@ book:
         - 14-types.qmd
         - 15-joins.qmd
         - 16-graphics.qmd
+        - 17-missing.qmd
 
     - part: 'Analysis Practice'
       chapters:
-        - 17-analysis-plan.qmd
-        - 18-cdisc.qmd
-        - 19-testing.qmd
-        - 20-ai-coding.qmd
+        - 18-analysis-plan.qmd
+        - 19-cdisc.qmd
+        - 20-testing.qmd
+        - 21-ai-coding.qmd
+        - 22-sas.qmd
 
     - part: 'Case Studies and Synthesis'
       chapters:
-        - 21-penguins.qmd
-        - 22-adni.qmd
-        - 23-synthesis.qmd
+        - 23-penguins.qmd
+        - 24-adni.qmd
+        - 25-synthesis.qmd
 
     - references.qmd
 

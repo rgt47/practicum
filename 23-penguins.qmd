@@ -13,7 +13,7 @@ PHB 243B Lectures 5, 7, 10; blog posts
 
 Answer the following questions to see if you can bypass this
 chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-21.
+@sec-quiz-answers-23.
 
 1. What data integrity issues does the
    `palmerpenguins::penguins` dataset contain, and how
@@ -156,7 +156,7 @@ reproduce in under two commands.
    between the two tables tell you about the data
    collection design?
 
-## Quiz answers {#sec-quiz-answers-21}
+## Quiz answers {#sec-quiz-answers-23}
 
 1. `palmerpenguins::penguins` contains 11 rows with at
    least one missing value (most commonly `sex`). The
