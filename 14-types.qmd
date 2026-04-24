@@ -100,7 +100,7 @@ midnight-boundary bugs.
 - [@wickham2023r4ds] Chapters 14-18 --- `forcats`, `stringr`, `lubridate`.
 - [@bryan2019stat545] Chapters 10-13 --- detailed type-specific coverage.
 
-## Quiz answers {#sec-quiz-answers-14}
+## Prerequisites answers {#sec-quiz-answers-14}
 
 1. Before R 4.0, `read.csv()` and `data.frame()` converted
    character columns to factors by default, causing

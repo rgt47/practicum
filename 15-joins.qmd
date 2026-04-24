@@ -108,7 +108,7 @@ TODO: many-variable pivots with `names_sep` and
 - [@wickham2023r4ds] Chapters 19-20 --- the `dplyr` two-table verbs.
 - [@bryan2019stat545] Chapters 14-16 --- joins and lookups.
 
-## Quiz answers {#sec-quiz-answers-15}
+## Prerequisites answers {#sec-quiz-answers-15}
 
 1. `inner_join()` returns only rows whose key matches in
    both tables. `left_join()` returns every row from the

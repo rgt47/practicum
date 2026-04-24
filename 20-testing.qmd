@@ -117,7 +117,7 @@ tested.
 - [@wickham2023rpkgs] testing chapters --- `testthat` canonical reference.
 - `vdiffr` documentation on CRAN --- visual regression testing for `ggplot2`.
 
-## Quiz answers {#sec-quiz-answers-20}
+## Prerequisites answers {#sec-quiz-answers-20}
 
 1. Even a one-off analysis benefits from tests: they
    catch regressions when you refactor mid-analysis,

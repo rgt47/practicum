@@ -51,11 +51,8 @@ No prior Docker, `renv`, or Quarto experience is assumed.
 
 ## Conventions
 
-- **Bold** for new terms on first use.
-- `monospace` for code, file paths, and package names.
-- `function()` and `pkg::function()` for R functions.
-- Code follows the tidyverse style guide and the native R pipe
-  `|>`.
+See the [Conventions](conventions.qmd) page for the visual
+cues used throughout the book.
 
 ## Acknowledgements
 

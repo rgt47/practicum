@@ -110,7 +110,7 @@ gives you over rolling your own ggplot / `gt` table.
 - Wickham (2016), *ggplot2: Elegant Graphics for Data Analysis*, 3rd ed. at `ggplot2-book.org` --- canonical reference.
 - Wilke (2019), *Fundamentals of Data Visualization* at `clauswilke.com/dataviz` --- effective-visualisation principles.
 
-## Quiz answers {#sec-quiz-answers-16}
+## Prerequisites answers {#sec-quiz-answers-16}
 
 1. Use `split(data, data$group) |> map(\(d) ggplot(d,
     aes(x, y)) + geom_point())` to produce a named list

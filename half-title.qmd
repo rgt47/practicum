@@ -1,0 +1,21 @@
+---
+title: 'Biostatistics Practicum'
+format:
+  html:
+    page-layout: full
+  pdf:
+    include-in-header:
+      text: |
+        \thispagestyle{empty}
+---
+
+::: {.content-visible when-format='pdf'}
+\vspace*{4cm}
+\begin{center}
+{\Huge\bfseries Biostatistics Practicum\par}
+\vspace{1cm}
+{\Large\itshape Everything that comes up in data analysis except
+modelling and inference\par}
+\end{center}
+\newpage
+:::

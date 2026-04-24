@@ -108,7 +108,7 @@ TODO: JetBrains Mono, Fira Code, nerd fonts.
 - Pro Git by Chacon and Straub at `git-scm.com/book` --- the canonical free Git book.
 - Yihui Xie's blog at `yihui.org` --- practical R workstation setup posts.
 
-## Quiz answers {#sec-quiz-answers-04}
+## Prerequisites answers {#sec-quiz-answers-04}
 
 1. R stores installed packages in the directory returned by
    `.libPaths()[1]`, typically `~/Library/R/...` on macOS or

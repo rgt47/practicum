@@ -1,13 +1,13 @@
 /*-- scss:defaults --*/
 
 $primary: #2c7a7b;
-$link-color: #c05621;
+$link-color: #2c7a7b;
+$code-color: #2c7a7b;
 $code-block-bg: #f8f9fa;
-$code-color: #c05621;
 
-$font-family-sans-serif: 'Source Sans 3', 'Helvetica Neue', Arial,
-  sans-serif;
-$font-family-monospace: 'JetBrains Mono', 'Fira Mono', 'Menlo',
+$font-family-sans-serif: 'Source Sans 3', Inter, 'Helvetica Neue',
+  Arial, sans-serif;
+$font-family-monospace: 'JetBrains Mono', 'Fira Mono', Menlo,
   monospace;
 
 $body-color: #212529;
@@ -24,14 +24,15 @@ $body-bg: #ffffff;
   font-weight: 600;
 }
 
-pre.sourceCode {
-  border-left: 3px solid $primary;
-}
-
 .chapter-title {
   font-weight: 700;
 }
 
 div.callout-tip.callout-titled .callout-title {
   color: darken($primary, 10%);
+}
+
+img.cover {
+  max-width: 250px;
+  border-radius: 6px;
 }

@@ -105,7 +105,7 @@ to each other via `reticulate`.
 - Xie, Dervieux, and Riederer (2020), *R Markdown Cookbook* --- the recipe book.
 - Xie (2020), *bookdown: Authoring Books and Technical Documents with R Markdown* --- long-form documents.
 
-## Quiz answers {#sec-quiz-answers-12}
+## Prerequisites answers {#sec-quiz-answers-12}
 
 1. `knitr::spin('script.R')` is the canonical fast path: it
    turns a commented `.R` file into a rendered `.Rmd` by

@@ -104,7 +104,7 @@ TODO: from `DESCRIPTION`/`Depends:` to renv.
 - `renv` documentation at `rstudio.github.io/renv` --- definitive reference.
 - The `renv` CRAN vignettes --- start with 'Introduction to renv'.
 
-## Quiz answers {#sec-quiz-answers-08}
+## Prerequisites answers {#sec-quiz-answers-08}
 
 1. `renv::init()` creates an `renv/` subdirectory (with an
    `activate.R` bootstrap script), an `.Rprofile` that calls
