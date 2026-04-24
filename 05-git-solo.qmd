@@ -3,21 +3,22 @@
 ::: {.callout-note}
 ## Sources
 
-Adapted from author's lecture notes and supporting materials for a graduate practicum in biostatistics.
+Adapted from author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
 :::
 
 ## Prerequisites
 
-Answer the following questions to see if you can bypass this
-chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-05.
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-05.
 
 1. Why should a solo biostatistician use Git for a project
    that no one else will ever see?
-2. What is the difference between a commit, a branch, and a
-   tag?
-3. Name one common scenario in which `git stash` saves you
-   from data loss.
+2. What is the difference between a commit, a branch, and
+   a tag?
+3. Name one common scenario in which `git stash` saves
+   you from data loss.
 
 ## Learning objectives
 
@@ -25,102 +26,477 @@ By the end of this chapter you should be able to:
 
 - Initialise a Git repository, make commits, and push to
   GitHub from the command line.
-- Use branches to experiment without risking your main line
-  of work.
-- Resolve a merge conflict in R source.
-- Authenticate to GitHub with an SSH key or a personal access
-  token.
-- Use `git tag` to mark release points (e.g., submission to a
-  journal).
+- Use branches to experiment without risking your main
+  line of work, and merge them cleanly.
+- Resolve a merge conflict in R source code.
+- Authenticate to GitHub with an SSH key or a personal
+  access token.
+- Use `git tag` to mark release points (e.g., submission
+  to a journal).
+- Recover from common mistakes: discarded changes,
+  detached HEAD, accidental commits to wrong branch.
 
 ## Orientation
 
-Git is the time machine you wish you had the last time you
-overwrote a working analysis. For a solo developer it is
-still worth the learning investment: the branching workflow
-lets you try risky refactors without fear, and the history
-lets you answer 'when did this break?' in seconds rather than
-hours.
+Git is the time machine you wish you had the last time
+you overwrote a working analysis. For a solo developer it
+is still worth the learning investment: the branching
+workflow lets you try risky refactors without fear, and
+the history lets you answer 'when did this break?' in
+seconds rather than hours.
+
+The companion textbook (chapter 2 of *Statistical
+Computing in the Age of AI*) covers Git's mechanics in
+team contexts. This chapter covers the same tools from
+the solo developer's perspective: the workflows that pay
+off when you are the only contributor.
+
+## The statistician's contribution {#sec-git-solo-human}
+
+The mechanics are mechanical. The judgements:
+
+**Commit boundaries are reasoning units.** Each commit
+should be one logical change. 'Refactor data cleaning to
+use vectorised assignment' is a commit; 'Tuesday's work'
+is not. Atomic commits make `git bisect` (binary search
+for the commit that introduced a bug) feasible; large
+commits make it useless.
+
+**Commit messages explain why.** The diff shows what.
+'Switch to HC1 sandwich SEs because residual diagnostics
+showed heteroscedasticity' is the message. 'update SEs'
+is not. Future-you (or your reviewer) will need the
+context six months later.
+
+**Tag the irreversible moments.** Submission to a
+journal, deployment to production, results sent to the
+PI. Each is a moment you may need to roll back to. A
+git tag (`v1.0-jbs-submission`) makes that easy.
+
+**Push to a remote.** Even for solo work, a GitHub
+remote is your off-site backup. A laptop fire ends the
+project if you have not pushed; it is a setback if you
+have.
+
+These habits make the tool useful. Without them, Git is
+a glorified backup tool.
 
 ## Why Git for solo work
 
-TODO: time-travel, branching for experiments, irreversible
-pre-submission tagging.
+The standard arguments for Git emphasise collaboration.
+For solo work, the value is different but real:
+
+**Time-travel.** When something breaks, `git log` and
+`git diff` tell you exactly what changed and when. With
+no Git history, you spend hours trying to remember what
+you did Tuesday.
+
+**Risk-free experimentation.** A branch is free. Try a
+risky refactor on a branch; if it works, merge; if not,
+discard. Without Git, the risky refactor is a commitment
+you have to undo by hand.
+
+**Pre-submission marking.** When you submit a paper, tag
+the commit. If a reviewer asks for a re-run six months
+later, you can roll back exactly to the submitted
+version, run, and compare.
+
+**Off-site backup.** Pushing to GitHub gives you a copy
+on someone else's hardware. For one-of-a-kind PhD work,
+the value is not subtle.
+
+**Eventual collaboration.** Many 'solo' projects become
+team projects. Starting with Git is much easier than
+adding it later when you are scrambling to share code.
+
+The cost: a few hours of upfront learning. The benefit
+compounds across every project for the rest of your
+career. The math is favourable.
 
 ## Minimum viable Git
 
-TODO: init, add, commit, log, status, diff.
+The day-to-day workflow:
+
+```bash
+# initialise (once per project)
+cd ~/research/my-project
+git init
+git add .
+git commit -m "Initial project structure"
+
+# day to day
+git status                       # what is changed?
+git diff                         # show changes
+git add file.R                   # stage one file
+git add .                        # stage everything
+git commit -m "Fix bug in cleaner"
+git log --oneline -10            # recent history
+```
+
+For most days, that is the entire workflow: status, diff,
+add, commit, repeat. Five commands cover 90% of solo Git
+use.
+
+`git diff` shows unstaged changes; `git diff --staged`
+shows staged changes. The distinction is between 'I have
+edited this' and 'I have marked this for the next
+commit'.
+
+`git log` has many flags; the useful subset:
+
+```bash
+git log --oneline -10            # last 10 commits, one line each
+git log --grep "bootstrap"       # commits mentioning 'bootstrap'
+git log -p file.R                # full diff of every commit on file.R
+git log --since="2 weeks ago"    # recent activity
+```
 
 ## Branching and merging
 
-TODO: `branch`, `switch`, `merge`, `rebase`. When to prefer
-each.
+The mental model: a branch is a movable pointer to a
+commit. Creating a branch is making a new pointer; the
+branch 'moves forward' as you make commits.
+
+```bash
+# create and switch (modern)
+git switch -c sensitivity-analysis
+
+# do work, commit
+git add R/sensitivity.R
+git commit -m "Add sensitivity analysis under MNAR"
+
+# back to main
+git switch main
+
+# merge
+git merge sensitivity-analysis
+
+# delete the now-merged branch
+git branch -d sensitivity-analysis
+```
+
+`git switch` (introduced 2019) is the modern command for
+branch switching; `git checkout` still works but does too
+many other things to be a clean tool for this.
+
+For solo work, branching is most useful for:
+
+- **Experiments you might throw away.** A risky refactor.
+- **Side investigations.** A sensitivity analysis you may
+  or may not include.
+- **Per-feature work** on a longer project.
+
+The discipline: keep `main` working at all times. If a
+branch is half-done, leave it on its branch.
+
+`git rebase` is an alternative to merge that produces a
+linear history. For solo work, the difference rarely
+matters; pick one and use it consistently. `merge` is
+simpler to reason about; `rebase` produces cleaner logs.
 
 ## Remotes: GitHub, GitLab, Gitea
 
-TODO: push, pull, fetch, clone.
+A remote is a copy of the repository hosted elsewhere.
+GitHub is the dominant choice; GitLab is similar; Gitea
+is a self-hosted alternative.
 
-## Authentication: SSH and PAT
+```bash
+# create a repository on GitHub via the gh CLI
+gh repo create my-analysis --private --source=. --remote=origin
+git push -u origin main
 
-TODO: setting up an SSH key; creating a PAT.
+# subsequent pushes
+git push
+
+# pull changes (e.g., from another machine)
+git pull
+```
+
+The `-u origin main` on the first push sets the upstream;
+later `git push` and `git pull` need no arguments.
+
+For private research, push private repositories. GitHub's
+free tier allows unlimited private repos. Make repositories
+public deliberately, not by accident.
+
+## Authentication
+
+GitHub no longer accepts passwords for git operations
+(deprecated in 2021). Two modern options:
+
+**Personal access tokens (PAT).** Create at GitHub →
+Settings → Developer Settings → Personal access tokens.
+Use the token instead of a password when prompted. Set
+expiration; rotate periodically. The `gh` CLI handles
+this automatically with `gh auth login`.
+
+**SSH keys.** Generate locally:
+
+```bash
+ssh-keygen -t ed25519 -C "you@example.com"
+cat ~/.ssh/id_ed25519.pub        # paste this into GitHub
+```
+
+Add the public key in GitHub → Settings → SSH and GPG
+keys. Then clone with `git@github.com:user/repo.git`
+URLs (instead of `https://...`).
+
+SSH is more convenient (no token-typing) but slightly
+more setup. PAT is faster to start. The `gh` CLI
+abstracts both for the common case.
 
 ## Tagging for submissions
 
-TODO: `git tag -a v1.0 -m 'submitted to JBS'`.
+```bash
+# annotated tag (preferred)
+git tag -a v1.0 -m "Submitted to Journal of Biostatistics 2026-04"
 
-## When things go wrong
+# push the tag to GitHub
+git push origin v1.0
 
-TODO: `stash`, `reset`, `reflog`, `checkout` of old files.
+# list tags
+git tag
 
-## With AI assistance {.unnumbered}
+# go back to the tagged version
+git checkout v1.0
+```
 
-::: {.callout-tip}
-## Prompts to try
+Tags are immovable pointers to specific commits. Once
+created and pushed, treat them as permanent. The natural
+points to tag:
 
-1. Paste `git log --oneline -10` and `git status` and ask the
-   LLM to summarise the state of your repo in two sentences.
-2. Ask the LLM to resolve a synthetic merge conflict pasted
-   inline. Verify the proposed resolution against what you
-   would pick.
-3. Ask the LLM to describe what `git reflog` recovers in three
-   different scenarios. Check the answer against the official
-   `git-reflog` documentation.
+- Initial submission to a journal.
+- Each round of revision (`v1.1-revision-1`).
+- Final published version (`v1.0-published`).
+- Internal milestones (results to PI, abstract for
+  conference).
+
+A reviewer who asks 'can you re-run with the original
+exclusion criterion?' six months later: `git checkout v1.0-jbs-submission`,
+re-run, compare. The tag is the documentation of which
+'version' was reported.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: tagging vs. committing
+
+**Question.** You have committed your finished analysis
+and pushed to GitHub. Why also tag the commit
+`v1.0-submission`?
+
+::: {.content-visible when-format="html"}
+<details><summary>Answer</summary>
 :::
+
+A commit is a snapshot; a tag is a *named pointer* to
+that snapshot. The commit hash (e.g., `a3f9c8d`) is
+hard to remember and looks the same as every other
+hash. The tag (`v1.0-submission`) is human-readable and
+durable: in two years, you can `git checkout
+v1.0-submission` to recover exactly what you submitted.
+You could `git checkout a3f9c8d`, but you would have to
+look up the hash. Tags also appear in GitHub's UI under
+'Releases', making them visible to anyone who looks at
+the repository. For checkpoints you may want to return
+to (submission, revision, deployment), tag.
+
+::: {.content-visible when-format="html"}
+</details>
+:::
+:::
+
+## Recovery: when things go wrong
+
+**`git stash`** when you have uncommitted work and need
+to switch branches:
+
+```bash
+# you are mid-edit, but need to switch branches
+git stash                        # save uncommitted changes
+git switch other-branch
+# ... do other work ...
+git switch main
+git stash pop                    # restore the saved changes
+```
+
+**`git reset`** to discard or rewind:
+
+```bash
+git reset HEAD~1 --soft          # undo last commit, keep changes staged
+git reset HEAD~1                 # undo last commit, keep changes unstaged
+git reset HEAD~1 --hard          # undo last commit, DISCARD changes
+```
+
+`--hard` is dangerous: it loses uncommitted work. Use it
+deliberately and only when the changes are not worth
+preserving.
+
+**`git reflog`** to find lost commits:
+
+```bash
+git reflog                       # log of every reference change
+# ... look for the commit hash you wanted ...
+git reset --hard a3f9c8d         # back to that commit
+```
+
+The reflog records every move of HEAD. Even commits made
+before a `git reset --hard` are reachable through it for
+about 90 days. This is the recovery mechanism of last
+resort: if you panic-deleted something, the reflog
+probably still has it.
+
+**`git checkout file.R`** to revert one file:
+
+```bash
+git checkout HEAD -- file.R      # discard uncommitted changes to file.R
+git checkout abcd1234 -- file.R  # restore file.R to that commit's version
+```
+
+## Worked example: a solo project lifecycle
+
+```bash
+# day 1: start the project
+mkdir ~/research/readmissions && cd ~/research/readmissions
+git init
+echo "# Readmissions analysis" > README.md
+echo "*.html\n*.pdf\n.Rproj.user/\n.Rhistory" > .gitignore
+git add . && git commit -m "Initial structure"
+gh repo create readmissions --private --source=. --remote=origin
+git push -u origin main
+
+# week 2: data exploration
+# (write R/01_explore.R, edit several times)
+git add R/01_explore.R && git commit -m "Initial EDA, summarising 30-day rates"
+
+# week 4: try a sensitivity analysis on a branch
+git switch -c sensitivity-mnar
+# (write R/03_sensitivity.R)
+git add R/03_sensitivity.R && git commit -m "MNAR sensitivity by IPW"
+git switch main
+git merge sensitivity-mnar
+git branch -d sensitivity-mnar
+
+# week 8: submit
+git tag -a v1.0-jbs-submission -m "Submitted to JBS 2026-06-15"
+git push origin v1.0-jbs-submission
+
+# week 22: revision request
+git checkout v1.0-jbs-submission       # see exactly what was submitted
+# (compare with current main, decide what to change)
+git switch main
+# ... revisions ...
+git tag -a v1.1-jbs-revision-1 -m "First revision JBS"
+git push origin v1.1-jbs-revision-1
+```
+
+The tags make the timeline navigable. The branches kept
+the sensitivity work isolated until it was ready. The
+commit messages explain why, not just what. The remote
+on GitHub is the off-site backup if the laptop dies.
+
+## Collaborating with an LLM on Git
+
+LLMs handle Git well; the misuses tend to be in destructive
+commands.
+
+**Prompt 1: explaining state.** Paste `git log --oneline -10`
+and `git status` and ask: 'summarise the state of this
+repository and what I should do next.'
+
+*What to watch for.* The LLM should describe the state
+correctly. If its 'next step' suggestion involves
+destructive commands (`git reset --hard`, `git push --force`),
+verify the destructiveness is what you want.
+
+*Verification.* Run `git status` after taking any action;
+confirm the state matches expectation.
+
+**Prompt 2: resolving a merge conflict.** Paste a
+conflicted file with markers and ask the LLM to propose
+a resolution.
+
+*What to watch for.* The LLM may pick one side and
+discard the other arbitrarily. For statistical code,
+both sides usually represent intentional changes;
+preserve both intents in the resolution if possible.
+
+*Verification.* Run the analysis after the resolution.
+The output should be what you intended.
+
+**Prompt 3: recovery from a bad commit.** Describe what
+went wrong and ask the LLM how to recover.
+
+*What to watch for.* If the suggested fix is
+`git reset --hard`, double-check that you do not have
+uncommitted work that would be lost. The reflog is
+usually a safer first move.
+
+*Verification.* Use `git stash` to save anything
+uncommitted before any destructive recovery operation.
+
+## Principle in use
+
+Three habits define defensible solo-developer Git use:
+
+1. **Commit small, commit often, commit with messages
+   that explain why.** Atomic commits with informative
+   messages make `git log` a usable journal.
+2. **Push to a remote.** GitHub is your off-site backup;
+   the laptop dying is no longer the end of the project.
+3. **Tag irreversible moments.** Submissions,
+   deployments, results to PI. Tags make the timeline
+   navigable.
 
 ## Exercises
 
-1. Create a new GitHub repository, clone it locally, add a
-   single `.R` file, and push one commit. Verify the commit
-   appears on GitHub.
-2. Create and resolve a merge conflict intentionally: make a
-   branch, edit line 1 of `README.md`, commit, switch back to
-   main, edit line 1 differently, commit, and merge.
-3. Tag a completed analysis with `v1.0` and push the tag to
-   GitHub. Verify the tagged release is visible in the GitHub
-   UI.
+1. Create a new GitHub repository, clone it locally,
+   add a single `.R` file, and push one commit. Verify
+   the commit appears on GitHub.
+2. Create and resolve a merge conflict intentionally:
+   make a branch, edit line 1 of `README.md`, commit,
+   switch back to main, edit line 1 differently, commit,
+   and merge.
+3. Tag a completed analysis with `v1.0` and push the
+   tag to GitHub. Verify the tagged release is visible
+   in the GitHub UI.
+4. Use `git reflog` to recover a commit you 'lost' via
+   `git reset --hard`. Document the steps.
+5. Set up SSH-key authentication to GitHub. Push a
+   commit using the SSH URL (`git@github.com:...`).
 
 ## Further reading
 
-- [@bryan2019happygit] --- the standard reference for Git in R workflows.
-- Pro Git by Chacon and Straub at `git-scm.com/book` --- the canonical free Git book.
+- [@bryan2019happygit] --- the standard reference for
+  Git in R workflows.
+- Pro Git by Chacon and Straub at `git-scm.com/book` ---
+  the canonical free Git book.
+- Atlassian's Git tutorials at
+  `atlassian.com/git/tutorials` --- well-illustrated
+  conceptual reviews.
 
 ## Prerequisites answers {#sec-quiz-answers-05}
 
-1. Even for solo work, Git provides: a time machine (roll
-   back to any prior state), a branching workflow (try risky
-   refactors without fear), a structured log of what you did
-   and when, and an off-site backup if you push to a remote.
-   The cost is a one-time learning curve; the benefit
-   compounds for the rest of your career.
-2. A commit is a snapshot of the repository at a point in
-   time, with a parent commit, an author, a message, and a
-   unique hash. A branch is a movable pointer to a commit,
-   used to develop features or experiments in isolation. A
-   tag is an immovable pointer to a commit, used to mark
-   release points.
-3. You are in the middle of editing files but need to pull
-   changes from the remote or switch to another branch
-   urgently. `git stash` puts your uncommitted work
-   temporarily aside; `git stash pop` restores it later. This
-   avoids committing half-finished work just to unblock a
-   branch switch.
+1. Even for solo work, Git provides: a time machine
+   (roll back to any prior state), a branching workflow
+   (try risky refactors without fear), a structured log
+   of what you did and when, and an off-site backup if
+   you push to a remote. The cost is a one-time
+   learning curve; the benefit compounds for the rest of
+   your career, especially when 'solo' projects become
+   collaborations.
+2. A commit is a snapshot of the repository at a point
+   in time, with a parent commit, an author, a message,
+   and a unique hash. A branch is a movable pointer to a
+   commit, used to develop features or experiments in
+   isolation. A tag is an immovable pointer to a
+   commit, used to mark release points (submissions,
+   deployments). Commits are the units of history;
+   branches are the units of parallel work; tags are the
+   units of milestones.
+3. You are in the middle of editing files but need to
+   pull changes from the remote or switch to another
+   branch urgently. `git stash` puts your uncommitted
+   work temporarily aside; `git stash pop` restores it
+   later. This avoids committing half-finished work
+   just to unblock a branch switch. The stash is also
+   recoverable for some time after `pop` via the reflog,
+   so accidental loss is unusual.

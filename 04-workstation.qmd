@@ -3,125 +3,543 @@
 ::: {.callout-note}
 ## Sources
 
-Adapted from author's lecture notes and supporting materials for a graduate practicum in biostatistics.
+Adapted from author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
 :::
 
 ## Prerequisites
 
-Answer the following questions to see if you can bypass this
-chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-04.
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-04.
 
-1. When you install a new R package on your workstation, where
-   does R store the compiled binary by default, and how would
-   you check that location?
+1. When you install a new R package on your workstation,
+   where does R store the compiled binary by default, and
+   how would you check that location?
 2. What is a 'dotfile', and name three commonly dotfiled
    tools a biostatistician might configure.
 3. How does an integrated development environment like
-   RStudio differ from a terminal-plus-editor combination such
-   as tmux + Neovim, and what tradeoffs does each impose?
+   RStudio differ from a terminal-plus-editor combination
+   such as tmux + Neovim, and what tradeoffs does each
+   impose?
 
 ## Learning objectives
 
 By the end of this chapter you should be able to:
 
-- Install and configure R, Quarto, Git, and a choice of editor
-  on a new workstation.
-- Reason about where R looks for packages (`.libPaths()`) and
-  why project-level libraries matter.
-- Version-control your personal configuration (dotfiles) and
-  sync it across machines.
-- Choose between RStudio and a terminal workflow for a given
-  task.
+- Install and configure R, Quarto, Git, and a choice of
+  editor on a new workstation, on Mac, Linux, or Windows.
+- Reason about where R looks for packages
+  (`.libPaths()`) and why project-level libraries matter.
+- Version-control your personal configuration (dotfiles)
+  and sync it across machines.
+- Choose between RStudio and a terminal workflow for a
+  given task.
+- Set sensible defaults in `.Rprofile` without breaking
+  reproducibility.
 
 ## Orientation
 
 A poorly configured workstation silently adds friction to
-every analysis. Paths get hardcoded, package versions drift,
-and context-switching between projects becomes expensive. This
-chapter builds the minimum viable workstation of a professional
-biostatistician in 2026.
+every analysis. Paths get hardcoded, package versions
+drift, and context-switching between projects becomes
+expensive. This chapter builds the minimum viable
+workstation of a professional biostatistician in 2026.
+
+The goal is a workstation where: (1) the analysis you run
+on Tuesday produces the same result on Wednesday, (2) the
+analysis you run at home produces the same result as in
+the office, (3) the configuration is reproducible from a
+git checkout if the laptop dies. None of this is glamorous;
+all of it is foundational.
+
+## The statistician's contribution {#sec-workstation-human}
+
+Workstation setup is mostly mechanical. The judgements:
+
+**Pin the foundational toolchain.** A specific version of
+R, Quarto, and the rendering engine; documented and
+restorable. Casual updates are how reproducibility breaks
+silently. `rig` (on macOS) and Docker (chapter 9) make
+multiple R versions easy to maintain side by side.
+
+**Keep `.Rprofile` minimal.** Anything you put in
+`.Rprofile` runs at startup and changes the behaviour of
+every session. A heavy `.Rprofile` (loading `tidyverse`,
+setting global options, defining helpers) makes your
+sessions different from a colleague's, and breaks any
+script that does not explicitly load what it needs.
+Project-local `.Rprofile` is fine; user-level should be
+nearly empty.
+
+**Editor familiarity matters more than editor choice.**
+RStudio, VS Code, Neovim, Emacs all work for biostatistics.
+Pick one and learn its shortcuts. The productivity gain
+from fluency in your tool of choice exceeds the gain from
+switching tools.
+
+**Version-control your configuration.** Your dotfiles are
+the part of your workstation worth restoring after a
+crash. Putting them in git makes restoration trivial; not
+doing so makes a new laptop a multi-day project.
+
+These habits are invisible when present and devastating
+when absent.
 
 ## Installing R and Quarto
 
-TODO: Mac, Linux, Windows paths. Version pinning with `rig` on
-macOS.
+**On macOS** with Homebrew:
+
+```bash
+# system R via the official installer or rig
+brew install --cask r
+
+# better: rig manages multiple R versions
+brew install r-lib/rig/rig
+rig install release          # latest stable
+rig install 4.4.0            # specific version
+rig default 4.4.0
+```
+
+`rig` is the modern way to manage R on macOS. Multiple
+versions side by side, fast switching, no PATH games.
+
+**On Linux** (Ubuntu/Debian):
+
+```bash
+sudo apt update
+sudo apt install --no-install-recommends r-base r-base-dev
+```
+
+For the latest version, add the CRAN apt repository (see
+`cran.r-project.org/bin/linux/ubuntu/`).
+
+**On Windows**, install from `cran.r-project.org` and
+RStudio from `posit.co/download/rstudio-desktop/`. Most
+biostatistics workflows on Windows go through RStudio.
+
+**Quarto** from `quarto.org/docs/get-started/`. The
+installer handles all platforms; pin to a specific version
+for reproducibility:
+
+```bash
+# verify version
+quarto --version
+
+# in a project's _quarto.yml, optionally pin
+# format:
+#   html:
+#     ...
+# quarto: 1.5.55
+```
+
+**Git** is preinstalled on Linux, available in Xcode
+Command Line Tools on macOS (`xcode-select --install`),
+and from `git-scm.com/download/win` on Windows.
+
+After installation, configure git:
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+git config --global core.editor "code --wait"   # or your editor
+git config --global init.defaultBranch main
+```
 
 ## Choosing an editor
 
-TODO: RStudio vs VS Code vs Neovim. When each is the right
-call.
+**RStudio** is the standard for R-only work. Integrated
+IDE: editor, console, environment, plots, help, Git pane
+in one window. Maintained by Posit; bullet-proof for the
+R workflow.
+
+When to choose: R is your primary language; you want
+zero-setup interactive work; you teach or collaborate with
+people who use RStudio.
+
+**VS Code** with the R extension. Modern editor, excellent
+multi-language support, great for projects that span R
+and Python or work over SSH (VS Code Remote).
+
+When to choose: You work in multiple languages; you edit
+on a remote server; you appreciate Microsoft's ecosystem
+(Copilot, GitHub integration).
+
+**Neovim** with R-Nvim or similar. The keyboard-driven
+modal editor. Highly customisable, fast, works over SSH
+without modification. Steep learning curve.
+
+When to choose: You already use vi/Neovim for other
+languages; you do most of your work over SSH; keyboard
+fluency matters more than visual polish.
+
+**Positron** (Posit's new IDE, in beta as of 2026). Aimed
+at being VS Code's R-and-Python competitor; produced by
+the same team that makes RStudio. Worth watching but not
+yet ubiquitous.
+
+The dominant choice in academic biostatistics remains
+RStudio. The fastest-growing alternative is VS Code. Pick
+one and become fluent; switching costs add up.
 
 ## Shells and terminal setup
 
-TODO: `zsh`, `bash`, starship, tmux.
+For Mac and Linux, `zsh` is the default modern shell.
+Configure it with a `~/.zshrc`:
 
-## Package library layout
+```bash
+# minimal zshrc
 
-TODO: `.libPaths()`, user vs system libraries, project
-libraries via `renv`.
+# history
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt SHARE_HISTORY HIST_IGNORE_DUPS
 
-## Version-controlled dotfiles
+# prompt: starship is a good default
+eval "$(starship init zsh)"
 
-TODO: GNU stow, `~/.dotfiles/`, public vs private configs.
+# R-friendly aliases
+alias R='R --no-save'
+alias r='R --quiet --no-save'
 
-## Fonts, ligatures, and readable code
+# editor
+export EDITOR='code'
 
-TODO: JetBrains Mono, Fira Code, nerd fonts.
+# brew completions on macOS
+[ -f /opt/homebrew/etc/profile.d/bash_completion.sh ] && \
+  source /opt/homebrew/etc/profile.d/bash_completion.sh
+```
 
-## With AI assistance {.unnumbered}
+`starship` (`starship.rs`) gives a clean, fast prompt with
+git integration. Install with `brew install starship`.
 
-::: {.callout-tip}
-## Prompts to try
+`tmux` is worth learning if you SSH into servers: persistent
+sessions that survive disconnections, multiple panes,
+named windows. A minimal `.tmux.conf`:
 
-1. Ask the LLM to generate a `.zshrc` that sets up a tidy
-   prompt, history, and R-friendly aliases. Run it on a
-   scratch machine and inspect the behaviour.
-2. Paste your `sessionInfo()` and ask the LLM to identify any
-   package that is older than its current CRAN version by
-   more than one minor release. Decide what to upgrade.
-3. Ask the LLM to write a Neovim configuration for R editing
-   that includes syntax highlighting, a REPL pane, and snippet
-   expansion. Compare it against a curated reference like
-   Jose Sanchez-Mazas's R-Nvim.
+```
+set -g default-terminal "screen-256color"
+set -g mouse on
+set -g status-position top
+bind-key C-a send-prefix
+unbind C-b
+set -g prefix C-a
+```
+
+For most local biostatistics work, you do not need tmux;
+RStudio's session management suffices.
+
+## R package libraries
+
+R looks for packages in the directories returned by
+`.libPaths()`:
+
+```r
+.libPaths()
+#> [1] "/Users/you/Library/R/x86_64/4.4/library"
+#> [2] "/usr/local/lib/R/4.4/site-library"
+#> [3] "/Library/Frameworks/R.framework/Versions/4.4-x86_64/Resources/library"
+```
+
+The first is your user library; later are system. Install
+goes to `.libPaths()[1]` by default.
+
+With `renv` active in a project, the project's
+`renv/library/` takes precedence:
+
+```r
+.libPaths()
+#> [1] "/path/to/project/renv/library/macos/R-4.4/x86_64"
+#> [2] "/Users/you/Library/Caches/org.R-project.R/R/renv/sandbox/..."
+```
+
+This is exactly what `renv` does: each project has its own
+package library, isolated from other projects and from
+your user library. (Chapter 8 covers `renv` in depth.)
+
+The recommended pattern is:
+
+- User library has a small set of packages used across
+  projects: `usethis`, `devtools`, `rmarkdown`, maybe
+  `tidyverse`. Update when convenient.
+- Project libraries (under `renv`) hold the
+  version-pinned dependencies for reproducibility.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: where does install go?
+
+**Question.** You run `install.packages("dplyr")` from
+inside a project that has `renv` active. Where does it
+install?
+
+::: {.content-visible when-format="html"}
+<details><summary>Answer</summary>
 :::
+
+Into the project's `renv/library/` directory, not the
+user library. `renv` modifies `.libPaths()` so that the
+first entry is the project library. `install.packages()`
+installs to the first entry. The lock file
+(`renv.lock`) is updated to record the new package and
+its version. This isolation is exactly the point of
+renv: a package update inside one project does not
+affect any other project's packages.
+
+::: {.content-visible when-format="html"}
+</details>
+:::
+:::
+
+## `.Rprofile`: minimal and project-local
+
+Avoid putting analysis code in user-level `.Rprofile`.
+Things that *are* fine:
+
+```r
+# ~/.Rprofile
+
+# friendlier defaults
+options(
+  repos          = c(CRAN = "https://cloud.r-project.org/"),
+  prompt         = "R> ",
+  continue       = " + ",
+  digits         = 7,
+  warnPartialMatchArgs = TRUE,
+  warnPartialMatchAttr = TRUE,
+  warnPartialMatchDollar = TRUE
+)
+
+# only attach interactively (not in scripts or knitting)
+if (interactive()) {
+  suppressMessages(require(devtools))
+}
+```
+
+Things to avoid in user-level `.Rprofile`:
+
+- `library(tidyverse)` --- makes scripts depend on it
+  silently.
+- Defining global helper functions --- breaks
+  reproducibility for collaborators.
+- Setting `options(stringsAsFactors = FALSE)` --- harmless
+  in R 4.0+, but a sign of muscle memory from older
+  versions.
+
+Project-level `.Rprofile` is different: anything in there
+is part of the project, and runs for anyone who opens the
+project. `renv` itself uses a project `.Rprofile` to
+activate the project library. Anything else in the
+project `.Rprofile` should be deliberate.
+
+## Dotfiles in version control
+
+Your `.zshrc`, `.gitconfig`, `.Rprofile`, `init.vim`
+(Neovim), and editor settings are configuration that you
+will want on every machine you use. Version-controlling
+them prevents 'I forgot what I changed last time'.
+
+A standard layout:
+
+```
+~/dotfiles/
+├── zsh/
+│   ├── .zshrc
+│   └── .zsh_aliases
+├── git/
+│   └── .gitconfig
+├── R/
+│   └── .Rprofile
+├── nvim/
+│   └── init.vim
+├── README.md
+└── install.sh        # symlinks files into place
+```
+
+Use GNU `stow` (or chezmoi, or yadm) to symlink the
+dotfiles into the right places:
+
+```bash
+cd ~/dotfiles
+stow zsh git R nvim    # symlinks ~/.zshrc -> ~/dotfiles/zsh/.zshrc, etc.
+```
+
+Push the dotfiles repository to GitHub. On a new machine:
+
+```bash
+git clone https://github.com/you/dotfiles.git ~/dotfiles
+cd ~/dotfiles
+stow zsh git R nvim
+```
+
+Two minutes after cloning, your environment is restored.
+
+Sensitive content (API keys, work-specific config) goes in
+a separate private repository or is kept out of the
+public dotfiles entirely. `.gitignore` your secrets.
+
+## Fonts and readability
+
+Programming fonts that distinguish similar characters
+(0/O, 1/l/I) and support ligatures (rendering `>=` as a
+single glyph) are easy on the eyes:
+
+- **JetBrains Mono** (jetbrains.com/lp/mono) --- free,
+  excellent.
+- **Fira Code** --- the original ligature font; widely
+  supported.
+- **Source Code Pro** --- Adobe's open-source choice; no
+  ligatures.
+
+For terminal use specifically, **Nerd Fonts** patch
+common programming fonts with extra glyphs for status-line
+icons, used by tools like starship.
+
+```bash
+brew install --cask font-jetbrains-mono-nerd-font
+```
+
+Configure your terminal and editor to use it. Set your
+RStudio code font in Tools → Global Options → Appearance.
+
+## Worked example: a fresh-laptop setup script
+
+```bash
+#!/usr/bin/env bash
+# fresh-mac.sh: bootstrap a new macOS workstation
+
+# Homebrew
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# core tools
+brew install git tmux starship stow
+brew install --cask jetbrains-mono r rstudio quarto
+
+# multi-version R via rig
+brew install r-lib/rig/rig
+rig install release
+
+# clone and apply dotfiles
+git clone https://github.com/you/dotfiles.git ~/dotfiles
+cd ~/dotfiles && stow zsh git R nvim
+
+# install commonly-used global R packages
+Rscript -e 'install.packages(c("renv", "usethis", "devtools",
+  "remotes", "rmarkdown"))'
+
+echo "Setup complete. Reboot recommended."
+```
+
+A 30-minute one-time investment that rebuilds your
+workstation from scratch. Refine each time you set up a
+new machine; your future-self thanks you.
+
+## Collaborating with an LLM on workstation setup
+
+LLMs handle setup recipes well; they sometimes omit
+platform-specific gotchas.
+
+**Prompt 1: drafting a setup script.** Specify the OS
+and ask: 'write a bootstrap script that installs R,
+Quarto, RStudio, git, my dotfiles, and a sensible R
+package set.'
+
+*What to watch for.* Platform mismatch (the LLM
+generates an Ubuntu script when you said macOS). Path
+assumptions (`/usr/local/...` vs `/opt/homebrew/...` on
+Apple Silicon).
+
+*Verification.* Run on a clean VM. Adjust until clean
+runs succeed.
+
+**Prompt 2: diagnosing R startup issues.** Paste an
+error message or the output of `traceback()` and ask:
+'is this an `.Rprofile` issue, a path issue, or something
+else?'
+
+*What to watch for.* Most R startup issues are
+`.Rprofile` doing something unexpected, or a stale
+`.Rhistory`. The LLM should know this. If the diagnosis
+is generic, ask for specifics.
+
+*Verification.* Run R with `--vanilla` (skipping
+`.Rprofile`) to isolate.
+
+**Prompt 3: configuring a new editor.** Describe what
+you want from the editor (Neovim with R support, VS
+Code with Python plus R, etc.) and ask for a config.
+
+*What to watch for.* The output is usually a starting
+point. Test it; iterate.
+
+*Verification.* Open a real file and use the editor for
+a half-hour task. Adjust based on friction.
+
+## Principle in use
+
+Three habits define a defensible workstation:
+
+1. **Pin the foundational toolchain.** R, Quarto, key
+   packages. Don't update casually; update deliberately
+   per project.
+2. **Version-control your dotfiles.** They are your
+   workstation's identity, restorable from a clone.
+3. **Keep `.Rprofile` minimal.** A heavy user-level
+   `.Rprofile` makes your sessions non-reproducible.
 
 ## Exercises
 
-1. From a fresh user account, install R, Quarto, and Git, and
-   render this book's index chapter. Document every manual
-   step you took.
-2. Set up a dotfiles repository. Include your editor config,
-   shell config, and Git config. Clone it on a second machine
-   and verify the configs apply.
+1. From a fresh user account, install R, Quarto, and
+   Git, and render this book's index chapter. Document
+   every manual step you took.
+2. Set up a dotfiles repository. Include your editor
+   config, shell config, and Git config. Clone it on a
+   second machine and verify the configs apply.
 3. For a completed analysis of your own, identify three
    hardcoded paths or machine-specific assumptions and
    refactor them away.
+4. Compare your `.Rprofile` to the recommendations in
+   this chapter. List anything that should be moved to
+   project-level config or removed entirely.
+5. Install `rig` (macOS) or use the CRAN apt repository
+   (Linux) to install R 4.3 and R 4.4 side by side.
+   Switch between them; confirm packages install to
+   different libraries.
 
 ## Further reading
 
-- Wickham's RStudio cheatsheets at `rstudio.com/resources/cheatsheets` --- print them.
-- Pro Git by Chacon and Straub at `git-scm.com/book` --- the canonical free Git book.
-- Yihui Xie's blog at `yihui.org` --- practical R workstation setup posts.
+- Wickham's RStudio cheatsheets at
+  `rstudio.com/resources/cheatsheets` --- print them.
+- Pro Git by Chacon and Straub at `git-scm.com/book` ---
+  the canonical free Git book.
+- Yihui Xie's blog at `yihui.org` --- practical R
+  workstation setup posts.
+- The `rig` documentation at `github.com/r-lib/rig`.
 
 ## Prerequisites answers {#sec-quiz-answers-04}
 
-1. R stores installed packages in the directory returned by
-   `.libPaths()[1]`, typically `~/Library/R/...` on macOS or
+1. R stores installed packages in the directory returned
+   by `.libPaths()[1]`, typically
+   `~/Library/R/...` on macOS or
    `~/R/x86_64-pc-linux-gnu-library/...` on Linux. With
    `renv` active in a project, the project's private
-   library under `renv/library/` takes precedence.
-2. A dotfile is a hidden configuration file whose name begins
-   with a period (e.g., `.zshrc`, `.gitconfig`). Common
-   biostatistician dotfiles: `.Rprofile`, `.gitconfig`,
-   `.zshrc`/`.bashrc`, `.tmux.conf`, editor configs
-   (`init.vim`, `.vscode/settings.json`).
-3. RStudio provides an integrated IDE: editor, console, plots,
-   help, and Git panes in one window, with R-specific
-   conveniences. A terminal + Neovim + tmux workflow gives
-   more flexibility (remote editing over SSH, editing non-R
-   languages, scripting the environment) at the cost of a
-   steeper setup curve and less R-specific polish. RStudio is
-   optimal for project-focused interactive work; a terminal
-   workflow is optimal for server-based, multi-language, or
+   library under `renv/library/` takes precedence,
+   isolating the project's package versions from the
+   user library and from other projects.
+2. A dotfile is a hidden configuration file whose name
+   begins with a period (e.g., `.zshrc`, `.gitconfig`).
+   Common biostatistician dotfiles: `.Rprofile`,
+   `.gitconfig`, `.zshrc`/`.bashrc`, `.tmux.conf`,
+   editor configs (`init.vim`, `.vscode/settings.json`).
+   Version-controlling them in a public dotfiles
+   repository is the modern standard.
+3. RStudio provides an integrated IDE: editor, console,
+   plots, help, and Git panes in one window, with
+   R-specific conveniences. A terminal + Neovim + tmux
+   workflow gives more flexibility (remote editing over
+   SSH, editing non-R languages, scripting the
+   environment) at the cost of a steeper setup curve and
+   less R-specific polish. RStudio is optimal for
+   project-focused interactive work; a terminal workflow
+   is optimal for server-based, multi-language, or
    script-heavy work.
