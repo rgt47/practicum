@@ -59,7 +59,7 @@ Chapter outlines are derived from three sources:
 | 15 | Joining and reshaping                  | stat545                 |
 | 16 | Plotting with ggplot2 and purrr        | blog 16 + stat545       |
 | 17 | Statistical analysis plans             | 243B L5, L7, L13-17     |
-| 18 | CDISC data standards                   | textbook/cdisc-lecture (TBD) |
+| 18 | CDISC data standards                   | `textbook/19-cdisc.qmd` (author's draft) |
 | 19 | Testing data analysis workflows        | 243B L8 + blog 40       |
 | 20 | AI-assisted coding                     | blog 46 ellmer + new    |
 | 21 | Case study: Palmer Penguins            | 243B L10 + blogs 08-13  |
@@ -87,8 +87,9 @@ and the Prereq/Quiz-answers pedagogy.
 
 ## Open source questions
 
-- **Chapter 18 (CDISC):** source materials expected at
-  `~/Dropbox/prj/tch/01-phb228-stat-computing/phb228-2026/textbook/cdisc-lecture/`
-  but not present at scaffold time. Chapter stub created; please
-  point the path to the correct directory, or drop content into
-  the expected location.
+- **Chapter 18 (CDISC):** now authored from source at
+  `~/Dropbox/prj/tch/01-phb228-stat-computing/phb228-2026/textbook/19-cdisc.qmd`
+  (pasted in with anchor IDs renumbered 19 → 18). The source
+  file in the main textbook directory is currently orphaned;
+  decide whether to delete it or move it into this repo as the
+  canonical source.
