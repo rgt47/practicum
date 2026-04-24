@@ -4,13 +4,13 @@ project:
 
 book:
   title: 'Biostatistics Practicum'
-  subtitle: 'Everything that comes up in data analysis except modelling and inference'
+  subtitle: 'Reproducible analysis workflows for biostatisticians'
   author: 'R. Glenn Thomas'
   date: today
   date-format: 'YYYY-MM-DD'
 
-  # Cover image: drop the file at images/cover.png and uncomment
-  # cover-image: images/cover.png
+  cover-image: images/cover.png
+  favicon: images/favicon.png
 
   site-url: https://rgtlab.org/practicum
   repo-url: https://github.com/rgt47/practicum

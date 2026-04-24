@@ -1,53 +1,36 @@
 # Welcome {.unnumbered}
-*2026-04-23 19:06 PDT*
 
-This is the working draft of **Biostatistics Practicum**, a
-graduate textbook in applied biostatistics practice.
+<a href="https://github.com/rgt47/practicum">
+<img src="images/cover.png" class="cover" width="250"
+     align="right" alt="Book cover"/>
+</a>
 
-The book covers 'everything that comes up during data analysis
-except statistical modelling and inference', to borrow Jenny
-Bryan's framing of STAT 545 at UBC
-[@bryan2019stat545]. Biostatistics students receive thorough
-training in statistical theory but frequently arrive at their
-first collaborative project without the practical vocabulary of
-reproducible research: Git, renv, Docker, analysis plans,
-reporting workflows, and data wrangling. This book supplies that
-vocabulary.
+This is the online version of **Biostatistics Practicum** by
+R. Glenn Thomas, a graduate textbook in applied biostatistics
+practice.
 
-## How this book is organised
+The book covers the practical workflow that surrounds
+statistical modelling: reproducibility, Git infrastructure,
+Docker, Quarto reporting, tidyverse data wrangling, and
+clinical-trial case studies. Jenny Bryan's STAT 545
+[@bryan2019stat545] at UBC is the pedagogical model for this
+approach. The companion volume,
+[*Statistical Computing in the Age of AI*](https://rgtlab.org/scai),
+covers the statistical theory and inference that this book
+deliberately excludes.
 
-The book is divided into seven parts:
+See the [Preface](preface.qmd) for motivation and the
+[Conventions](conventions.qmd) page for visual cues used
+throughout.
 
-1. **Reproducibility Mindset.** Why reproducible research matters,
-   federal requirements, and the skills of team science.
-2. **Data Science Workstation.** Setting up a shell, editor, Git
-   client, and cloud compute.
-3. **Reproducible Infrastructure.** Research compendia, `renv`,
-   Docker, and the `zzcollab` framework.
-4. **Reproducible Reporting.** Quarto and R Markdown workflows.
-5. **Data Wrangling and Graphics.** The tidyverse stack, including
-   factors, strings, dates, joins, reshaping, and publication
-   graphics.
-6. **Analysis Practice.** Statistical analysis plans, CDISC data
-   standards, workflow testing, and AI-assisted coding.
-7. **Case Studies and Synthesis.** Two end-to-end analyses
-   (Palmer Penguins, ADNI MCI prediction) and a course review.
+## License
 
-## Relationship to the sibling book
+This book is licensed to you under a
+[Creative Commons
+Attribution-NonCommercial-NoDerivatives 4.0 International
+License](https://creativecommons.org/licenses/by-nc-nd/4.0/).
 
-This book is the companion to **Statistical Computing in the
-Age of AI**, which covers the statistical theory and inference
-that this book deliberately excludes. Together they form a
-two-quarter sequence for biostatistics masters students: one
-quarter of statistical computing methods (that book) and one
-quarter of practical reproducible analysis (this book).
-
-## Feedback
-
-This is a living text. Corrections, suggestions, and exercise
-contributions are welcome via GitHub issues or pull requests.
-
-## License {.unnumbered}
-
-This book is licensed under a Creative Commons
-Attribution-NonCommercial-NoDerivatives 4.0 International License.
+The code samples in this book are licensed under
+[Creative Commons CC0 1.0 Universal (CC0
+1.0)](https://creativecommons.org/publicdomain/zero/1.0/),
+i.e. public domain.

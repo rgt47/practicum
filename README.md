@@ -2,10 +2,12 @@
 *2026-04-23 19:06 PDT*
 
 Source repository for the open-access graduate textbook
-**Biostatistics Practicum**. The book covers 'everything that
-comes up during data analysis except statistical modelling and
-inference' (Bryan 2019), filling the practical-skills gap that
-most graduate statistical training leaves open.
+**Biostatistics Practicum**. The book covers the practical
+workflow that surrounds statistical modelling: reproducibility,
+Git, Docker, Quarto reporting, tidyverse data wrangling, and
+clinical-trial case studies. It fills the practical-skills gap
+that most graduate statistical training leaves open; Jenny
+Bryan's STAT 545 (Bryan 2019) at UBC is the pedagogical model.
 
 - **Live site:** <https://rgtlab.org/practicum>
 - **License:** CC BY-NC-ND 4.0 (see `LICENSE.md`)
