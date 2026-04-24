@@ -3,122 +3,541 @@
 ::: {.callout-note}
 ## Sources
 
-Stat 545 Chapters 10-13 (Jenny Bryan, UBC); the `forcats`,
-`stringr`, and `lubridate` packages.
+Stat 545 Chapters 10--13 (Jenny Bryan, UBC); the
+`forcats`, `stringr`, and `lubridate` packages.
 :::
 
 ## Prerequisites
 
-Answer the following questions to see if you can bypass this
-chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-14.
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-14.
 
-1. Why has `stringsAsFactors = FALSE` been the default since
-   R 4.0, and what problems did the old default cause?
-2. What does `stringr::str_detect()` return, and how does it
-   differ from `stringr::str_extract()`?
+1. Why has `stringsAsFactors = FALSE` been the default
+   since R 4.0, and what problems did the old default
+   cause?
+2. What does `stringr::str_detect()` return, and how
+   does it differ from `stringr::str_extract()`?
 3. Given `c('2026-04-23', '04/23/2026', 'April 23, 2026')`,
-   write one `lubridate`/`readr` pipeline that parses all
-   three into `Date` objects.
+   write one `lubridate`/`readr` pipeline that parses
+   all three into `Date` objects.
 
 ## Learning objectives
 
 By the end of this chapter you should be able to:
 
-- Manage factors idiomatically with `forcats` (reorder,
-  lump, relevel, drop).
-- Use `stringr` verbs confidently for detection, extraction,
-  replacement, splitting, and interpolation.
-- Parse dates robustly with `lubridate`, including mixed
-  formats and time zones.
-- Diagnose and fix the common 'character vs factor vs ordered
-  factor' decision that causes modelling errors downstream.
+- Manage factors idiomatically with `forcats`
+  (reorder, lump, relevel, drop, infreq).
+- Use `stringr` verbs confidently for detection,
+  extraction, replacement, splitting, and
+  interpolation.
+- Parse dates robustly with `lubridate`, including
+  mixed formats and time zones.
+- Diagnose and fix the common 'character vs. factor
+  vs. ordered factor' decision that causes modelling
+  errors downstream.
+- Recognise locale, time-zone, and Excel-date pitfalls.
 
 ## Orientation
 
-After the numeric columns, the next most common source of
-analysis bugs is the handling of text, categories, and
-dates. This chapter covers the three packages that make each
-category tractable. Master them and roughly one-third of
-biomedical data cleaning becomes routine.
+After the numeric columns, the next most common source
+of analysis bugs is the handling of text, categories,
+and dates. This chapter covers the three packages that
+make each category tractable. Master them and roughly
+one-third of biomedical data cleaning becomes routine.
 
-## Factors with forcats
+The packages are:
 
-TODO: `fct_reorder`, `fct_lump`, `fct_relevel`, `fct_drop`,
-`fct_infreq`. When to convert, when to keep as character.
+- **`forcats`** for factors (categorical variables with
+  defined levels).
+- **`stringr`** for character operations.
+- **`lubridate`** for dates and times.
 
-## Strings with stringr
+All three are part of the tidyverse, with consistent
+naming and pipe-friendly interfaces.
 
-TODO: `str_detect`, `str_extract`, `str_replace`,
-`str_split`, `str_glue`, and the regex fundamentals you
-need.
+## The statistician's contribution {#sec-types-human}
 
-## Dates with lubridate
+Mechanics are mechanical. The judgements:
 
-TODO: `ymd`, `mdy`, `dmy`, `as_date`, `parse_date_time`,
-time-zone handling, intervals.
+**Factor or character?** A character vector is
+flexible: any value, any order, any new level later. A
+factor is constrained: a fixed set of levels, a defined
+order, attached metadata. For analysis, factors are
+correct: the model needs to know the reference level
+and the level set. For data cleaning and joining,
+characters are usually safer (no surprises when a
+new value arrives). Convert to factor late, near the
+modelling step.
+
+**Reference levels matter.** A logistic regression with
+factor `treatment` and reference 'high-dose' produces
+coefficients with a different interpretation from one
+with reference 'placebo'. The default (alphabetical) is
+rarely what you want. Set the reference deliberately,
+in writing, in the data-cleaning script.
+
+**Time zones are tricky.** A 'date' value '2026-04-23'
+without a time zone is fine for daily-resolution
+analyses. A 'time' value '2026-04-23 02:00:00' is
+ambiguous: which time zone? UTC? US/Pacific? The local
+time zone of the machine that recorded it? Time-zone
+errors propagate quietly through analyses; daylight-
+saving transitions cause spurious 1-hour gaps.
+
+**Excel dates.** When data come from Excel, dates may
+arrive as 5-digit serial numbers ('45405') rather than
+date strings. Parsing them as dates produces nonsense
+(year 124, depending on the epoch convention). The fix
+is `janitor::excel_numeric_to_date()` or careful
+import. Verify any column whose name suggests dates
+but whose values are numeric.
+
+These judgements are what distinguish a working data
+cleaning script from one that silently mishandles a
+common type.
+
+## Factors with `forcats`
+
+The standard operations:
+
+```r
+library(forcats)
+
+f <- factor(c("low", "high", "low", "medium", "high"))
+
+# levels in current order
+levels(f)
+#> [1] "high"   "low"    "medium"
+
+# alphabetical by default; reorder by frequency
+fct_infreq(f)
+
+# reorder by another variable
+df |> mutate(species = fct_reorder(species, body_mass_g, mean))
+
+# specify order explicitly
+fct_relevel(f, "low", "medium", "high")
+
+# combine rare levels
+fct_lump_n(f, n = 2)         # keep top 2; rest -> 'Other'
+fct_lump_min(f, min = 5)     # keep levels with >= 5 obs
+
+# drop unused levels
+fct_drop(f)
+
+# rename levels
+fct_recode(f, "L" = "low", "M" = "medium", "H" = "high")
+```
+
+When to convert character to factor:
+
+- Just before modelling: ensures the model knows the
+  level set and the reference.
+- Just before plotting: enables `fct_reorder` for
+  ordered axis labels.
+
+When to keep as character:
+
+- During data cleaning: avoids 'invalid factor level'
+  surprises when a new value arrives.
+- For joining: factor matching can fail when levels
+  differ between tables.
+
+## Strings with `stringr`
+
+Pattern detection, extraction, replacement, and
+splitting:
+
+```r
+library(stringr)
+
+s <- c("ABC123", "ABC", "XYZ-789", NA)
+
+# detect: returns logical
+str_detect(s, "[0-9]")
+#> [1]  TRUE FALSE  TRUE  NA
+
+# extract: returns first match per input, or NA
+str_extract(s, "[0-9]+")
+#> [1] "123" NA    "789" NA
+
+# extract all matches per input (returns list)
+str_extract_all(s, "[0-9]+")
+
+# replace
+str_replace(s, "[0-9]+", "***")
+
+# split
+str_split("a,b,c,d", ",", simplify = TRUE)
+#>      [,1] [,2] [,3] [,4]
+#> [1,] "a"  "b"  "c"  "d"
+
+# interpolate
+name <- "World"
+str_glue("Hello, {name}!")
+#> Hello, World!
+
+# case
+str_to_lower("ABC")           # "abc"
+str_to_upper("abc")           # "ABC"
+str_to_title("hello world")   # "Hello World"
+
+# trim whitespace
+str_trim("  abc  ")           # "abc"
+str_squish("  a   b   c  ")   # "a b c"
+```
+
+The regex fundamentals you need:
+
+- `[abc]`: any of a, b, c.
+- `[a-z]`, `[A-Z]`, `[0-9]`: ranges.
+- `\\d`, `\\w`, `\\s`: digit, word char, whitespace.
+- `*`, `+`, `?`: zero-or-more, one-or-more, zero-or-one.
+- `{n}`, `{n,m}`: exactly n, between n and m.
+- `^`, `$`: start, end of string.
+- `()`: capture group; `(?:...)` non-capturing.
+- `|`: alternation.
+- `\\`: escape; in R strings this is `\\\\` for a
+  literal backslash.
+
+For complex regex, build incrementally and test each
+step.
+
+## Dates with `lubridate`
+
+Parsing:
+
+```r
+library(lubridate)
+
+# fixed format
+ymd("2026-04-23")
+mdy("4/23/2026")
+dmy("23 April 2026")
+
+# mixed formats: try each
+parse_date_time(c("2026-04-23", "04/23/2026", "April 23, 2026"),
+                orders = c("ymd", "mdy", "Bdy"))
+#> [1] "2026-04-23" "2026-04-23" "2026-04-23"
+
+# date-time
+ymd_hms("2026-04-23 14:30:00")
+ymd_hm("2026-04-23 14:30")
+```
+
+Components:
+
+```r
+d <- ymd("2026-04-23")
+year(d)         # 2026
+month(d)        # 4
+day(d)          # 23
+wday(d)         # 5 (1 = Sunday by default)
+wday(d, label = TRUE)  # Thu
+```
+
+Arithmetic:
+
+```r
+d + days(7)              # 2026-04-30
+d %m+% months(3)         # 2026-07-23 (handles month length safely)
+
+# differences
+ymd("2026-12-31") - ymd("2026-01-01")  # Time difference of 364 days
+as.numeric(ymd("2026-12-31") - ymd("2026-01-01"), units = "days")
+```
+
+Time zones:
+
+```r
+# parse as a specific time zone
+ymd_hms("2026-04-23 14:30:00", tz = "America/Los_Angeles")
+
+# convert
+with_tz(t, "UTC")          # same instant, different zone
+force_tz(t, "UTC")         # same wall clock, different zone
+```
+
+`with_tz` changes the displayed zone without changing
+the instant; `force_tz` changes the instant by
+declaring the wall clock was always in the new zone.
+Confusing them is a common source of 1- to 24-hour
+errors.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: factor reference level
+
+**Question.** You fit
+`glm(outcome ~ treatment, family = binomial)` where
+`treatment` is a factor with levels `"placebo"`,
+`"low"`, `"high"`. The default reference is alphabetical
+(`"high"`). The intercept estimates 18.2 and the
+`treatmentplacebo` coefficient is -3.1. What is the
+mean outcome under high-dose treatment?
+
+::: {.content-visible when-format="html"}
+<details><summary>Answer</summary>
+:::
+
+The intercept estimates the linear-predictor value at
+the reference level (`"high"`), so the high-dose mean
+on the link scale is 18.2 (or its inverse-link
+transform, depending on the family). The
+`treatmentplacebo` coefficient (-3.1) is the
+difference from high-dose. The placebo mean on the
+link scale is therefore 18.2 - 3.1 = 15.1.
+
+For clinical reporting, it is usually clearer to set
+the reference deliberately to `"placebo"` so the
+intercept is the placebo baseline and treatment
+coefficients are the increments from baseline:
+
+```r
+treatment <- factor(treatment,
+                    levels = c("placebo", "low", "high"))
+```
+
+The default alphabetical ordering creates frequent
+misreporting of effect direction.
+
+::: {.content-visible when-format="html"}
+</details>
+:::
+:::
 
 ## Common pitfalls
 
-TODO: Excel dates as numbers; mixed-locale month names;
-midnight-boundary bugs.
+**Excel dates as serial numbers.** A date column from
+Excel may arrive as `45405` (= 2024-04-23 in Excel's
+1900-epoch numbering). Parse with:
 
-## With AI assistance {.unnumbered}
+```r
+janitor::excel_numeric_to_date(45405)
+#> [1] "2024-04-23"
+```
 
-::: {.callout-tip}
-## Prompts to try
+Verify: any 'date' column whose values are 5-digit
+numbers should ring an alarm.
 
-1. Paste a factor column with eight levels whose counts
-   are highly skewed and ask the LLM to collapse small
-   levels into 'Other'. Does it use `fct_lump_n()`,
-   `fct_lump_min()`, or hand-rolled logic?
-2. Ask the LLM to write a regex that extracts a US ZIP
-   code from a free-text address column. Test with 10
-   realistic inputs; count false positives and negatives.
-3. Paste a date column with mixed formats and `NA`s and
-   ask the LLM to parse it. Does it use
-   `lubridate::parse_date_time()` with multiple formats,
-   or brittle `ifelse` chains?
-:::
+**Mixed-locale month names.** `lubridate::dmy()` can
+read 'avril' (French April) only if the locale
+supports it. For multi-language data:
+
+```r
+lct <- Sys.getlocale("LC_TIME")
+Sys.setlocale("LC_TIME", "fr_FR.UTF-8")
+dmy("23 avril 2026")
+Sys.setlocale("LC_TIME", lct)             # restore
+```
+
+Or use explicit format strings.
+
+**Time-zone-naïve datetimes.** A datetime read without
+a time zone defaults to UTC (lubridate) or the system
+zone (base R). Be explicit; never assume.
+
+**Daylight-saving transitions.** Adding 24 hours and
+adding 1 day are not always the same:
+
+```r
+ymd_hms("2026-03-09 01:00:00", tz = "US/Pacific") + days(1)
+#> [1] "2026-03-10 01:00:00 PDT"
+ymd_hms("2026-03-09 01:00:00", tz = "US/Pacific") + hours(24)
+#> [1] "2026-03-10 02:00:00 PDT"
+```
+
+The first is a calendar day; the second is 24 wall-
+clock hours, which crosses a DST boundary. Use whichever
+is appropriate for the analysis.
+
+## Common antipatterns
+
+**Hand-coded `ifelse` chains for date parsing**:
+
+```r
+# bad
+ifelse(grepl("/", x),
+       as.Date(x, format = "%m/%d/%Y"),
+       as.Date(x, format = "%Y-%m-%d"))
+
+# good
+parse_date_time(x, orders = c("mdy", "ymd"))
+```
+
+**Letting characters become factors silently in old
+code**:
+
+```r
+# always specify
+read.csv("file.csv", stringsAsFactors = FALSE)
+read_csv("file.csv")              # readr default is FALSE
+```
+
+**Comparing factors by value when levels differ**:
+
+```r
+f1 <- factor("a", levels = c("a", "b"))
+f2 <- factor("a", levels = c("a", "c"))
+f1 == f2                          # works, but levels differ
+# better: convert to character for cross-table comparisons
+as.character(f1) == as.character(f2)
+```
+
+## Worked example: cleaning a CRF export
+
+```r
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(forcats)
+
+raw <- read_csv("data/raw/crf_export.csv")
+
+clean <- raw |>
+  clean_names() |>
+  mutate(
+    # parse mixed-format date column
+    visit_date = parse_date_time(visit_date,
+                                 orders = c("ymd", "mdy")),
+
+    # convert numeric Excel dates if any
+    visit_date = if_else(is.na(visit_date) & !is.na(visit_date_excel),
+                         excel_numeric_to_date(visit_date_excel),
+                         visit_date),
+
+    # standardise treatment text
+    treatment = str_to_title(treatment),
+    treatment = str_replace(treatment, "Placebo|Pbo", "Placebo"),
+
+    # convert to factor with deliberate reference
+    treatment = factor(treatment,
+                       levels = c("Placebo", "Low Dose", "High Dose")),
+
+    # collapse small categories
+    site = fct_lump_min(site, min = 10, other_level = "Other"),
+
+    # recode missing-as-unknown
+    sex = fct_recode(sex, "Unknown" = "")
+  ) |>
+  filter(!is.na(visit_date), !is.na(treatment))
+```
+
+The cleaned data has dates parsed from mixed formats,
+treatment standardised and explicitly factored,
+small sites collapsed, missing sex coded explicitly.
+The script documents every transformation as code.
+
+## Collaborating with an LLM on types
+
+LLMs handle these packages well; the trap is silent
+type coercion.
+
+**Prompt 1: parsing dates.** Paste a sample of date
+strings (10 examples covering the formats present)
+and ask: 'parse these robustly, flagging any that fail.'
+
+*What to watch for.* `parse_date_time()` with multiple
+orders is the canonical answer. If the LLM produces
+nested `ifelse` or `case_when`, push back.
+
+*Verification.* Run on the full column. Count NAs
+produced; investigate any unexpected ones.
+
+**Prompt 2: regex extraction.** Describe the pattern
+you want and provide examples. Ask the LLM to write a
+regex.
+
+*What to watch for.* Test the regex on edge cases the
+LLM may not have considered (empty strings, unusual
+separators, mixed case). LLM regexes often fail at
+the margins.
+
+*Verification.* `str_detect` and `str_extract` on a
+test set; count mismatches.
+
+**Prompt 3: factor reference level.** Paste a
+modelling formula and ask: 'is the default reference
+level for `treatment` clinically sensible? If not,
+how should it be set?'
+
+*What to watch for.* The LLM should know that
+alphabetical reference is rarely what you want.
+Specifying via `factor(..., levels = ...)` or
+`fct_relevel` is the canonical fix.
+
+*Verification.* Re-fit the model with the explicit
+reference; check coefficients match the intended
+interpretation.
+
+## Principle in use
+
+Three habits define defensible type handling:
+
+1. **Convert to factor late.** Cleaning in
+   character; modelling in factor. Specify reference
+   levels deliberately.
+2. **Parse dates with named formats.**
+   `parse_date_time` with explicit orders, not
+   guesses. Watch for Excel serial numbers.
+3. **Be explicit about time zones.** A datetime
+   without a zone is a bug waiting to happen.
 
 ## Exercises
 
-1. Using `palmerpenguins::penguins`, reorder the `species`
-   factor by mean body mass (ascending) using
-   `fct_reorder()`. Produce a bar plot that reflects the
-   new order.
+1. Using `palmerpenguins::penguins`, reorder the
+   `species` factor by mean body mass (ascending)
+   using `fct_reorder()`. Produce a bar plot that
+   reflects the new order.
 2. A character column contains hospital names like
-   `'General Hospital Main Campus'`, `'Gen. Hospital'`,
-   `'GENHOSP'`. Write a regex-based cleaning pipeline that
-   collapses these into a single canonical level.
-3. A dataset has a `visit_date` column in mixed formats.
-   Write a pipeline that parses everything with
-   `parse_date_time()` and flags rows that fail to parse.
+   `'General Hospital Main Campus'`,
+   `'Gen. Hospital'`, `'GENHOSP'`. Write a
+   regex-based cleaning pipeline that collapses
+   these into a single canonical level.
+3. A dataset has a `visit_date` column in mixed
+   formats. Write a pipeline that parses everything
+   with `parse_date_time()` and flags rows that fail
+   to parse.
+4. Write a function that takes any character column
+   and returns a tibble of value, count, and
+   proportion. Use it to audit the categorical
+   variables in a recent analysis of yours.
+5. Create a dataset with a datetime in PST and convert
+   it to UTC two ways: with `with_tz` and
+   `force_tz`. Explain the difference.
 
 ## Further reading
 
-- [@wickham2023r4ds] Chapters 14-18 --- `forcats`, `stringr`, `lubridate`.
-- [@bryan2019stat545] Chapters 10-13 --- detailed type-specific coverage.
+- [@wickham2023r4ds] Chapters 14--18 --- `forcats`,
+  `stringr`, `lubridate`.
+- [@bryan2019stat545] Chapters 10--13 --- detailed
+  type-specific coverage.
+- The `regular-expressions.info` website ---
+  comprehensive regex reference.
 
 ## Prerequisites answers {#sec-quiz-answers-14}
 
-1. Before R 4.0, `read.csv()` and `data.frame()` converted
-   character columns to factors by default, causing
-   surprise when levels were invented, ordered, or
-   appeared where a character string was expected (e.g.,
-   as merge keys). Downstream analysts had to remember
-   `stringsAsFactors = FALSE` or suffer silent coercion.
-   R 4.0 made `FALSE` the default; the old default is
-   remembered only when reading elderly code.
-2. `str_detect(string, pattern)` returns a logical vector
-   of the same length as `string`: `TRUE` where the
-   pattern matched, `FALSE` elsewhere. `str_extract()`
-   returns a character vector: the first matching substring
-   per input, or `NA_character_` where there was no match.
-   `str_detect` is for filtering; `str_extract` is for
-   pulling out parts.
+1. Before R 4.0, `read.csv()` and `data.frame()`
+   converted character columns to factors by default,
+   causing surprise when levels were invented,
+   ordered, or appeared where a character string was
+   expected (e.g., as merge keys). Downstream
+   analysts had to remember `stringsAsFactors = FALSE`
+   or suffer silent coercion. R 4.0 made `FALSE` the
+   default; the old default is remembered only when
+   reading elderly code.
+2. `str_detect(string, pattern)` returns a logical
+   vector of the same length as `string`: `TRUE`
+   where the pattern matched, `FALSE` elsewhere.
+   `str_extract()` returns a character vector: the
+   first matching substring per input, or
+   `NA_character_` where there was no match.
+   `str_detect` is for filtering; `str_extract` is
+   for pulling out parts.
 3. `parse_date_time(x, orders = c('ymd', 'mdy', 'Bdy'))`
    (or with `readr::parse_date` and multiple format
-   strings). `lubridate::parse_date_time()` tries each
-   order against each input and returns the first that
-   parses.
+   strings). `lubridate::parse_date_time()` tries
+   each order against each input and returns the
+   first that parses. Inputs that match no format
+   produce `NA`, allowing you to flag and inspect
+   them.

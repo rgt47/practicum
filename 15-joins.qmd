@@ -3,25 +3,27 @@
 ::: {.callout-note}
 ## Sources
 
-Stat 545 Chapters 14-16 (Jenny Bryan, UBC); the `dplyr`
-two-table verbs reference.
+Stat 545 Chapters 14--16 (Jenny Bryan, UBC); the
+`dplyr` two-table verbs reference.
 :::
 
 ## Prerequisites
 
-Answer the following questions to see if you can bypass this
-chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-15.
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-15.
 
 1. What is the difference in row count between
-   `inner_join()` and `left_join()` when the right table is
-   missing some keys that appear in the left table?
+   `inner_join()` and `left_join()` when the right
+   table is missing some keys that appear in the left
+   table?
 2. What does `anti_join()` return, and in a biomedical
    cleanup workflow, what question does it answer?
-3. Given two tables each with a `patient_id` column and a
-   many-to-one relationship (many rows per patient in
-   table A, one row per patient in table B), how do you
-   attach the table-B row to every table-A row?
+3. Given two tables each with a `patient_id` column
+   and a many-to-one relationship (many rows per
+   patient in table A, one row per patient in table B),
+   how do you attach the table-B row to every table-A
+   row?
 
 ## Learning objectives
 
@@ -29,102 +31,444 @@ By the end of this chapter you should be able to:
 
 - Select the appropriate `_join()` variant for a given
   question (inner, left, right, full, semi, anti).
-- Recognise and avoid the pitfalls of many-to-many joins.
+- Recognise and avoid the pitfalls of many-to-many
+  joins, including using `dplyr` 1.1.0+'s
+  `relationship` argument.
 - Use `dplyr::rows_*` for upsert-style operations.
 - Apply `pivot_longer()` and `pivot_wider()` for
   wide/long reshaping beyond the basics.
-- Reason about keys, uniqueness, and referential integrity
-  in a small relational schema.
+- Reason about keys, uniqueness, and referential
+  integrity in a small relational schema.
+- Verify joins using `anti_join()` audits.
 
 ## Orientation
 
-Almost every real biostatistical project involves joining
-tables: demographics joined to outcomes, labs joined to
-medications, clinical data joined to imaging indices. The
-wrong join silently drops or duplicates rows, and the error
-may not surface until the final count is off by three or
-three hundred. This chapter teaches how to pick the right
-join and how to verify it.
+Almost every real biostatistical project involves
+joining tables: demographics joined to outcomes, labs
+joined to medications, clinical data joined to imaging
+indices. The wrong join silently drops or duplicates
+rows, and the error may not surface until the final
+count is off by three or three hundred. This chapter
+teaches how to pick the right join and how to verify
+it.
+
+## The statistician's contribution {#sec-joins-human}
+
+Join mechanics are mechanical. The judgements:
+
+**Verify after every join.** A join that says it
+returned the right number of rows usually did. A join
+that returns 'about the right number' silently is
+where the bugs live. After every non-trivial join,
+print `nrow()` and check it against expectations.
+
+**Detect many-to-many joins.** When you intend a
+one-to-one join and accidentally trigger a
+many-to-many, dplyr (1.1.0+) issues a warning. Take
+the warning seriously: a many-to-many on a key that
+should be unique multiplies row counts. The
+`relationship` argument lets you assert the expected
+cardinality and error if it does not hold.
+
+**Use `anti_join` to find what is missing.** Two CRF
+files that should cover the same patients usually do
+not, exactly. `anti_join(file_a, file_b, by = "id")`
+returns the patients in `file_a` not in `file_b`, the
+quickest way to find missing data, ID typos, or
+cohort mismatches. Run it before the analytic join.
+
+**Document the join keys.** A join on `patient_id`
+needs both tables to use the same identifier
+representation (string '001' is not the same as
+numeric 1). Document the canonical ID format; check
+it on every read.
+
+These judgements determine whether the joined data
+mean what you think they mean.
 
 ## The `_join` family
 
-TODO: `inner_join`, `left_join`, `right_join`, `full_join`,
-`semi_join`, `anti_join`. A table mapping each to the
-question it answers.
+dplyr's two-table verbs:
 
-## Many-to-many joins: a pitfall
+| Function       | Returns                                            |
+|----------------|----------------------------------------------------|
+| `inner_join`   | Rows with a match in both                          |
+| `left_join`    | All rows from `x`, NA in `y` columns where no match |
+| `right_join`   | All rows from `y`, NA in `x` columns where no match |
+| `full_join`    | All rows from both, NA in non-matching columns      |
+| `semi_join`    | Rows of `x` with a match in `y` (no `y` cols)       |
+| `anti_join`    | Rows of `x` with no match in `y`                    |
 
-TODO: `dplyr` warning in 1.1.0+; `relationship` argument;
-when it is legitimate and when it is a bug.
+`semi_join` and `anti_join` are filtering joins: they
+filter `x` based on `y` without adding `y`'s columns.
+The other four are mutating joins: they add columns.
+
+```r
+library(dplyr)
+
+band_members
+#> # A tibble: 3 × 2
+#>   name  band
+#>   <chr> <chr>
+#> 1 Mick  Stones
+#> 2 John  Beatles
+#> 3 Paul  Beatles
+
+band_instruments
+#> # A tibble: 3 × 2
+#>   name  plays
+#>   <chr> <chr>
+#> 1 John  guitar
+#> 2 Paul  bass
+#> 3 Keith guitar
+
+inner_join(band_members, band_instruments, by = "name")
+# 2 rows: John, Paul (the names in both)
+
+left_join(band_members, band_instruments, by = "name")
+# 3 rows: Mick (NA), John, Paul
+
+full_join(band_members, band_instruments, by = "name")
+# 4 rows: Mick (NA), John, Paul, Keith (NA)
+
+anti_join(band_members, band_instruments, by = "name")
+# 1 row: Mick (in members, not in instruments)
+```
+
+The choice of join is determined by the question:
+
+- 'Patients with both demographics and outcome
+  available': `inner_join`.
+- 'All patients, with their outcomes if any':
+  `left_join` (demographics on the left).
+- 'Find patients with demographics but no outcome':
+  `anti_join`.
+- 'Combine all patients from both files, even those
+  in only one': `full_join`.
+
+## Many-to-many joins
+
+A many-to-many join occurs when both tables have
+duplicate keys: each row in the left can match
+multiple rows in the right, and vice versa. The
+result is a Cartesian product of matches per key.
+
+```r
+a <- tibble(id = c(1, 1, 2), x = c("a", "b", "c"))
+b <- tibble(id = c(1, 1, 2), y = c("p", "q", "r"))
+
+inner_join(a, b, by = "id")
+# Warning message:
+# In inner_join(...): Detected an unexpected many-to-many relationship between `x` and `y`.
+# Returns 5 rows: each id-1 from a (2 rows) joins to each id-1 from b (2 rows) = 4 rows;
+# plus the single id-2 match.
+```
+
+dplyr 1.1.0+ warns by default. The fix is to declare
+the expected relationship:
+
+```r
+inner_join(a, b, by = "id", relationship = "many-to-many")
+# explicit; no warning, even with duplicates
+inner_join(a, b, by = "id", relationship = "one-to-one")
+# errors if duplicates exist on either side
+```
+
+Common pattern: each `patient_id` should appear once
+in the demographics table. Joining demographics
+(many-to-one with respect to a visits table):
+
+```r
+visits |>
+  left_join(demographics, by = "patient_id",
+            relationship = "many-to-one")
+# errors if a patient_id appears more than once in demographics
+```
+
+The assertion catches data-quality bugs at the join
+site, where they are easiest to debug.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: silent row inflation
+
+**Question.** You join `visits` (10,000 rows) to
+`demographics` (1,000 patients) on `patient_id`. The
+result has 12,500 rows. What likely happened?
+
+::: {.content-visible when-format="html"}
+<details><summary>Answer</summary>
+:::
+
+The demographics table has duplicate `patient_id`
+values. Each duplicate creates extra rows in the join
+output. With 10,000 visits and 1,000 patients, a
+clean many-to-one join produces 10,000 rows. 12,500
+indicates roughly 25% of the visits' patients have
+duplicates in the demographics table.
+
+Diagnose:
+
+```r
+demographics |> count(patient_id) |> filter(n > 1)
+```
+
+Fix the duplication in demographics, or de-duplicate
+before the join (`distinct(patient_id, .keep_all = TRUE)`).
+Adding `relationship = "many-to-one"` to the join
+catches this at the join site.
+
+::: {.content-visible when-format="html"}
+</details>
+:::
+:::
 
 ## Keys and referential integrity
 
-TODO: uniqueness checks with `dplyr::distinct`, assertions
-with `stopifnot` or `assertthat`.
+Before joining, verify the join columns:
 
-## Upsert operations with rows_*
+```r
+# uniqueness of keys
+demographics |> distinct(patient_id) |> nrow()
+demographics |> nrow()
+# These should match for one-row-per-patient
 
-TODO: `rows_insert`, `rows_update`, `rows_upsert`,
-`rows_patch`.
+# stopifnot for assertion
+stopifnot(!any(duplicated(demographics$patient_id)))
 
-## Reshaping revisited: tricky cases
+# anti-join audit
+visits |> anti_join(demographics, by = "patient_id") |>
+  distinct(patient_id)
+# patients in visits with no demographics row
+```
 
-TODO: many-variable pivots with `names_sep` and
-`names_pattern`; round-tripping.
+`assertthat` and `assertr` provide more elaborate
+assertions. For most work, `stopifnot()` plus
+manual `anti_join` audits cover the cases.
 
-## With AI assistance {.unnumbered}
+For composite keys, name all columns:
 
-::: {.callout-tip}
-## Prompts to try
+```r
+labs |> left_join(reference_ranges,
+                  by = c("test_code", "sex", "age_group"))
+```
 
-1. Give the LLM two tables and ask it to 'merge' them.
-   Does it use `dplyr::*_join()`, `base::merge()`, or
-   `data.table`? Which variant does it default to, and is
-   that the right choice for your data?
-2. Paste a many-to-many join scenario with an ambiguous
-   key. Does the LLM use the new `relationship` argument
-   in `dplyr::*_join()`? Does it catch the ambiguity?
-3. Ask the LLM to diagnose why a join silently dropped
-   rows. Paste the tables and the join call. Does it
-   suggest an `anti_join()` audit step?
-:::
+Type matching is strict: `patient_id = "001"` does
+not match `patient_id = 1`. Convert to a canonical
+type before joining.
+
+## Upsert operations with `rows_*`
+
+For row-by-row updates of a table from another (the
+'upsert' pattern):
+
+```r
+# insert new rows; error on key collision
+rows_insert(target, source, by = "id")
+
+# update existing rows; error if key not in target
+rows_update(target, source, by = "id")
+
+# upsert: insert new, update existing
+rows_upsert(target, source, by = "id")
+
+# patch: only update where target has NA
+rows_patch(target, source, by = "id")
+```
+
+Useful for updating a master patient list from a new
+extract: `rows_upsert` adds new patients and updates
+existing ones; `rows_patch` fills in missing values
+without overwriting existing.
+
+## Reshaping for joining
+
+Some joins need wide-format data; others need long.
+The wrangling chapter (chapter 13) covers `pivot_longer`
+and `pivot_wider`. For joins, the typical pattern:
+
+- Convert each source to long format with consistent
+  column names.
+- Stack with `bind_rows` rather than join (when sources
+  are alternative measurements of the same kind).
+- Pivot wide for the modelling step.
+
+For two CRF files from sites A and B with different
+column conventions:
+
+```r
+a_long <- read_csv("siteA.csv") |>
+  clean_names() |>
+  rename(bp_systolic = systolic_bp) |>
+  pivot_longer(starts_with("bp_"), names_to = "measure")
+
+b_long <- read_csv("siteB.csv") |>
+  clean_names() |>
+  pivot_longer(matches("^(bp|sbp|dbp)_"), names_to = "measure")
+
+combined <- bind_rows(a_long, b_long)
+```
+
+`bind_rows` is for stacking; `bind_cols` is for
+side-by-side concatenation (rarely correct;
+`*_join` is usually what you want). `inner_join`/
+`left_join` are for joining on shared keys.
+
+## Worked example: a multi-source patient cohort
+
+```r
+library(tidyverse)
+library(janitor)
+
+# read three sources
+demographics <- read_csv("data/demographics.csv") |> clean_names()
+visits       <- read_csv("data/visits.csv") |> clean_names()
+labs         <- read_csv("data/labs.csv") |> clean_names()
+
+# verify keys are unique where expected
+stopifnot(!anyDuplicated(demographics$patient_id))
+stopifnot(!anyDuplicated(labs$visit_id))
+
+# audit: patients in visits but no demographics
+missing_demo <- visits |>
+  anti_join(demographics, by = "patient_id") |>
+  distinct(patient_id)
+
+if (nrow(missing_demo) > 0) {
+  warning("Patients in visits with no demographics: ",
+          paste(missing_demo$patient_id, collapse = ", "))
+}
+
+# build the analytic dataset
+analytic <- visits |>
+  left_join(demographics, by = "patient_id",
+            relationship = "many-to-one") |>
+  left_join(labs, by = "visit_id",
+            relationship = "many-to-many") |>
+  mutate(
+    age_group = cut(age, breaks = c(0, 40, 65, Inf))
+  )
+
+# final row-count check
+stopifnot(nrow(analytic) == nrow(visits))   # joins should be 1-1 on visits
+
+saveRDS(analytic, "data/derived/analytic.rds")
+```
+
+The script: cleans names, verifies key uniqueness,
+runs an `anti_join` audit, performs the joins with
+explicit `relationship` declarations, and asserts the
+final row count. A reviewer can read it and trust the
+join semantics.
+
+## Collaborating with an LLM on joins
+
+LLMs handle joins well; the trap is silent join
+inflation.
+
+**Prompt 1: choosing a join.** Describe the question
+and the two tables; ask the LLM to recommend a join
+type.
+
+*What to watch for.* The LLM should map question to
+join correctly. If it suggests `merge()` from base R,
+prefer the dplyr `_join()` family for clarity.
+
+*Verification.* Compare the join output's row count
+to the expected count. If they differ, debug.
+
+**Prompt 2: diagnosing inflated row counts.** Paste
+the tables and the join, ask: 'why does the result
+have more rows than I expected?'
+
+*What to watch for.* The standard cause is many-to-
+many. The LLM should know to check for duplicate keys
+on each side. If it does not, run
+`x |> count(key) |> filter(n > 1)` yourself.
+
+*Verification.* The duplicate keys, if found, are the
+culprits. Resolve by deduplicating, by composite
+keying, or by accepting the many-to-many.
+
+**Prompt 3: writing assertions.** Describe the
+expected join cardinality and ask the LLM to add
+assertions.
+
+*What to watch for.* `stopifnot()` for simple checks;
+`relationship = ...` in the join itself is the modern
+idiom. The LLM should use the latter when applicable.
+
+*Verification.* Run the assertions on real data; they
+should pass. If they fail, debug the data, not the
+assertions.
+
+## Principle in use
+
+Three habits define defensible joining:
+
+1. **Pick the join that matches the question.**
+   Inner for matched-only; left for left-preserving;
+   anti for finding what is missing. The wrong join is
+   a silent bug.
+2. **Verify keys before joining.** Uniqueness checks
+   and `anti_join` audits catch bugs before they
+   propagate.
+3. **Assert join cardinality.** dplyr's `relationship`
+   argument errors loudly when expectations are
+   wrong. Use it.
 
 ## Exercises
 
-1. Use each of `inner_join`, `left_join`, `full_join`, and
-   `anti_join` with the built-in `dplyr::band_members`
-   and `dplyr::band_instruments` to produce four
-   different tibbles. Write one sentence per result.
-2. Construct a scenario where an unintended many-to-many
-   join duplicates rows. Write an assertion that catches
-   the duplication before downstream analysis.
-3. Two wide tables represent patient visits at sites A and
-   B with different column-name conventions. Reshape both
-   to long and stack them so that downstream analysis
-   treats them uniformly.
+1. Use each of `inner_join`, `left_join`, `full_join`,
+   and `anti_join` with the built-in
+   `dplyr::band_members` and `dplyr::band_instruments`
+   to produce four different tibbles. Write one
+   sentence per result.
+2. Construct a scenario where an unintended
+   many-to-many join duplicates rows. Write an
+   assertion that catches the duplication before
+   downstream analysis.
+3. Two wide tables represent patient visits at sites
+   A and B with different column-name conventions.
+   Reshape both to long and stack them so that
+   downstream analysis treats them uniformly.
+4. Take a recent multi-table analysis of yours.
+   Audit each join with `anti_join` to identify
+   missing keys; document any unexpected gaps.
+5. Use `rows_upsert` to merge two cohorts with
+   overlapping patients (some new, some updated).
+   Verify the result has the expected number of
+   rows.
 
 ## Further reading
 
-- [@wickham2023r4ds] Chapters 19-20 --- the `dplyr` two-table verbs.
-- [@bryan2019stat545] Chapters 14-16 --- joins and lookups.
+- [@wickham2023r4ds] Chapters 19--20 --- the `dplyr`
+  two-table verbs.
+- [@bryan2019stat545] Chapters 14--16 --- joins and
+  lookups.
+- The `dplyr` 1.1.0 release notes for the
+  `relationship` argument and the many-to-many
+  warning.
 
 ## Prerequisites answers {#sec-quiz-answers-15}
 
-1. `inner_join()` returns only rows whose key matches in
-   both tables. `left_join()` returns every row from the
-   left table; rows with no match on the right get `NA`
-   in the right-hand columns. If the left table has 100
-   rows with keys A–J and the right table has only keys
-   A–F, `inner_join` returns 60 rows and `left_join`
-   returns 100 rows (40 with `NA`s).
+1. `inner_join()` returns only rows whose key matches
+   in both tables. `left_join()` returns every row
+   from the left table; rows with no match on the
+   right get `NA` in the right-hand columns. If the
+   left table has 100 rows with keys A--J and the
+   right table has only keys A--F, `inner_join`
+   returns 60 rows and `left_join` returns 100 rows
+   (40 with `NA`s).
 2. `anti_join(x, y)` returns rows of `x` whose key is
-   *not* present in `y`. In a biomedical cleanup workflow
-   it answers: 'Which patients appear in my outcome file
-   but not in the lab data?' (or vice versa), exposing
-   missing data, duplicate IDs, or mismatched cohorts.
-3. `table_a |> left_join(table_b, by = 'patient_id')`. A
-   many-to-one join attaches the single table-B row to
-   every table-A row sharing the key. In `dplyr` 1.1.0+,
-   add `relationship = 'many-to-one'` as an explicit
-   assertion; the join errors if the relationship does
-   not hold.
+   *not* present in `y`. In a biomedical cleanup
+   workflow it answers: 'Which patients appear in my
+   outcome file but not in the lab data?' (or vice
+   versa), exposing missing data, duplicate IDs, or
+   mismatched cohorts. Run before the analytic join
+   to catch problems early.
+3. `table_a |> left_join(table_b, by = 'patient_id', relationship = 'many-to-one')`.
+   A many-to-one join attaches the single table-B
+   row to every table-A row sharing the key. The
+   `relationship` argument errors if the
+   relationship does not hold (e.g., if `patient_id`
+   is duplicated in table B).
