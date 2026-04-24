@@ -87,9 +87,7 @@ and the Prereq/Quiz-answers pedagogy.
 
 ## Open source questions
 
-- **Chapter 18 (CDISC):** now authored from source at
-  `~/Dropbox/prj/tch/01-phb228-stat-computing/phb228-2026/textbook/19-cdisc.qmd`
-  (pasted in with anchor IDs renumbered 19 → 18). The source
-  file in the main textbook directory is currently orphaned;
-  decide whether to delete it or move it into this repo as the
-  canonical source.
+- **Chapter 18 (CDISC):** authored from a draft originally
+  at `~/Dropbox/prj/tch/01-phb228-stat-computing/phb228-2026/textbook/19-cdisc.qmd`
+  (now deleted; canonical copy lives only here with anchor IDs
+  renumbered 19 → 18).
