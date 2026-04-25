@@ -217,22 +217,22 @@ bibliography: references.bib
 
 # Methods
 
-We analysed `r nrow(d)` patients from the institutional
+We analysed &#96;{r} nrow(d)&#96; patients from the institutional
 EHR cohort. The primary outcome was 30-day all-cause
 readmission. We fit a multivariable logistic regression
 adjusting for age, sex, baseline ejection fraction, and
 discharge medications, with a propensity score for
 home-health-visit receipt as the exposure.
 
-```{r}
+```r
 fit <- glm(readmit ~ home_health + age + sex + ef + meds,
            family = binomial, data = d)
 broom::tidy(fit, exponentiate = TRUE, conf.int = TRUE)
 ```
 
 The adjusted odds ratio for home-health-visit receipt
-was `r round(exp(coef(fit)["home_health"]), 2)` (95% CI
-`r ...`). [@bryan2019happygit]
+was &#96;{r} round(exp(coef(fit)["home_health"]), 2)&#96; (95% CI
+&#96;{r} ...&#96;). [@bryan2019happygit]
 ````
 
 For journal-specific formatting, the `rticles` package

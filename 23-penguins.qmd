@@ -358,7 +358,7 @@ the wrong reason.
 
 The compendium's `analysis/paper/paper.qmd`:
 
-```qmd
+````qmd
 ---
 title: "Palmer Penguins: a case study"
 format:
@@ -369,7 +369,7 @@ execute:
   freeze: auto
 ---
 
-```{r setup}
+```r
 #| include: false
 library(palmerpenguins)
 library(tidyverse)
@@ -383,8 +383,8 @@ fit <- lm(body_mass_g ~ flipper_length_mm + species,
 # Methods
 
 We analysed the `palmerpenguins` dataset
-[@horst2022palmerpenguins], $n = `r nrow(penguins_clean)`$
-after dropping $`r sum(!complete.cases(penguins))`$
+[@horst2022palmerpenguins], $n = &#96;{r} nrow(penguins_clean)&#96;$
+after dropping $&#96;{r} sum(!complete.cases(penguins))&#96;$
 rows with missing values. Body mass was modelled
 as a function of flipper length and species via
 ordinary least squares.
@@ -394,7 +394,7 @@ ordinary least squares.
 @fig-scatter shows the relationship; @tbl-coef
 gives the fitted coefficients.
 
-```{r}
+```r
 #| label: fig-scatter
 #| fig-cap: "Body mass vs. flipper length, by species"
 ggplot(penguins_clean,
@@ -402,12 +402,12 @@ ggplot(penguins_clean,
   geom_point(alpha = 0.7)
 ```
 
-```{r}
+```r
 #| label: tbl-coef
 #| tbl-cap: "Fitted regression coefficients"
 broom::tidy(fit, conf.int = TRUE)
 ```
-```
+````
 
 `make render` inside the container reproduces
 the paper from raw data to typeset output. The

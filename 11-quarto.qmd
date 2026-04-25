@@ -118,13 +118,13 @@ interleaved in a `.qmd` file:
 We analysed the readmissions cohort using a multivariable
 logistic regression.
 
-```{r}
+```r
 fit <- glm(readmit ~ home_health + age + sex,
            family = binomial, data = d)
 ```
 
 The adjusted odds ratio for home-health-visit receipt
-was `r round(exp(coef(fit)["home_health"]), 2)`.
+was &#96;{r} round(exp(coef(fit)["home_health"]), 2)&#96;.
 ````
 
 Rendering produces a paper with the OR computed at
@@ -183,7 +183,7 @@ format:
 A code chunk in a `.qmd`:
 
 ````qmd
-```{r}
+```r
 #| label: fig-readmissions
 #| fig-cap: "30-day readmission rates by home-health visit"
 #| fig-width: 6
@@ -236,7 +236,7 @@ Quarto's cross-reference syntax:
 ````qmd
 See @fig-readmissions for the bar plot.
 
-```{r}
+```r
 #| label: fig-readmissions
 #| fig-cap: "30-day readmission rates"
 ggplot(d, aes(...)) + ...
@@ -382,8 +382,8 @@ the analysis with corrected data, the prose still says
 different values. The fix is inline computation:
 
 ```qmd
-The mean age was `r round(mean(d$age, na.rm = TRUE), 1)`
-years (SD `r round(sd(d$age, na.rm = TRUE), 1)`).
+The mean age was &#96;{r} round(mean(d$age, na.rm = TRUE), 1)&#96;
+years (SD &#96;{r} round(sd(d$age, na.rm = TRUE), 1)&#96;).
 ```
 
 Now the prose is computed from the data at render
@@ -406,7 +406,7 @@ params:
   outcome: "readmit"
 ```
 
-```{r}
+```r
 d <- read.csv(params$dataset)
 ```
 
@@ -435,7 +435,7 @@ reports per institution in multi-site studies.
 
 ## Worked example: a one-page report
 
-```qmd
+````qmd
 ---
 title: "30-day readmission rates"
 author: A. Statistician
@@ -450,7 +450,7 @@ execute:
   freeze: auto
 ---
 
-```{r setup}
+```r
 #| include: false
 library(tidyverse)
 library(broom)
@@ -461,22 +461,22 @@ fit <- glm(readmit ~ home_health + age + sex,
 
 # Summary
 
-Among `r nrow(d)` patients, the 30-day readmission rate
-was `r round(100 * mean(d$readmit), 1)`%
+Among &#96;{r} nrow(d)&#96; patients, the 30-day readmission rate
+was &#96;{r} round(100 * mean(d$readmit), 1)&#96;%
 (@tbl-summary). After adjustment for age and sex,
 receipt of a home-health visit was associated with
-`r if_else(coef(fit)["home_health"] < 0, "lower", "higher")`
+&#96;{r} if_else(coef(fit)["home_health"] < 0, "lower", "higher")&#96;
 odds of readmission (OR
-`r round(exp(coef(fit)["home_health"]), 2)`,
-95% CI `r ...`; @fig-or).
+&#96;{r} round(exp(coef(fit)["home_health"]), 2)&#96;,
+95% CI &#96;{r} ...&#96;; @fig-or).
 
-```{r}
+```r
 #| label: tbl-summary
 #| tbl-cap: "Patient characteristics"
 gtsummary::tbl_summary(d, by = home_health)
 ```
 
-```{r}
+```r
 #| label: fig-or
 #| fig-cap: "Adjusted odds ratios"
 broom::tidy(fit, exponentiate = TRUE, conf.int = TRUE) |>
@@ -486,7 +486,7 @@ broom::tidy(fit, exponentiate = TRUE, conf.int = TRUE) |>
 ```
 
 # References
-```
+````
 
 This produces an HTML report and a PDF, with numbers
 computed from the data, a labelled table and figure,

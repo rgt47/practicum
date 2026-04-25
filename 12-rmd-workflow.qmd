@@ -168,7 +168,7 @@ heuristic.
 The fix in knitr Rmd:
 
 ````Rmd
-```{r demographics, fig.pos = "H", fig.cap = "Demographics"}
+```r
 plot(...)
 ```
 ````
@@ -248,22 +248,22 @@ linearly.
 Quarto's cross-reference system is consistent across
 formats:
 
-```qmd
+````qmd
 See @fig-demographics for the cohort breakdown
 (@tbl-baseline summarises baseline characteristics).
 
-```{r}
+```r
 #| label: fig-demographics
 #| fig-cap: "Demographics by treatment arm"
 ggplot(...) + ...
 ```
 
-```{r}
+```r
 #| label: tbl-baseline
 #| tbl-cap: "Baseline characteristics"
 gtsummary::tbl_summary(...)
 ```
-```
+````
 
 Labels follow the prefix convention: `fig-`, `tbl-`,
 `eq-`, `sec-`, `lst-`, `tip-`. References use the
@@ -272,7 +272,7 @@ Labels follow the prefix convention: `fig-`, `tbl-`,
 In knitr Rmd, the equivalent syntax is more verbose:
 
 ````Rmd
-```{r demographics, fig.cap = "Demographics"}
+```r
 ggplot(...) + ...
 ```
 ````
@@ -317,12 +317,12 @@ Quarto natively supports R, Python, and Julia. With
 `reticulate` (R-Python) and `JuliaCall` (R-Julia),
 chunks can pass values across languages.
 
-```qmd
+````qmd
 ---
 format: html
 ---
 
-```{r}
+```r
 library(reticulate)
 x <- 1:10
 ```
@@ -333,10 +333,10 @@ arr = np.array(r.x)         # access R variable
 print(arr.mean())
 ```
 
-```{r}
+```r
 print(py$arr)               # access Python variable
 ```
-```
+````
 
 The `r.x` syntax in Python accesses R's `x`; the
 `py$arr` syntax in R accesses Python's `arr`.
@@ -408,7 +408,7 @@ quarto convert analysis.Rmd -o analysis.qmd
 
 Step 3: add YAML, prose, cross-references:
 
-```qmd
+````qmd
 ---
 title: "Effect of x1 on y"
 format:
@@ -421,9 +421,9 @@ execute:
 
 # Methods
 
-We analysed `r nrow(d)` complete cases.
+We analysed &#96;{r} nrow(d)&#96; complete cases.
 
-```{r}
+```r
 #| label: fig-scatter
 #| fig-cap: "Scatterplot of y on x1"
 plot(d$x1, d$y, xlab = "x1", ylab = "y")
@@ -431,8 +431,8 @@ abline(fit)
 ```
 
 @fig-scatter shows the relationship; the fitted slope
-is `r round(coef(fit)["x1"], 2)`.
-```
+is &#96;{r} round(coef(fit)["x1"], 2)&#96;.
+````
 
 Step 4: render. Half an hour from script to first-draft
 paper.
