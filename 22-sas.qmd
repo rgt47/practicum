@@ -3,97 +3,155 @@
 ::: {.callout-note}
 ## Why this chapter exists
 
-An April 2026 survey of 22 peer US biostatistics MS programs
-(see the Peer programs block in `references.bib`) found that
-17 of the 22 require or strongly recommend SAS in their core
-or analysis-track coursework. Industry pharma, CRO, and
-regulatory-filing positions in the United States frequently
-filter screening on SAS experience. R-only graduates from this
-programme have reported being excluded at the screening stage.
+An April 2026 survey of 22 peer US biostatistics MS
+programs (see the Peer programs block in
+`references.bib`) found that 17 of the 22 require
+or strongly recommend SAS in their core or
+analysis-track coursework. Industry pharma, CRO,
+and regulatory-filing positions in the United
+States frequently filter screening on SAS
+experience. R-only graduates from this programme
+have reported being excluded at the screening
+stage.
 
-This chapter is the minimum credible response: enough SAS to
-read code, read a SAS log, move data between SAS and R, and
-reproduce the five or six procedures that appear in most
-CSRs.
+This chapter is the minimum credible response:
+enough SAS to read code, read a SAS log, move data
+between SAS and R, and reproduce the five or six
+procedures that appear in most CSRs.
 :::
 
 ## Prerequisites
 
-Answer the following questions to see if you can bypass this
-chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-22.
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-22.
 
-1. What is the DATA step in SAS, and what is its relationship
-   to PROC steps?
-2. Given a SAS dataset `work.demo`, what SAS procedure and
-   what R function would each produce a summary of continuous
-   variables analogous to R's `summary()`?
-3. What file format is typically used to move datasets
-   between SAS and non-SAS systems (including R), and what
-   R package reads it?
+1. What is the DATA step in SAS, and what is its
+   relationship to PROC steps?
+2. Given a SAS dataset `work.demo`, what SAS
+   procedure and what R function would each produce
+   a summary of continuous variables analogous to
+   R's `summary()`?
+3. What file format is typically used to move
+   datasets between SAS and non-SAS systems
+   (including R), and what R package reads it?
 
 ## Learning objectives
 
 By the end of this chapter you should be able to:
 
-- Register for a free SAS OnDemand for Academics account and
-  log in to SAS Studio.
-- Write a short SAS program that reads a CSV, summarises it,
-  fits a simple model, and writes output.
-- Map the common R statistical procedures (`lm`, `glm`,
-  `lmer`, `survfit`, `coxph`) onto their SAS equivalents.
-- Read a SAS log and find the error or warning that broke
-  the job.
-- Move data between SAS and R using transport files (`.xpt`)
-  and the R `haven` package.
+- Register for a free SAS OnDemand for Academics
+  account and log in to SAS Studio.
+- Write a short SAS program that reads a CSV,
+  summarises it, fits a simple model, and writes
+  output.
+- Map the common R statistical procedures (`lm`,
+  `glm`, `lmer`, `survfit`, `coxph`) onto their
+  SAS equivalents.
+- Read a SAS log and find the error or warning
+  that broke the job.
+- Move data between SAS and R using transport
+  files (`.xpt`) and the R `haven` package.
+- Recognise the points where SAS and R defaults
+  differ (categorical reference coding, mixed-
+  models covariance structure).
 
 ## Orientation
 
-R and SAS each dominate a different sector. R dominates
-academic biostatistics, much of the clinical-epidemiology
-literature, and any work that benefits from a vibrant
-open-source ecosystem. SAS dominates FDA submissions, CDISC
-pipelines, clinical trial statistical programming, and a
-substantial fraction of pharmaceutical sponsor and contract
-research organisation (CRO) workflows.
+R and SAS each dominate a different sector. R
+dominates academic biostatistics, much of the
+clinical-epidemiology literature, and any work
+that benefits from a vibrant open-source
+ecosystem. SAS dominates FDA submissions, CDISC
+pipelines, clinical trial statistical
+programming, and a substantial fraction of
+pharmaceutical sponsor and contract research
+organisation (CRO) workflows.
 
-The question is not *which is better* but *which you will
-encounter on your first job*. For an MS biostatistician
-entering industry clinical trials, the answer is usually
-both. This chapter aims at R programmers who need a working
-reading and writing competence in SAS, not fluency.
+The question is not *which is better* but *which
+you will encounter on your first job*. For an MS
+biostatistician entering industry clinical
+trials, the answer is usually both. This chapter
+aims at R programmers who need a working reading
+and writing competence in SAS, not fluency.
+
+## The statistician's contribution {#sec-sas-human}
+
+The languages are mechanical. The judgements:
+
+**Match the tool to the audience.** A regulatory
+submission to FDA requires SAS-formatted
+deliverables (CDISC datasets, statistical
+analysis output). An academic paper accepts R.
+The choice of tool follows the audience, not
+analyst preference.
+
+**Verify cross-language equivalence.** When you
+translate an R analysis to SAS (or vice versa),
+the answers should agree to several decimal
+places. They sometimes do not, because of
+default differences (reference levels, sums of
+squares, mixed-model covariance structures).
+The discipline is to spot disagreements and
+trace them to a default mismatch, not to
+shrug.
+
+**Read SAS logs carefully.** SAS produces a
+hierarchy of messages: NOTE, WARNING, ERROR. A
+program that 'finished' may have silently
+dropped half its observations because of a
+NOTE-level missing-value message. Reading the
+full log is non-optional.
+
+**Document the cross-language workflow.** A
+CSR that comes from a mix of R cleaning and SAS
+analysis is reproducible only if the handoff is
+documented: file format, variable names,
+encoding. The discipline is the same as for
+single-language workflows but with one extra
+boundary.
+
+These judgements are what distinguish a useful
+SAS competence from a fragile one.
 
 ## Getting access: SAS OnDemand for Academics
 
-SAS OnDemand for Academics (**SAS ODA**) is SAS Institute's
-free, cloud-hosted SAS Studio environment for educators,
-students, and independent learners. It runs entirely in a
-browser, requires no install, and is sufficient for
-everything in this chapter and for most coursework in peer
-MS programmes.
+SAS OnDemand for Academics (**SAS ODA**) is SAS
+Institute's free, cloud-hosted SAS Studio
+environment for educators, students, and
+independent learners. It runs entirely in a
+browser, requires no install, and is sufficient
+for everything in this chapter and for most
+coursework in peer MS programmes.
 
 ### Step-by-step registration
 
 1. In a browser, go to the welcome page:
    <https://welcome.oda.sas.com/>.
-2. Click **Register for an account**. If you have an
-   existing SAS profile (e.g., from a past training course),
-   you can sign in instead and skip to step 7.
-3. Fill in the registration form: email address, first name,
-   last name, country, and organisation (enter your
-   university, e.g., `UC San Diego`).
-4. Create a SAS profile password. Accept the SAS terms and
-   conditions.
-5. SAS sends a confirmation email. Click the activation link.
-6. Return to <https://welcome.oda.sas.com/> and sign in with
-   your SAS profile email and password.
-7. On first login, SAS assigns a numeric **userid** of the
-   form `u99999999`. Record this id: it is also your SAS
-   Studio home folder name (`/home/u99999999/`).
-8. You are redirected to your region's SAS Studio server
-   (for West Coast US users, this looks like
-   `https://odamid-usw2-2.oda.sas.com/SASStudio/`). SAS
-   Studio opens with an empty `Program 1` tab.
+2. Click **Register for an account**. If you have
+   an existing SAS profile (e.g., from a past
+   training course), you can sign in instead and
+   skip to step 7.
+3. Fill in the registration form: email address,
+   first name, last name, country, and
+   organisation (enter your university, e.g.,
+   `UC San Diego`).
+4. Create a SAS profile password. Accept the SAS
+   terms and conditions.
+5. SAS sends a confirmation email. Click the
+   activation link.
+6. Return to <https://welcome.oda.sas.com/> and
+   sign in with your SAS profile email and
+   password.
+7. On first login, SAS assigns a numeric
+   **userid** of the form `u99999999`. Record
+   this id: it is also your SAS Studio home
+   folder name (`/home/u99999999/`).
+8. You are redirected to your region's SAS
+   Studio server (for West Coast US users, this
+   looks like
+   `https://odamid-usw2-2.oda.sas.com/SASStudio/`).
+   SAS Studio opens with an empty `Program 1` tab.
 
 ### The SAS Studio interface
 
@@ -105,38 +163,42 @@ The SAS Studio layout is three panes:
 | **Program editor** (main, `CODE` tab) | Write SAS code. |
 | **LOG** and **RESULTS** (main, tabs) | SAS log (errors, warnings, notes) and rendered output (listings, tables, graphs). |
 
-The bottom of the left sidebar also exposes **Tasks and
-Utilities** (point-and-click SAS procedures that emit code
-you can inspect), **Snippets** (reusable code blocks),
-**Libraries** (SAS librefs for data access), and **File
-Shortcuts**.
+The bottom of the left sidebar also exposes
+**Tasks and Utilities** (point-and-click SAS
+procedures that emit code you can inspect),
+**Snippets** (reusable code blocks),
+**Libraries** (SAS librefs for data access), and
+**File Shortcuts**.
 
 ### Practical limits
 
-SAS ODA is free, so it is bounded. The limits that matter
-for this chapter:
+SAS ODA is free, so it is bounded:
 
 - **Memory**: approximately 5 GB per session.
-- **Idle timeout**: approximately 90 minutes; unsaved
-  programs are lost when the session ends.
-- **Storage**: approximately 5 GB per user home directory.
-- **Procedures**: the standard Base, Stat, Graph, and IML
-  products are available; SAS/CONNECT, SAS/ACCESS to most
-  databases, and Enterprise Miner are not.
-- **Computing**: shared infrastructure; long batch jobs are
-  impractical. Use local SAS or AWS for production runs.
+- **Idle timeout**: approximately 90 minutes;
+  unsaved programs are lost when the session
+  ends.
+- **Storage**: approximately 5 GB per user home
+  directory.
+- **Procedures**: the standard Base, Stat, Graph,
+  and IML products are available; SAS/CONNECT,
+  SAS/ACCESS to most databases, and Enterprise
+  Miner are not.
+- **Computing**: shared infrastructure; long
+  batch jobs are impractical. Use local SAS or
+  AWS for production runs.
 
 ### Uploading data
 
-1. In the Server Files and Folders pane, navigate to
-   `Files (Home)`.
-2. Click the upload icon (third from the left in the file
-   toolbar).
-3. Select a `.csv`, `.xlsx`, or `.sas7bdat` file from your
-   laptop.
+1. In the Server Files and Folders pane, navigate
+   to `Files (Home)`.
+2. Click the upload icon (third from the left in
+   the file toolbar).
+3. Select a `.csv`, `.xlsx`, or `.sas7bdat` file
+   from your laptop.
 
-The file appears in your home directory and can be read
-from your SAS programs by path, for example:
+The file appears in your home directory and can
+be read from your SAS programs by path:
 
 ```sas
 proc import datafile = '/home/u99999999/penguins.csv'
@@ -148,32 +210,114 @@ run;
 
 ### Saving programs
 
-In the Program editor, click the save icon (floppy disk) and
-choose a location in your home directory. Programs save as
-`.sas` files and can be reopened in subsequent sessions.
+In the Program editor, click the save icon
+(floppy disk) and choose a location in your home
+directory. Programs save as `.sas` files and can
+be reopened in subsequent sessions.
 
 ### Alternatives
 
-- **Full SAS install** via a university site license. Rare
-  outside large pharma or government labs.
-- **SAS University Edition**. Discontinued in August 2021.
-  Do not use.
-- **WPS Workbench** (World Programming Ltd.). A paid
-  third-party interpreter that runs most SAS code. Useful
-  for sites that cannot use a cloud service but is not free.
+- **Full SAS install** via a university site
+  license. Rare outside large pharma or
+  government labs.
+- **SAS University Edition**. Discontinued in
+  August 2021. Do not use.
+- **WPS Workbench** (World Programming Ltd.).
+  A paid third-party interpreter that runs most
+  SAS code. Useful for sites that cannot use a
+  cloud service but is not free.
 
 For this chapter and course, ODA is the default.
 
 ## SAS basics for R users
 
-TODO: the DATA step as 'vectorised row-at-a-time
-imperative code'. PROC SORT, PROC PRINT, PROC CONTENTS.
-Libraries (`libname`) and the WORK library. Formats and
-informats.
+The DATA step and PROC steps are the two
+fundamental constructs.
+
+**DATA step.** Reads, creates, or transforms a
+SAS dataset, processing one row at a time with
+an implicit loop. Conceptually similar to a
+`dplyr::mutate` plus `dplyr::filter` chain, but
+with imperative row-at-a-time semantics:
+
+```sas
+data work.adults;
+  set work.demo;          /* read each row */
+  if age >= 18;            /* filter (subsetting if) */
+  age_group = ifn(age < 65, 1, 2);
+  log_bmi   = log(bmi);
+run;
+```
+
+In R:
+
+```r
+adults <- demo |>
+  filter(age >= 18) |>
+  mutate(age_group = if_else(age < 65, 1L, 2L),
+         log_bmi   = log(bmi))
+```
+
+**PROC steps.** Consume an existing dataset and
+produce listings, tables, graphs, or statistical
+output. Each PROC has its own syntax but most
+share an `OUT =` for results and a `BY` /
+`CLASS` / `MODEL` clause structure:
+
+```sas
+proc means data = work.adults n mean std median q1 q3 maxdec = 2;
+  class age_group;
+  var log_bmi;
+run;
+
+proc freq data = work.adults;
+  tables age_group * sex / chisq;
+run;
+```
+
+**Libraries.** A library (`libname`) is a
+directory containing SAS datasets:
+
+```sas
+libname mylib '/home/u99999999/data';
+data mylib.demo_archive;
+  set work.demo;
+run;
+```
+
+Datasets in `WORK` (the temporary library) vanish
+at session end; named libraries persist.
+
+**Formats and informats.** A format displays a
+value (e.g., `1` displays as `'Active'`); an
+informat reads input. SAS's `proc format`
+defines them:
+
+```sas
+proc format;
+  value sexfmt 1 = 'Male' 2 = 'Female';
+run;
+
+data work.demo2;
+  set work.demo;
+  format sex sexfmt.;
+run;
+```
+
+The R analogue is a factor with explicit labels.
+
+**Common procedures to know.** `PROC SORT`,
+`PROC PRINT`, `PROC CONTENTS`, `PROC FREQ`,
+`PROC MEANS`, `PROC UNIVARIATE`. These
+correspond roughly to `arrange`, `head`/`tail`,
+`str`/`glimpse`, `table`/`count`, `summary`/`mean`,
+`summary`/`quantile`. Knowing these five is
+enough to read 90% of SAS data-cleaning code.
 
 ## Procedure correspondence table
 
-TODO: narrative introduction, followed by the mapping.
+The R-to-SAS map for the procedures a clinical
+biostatistician uses most:
 
 | R                                 | SAS                                           |
 | --------------------------------- | --------------------------------------------- |
@@ -190,110 +334,461 @@ TODO: narrative introduction, followed by the mapping.
 | `survival::survfit(Surv(t, e)~g)` | `PROC LIFETEST DATA = df; TIME t*e(0); STRATA g;` |
 | `survival::coxph(Surv(t, e)~x)`   | `PROC PHREG DATA = df; MODEL t*e(0) = x;`     |
 
-TODO: worked example for each of the five most common
-procedures a biostatistician uses (GLM, LOGISTIC, MIXED,
-LIFETEST, PHREG).
+A few of these procedures merit a worked
+example.
+
+### `PROC GLM` for ANOVA / linear regression
+
+```sas
+proc glm data = work.penguins;
+  class species;
+  model body_mass_g = species flipper_length_mm;
+  lsmeans species / pdiff cl;
+run;
+quit;
+```
+
+R equivalent:
+
+```r
+fit <- lm(body_mass_g ~ species + flipper_length_mm,
+          data = penguins_clean)
+emmeans::emmeans(fit, "species", contr = "pairwise",
+                 infer = TRUE)
+```
+
+The `lsmeans` statement in SAS produces estimated
+marginal means (least-squares means); the
+`emmeans` package provides the R counterpart.
+
+### `PROC LOGISTIC` for binary outcome
+
+```sas
+proc logistic data = work.trial;
+  class treatment (param = ref ref = 'placebo')
+        sex (param = ref ref = 'M');
+  model outcome (event = '1') = treatment age sex;
+  oddsratio treatment;
+run;
+```
+
+R equivalent:
+
+```r
+trial$treatment <- relevel(factor(trial$treatment),
+                           ref = "placebo")
+trial$sex <- relevel(factor(trial$sex), ref = "M")
+fit <- glm(outcome ~ treatment + age + sex,
+           family = binomial, data = trial)
+broom::tidy(fit, exponentiate = TRUE, conf.int = TRUE)
+```
+
+The `param = ref ref = 'X'` syntax is SAS's way
+of setting reference coding (matching R's default).
+Without it, SAS uses effect coding (sum-to-zero),
+which gives different coefficients.
+
+### `PROC MIXED` for mixed-effects model
+
+```sas
+proc mixed data = work.long covtest;
+  class subject visit treatment;
+  model y = treatment visit treatment*visit / solution;
+  random intercept / subject = subject type = un;
+run;
+```
+
+R equivalent:
+
+```r
+fit <- lmer(y ~ treatment * visit + (1 | subject), data = long)
+```
+
+Note: `PROC MIXED`'s default covariance structure
+is `VC` (variance components). For a random
+intercept matching `lme4`'s default, no `TYPE` is
+needed; for unstructured (`UN`), specify
+explicitly. Random slopes in SAS:
+
+```sas
+random intercept visit / subject = subject type = un;
+```
+
+### `PROC LIFETEST` and `PROC PHREG` for survival
+
+```sas
+proc lifetest data = work.adtte plots = (s lls);
+  time aval * cnsr (1);          /* CDISC: cnsr=1 means censored */
+  strata trt01p;
+run;
+
+proc phreg data = work.adtte;
+  class trt01p (param = ref ref = 'Placebo');
+  model aval * cnsr (1) = trt01p age sex / risklimits;
+run;
+```
+
+R equivalent:
+
+```r
+library(survival)
+fit_km <- survfit(Surv(AVAL, 1L - CNSR) ~ TRT01P, data = adtte)
+fit_cox <- coxph(Surv(AVAL, 1L - CNSR) ~ TRT01P + AGE + SEX,
+                 data = adtte)
+```
+
+The SAS `time aval * cnsr (1)` syntax means
+'censoring code is 1'; this aligns with the CDISC
+`CNSR = 1` convention. R's `Surv(time, 1L - CNSR)`
+inverts to match its own `event = 1` convention.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: reference coding
+
+**Question.** You translate a logistic regression
+from R to SAS and the coefficients differ in sign
+from R's. What might have gone wrong?
+
+::: {.content-visible when-format="html"}
+<details><summary>Answer</summary>
+:::
+
+SAS's default coding for `CLASS` variables is
+effect coding (sum-to-zero), not reference
+coding. R's default is reference coding
+(treatment contrast). With effect coding, the
+coefficients represent deviations from the grand
+mean rather than differences from a reference
+level; the signs and magnitudes do not match
+R's. The fix is to specify reference coding
+explicitly:
+
+```sas
+class treatment (param = ref ref = 'placebo');
+```
+
+This makes SAS produce coefficients that match
+R's. Without it, the SAS output is correct under
+SAS's defaults but disagrees with R's defaults.
+The difference is the most common source of
+'why don't my SAS and R agree?' confusion at the
+boundary.
+
+::: {.content-visible when-format="html"}
+</details>
+:::
+:::
 
 ## Reading SAS logs
 
-TODO: three tiers of message (NOTE, WARNING, ERROR); where
-each appears; the `NOTE: merged with missing` gotcha that
-does not raise an error but silently produces wrong output.
+SAS produces three tiers of message in the LOG
+window:
+
+- **NOTE** (informational): events the program
+  performed. Most NOTEs are benign; some are
+  important (`NOTE: missing values were generated`,
+  `NOTE: merged with missing values`).
+- **WARNING**: something unexpected but the
+  program continued. Always inspect.
+- **ERROR**: the program stopped. Fix and rerun.
+
+The most insidious are silent NOTEs. A merge
+that produces missing keys generates a NOTE; the
+program 'completes' but with rows silently
+dropped or duplicated:
+
+```
+NOTE: There were 100 observations read from data set WORK.A.
+NOTE: There were 95 observations read from data set WORK.B.
+NOTE: The data set WORK.MERGED has 95 observations.
+```
+
+If you expected 100 (left join), 95 indicates 5
+rows were lost. The NOTE is informational; SAS
+does not flag it as a problem.
+
+The discipline: read the LOG end to end after
+every run. Look for unexpected counts, NOTEs
+about missing values, and WARNINGs about
+implicit conversions.
+
+For automated checking, `proc sql` with
+explicit row-count assertions catches drops:
+
+```sas
+proc sql noprint;
+  select count(*) into :n_a from work.a;
+  select count(*) into :n_merged from work.merged;
+quit;
+%if &n_a ne &n_merged %then %do;
+  %put ERROR: Merge dropped rows: &n_a -> &n_merged;
+%end;
+```
 
 ## Moving data between SAS and R
 
-TODO:
+**R to SAS** via SAS transport (`.xpt`):
 
-- **R to SAS:** `haven::write_xpt(df, 'data.xpt')` writes a
-  SAS transport file. In SAS: `libname x xport
-  '/path/data.xpt'; proc copy in=x out=work; run;`.
-- **SAS to R:** `haven::read_sas('path.sas7bdat')` reads
-  native SAS datasets, preserving labels and formats.
-- **FDA submissions** still use `.xpt` (SAS transport v5) as
-  the interchange format, written with
-  `PROC COPY OUT = library; RUN; libname xpt xport
-  '/path';`.
+```r
+library(haven)
+write_xpt(df, "data.xpt", version = 5)
+```
 
-## A side-by-side example
+In SAS:
 
-TODO: one small analysis (say, penguin body mass by species)
-rendered in R and in SAS side by side, using identical data
-and producing matching Wald confidence intervals.
+```sas
+libname x xport '/home/u99999999/data.xpt';
+proc copy in = x out = work; run;
+libname x clear;
+```
+
+The `version = 5` argument matches the FDA-
+required transport version.
+
+**SAS to R**:
+
+```r
+df <- haven::read_sas("path/to/file.sas7bdat")
+df <- haven::read_xpt("path/to/file.xpt")
+```
+
+`haven` preserves SAS labels and formats as R
+attributes (`label` attribute on each column).
+Inspect with `attr(df$x, "label")`.
+
+**FDA submissions** still require `.xpt` v5 as
+the interchange format. Modern SAS `proc copy`
+plus `libname xport` produces it; `haven::write_xpt`
+matches.
+
+For more elaborate workflows (R cleans data, SAS
+analyses, R produces tables), the round trip is:
+
+```r
+# R: clean and export
+data |>
+  janitor::clean_names() |>
+  filter(...) |>
+  haven::write_xpt("clean.xpt", version = 5)
+```
+
+```sas
+* SAS: read, analyse, export results;
+libname x xport '/path/clean.xpt';
+proc copy in = x out = work;
+run;
+
+proc logistic data = work.clean;
+  /* ... */
+  ods output ParameterEstimates = pe;
+run;
+
+libname out xport '/path/results.xpt';
+data out.pe; set pe; run;
+libname out clear;
+```
+
+```r
+# R: read SAS results, format as table
+results <- haven::read_xpt("results.xpt")
+gt::gt(results)
+```
+
+The handoff is the friction. Document column
+names and types at each boundary.
 
 ## When SAS is required and when it is not
 
-TODO:
+**Required.** FDA submissions (CDISC SDTM +
+ADaM; @sec-cdisc), most sponsor-driven clinical
+trials, many CRO positions, legacy pharma
+analytics teams.
 
-- **Required**: FDA submissions (CDISC SDTM + ADaM; see
-  @sec-cdisc), most sponsor-driven clinical trials, many
-  CRO positions, legacy pharma analytics teams.
-- **Not required**: academic biostatistics, most NIH-funded
-  investigator-initiated trials, data science, biotechs
-  founded in the last decade.
-- **Either acceptable**: collaborative research teams that
-  let the statistician choose, most epidemiology and
-  health-services research.
+**Not required.** Academic biostatistics, most
+NIH-funded investigator-initiated trials, data
+science, biotechs founded in the last decade,
+most epidemiological cohort studies.
 
-## With AI assistance {.unnumbered}
+**Either acceptable.** Collaborative research
+teams that let the statistician choose, most
+epidemiology and health-services research,
+academic clinical trials units that have
+adopted R.
 
-::: {.callout-tip}
-## Prompts to try
+For an MS biostatistician, the practical
+question is: what does the first job require?
+Industry pharma and CRO: SAS, often with R as
+secondary. Academic biostatistics: R, with SAS
+nice-to-have. Government (FDA, CMS, BARDA): SAS,
+heavily.
 
-1. Paste a working R script for a simple regression and ask
-   the LLM to translate it into SAS. Run the SAS version in
-   ODA; compare the output against the R version. Does the
-   LLM correctly handle reference coding for categorical
-   predictors? Does it produce the same standard errors?
-2. Paste a SAS log with a subtle `NOTE: Missing values were
-   generated` message and ask the LLM to diagnose. Does it
-   identify the silent data-loss pattern, or treat it as
-   benign?
-3. Ask the LLM to write a PROC MIXED call equivalent to a
-   given `lmer()` call with a random-slope model. Verify
-   that the SAS syntax correctly distinguishes
-   `RANDOM INTERCEPT x / SUBJECT = id TYPE = UN;` from the
-   default `TYPE = VC`, which does not match `lmer`.
-:::
+## A side-by-side example
+
+A simple penguin analysis in both languages,
+producing matching output:
+
+R:
+
+```r
+library(palmerpenguins)
+fit <- lm(body_mass_g ~ flipper_length_mm + species,
+          data = na.omit(penguins))
+broom::tidy(fit, conf.int = TRUE)
+```
+
+SAS:
+
+```sas
+proc import datafile = '/home/u99999999/penguins.csv'
+            out = work.penguins dbms = csv replace;
+  getnames = yes;
+run;
+
+data work.penguins_clean;
+  set work.penguins;
+  if cmiss(of _all_) = 0;     /* drop rows with any missing */
+run;
+
+proc glm data = work.penguins_clean;
+  class species (param = ref ref = 'Adelie');
+  model body_mass_g = flipper_length_mm species / clparm solution;
+run;
+quit;
+```
+
+Coefficient point estimates and 95% Wald CIs
+should match between the two within rounding.
+If they do not, suspect the reference level (R
+defaults to alphabetical 'Adelie'; SAS default
+is alphabetical last, hence the explicit
+`ref = 'Adelie'`).
+
+## Collaborating with an LLM on SAS
+
+LLMs handle SAS basics; the cross-language
+translation tends to ignore default differences.
+
+**Prompt 1: translating a SAS log error.** Paste
+the LOG and ask: 'what's the error and how to
+fix?'
+
+*What to watch for.* Common SAS errors are easy
+(missing semicolon, undefined macro variable).
+Subtle ones (NOTE-level merge issues, format
+warnings) need deliberate prompting: ask the
+LLM to flag every NOTE that *could* indicate a
+problem.
+
+*Verification.* Apply the fix and rerun. If the
+NOTE persists, push for further analysis.
+
+**Prompt 2: R to SAS translation.** Paste an R
+function or analysis and ask the LLM to produce
+the SAS equivalent.
+
+*What to watch for.* Reference coding for
+`CLASS` variables (the default mismatch).
+Mixed-models covariance structures (R's `lme4`
+default vs. SAS `PROC MIXED`'s `VC` default).
+Survival censoring conventions (R `event = 1`
+vs. SAS `event = 1` or CDISC `cnsr = 1`).
+
+*Verification.* Run both versions on the same
+data; coefficients should agree to several
+decimal places. Diagnose any disagreement as a
+default mismatch.
+
+**Prompt 3: PROC choice.** Describe the analysis
+and ask: 'which SAS procedure is most
+appropriate?'
+
+*What to watch for.* Multiple PROCs handle the
+same problem (PROC GLM vs. PROC REG vs. PROC
+GENMOD for linear regression; PROC MIXED vs.
+PROC GLIMMIX for mixed models). The LLM should
+pick the modern, full-featured choice
+(GLIMMIX over MIXED for non-normal outcomes;
+GENMOD for GLMs).
+
+*Verification.* SAS documentation;
+cross-reference against domain conventions.
+
+## Principle in use
+
+Three habits define defensible cross-language
+work:
+
+1. **Verify equivalence.** When translating
+   between R and SAS, confirm the outputs match
+   to several decimal places. Disagreements are
+   default mismatches, not noise.
+2. **Read the SAS LOG.** NOTE-level messages
+   can hide silent data loss. Make full-log
+   review a habit, not an exception.
+3. **Use `.xpt` for handoffs.** SAS transport
+   v5 is the durable interchange format;
+   `haven::read_xpt` and `haven::write_xpt`
+   make the boundary explicit.
 
 ## Exercises
 
-1. Register for SAS OnDemand for Academics. Upload a CSV
-   (use `palmerpenguins::penguins` written out via
-   `write.csv()`). Run `PROC MEANS` on the numeric
-   variables and `PROC FREQ` on species. Compare to the
+1. Register for SAS OnDemand for Academics.
+   Upload a CSV (use `palmerpenguins::penguins`
+   written out via `write.csv()`). Run
+   `PROC MEANS` on the numeric variables and
+   `PROC FREQ` on species. Compare to the
    equivalent R summaries.
-2. Translate a simple `lm()` fit from one of your previous
-   analyses into `PROC GLM`. Confirm that the coefficient
-   table and residual standard error match to at least
+2. Translate a simple `lm()` fit from one of
+   your previous analyses into `PROC GLM`.
+   Confirm that the coefficient table and
+   residual standard error match to at least
    four decimal places.
-3. Write a SAS transport file (`.xpt`) from R using
-   `haven::write_xpt()`. Read it into SAS with `libname
-   xpt xport`. Verify that the row and column counts
-   match.
+3. Write a SAS transport file (`.xpt`) from R
+   using `haven::write_xpt()`. Read it into
+   SAS with `libname xpt xport`. Verify that
+   the row and column counts match.
+4. Translate a `glm(..., family = binomial)`
+   logistic regression from R to PROC LOGISTIC.
+   Match reference levels explicitly. Verify
+   that odds ratios agree.
+5. Read a SAS log from one of your runs end to
+   end. List every NOTE that could indicate a
+   problem; investigate each.
 
 ## Further reading
 
-- Delwiche and Slaughter (2019), *The Little SAS Book*, 6th ed. --- canonical introduction.
-- Cody (2018), *Learning SAS by Example*, 2nd ed. --- task-oriented introduction.
-- SAS documentation at `documentation.sas.com` --- reference.
+- Delwiche and Slaughter (2019), *The Little
+  SAS Book*, 6th ed. --- canonical
+  introduction.
+- Cody (2018), *Learning SAS by Example*, 2nd
+  ed. --- task-oriented introduction.
+- SAS documentation at `documentation.sas.com`
+  --- reference.
+- The `haven` package documentation for the R
+  side of the boundary.
 
 ## Prerequisites answers {#sec-quiz-answers-22}
 
-1. A DATA step reads, creates, or transforms a SAS dataset
-   row by row, using an implicit loop over records. PROC
-   steps consume existing datasets and produce listings,
-   tables, graphs, or statistical output; a PROC step does
-   not create new observations (with rare exceptions).
-   The typical workflow alternates: DATA step to shape the
-   data, PROC step to analyse it.
-2. In SAS, `PROC MEANS` or `PROC SUMMARY` produces
-   analogous output (N, mean, SD, min, max, quantiles). In
-   R, `summary(df)` gives a mixed-type summary across
-   columns; `skimr::skim(df)` is closer to `PROC MEANS`
-   output. `PROC UNIVARIATE` gives more detail.
-3. The SAS transport file (`.xpt`, SAS transport v5) is
-   the long-standing interchange format and is still
-   required for FDA submissions. In R, the `haven`
-   package reads and writes both `.xpt` and native
-   `.sas7bdat`: `haven::read_xpt()`, `haven::write_xpt()`,
-   `haven::read_sas()`.
+1. A DATA step reads, creates, or transforms a
+   SAS dataset row by row, using an implicit
+   loop over records. PROC steps consume
+   existing datasets and produce listings,
+   tables, graphs, or statistical output; a
+   PROC step does not create new observations
+   (with rare exceptions). The typical workflow
+   alternates: DATA step to shape the data,
+   PROC step to analyse it.
+2. In SAS, `PROC MEANS` or `PROC SUMMARY`
+   produces analogous output (N, mean, SD, min,
+   max, quantiles). In R, `summary(df)` gives a
+   mixed-type summary across columns;
+   `skimr::skim(df)` is closer to `PROC MEANS`
+   output. `PROC UNIVARIATE` gives more detail
+   (quantiles, skewness, kurtosis).
+3. The SAS transport file (`.xpt`, SAS
+   transport v5) is the long-standing
+   interchange format and is still required for
+   FDA submissions. In R, the `haven` package
+   reads and writes both `.xpt` and native
+   `.sas7bdat`: `haven::read_xpt()`,
+   `haven::write_xpt()`, `haven::read_sas()`.
