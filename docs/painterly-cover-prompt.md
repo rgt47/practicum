@@ -1,15 +1,25 @@
-# Gemini prompt for Biostatistics Practicum hero / cover image
+# Painterly cover-image prompt (fallback / alternate)
 *2026-04-25 14:30 PDT*
 
+> **Status:** not the canonical cover system. The practicum
+> ships its cover via the procedural Python script at
+> `images/build-cover.py`, which is reproducible,
+> versionable, and free of API dependencies. This document
+> is preserved for the narrow case where a more painterly
+> top zone is wanted (real watercolour bleeds rather than
+> procedural radial blobs), or where a separate hero/social
+> card with bespoke illustration is wanted alongside the
+> procedural cover. In that case, ask Gemini for the
+> *background only* (no text), save the PNG, modify
+> `build-cover.py` to load the AI-painted PNG instead of
+> calling `watercolour_zone()`, and let the script overlay
+> the text exactly as it does today.
+
 The prompt below is intended for Gemini (Imagen 3) and
-similar text-to-image models. It is designed to produce a
-cover-art illustration that can be used as the book's
-`images/cover.png` and as the `cover-image` referenced from
-`_quarto.yml`. Title, subtitle, and author text are
-intentionally omitted from the generation; overlay them
-programmatically afterwards (using ImageMagick, Pillow, or
-a vector tool) so that typography matches the rest of the
-book.
+similar text-to-image models. Title, subtitle, and author
+text are intentionally omitted from the generation; overlay
+them programmatically afterwards so that typography matches
+the rest of the book.
 
 ## Prompt (paste into Gemini)
 
