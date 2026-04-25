@@ -3,22 +3,25 @@
 ::: {.callout-note}
 ## Sources
 
-Adapted from author's lecture notes and supporting materials for a graduate practicum in biostatistics.
+Adapted from author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
 :::
 
 ## Prerequisites
 
-Answer the following questions to see if you can bypass this
-chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-24.
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-24.
 
 1. What is the scientific question posed by the ADNI MCI
-   prediction project, and why is it clinically meaningful?
+   prediction project, and why is it clinically
+   meaningful?
 2. What features of the ADNI data make a reproducible
    compendium especially important relative to a typical
    pilot dataset?
-3. Why must ADNIMERGE data be preprocessed before modelling,
-   and what preprocessing step is most commonly overlooked?
+3. Why must ADNIMERGE data be preprocessed before
+   modelling, and what preprocessing step is most
+   commonly overlooked?
 
 ## Learning objectives
 
@@ -29,64 +32,140 @@ By the end of this chapter you should be able to:
 - Scaffold an ADNI compendium using `zzcollab`.
 - Produce a Table 1 (demographics, baseline clinical
   variables) using the in-house `zztable1` package.
-- Produce trajectory plots for cognitive outcomes using
-  `zzlongplot` with CDISC-style formatting.
-- Pre-specify an analysis plan that distinguishes primary
-  from exploratory analyses.
-- Deliver a reproducible report that satisfies federal
-  data-sharing requirements (@sec-federal).
+- Produce trajectory plots for cognitive outcomes
+  using `zzlongplot` with CDISC-style formatting.
+- Pre-specify an analysis plan that distinguishes
+  primary from exploratory analyses.
+- Deliver a reproducible report that satisfies
+  federal data-sharing requirements (@sec-federal).
+- Handle the data-use-agreement constraint that
+  shapes ADNI deposition.
 
 ## Orientation
 
-This chapter works through a single end-to-end case study:
-predicting conversion from Mild Cognitive Impairment (MCI)
-to Alzheimer's disease (AD) dementia within a three-year
-horizon, using baseline sociodemographic, clinical, and
-neuropsychological measures. The goal is not to solve the
-prediction problem (that is a book-length exercise) but to
-demonstrate the Practicum workflow end-to-end: scaffolding,
-planning, wrangling, figuring, reporting, and depositing.
+This chapter works through a single end-to-end case
+study: predicting conversion from Mild Cognitive
+Impairment (MCI) to Alzheimer's disease (AD)
+dementia within a three-year horizon, using
+baseline sociodemographic, clinical, and
+neuropsychological measures. The goal is not to
+solve the prediction problem (that is a book-length
+exercise) but to demonstrate the Practicum
+workflow end-to-end: scaffolding, planning,
+wrangling, figuring, reporting, and depositing.
 
-The statistical modelling details are deliberately light;
-for those, consult the companion book *Statistical Computing
-in the Age of AI*. Here, the focus is on everything *around*
-the modelling.
+The statistical modelling details are deliberately
+light; for those, consult the companion book
+*Statistical Computing in the Age of AI*. Here, the
+focus is on everything *around* the modelling.
+
+## The statistician's contribution {#sec-adni-human}
+
+ADNI is a substantive case study, and the
+substantive judgements are what matter.
+
+**Define the cohort with care.** EMCI and LMCI
+participants who drop out before the three-year
+window have *not* been observed for the outcome.
+Treating them as non-converters biases the
+analysis toward better-than-true sensitivity.
+The correct handling is either (a) censor them
+and use time-to-event methods, or (b) exclude
+them and report the resulting smaller cohort.
+Each is defensible; treating dropout as
+non-conversion is not.
+
+**Pre-register the analysis.** ADNI is large
+enough and well-studied enough that an
+unprincipled analyst can find any signal they
+want. The SAP locks the predictor set, the model
+class, the validation strategy, and the metric.
+Anything not pre-registered is exploratory.
+
+**ADNI version pinning.** The `ADNIMERGE` package
+gets updated periodically. New participants are
+added; variables are sometimes renamed. An
+analysis from 2024 may not reproduce on the 2026
+package without effort. Pin the package version
+in `renv.lock` (install from a specific GitHub
+commit), and freeze a copy of the data file in
+the compendium at the moment of analysis.
+
+**Data sharing is asymmetric.** The code can be
+public; the data cannot. The compendium therefore
+ships in two parts: the public code-only
+deposition (Zenodo, GitHub) plus the path for
+collaborators to obtain the data (ADNI's data-use
+agreement). The README must make this distinction
+explicit.
+
+**Cross-validation at the participant level.**
+ADNI has many observations per participant.
+Cross-validation that splits at the observation
+level leaks information across folds (the same
+participant in train and test). Splits must be
+at the `RID` level. Forgetting this produces
+optimistic AUCs that the model cannot achieve in
+true held-out evaluation.
+
+These judgements are what distinguish a
+defensible ADNI analysis from one that
+over-claims.
 
 ## The research question
 
 From the 243B analysis-plan template:
 
-> Can baseline sociodemographic characteristics, clinical
-> scales, and neuropsychological test scores predict
-> conversion from MCI to AD dementia within 3 years?
+> Can baseline sociodemographic characteristics,
+> clinical scales, and neuropsychological test
+> scores predict conversion from MCI to AD
+> dementia within 3 years?
 
-This is a well-posed prediction question. Secondary
-questions from the same template:
+This is a well-posed prediction question.
+Secondary questions from the same template:
 
-- Which predictor categories (sociodemographic, clinical,
-  neuropsychological) contribute most to prediction
-  accuracy?
-- Does prediction performance differ between Early MCI
-  (EMCI) and Late MCI (LMCI) subgroups?
+- Which predictor categories (sociodemographic,
+  clinical, neuropsychological) contribute most
+  to prediction accuracy?
+- Does prediction performance differ between
+  Early MCI (EMCI) and Late MCI (LMCI)
+  subgroups?
 
-TODO: brief paragraph on clinical context and on prior work
-(Grassi et al. 2019).
+The clinical context: MCI is a heterogeneous
+state. Some participants progress rapidly to AD;
+others remain stable for years. Identifying
+those at highest risk enables targeted
+intervention trials, earlier patient
+counselling, and informed family planning. A
+prediction model that achieves modest
+discrimination (AUC 0.75--0.80) is useful
+clinically; one with AUC 0.95 has likely been
+trained or evaluated wrong.
+
+Prior work (Grassi et al. 2019 and others) has
+established that age, education, APOE4 status,
+and baseline ADAS13 are reliable predictors;
+the question is whether a multivariable model
+can outperform any one of them.
 
 ## The ADNI dataset
 
-**Source.** ADNI (Alzheimer's Disease Neuroimaging
-Initiative) is a longitudinal multicentre cohort study
-funded since 2004. Data are obtained under a data-use
-agreement at <https://adni.loni.usc.edu/>.
+**Source.** ADNI (Alzheimer's Disease
+Neuroimaging Initiative) is a longitudinal
+multicentre cohort study funded since 2004.
+Data are obtained under a data-use agreement at
+<https://adni.loni.usc.edu/>.
 
-**The `ADNIMERGE` package** is the community-standard R
-interface, a single long-format tibble of approximately
-15,000 observations on ~2000 participants, with 115
-variables spanning demographics, APOE genotype, clinical
-scales (CDR, FAQ), and neuropsychological tests (ADAS, RAVLT,
-logical memory, MMSE).
+**The `ADNIMERGE` package** is the
+community-standard R interface, a single
+long-format tibble of approximately 15,000
+observations on ~2000 participants, with 115
+variables spanning demographics, APOE genotype,
+clinical scales (CDR, FAQ), and
+neuropsychological tests (ADAS, RAVLT, logical
+memory, MMSE).
 
-**Key variables for this case study.**
+**Key variables for this case study:**
 
 | Variable      | Description                                   |
 | ------------- | --------------------------------------------- |
@@ -101,29 +180,49 @@ logical memory, MMSE).
 | `MMSE`        | Mini-Mental State Examination                 |
 | `LDELTOTAL`   | Logical Memory II delayed recall              |
 
-TODO: one or two paragraphs on the psychometric
-instruments and their clinical interpretation.
+**About the instruments.** ADAS13 is a 13-item
+clinical assessment of memory, language, and
+praxis; scores 0--85, higher worse.
+RAVLT is a list-learning task assessing verbal
+memory. MMSE is a 30-point cognitive screen
+(higher better; 24+ typically considered
+normal). Logical Memory II is a story-recall
+task. APOE4 is the most established genetic
+risk factor for late-onset AD; carrying one
+copy approximately doubles risk and two copies
+triples or more.
+
+These instruments are correlated but not
+redundant: each captures a different aspect of
+cognition or risk, and the predictive question
+is whether their combination outperforms any
+one alone.
 
 ## Why a compendium matters here
 
-ADNI analyses have three properties that make reproducibility
-especially critical:
+ADNI analyses have three properties that make
+reproducibility especially critical:
 
-1. **Data-use agreement.** Data cannot be shared, but the
-   analysis code and the `renv.lock` can. Collaborators
-   reproduce the work by independently obtaining the data
-   and running the same code.
-2. **Long time horizon.** Papers using ADNI are often
-   revisited years later (reviewer comments, follow-up
-   analyses). A Docker-pinned environment means the original
-   analysis can be rerun at year 3 on the exact same R and
-   package versions.
-3. **Version churn in ADNIMERGE.** The dataset is updated
-   periodically; new participants are added and variables
-   are renamed. Analyses must pin to a specific ADNIMERGE
-   version (documented in `renv.lock` if installed from
-   GitHub, or captured as a processed data file in the
-   compendium).
+1. **Data-use agreement.** Data cannot be shared,
+   but the analysis code and the `renv.lock`
+   can. Collaborators reproduce the work by
+   independently obtaining the data and running
+   the same code.
+
+2. **Long time horizon.** Papers using ADNI are
+   often revisited years later (reviewer
+   comments, follow-up analyses). A
+   Docker-pinned environment means the original
+   analysis can be rerun at year 3 on the exact
+   same R and package versions.
+
+3. **Version churn in ADNIMERGE.** The dataset
+   is updated periodically; new participants
+   are added and variables are renamed.
+   Analyses must pin to a specific ADNIMERGE
+   version (documented in `renv.lock` if
+   installed from GitHub, or captured as a
+   processed data file in the compendium).
 
 ## Scaffolding the compendium with zzcollab
 
@@ -134,13 +233,26 @@ zzc modeling             # modeling profile: glmnet, survival
 make r                   # enter the container
 ```
 
-Inside the container, add the ADNI data access layer:
+The `modeling` profile (rather than `analysis`)
+adds the regression machinery (`glmnet` for
+penalised regression, `lme4` for mixed models,
+`survival` for time-to-event handling of
+dropout) and the system libraries that compile
+them.
 
-```{r eval=FALSE}
-# One-off: install ADNIMERGE from Github (pinned in renv.lock)
+Inside the container, add the ADNI data access
+layer:
+
+```r
+# One-off: install ADNIMERGE from GitHub (pinned in renv.lock)
 renv::install('ADNI/ADNIMERGE')
 renv::snapshot()
 ```
+
+The `renv.lock` now records the specific
+ADNIMERGE commit. Collaborators who clone the
+compendium and run `renv::restore()` get the
+same version.
 
 Under `analysis/`, the compendium grows:
 
@@ -157,16 +269,76 @@ analysis/
     └── 04-model.R
 ```
 
+The `data/raw/adnimerge_20260301.rds` is a
+frozen snapshot of the data on the date of
+analysis. Even if `ADNIMERGE` updates later,
+the analysis can be rerun against the same
+data. (The data file itself is gitignored if
+sharing restrictions apply; the README
+documents how a collaborator with DUA access
+recreates it.)
+
 ## Building the analytic cohort
 
-TODO: code walkthrough for `01-build-cohort.R`: filter
-`DX_bl %in% c('EMCI', 'LMCI')`, create a three-year
-follow-up window, derive the binary outcome 'converted to AD
-within 3y'.
+```r
+# scripts/01-build-cohort.R
+library(tidyverse)
+library(ADNIMERGE)
+
+raw <- adnimerge
+
+# baseline measurements
+baseline <- raw |>
+  filter(VISCODE == 'bl', DX_bl %in% c('EMCI', 'LMCI')) |>
+  select(RID, AGE, PTGENDER, PTEDUCAT, APOE4,
+         ADAS13, RAVLT.immediate, MMSE, LDELTOTAL,
+         DX_bl, EXAMDATE)
+
+# 3-year follow-up window: did they convert?
+followup <- raw |>
+  filter(RID %in% baseline$RID) |>
+  group_by(RID) |>
+  arrange(EXAMDATE) |>
+  mutate(
+    days_since_bl = as.numeric(EXAMDATE - first(EXAMDATE)),
+    in_window     = days_since_bl <= 3 * 365.25
+  ) |>
+  filter(in_window) |>
+  summarise(
+    converted_3y = any(DX == 'Dementia', na.rm = TRUE),
+    last_visit_days = max(days_since_bl, na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+# combine; flag participants with insufficient follow-up
+cohort <- baseline |>
+  left_join(followup, by = 'RID') |>
+  mutate(
+    sufficient_followup = last_visit_days >= 2 * 365.25,
+    converted_3y_clean  = if_else(sufficient_followup,
+                                  converted_3y, NA)
+  )
+
+# the analytic cohort
+analytic <- cohort |>
+  filter(sufficient_followup) |>
+  select(-sufficient_followup, -converted_3y, -last_visit_days)
+
+stopifnot(all(!is.na(analytic$converted_3y_clean)))
+saveRDS(analytic, 'analysis/data/derived/analytic_cohort.rds')
+```
+
+The non-obvious step: filtering on
+`sufficient_followup`. Participants observed for
+fewer than two years cannot reliably be classified
+as non-converters at three years. The conservative
+choice is to exclude them; a less conservative
+choice is to use a survival model with censoring.
+The SAP pre-specifies which.
 
 ## Table 1: demographics with `zztable1`
 
-```{r eval=FALSE}
+```r
 library(zztable1)
 
 table1(
@@ -180,14 +352,22 @@ table1(
   zztab2fig::to_pdf('analysis/paper/tables/table1.pdf')
 ```
 
-TODO: discuss `zztable1`'s defaults (continuous → mean [SD],
-categorical → n (%)), how to override, and how to produce
-CDISC-compliant output with the `theme = 'regulatory'`
-argument.
+`zztable1` defaults: continuous → mean (SD),
+categorical → n (%). For non-normal continuous
+variables (ADAS13 is right-skewed in this
+cohort), override with `summary = "median_iqr"`.
+For CDISC-compliant output (single-spaced, sans-
+serif, no row p-values), set `theme = "regulatory"`.
+
+The Table 1 produced should match the formatting
+expected by the target journal. For a methods
+paper, defaults are fine; for an oncology or
+neurology journal, follow the journal's
+template.
 
 ## Cognitive trajectories with `zzlongplot`
 
-```{r eval=FALSE}
+```r
 library(zzlongplot)
 
 longplot(
@@ -206,139 +386,338 @@ longplot(
   )
 ```
 
-TODO: explain how `zzlongplot`'s `stat = 'mean_ci'` computes
-group-wise means with Wald CIs at each visit, and how the
-`theme = 'regulatory'` preset produces CDISC-style plots
-that satisfy journal figure standards without custom
-`ggplot2::theme()` code.
+The `stat = 'mean_ci'` argument computes the
+group-wise mean and Wald 95% CI at each visit;
+`theme = 'regulatory'` produces CDISC-style
+plots that satisfy journal figure standards
+without custom `ggplot2::theme()` code.
+
+The plot reveals: ADAS13 trajectories diverge
+by baseline diagnosis (LMCI worse than EMCI),
+and within each, APOE4 carriers worsen faster.
+Both observations are expected from the
+literature; the plot is a sanity check that
+the cohort matches.
 
 ## Pre-specified analysis plan
 
-Before touching the analytic cohort, the team writes an
-SAP (@sec-analysis-plan). For ADNI, the 243B template
-includes placeholders for:
+Before touching the analytic cohort, the team
+writes an SAP (@sec-analysis-plan). For ADNI,
+the 243B template includes placeholders for:
 
 1. Background and rationale
 2. Research questions and hypotheses
 3. Cohort definition (inclusion/exclusion)
 4. Exposure, outcome, and covariate definitions
-5. Primary analysis: pre-specified predictor set, model,
-   metric
-6. Secondary analyses: EMCI vs LMCI, predictor-category
-   contributions
+5. Primary analysis: pre-specified predictor set,
+   model, metric
+6. Secondary analyses: EMCI vs LMCI, predictor-
+   category contributions
 7. Missing-data handling
 8. Sensitivity analyses
 
-TODO: call out what in this list is pre-specified (locked
-before data access) vs exploratory (documented but not
-pre-registered).
+What is pre-specified (locked before data
+access):
+
+- **Predictor set.** The seven baseline
+  variables listed above; no later additions
+  during model selection.
+- **Model class.** Penalised logistic
+  regression with elastic net; tuning over
+  $\alpha \in \{0, 0.5, 1\}$ and a grid of
+  $\lambda$.
+- **Validation.** 10-fold CV at the participant
+  level; outer 80/20 holdout for final
+  performance.
+- **Metric.** AUC with bootstrap 95% CI
+  (1000 resamples).
+- **Decision threshold.** Pre-specified at the
+  Youden index of the training data; held
+  fixed for evaluation.
+
+What is exploratory (documented but not
+pre-registered):
+
+- Stratified analysis by EMCI vs LMCI.
+- Variable-importance plot from the elastic-net
+  fit.
+- Calibration plots.
+
+The distinction is what makes the primary
+finding inferentially valid: it was not
+selected on the basis of having looked at the
+data.
 
 ## Modelling (summary only)
 
-The modelling step itself belongs to the companion book;
-for Practicum purposes, the key operational points are:
+The modelling step itself belongs to the
+companion book; for Practicum purposes, the key
+operational points are:
 
-- Use `caret` or `tidymodels` for the cross-validated
-  predictive pipeline, with the outer CV fold defined at
-  the `RID` level (not the observation level).
+- Use `tidymodels` for the cross-validated
+  predictive pipeline, with the outer CV fold
+  defined at the `RID` level (not the
+  observation level). The `vfold_cv(strata = ...)`
+  argument helps preserve class balance across
+  folds.
 - Report AUC with bootstrap CIs.
-- Decision threshold should be reported alongside
-  sensitivity, specificity, PPV, and NPV.
+- Decision threshold should be reported
+  alongside sensitivity, specificity, PPV, and
+  NPV.
 - Store predictions in the compendium as
-  `analysis/data/derived/predictions.rds` so figures and
-  tables can be regenerated without refitting.
+  `analysis/data/derived/predictions.rds` so
+  figures and tables can be regenerated without
+  refitting (refitting is expensive; the
+  cached predictions enable fast iteration on
+  reporting).
 
 ## Reporting
 
-The manuscript lives at `analysis/paper/paper.qmd`. Its
-frontmatter imports a journal template from `rticles`
-and the bibliography from `references.bib`. Rendering is
-driven by `make render`, which invokes Quarto inside the
-Docker container so that the environment matches the
-`renv.lock`.
+The manuscript lives at
+`analysis/paper/paper.qmd`. Its frontmatter
+imports a journal template from `rticles` and
+the bibliography from `references.bib`.
+Rendering is driven by `make render`, which
+invokes Quarto inside the Docker container so
+that the environment matches the `renv.lock`.
 
-TODO: describe the handoff: what gets deposited with the
-paper (Zenodo DOI of the compendium without data, plus
-Docker image), what requires ADNI data-use agreement
-approval (the data itself).
+What gets deposited with the paper:
+
+- **Public deposition (Zenodo).** The
+  compendium without the data file: code,
+  scripts, paper, README, Dockerfile,
+  renv.lock, ADaM-style derivation scripts.
+  This DOI is what the paper cites.
+- **Docker image.** Pushed to GitHub Container
+  Registry; pull with `docker pull ghcr.io/...`.
+- **Synthetic test data.** A small dataset
+  with the schema of the analytic cohort but
+  randomly-generated values; let reviewers
+  verify the code runs.
+
+What requires DUA approval:
+
+- The actual ADNI data. Collaborators with
+  DUA access can run the full analysis;
+  reviewers without it can verify the code on
+  the synthetic test data.
 
 ## Verifying reproducibility
 
 Before submitting:
 
 1. `make check-renv` to audit the lockfile.
-2. `docker image prune` then `make docker-build` to verify
-   the image builds from scratch.
-3. `make render` to verify the paper builds from scratch.
-4. On a colleague's machine: `git clone`, `make r`, `make
-   render`. Expected: bit-identical output.
+2. `docker image prune` then `make docker-build`
+   to verify the image builds from scratch.
+3. `make render` to verify the paper builds
+   from scratch.
+4. On a colleague's machine: `git clone`,
+   `make r`, `make render`. Expected: bit-
+   identical output for the deterministic
+   parts; rounding-noise differences only for
+   floating-point sensitive parts.
 
-## With AI assistance {.unnumbered}
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: dropout handling
 
-::: {.callout-tip}
-## Prompts to try
+**Question.** A participant in your cohort
+attends only the baseline and 12-month visits,
+then drops out. They were diagnosed as MCI at
+both visits. How should they appear in the
+analytic cohort for the 3-year conversion
+outcome?
 
-1. Paste the 243B ADNI analysis-plan template and ask the
-   LLM to draft the 'Inclusion/Exclusion' section for EMCI
-   and LMCI participants with a 3-year follow-up
-   requirement. Check whether it correctly handles
-   participants who die or drop out before year 3.
-2. Ask the LLM to critique the proposed `zztable1` call
-   above. Does it catch that `APOE4` is currently numeric
-   (0/1/2) and should probably be a factor for Table 1?
-3. Ask the LLM to write the SAP's 'Missing Data Handling'
-   section for a prediction model with 30% missingness in
-   one predictor. Compare its proposal (mean imputation?
-   multiple imputation? complete-case analysis with a
-   sensitivity check?) to what you would recommend.
+::: {.content-visible when-format="html"}
+<details><summary>Answer</summary>
 :::
+
+They have insufficient follow-up. The 3-year
+window has not closed; they were observed
+event-free for 1 year only. Two defensible
+options:
+
+1. **Exclude.** Cleanest. The cohort becomes
+   participants observed for $\geq$ some
+   threshold (often 24 or 30 months), and
+   the analysis is on a subset.
+2. **Censor in time-to-event analysis.** Use
+   a Cox model or Kaplan-Meier with the
+   participant censored at their last
+   observation. Preserves the participant
+   but answers a slightly different
+   question (rate of conversion, not
+   3-year incidence).
+
+The wrong option: treating them as a non-
+converter. They are *not* observed to be
+non-converters at 3 years; they are observed
+to be event-free at 1 year, which is
+different. Treating them as non-converters
+biases the prediction toward over-confident
+non-conversion at 3 years. The pre-registered
+analysis plan should specify which of the two
+defensible options is the primary analysis;
+the alternative is a sensitivity analysis.
+
+::: {.content-visible when-format="html"}
+</details>
+:::
+:::
+
+## Collaborating with an LLM on ADNI
+
+LLMs can help with the substantial
+boilerplate; the substantive cohort decisions
+need clinical judgement.
+
+**Prompt 1: drafting the inclusion/exclusion.**
+Paste the 243B ADNI analysis-plan template and
+ask the LLM to draft the
+'Inclusion/Exclusion' section for EMCI and
+LMCI participants with a 3-year follow-up
+requirement.
+
+*What to watch for.* Whether it correctly
+handles dropouts: a participant who dies or
+withdraws before year 3 is *not* observed for
+the outcome and must either be excluded or
+handled with time-to-event methods. Treating
+them as non-converters is a classic bias the
+LLM may overlook.
+
+*Verification.* Have a clinical collaborator
+read the draft. Their experience catches the
+operationalisations that look right on paper
+but not in the data.
+
+**Prompt 2: critiquing a Table 1 call.** Paste
+your `zztable1::table1()` call and the data
+dictionary, ask the LLM to spot issues.
+
+*What to watch for.* Numeric encoding of
+categorical variables (e.g., `APOE4` as 0/1/2)
+that should be a factor in Table 1 to display
+counts. Skewed continuous variables that
+should be summarised as median (IQR) rather
+than mean (SD).
+
+*Verification.* Render the table; spot-check
+the cells. If means and SDs disagree
+substantially with the data's medians and
+IQRs, the variable is skewed and the summary
+is wrong.
+
+**Prompt 3: missing-data section.** Describe
+the missingness profile and ask the LLM to
+draft the SAP's missing-data section.
+
+*What to watch for.* The recommendation should
+match the missingness fraction and likely
+mechanism. For 30% missingness on a
+predictor: complete-case is bad; multiple
+imputation is the default; sensitivity to
+MNAR is essential.
+
+*Verification.* Compare to chapter 17's
+recommendations and to van Buuren (2018)
+worked examples for similar fractions.
+
+## Principle in use
+
+Three habits define defensible ADNI work:
+
+1. **Pre-register the analysis.** The cohort
+   is large and well-studied enough that
+   exploratory selection produces apparent
+   findings. The SAP guards against this.
+2. **Censor or exclude dropouts; never treat
+   as non-converters.** The classic bias.
+   Pre-register which.
+3. **Cross-validate at the participant
+   level.** Observation-level CV leaks
+   information across folds and produces
+   inflated AUCs.
 
 ## Exercises
 
-1. Reproduce this chapter's compendium scaffold for a
-   different ADNI outcome (e.g., progression from CN to
-   MCI). Adapt the SAP template accordingly.
-2. Add a second table to the compendium using `zztable1`:
-   comparison of baseline cognitive scores between
-   converters and non-converters. Produce both LaTeX and
+1. Reproduce this chapter's compendium
+   scaffold for a different ADNI outcome
+   (e.g., progression from CN to MCI). Adapt
+   the SAP template accordingly.
+2. Add a second table to the compendium using
+   `zztable1`: comparison of baseline
+   cognitive scores between converters and
+   non-converters. Produce both LaTeX and
    HTML output.
-3. Use `zzlongplot` to produce a MMSE trajectory plot
-   stratified by `DX_bl` with a `theme = 'regulatory'`
-   override of the default colour palette. Save at 300 DPI
+3. Use `zzlongplot` to produce a MMSE
+   trajectory plot stratified by `DX_bl` with
+   a `theme = 'regulatory'` override of the
+   default colour palette. Save at 300 DPI
    for journal submission.
+4. Implement the participant-level
+   cross-validation in `tidymodels` for the
+   primary model. Confirm fold sizes are
+   roughly equal and no `RID` appears in both
+   train and test of any fold.
+5. Write a synthetic ADNI cohort generator
+   that matches the analytic cohort's
+   schema. Deposit it alongside the public
+   compendium so reviewers can verify the
+   code without DUA approval.
 
 ## Further reading
 
-- The ADNI website at `adni.loni.usc.edu` --- study overview and data-use agreement.
-- Weiner et al. (2017), *Recent publications from the Alzheimer's Disease Neuroimaging Initiative*, *Alzheimer's & Dementia* --- orientation to the study's publication history.
+- The ADNI website at `adni.loni.usc.edu` ---
+  study overview and data-use agreement.
+- Weiner et al. (2017), *Recent publications
+  from the Alzheimer's Disease Neuroimaging
+  Initiative*, *Alzheimer's & Dementia* ---
+  orientation to the study's publication
+  history.
+- Grassi et al. (2019), 'A novel ensemble-based
+  machine learning algorithm to predict the
+  conversion from mild cognitive impairment to
+  Alzheimer's disease using socio-demographic
+  characteristics, clinical information, and
+  neuropsychological measures', *Frontiers in
+  Neurology* --- one example of the cohort-
+  prediction approach this chapter sketches.
 
 ## Prerequisites answers {#sec-quiz-answers-24}
 
-1. The question is: *can baseline sociodemographic,
-   clinical, and neuropsychological measures predict
-   conversion from MCI to AD within three years?* It is
-   clinically meaningful because MCI is a heterogeneous
-   state: only some participants progress to AD on a
-   meaningful timescale, and identifying those at highest
-   risk enables targeted intervention trials and earlier
-   patient counselling.
-2. ADNI analyses carry three distinguishing features: a
-   data-use agreement that prevents data sharing (so the
-   compendium must be code-only); long time horizons
-   (years between analysis and reviewer response, during
-   which the R ecosystem drifts); and a dataset that
-   updates periodically with renamed variables. All three
-   increase the value of Docker-pinned environments and
-   `renv`-pinned R package versions.
-3. ADNIMERGE is long-format (one row per participant per
-   visit), with mixed diagnostic labels and inconsistent
-   visit codes across ADNI 1, GO, 2, and 3. Analytic
-   cohorts require derivation of baseline-anchored
-   follow-up windows, careful handling of participants
-   who drop out before the outcome window closes, and
-   consistent visit alignment. The step most commonly
-   overlooked is *censoring dropouts correctly*: a
-   participant who leaves the study after year 2 has not
-   been observed for the three-year outcome and must be
-   excluded or handled with time-to-event methods, not
-   treated as a non-converter.
+1. The question is: *can baseline
+   sociodemographic, clinical, and
+   neuropsychological measures predict
+   conversion from MCI to AD within three
+   years?* It is clinically meaningful because
+   MCI is a heterogeneous state: only some
+   participants progress to AD on a meaningful
+   timescale, and identifying those at highest
+   risk enables targeted intervention trials
+   and earlier patient counselling.
+2. ADNI analyses carry three distinguishing
+   features: a data-use agreement that
+   prevents data sharing (so the compendium
+   must be code-only); long time horizons
+   (years between analysis and reviewer
+   response, during which the R ecosystem
+   drifts); and a dataset that updates
+   periodically with renamed variables. All
+   three increase the value of Docker-pinned
+   environments and `renv`-pinned R package
+   versions.
+3. ADNIMERGE is long-format (one row per
+   participant per visit), with mixed
+   diagnostic labels and inconsistent visit
+   codes across ADNI 1, GO, 2, and 3.
+   Analytic cohorts require derivation of
+   baseline-anchored follow-up windows,
+   careful handling of participants who drop
+   out before the outcome window closes, and
+   consistent visit alignment. The step most
+   commonly overlooked is *censoring dropouts
+   correctly*: a participant who leaves the
+   study after year 2 has not been observed
+   for the three-year outcome and must be
+   excluded or handled with time-to-event
+   methods, not treated as a non-converter.
