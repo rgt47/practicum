@@ -327,7 +327,7 @@ library(reticulate)
 x <- 1:10
 ```
 
-```{python}
+```python
 import numpy as np
 arr = np.array(r.x)         # access R variable
 print(arr.mean())

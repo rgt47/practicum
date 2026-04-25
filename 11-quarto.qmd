@@ -139,7 +139,7 @@ manually if the analysis changes. The latter is where
 
 ## The minimum Quarto document
 
-```yaml
+````qmd
 ---
 title: "My analysis"
 format: html
@@ -149,10 +149,10 @@ format: html
 
 Some prose here.
 
-```{r}
+```r
 1 + 1
 ```
-```
+````
 
 Save as `analysis.qmd`. Render with:
 
