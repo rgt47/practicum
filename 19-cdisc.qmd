@@ -66,6 +66,45 @@ as an industry biostatistician will, with high probability, be
 either ADaM datasets and their specifications, or tables
 derived from them.
 
+## The statistician's contribution {#sec-cdisc-human}
+
+CDISC mechanics are mechanical. The judgements:
+
+**Traceability is non-negotiable.** Every ADaM
+variable must point back to its SDTM source. The
+Define-XML and the ADaM specification document the
+mapping. Skipping the documentation does not save
+time; it produces an FDA submission that fails
+review and an ADaM that the next statistician
+cannot understand.
+
+**Get the censoring convention right.** The
+`CNSR = 1` convention is the inverse of R's
+`survival::Surv(event = 1)`. Inverting once at the
+boundary (when reading ADTTE into R) is correct;
+inverting twice or not at all silently produces
+wrong survival curves. Verify on every analysis.
+
+**Population flags carry inferential meaning.** A
+modified intent-to-treat (mITT) analysis includes
+patients who took at least one dose; a per-protocol
+(PP) analysis excludes protocol violations. The
+SAP pre-specifies which population each analysis
+uses; the ADSL flags (`ITTFL`, `SAFFL`, `EFFFL`,
+`PPROTFL`) implement the choice. Using the wrong
+flag at analysis time changes the estimand.
+
+**ADaM specifications are written, then built.**
+The standard workflow: write the ADaM spec
+(spreadsheet or YAML), validate it, then implement
+the derivations against the spec. Building first
+and writing the spec from the result is a
+common antipattern; the spec is the contract that
+gets reviewed.
+
+These judgements are what distinguish defensible
+CDISC programming from boilerplate-following.
+
 ## The regulatory pipeline
 
 The flow of clinical trial data from collection to submission
@@ -358,6 +397,56 @@ regulatory use. The principal packages include:
 At a sponsor or CRO that has adopted R, expect to encounter
 these packages in production pipelines. They are a more useful
 thing to learn than any proprietary alternative.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: the censoring inversion
+
+**Question.** You read an `ADTTE` dataset into R
+and fit `survival::Surv(AVAL, CNSR)` directly,
+without inversion. What survival curve do you
+produce, and how would you spot the bug?
+
+::: {.content-visible when-format="html"}
+<details><summary>Answer</summary>
+:::
+
+You produce the curve of *censoring* over time
+rather than the curve of survival. `Surv(time, event)`
+treats the second argument as 'event happened'
+(`event = 1`); `CNSR = 1` means 'censored', i.e.
+event did *not* happen. The fitted survival curve
+will look upside down: the treatment that delays
+the event will appear to have lower 'survival'
+because its participants accrue more
+administrative censoring as they live longer. The
+fix is `Surv(AVAL, 1L - CNSR)`. Spot the bug by
+sanity-checking against the median survival time
+or the event rate: if a treatment everyone agrees
+helps survival shows up worse than placebo, suspect
+the inversion. The error is among the most common
+day-one mistakes for statisticians moving from
+academic survival to CDISC ADTTE.
+
+::: {.content-visible when-format="html"}
+</details>
+:::
+:::
+
+## Principle in use
+
+Three habits define defensible CDISC work:
+
+1. **Specs before code.** Write the ADaM
+   specification first; implement against it. The
+   spec is the contract; the code is the
+   implementation.
+2. **Verify the censoring convention at the
+   boundary.** `CNSR = 1` means censored; invert
+   once when crossing into R's `survival::Surv()`.
+3. **Use population flags deliberately.** ITT,
+   safety, efficacy --- each is a substantive
+   choice the SAP pre-specifies. Match analysis
+   filter to spec.
 
 ## With AI assistance {.unnumbered}
 
