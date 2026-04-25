@@ -90,6 +90,7 @@ format:
     theme:
       - cosmo
       - practicum.scss
+    include-after-body: nav-toggle.html
     code-annotations: hover
     code-link: true
     code-copy: hover
