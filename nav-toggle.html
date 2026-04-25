@@ -1,63 +1,47 @@
 <script>
 (function () {
-  const KEY_SIDEBAR = 'navHideSidebar';
-  const KEY_TOC     = 'navHideToc';
+  const KEY = 'navHideAll';
 
   function applyState() {
-    const hideSidebar = localStorage.getItem(KEY_SIDEBAR) === '1';
-    const hideToc     = localStorage.getItem(KEY_TOC) === '1';
-    document.body.classList.toggle('nav-hide-sidebar', hideSidebar);
-    document.body.classList.toggle('nav-hide-toc', hideToc);
-    const btnSide = document.getElementById('nav-toggle-sidebar');
-    const btnToc  = document.getElementById('nav-toggle-toc');
-    if (btnSide) btnSide.setAttribute('aria-pressed', hideSidebar);
-    if (btnToc)  btnToc.setAttribute('aria-pressed', hideToc);
+    const hide = localStorage.getItem(KEY) === '1';
+    document.body.classList.toggle('nav-hide-all', hide);
+    const btn = document.getElementById('nav-toggle-all');
+    if (btn) {
+      btn.setAttribute('aria-pressed', hide);
+      btn.setAttribute('title', hide ? 'Show navigation' : 'Hide navigation');
+    }
   }
 
-  function buildButtons() {
+  function buildButton() {
     if (document.getElementById('nav-toggle-bar')) return;
     const bar = document.createElement('div');
     bar.id = 'nav-toggle-bar';
     bar.innerHTML = `
-      <button id="nav-toggle-sidebar" type="button"
-              title="Toggle left sidebar (chapters)"
-              aria-label="Toggle left sidebar">
+      <button id="nav-toggle-all" type="button"
+              title="Hide navigation"
+              aria-label="Toggle navigation panels">
         <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"
              aria-hidden="true">
-          <path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13zM5 1H1.5a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5H5V1zm1 14h8.5a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5H6v14z"/>
-        </svg>
-      </button>
-      <button id="nav-toggle-toc" type="button"
-              title="Toggle right table of contents"
-              aria-label="Toggle right table of contents">
-        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"
-             aria-hidden="true">
-          <path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13zM11 1v14h3.5a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5H11zm-1 14V1H1.5a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5H10z"/>
+          <path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13zM5 1H1.5a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5H5V1zm6 0v14h3.5a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5H11zM6 1v14h4V1H6z"/>
         </svg>
       </button>`;
     document.body.appendChild(bar);
 
-    document.getElementById('nav-toggle-sidebar')
+    document.getElementById('nav-toggle-all')
       .addEventListener('click', () => {
-        const cur = localStorage.getItem(KEY_SIDEBAR) === '1';
-        localStorage.setItem(KEY_SIDEBAR, cur ? '0' : '1');
-        applyState();
-      });
-    document.getElementById('nav-toggle-toc')
-      .addEventListener('click', () => {
-        const cur = localStorage.getItem(KEY_TOC) === '1';
-        localStorage.setItem(KEY_TOC, cur ? '0' : '1');
+        const cur = localStorage.getItem(KEY) === '1';
+        localStorage.setItem(KEY, cur ? '0' : '1');
         applyState();
       });
   }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      buildButtons();
+      buildButton();
       applyState();
     });
   } else {
-    buildButtons();
+    buildButton();
     applyState();
   }
 })();

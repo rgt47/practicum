@@ -203,7 +203,7 @@ Quarto's full feature set: code chunks for analyses,
 inline references, figure cross-references, citations
 from `references.bib`.
 
-```qmd
+````qmd
 ---
 title: "Effect of post-discharge home health visits on 30-day readmission"
 author:
@@ -233,7 +233,7 @@ broom::tidy(fit, exponentiate = TRUE, conf.int = TRUE)
 The adjusted odds ratio for home-health-visit receipt
 was `r round(exp(coef(fit)["home_health"]), 2)` (95% CI
 `r ...`). [@bryan2019happygit]
-```
+````
 
 For journal-specific formatting, the `rticles` package
 provides templates for many major journals (JAMA, NEJM,
