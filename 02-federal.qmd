@@ -273,9 +273,7 @@ months later, dplyr 1.1.0 is released with a behaviour
 change in `summarise()`. A reviewer asks you to re-run
 the analysis. Without an `renv.lock`, what happens?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 The reviewer's machine (or yours, if you have updated
 since) has dplyr 1.1.0. Your code runs and produces a
@@ -292,9 +290,6 @@ exactly. This is the practical case for renv: not just
 'is it reproducible' but 'when discrepancies appear,
 can I diagnose them?'
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## Worked example: a DMSP outline

@@ -273,9 +273,7 @@ The recommended pattern is:
 inside a project that has `renv` active. Where does it
 install?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 Into the project's `renv/library/` directory, not the
 user library. `renv` modifies `.libPaths()` so that the
@@ -286,9 +284,6 @@ its version. This isolation is exactly the point of
 renv: a package update inside one project does not
 affect any other project's packages.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## `.Rprofile`: minimal and project-local

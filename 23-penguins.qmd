@@ -325,9 +325,7 @@ to an interaction model
 AIC drops by 4 with the interaction. Should you
 report the interaction model?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 It depends. AIC drop of 4 is meaningful but not
 huge (a difference of 4 corresponds to a
@@ -349,9 +347,6 @@ see the trade-off. Reporting only the larger
 model because it has more p-values would be
 the wrong reason.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## Reporting

@@ -168,9 +168,7 @@ work for a week, then realise the snapshot still records
 1.1.0. What happens if you `restore()` instead of
 `snapshot()`?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 `restore()` reads the lockfile and installs *that*
 version into the project library. So `restore()` would
@@ -186,9 +184,6 @@ is the truth (e.g., on a fresh clone). Snapshot when
 the library is the truth (e.g., you intentionally
 upgraded).
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## `renv.lock` in depth

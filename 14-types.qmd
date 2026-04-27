@@ -276,9 +276,7 @@ errors.
 `treatmentplacebo` coefficient is -3.1. What is the
 mean outcome under high-dose treatment?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 The intercept estimates the linear-predictor value at
 the reference level (`"high"`), so the high-dose mean
@@ -301,9 +299,6 @@ treatment <- factor(treatment,
 The default alphabetical ordering creates frequent
 misreporting of effect direction.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## Common pitfalls

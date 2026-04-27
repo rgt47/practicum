@@ -449,9 +449,7 @@ inverts to match its own `event = 1` convention.
 from R to SAS and the coefficients differ in sign
 from R's. What might have gone wrong?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 SAS's default coding for `CLASS` variables is
 effect coding (sum-to-zero), not reference
@@ -474,9 +472,6 @@ The difference is the most common source of
 'why don't my SAS and R agree?' confusion at the
 boundary.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## Reading SAS logs

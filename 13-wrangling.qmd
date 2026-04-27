@@ -265,9 +265,7 @@ columns `bp_baseline`, `bp_3mo`, `bp_6mo`. You want to
 plot BP trajectory over time, faceted by treatment
 arm. Should you pivot to long format?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 Yes. `ggplot2`'s grammar maps variables to aesthetics
 (x = time, y = bp, colour = treatment). With the wide
@@ -293,9 +291,6 @@ change ('bp_6mo - bp_baseline'), the wide format is
 preferable. The right shape depends on the
 operation.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## `janitor::clean_names()`

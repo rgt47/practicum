@@ -288,9 +288,7 @@ primary data.
 **Question.** Why does `rrtools` reuse the R package
 structure instead of inventing a new layout?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 Three practical reasons. First, the R package structure
 is the only widely-recognised layout in the R
@@ -306,9 +304,6 @@ package files that are not really being used as a
 package (no CRAN submission, no users importing it).
 That is a small cost for the structural payoff.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## Worked example: a small compendium

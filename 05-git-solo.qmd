@@ -283,9 +283,7 @@ re-run, compare. The tag is the documentation of which
 and pushed to GitHub. Why also tag the commit
 `v1.0-submission`?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 A commit is a snapshot; a tag is a *named pointer* to
 that snapshot. The commit hash (e.g., `a3f9c8d`) is
@@ -299,9 +297,6 @@ look up the hash. Tags also appear in GitHub's UI under
 the repository. For checkpoints you may want to return
 to (submission, revision, deployment), tag.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## Recovery: when things go wrong

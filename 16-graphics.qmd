@@ -202,9 +202,7 @@ arguments.
 side by side. Should you use `facet_wrap`, `patchwork`,
 or both?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 `patchwork`. The two panels show *different views* of
 the same data: a histogram (one geom) and boxplots
@@ -223,9 +221,6 @@ If the second plot was 'histogram of body mass for
 each species' (same geom, conditioned on species),
 `facet_wrap(~species)` would be the right tool.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## House themes

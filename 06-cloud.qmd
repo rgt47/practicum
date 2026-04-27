@@ -267,9 +267,7 @@ sufficient.
 analysis with `Rscript analysis.R`, and close your
 laptop. What happens to the analysis?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 When the SSH connection drops (or your shell exits),
 the analysis process receives a hangup (SIGHUP) signal
@@ -283,9 +281,6 @@ common solution for ad-hoc biostatistical work is
 `tmux`. Forgetting this is the classic 'I let it run
 overnight and it died' surprise.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## Data transfer

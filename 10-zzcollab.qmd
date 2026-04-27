@@ -218,9 +218,7 @@ will fit a Cox proportional hazards model with
 `lme4::glmer()`, then render the result as a PDF
 manuscript. Which profile?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 You need both `modeling` (for `lme4` and
 `survival` plus the compiled-package
@@ -235,9 +233,6 @@ project. The framework is designed for
 extension; that is what `templates/bundles.yaml`
 is for.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## The first-project walkthrough
