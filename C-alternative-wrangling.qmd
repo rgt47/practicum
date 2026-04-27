@@ -168,21 +168,21 @@ For now, prefer `data.table` if you need speed or
 
 ## When to reach for each
 
-- **tidyverse** — the default for applied biostatistics,
+- **tidyverse**, the default for applied biostatistics,
   this book's default, and what most collaborators will
   send you.
-- **base R** — for package development, for reading older
+- **base R**, for package development, for reading older
   code, and when minimising dependencies matters (e.g., a
   Shiny app served from a container you want to keep
   small).
-- **`data.table`** — when a dataset is millions of rows or
+- **`data.table`**, when a dataset is millions of rows or
   when pipeline speed is a bottleneck; when reading code
   from industry pharma or CRO colleagues; when a CRAN
   package you depend on uses it internally and the
   underlying layout shows through.
-- **`arrow`** — when data is columnar, large, or
+- **`arrow`**, when data is columnar, large, or
   cross-language.
-- **`polars`** — not yet, in R, as of early 2026.
+- **`polars`**, not yet, in R, as of early 2026.
 
 ## Exercises
 

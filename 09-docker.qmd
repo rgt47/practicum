@@ -341,10 +341,14 @@ volumes:
 ```
 
 ```bash
-docker-compose up -d
-docker-compose exec r R       # interactive R session in the r service
-docker-compose down            # stop both services
+docker compose up -d
+docker compose exec r R       # interactive R session in the r service
+docker compose down            # stop both services
 ```
+
+The `docker compose` (subcommand) form is current as of
+Docker 20.10+; the older `docker-compose` (hyphenated
+binary) is being deprecated.
 
 For most biostatistical analyses, a single container is
 enough. Compose is useful when the analysis interacts
