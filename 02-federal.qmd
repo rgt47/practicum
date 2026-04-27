@@ -284,7 +284,7 @@ some cells. The DESCRIPTION's `>= 1.0.0` is satisfied;
 the actual computation is different. You cannot tell
 from the discrepancy whether the difference is a bug in
 your code, a difference in dplyr's behaviour, or a real
-data issue --- you have lost the version-pinned baseline
+data issue, you have lost the version-pinned baseline
 that would let you investigate. With an `renv.lock`,
 the reviewer (or you) restores the exact environment
 (dplyr 1.0.3) and reproduces the published numbers
@@ -426,13 +426,13 @@ Three habits make federal compliance painless:
 
 ## Further reading
 
-- [@usshi2022ostp] --- the 2022 OSTP 'Nelson memo'.
-- NIH DMSP policy at `sharing.nih.gov` --- the
+- [@usshi2022ostp], the 2022 OSTP 'Nelson memo'.
+- NIH DMSP policy at `sharing.nih.gov`, the
   authoritative 2023 policy page.
 - The Center for Open Science (`cos.io`) materials on
   preregistration and open data.
 - ICPSR's *Guide to Social Science Data Preparation
-  and Archiving* --- portable to biostatistics for
+  and Archiving*, portable to biostatistics for
   metadata practice.
 
 ## Prerequisites answers {#sec-quiz-answers-02}

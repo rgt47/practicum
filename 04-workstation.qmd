@@ -318,11 +318,11 @@ if (interactive()) {
 
 Things to avoid in user-level `.Rprofile`:
 
-- `library(tidyverse)` --- makes scripts depend on it
+- `library(tidyverse)`, makes scripts depend on it
   silently.
-- Defining global helper functions --- breaks
+- Defining global helper functions, breaks
   reproducibility for collaborators.
-- Setting `options(stringsAsFactors = FALSE)` --- harmless
+- Setting `options(stringsAsFactors = FALSE)`, harmless
   in R 4.0+, but a sign of muscle memory from older
   versions.
 
@@ -384,11 +384,11 @@ Programming fonts that distinguish similar characters
 (0/O, 1/l/I) and support ligatures (rendering `>=` as a
 single glyph) are easy on the eyes:
 
-- **JetBrains Mono** (jetbrains.com/lp/mono) --- free,
+- **JetBrains Mono** (jetbrains.com/lp/mono), free,
   excellent.
-- **Fira Code** --- the original ligature font; widely
+- **Fira Code**, the original ligature font; widely
   supported.
-- **Source Code Pro** --- Adobe's open-source choice; no
+- **Source Code Pro**, Adobe's open-source choice; no
   ligatures.
 
 For terminal use specifically, **Nerd Fonts** patch
@@ -509,10 +509,10 @@ Three habits define a defensible workstation:
 ## Further reading
 
 - Wickham's RStudio cheatsheets at
-  `rstudio.com/resources/cheatsheets` --- print them.
+  `rstudio.com/resources/cheatsheets`, print them.
 - Pro Git by Chacon and Straub at `git-scm.com/book` ---
   the canonical free Git book.
-- Yihui Xie's blog at `yihui.org` --- practical R
+- Yihui Xie's blog at `yihui.org`, practical R
   workstation setup posts.
 - The `rig` documentation at `github.com/r-lib/rig`.
 

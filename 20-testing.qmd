@@ -75,7 +75,7 @@ deliberately.
 
 **Test the pipeline, not just the helpers.** Unit
 tests catch helper-function bugs. Integration tests
-on synthetic data catch pipeline bugs --- including
+on synthetic data catch pipeline bugs, including
 ones where helpers work individually but the
 composition fails.
 
@@ -240,8 +240,8 @@ expect_equal(result$age, expected_ages)
 
 The combination tests structure *and* content. The
 structural test alone is a false positive
-generator. This pattern --- 'looks right at the
-surface, wrong underneath' --- is the most common
+generator. This pattern, 'looks right at the
+surface, wrong underneath', is the most common
 testing failure mode in data analysis.
 
 ::: {.content-visible when-format="html"}
@@ -552,9 +552,9 @@ analyses:
 
 ## Further reading
 
-- [@wickham2023rpkgs] testing chapters --- the
+- [@wickham2023rpkgs] testing chapters, the
   canonical `testthat` reference.
-- `vdiffr` documentation on CRAN --- visual
+- `vdiffr` documentation on CRAN, visual
   regression testing for `ggplot2`.
 - The `testthat` package vignettes.
 

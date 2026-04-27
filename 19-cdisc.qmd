@@ -444,7 +444,7 @@ Three habits define defensible CDISC work:
    boundary.** `CNSR = 1` means censored; invert
    once when crossing into R's `survival::Surv()`.
 3. **Use population flags deliberately.** ITT,
-   safety, efficacy --- each is a substantive
+   safety, efficacy, each is a substantive
    choice the SAP pre-specifies. Match analysis
    filter to spec.
 
@@ -489,9 +489,9 @@ Three habits define defensible CDISC work:
 
 ## Further reading
 
-- CDISC Foundational Standards at `cdisc.org/standards/foundational` --- authoritative reference.
-- `admiral` documentation at `pharmaverse.github.io/admiral` --- the CRAN implementation.
-- FDA Study Data Technical Conformance Guide --- the regulatory requirements.
+- CDISC Foundational Standards at `cdisc.org/standards/foundational`, authoritative reference.
+- `admiral` documentation at `pharmaverse.github.io/admiral`, the CRAN implementation.
+- FDA Study Data Technical Conformance Guide, the regulatory requirements.
 
 ## Prerequisites answers {#sec-quiz-answers-19}
 
