@@ -89,7 +89,7 @@ Mounting data via a volume keeps the image small but
 breaks the 'one image, full reproduction' promise. For
 small data, embed; for large or sensitive data, mount.
 
-These judgements are what makes Docker a reproducibility
+These judgements are what make Docker a reproducibility
 tool rather than a slow build system.
 
 ## Images, containers, and layers
