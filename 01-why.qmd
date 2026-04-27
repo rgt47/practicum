@@ -187,9 +187,9 @@ start; the savings compound.
 
 Reproducibility is a workflow problem disguised as a
 software problem. Tools (`renv`, Docker, Quarto) make the
-software part easy. The workflow part --- which steps to
+software part easy. The workflow part, which steps to
 script, which to skip, what counts as a 'data file', when
-to commit --- is where judgement matters.
+to commit, is where judgement matters.
 
 **What goes in the analysis script, and what stays in the
 README.** A `library(dplyr)` belongs in the script.
@@ -320,15 +320,15 @@ Three habits make reproducibility automatic:
 
 ## Further reading
 
-- [@marwick2018packaging] --- the research-compendium
+- [@marwick2018packaging], the research-compendium
   framing this book uses.
-- [@marwick2018rrtools] --- the `rrtools` package that
+- [@marwick2018rrtools], the `rrtools` package that
   implements the framing.
 - Goodman, Fanelli, and Ioannidis (2016), 'What does
   research reproducibility mean?', *Science
-  Translational Medicine* --- the canonical taxonomy
+  Translational Medicine*, the canonical taxonomy
   used in this chapter.
-- The TIER Protocol (`projecttier.org`) --- a complete
+- The TIER Protocol (`projecttier.org`), a complete
   research-compendium template for the social sciences,
   largely portable to biostatistics.
 
