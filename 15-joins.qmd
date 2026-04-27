@@ -195,9 +195,7 @@ site, where they are easiest to debug.
 `demographics` (1,000 patients) on `patient_id`. The
 result has 12,500 rows. What likely happened?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 The demographics table has duplicate `patient_id`
 values. Each duplicate creates extra rows in the join
@@ -217,9 +215,6 @@ before the join (`distinct(patient_id, .keep_all = TRUE)`).
 Adding `relationship = "many-to-one"` to the join
 catches this at the join site.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## Keys and referential integrity

@@ -372,9 +372,7 @@ chunks set seeds.)
 hand from the analysis. What is wrong with this, and
 what is the Quarto fix?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 The numbers are detached from the data. If you re-run
 the analysis with corrected data, the prose still says
@@ -391,9 +389,6 @@ time. Re-rendering with corrected data updates the
 prose automatically. This is the literate-programming
 payoff: numbers and prose stay synchronised.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## Parameterised reports

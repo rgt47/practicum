@@ -240,9 +240,7 @@ data |> dplyr::summarise_groups(mean(x))
 You run it; R errors with 'could not find function
 "summarise_groups"'. What is the right fix?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 The function does not exist. The LLM hallucinated
 it from `summarise` and `group_by`. The correct
@@ -263,9 +261,6 @@ found' error is the cheapest catch; the harder
 catches are functions that exist but do something
 different from what the LLM thinks.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## The verify-first workflow

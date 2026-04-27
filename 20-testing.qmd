@@ -221,9 +221,7 @@ one row that exercises it.
 `expect_equal(nrow(result), 100)`. The test passes.
 Does this mean the result is correct?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 No. The test asserts only that the result has 100
 rows. It says nothing about which rows, what
@@ -244,9 +242,6 @@ generator. This pattern, 'looks right at the
 surface, wrong underneath', is the most common
 testing failure mode in data analysis.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## Snapshot tests

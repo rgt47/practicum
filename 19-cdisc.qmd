@@ -406,9 +406,7 @@ and fit `survival::Surv(AVAL, CNSR)` directly,
 without inversion. What survival curve do you
 produce, and how would you spot the bug?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 You produce the curve of *censoring* over time
 rather than the curve of survival. `Surv(time, event)`
@@ -427,9 +425,6 @@ the inversion. The error is among the most common
 day-one mistakes for statisticians moving from
 academic survival to CDISC ADTTE.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## Principle in use

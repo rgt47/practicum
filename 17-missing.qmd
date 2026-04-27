@@ -324,9 +324,7 @@ a continuous predictor `bmi` for a logistic
 regression of `outcome` on `bmi + age + sex`.
 Should the imputation model include `outcome`?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 Yes. Including the outcome in the imputation
 model preserves the relationship between `bmi`
@@ -345,9 +343,6 @@ which is correct. Removing the outcome ('to
 avoid contamination') is a common but wrong
 intuition.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## Rubin's rules

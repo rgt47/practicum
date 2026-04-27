@@ -289,9 +289,7 @@ inside the running container, then exit. Is the new
 package available next time you run a container from
 the same image?
 
-::: {.content-visible when-format="html"}
-<details><summary>Answer</summary>
-:::
+**Answer.**
 
 No. The image is immutable; changes inside a container
 live only in the container's writable layer, which is
@@ -305,9 +303,6 @@ Dockerfile, in version control, not on running
 containers. The 'works on my machine' problem becomes
 'works on this image, which everyone has'.
 
-::: {.content-visible when-format="html"}
-</details>
-:::
 :::
 
 ## Docker Compose for multi-service analyses
