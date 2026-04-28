@@ -26,3 +26,11 @@ and `xelatex`. Source available at
 <https://github.com/rgt47/practicum>.
 
 First draft: Spring 2026.
+
+::: {.content-visible when-format='pdf'}
+```{=latex}
+\clearpage
+\tableofcontents
+\clearpage
+```
+:::

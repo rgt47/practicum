@@ -1,4 +1,6 @@
-# Welcome {.unnumbered}
+# Welcome {.unnumbered .unlisted}
+
+::: {.content-visible when-format='html'}
 
 This is the online version of **Biostatistics Practicum** by
 The rgtlab Curriculum Project, a graduate textbook in applied
@@ -29,3 +31,5 @@ The code samples in this book are licensed under
 [Creative Commons CC0 1.0 Universal (CC0
 1.0)](https://creativecommons.org/publicdomain/zero/1.0/),
 i.e. public domain.
+
+:::
