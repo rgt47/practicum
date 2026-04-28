@@ -533,7 +533,8 @@ Three habits define defensible Docker use:
    For pure-R analyses, `renv` may suffice; for
    anything with non-R dependencies, Docker is the
    prudent choice.
-3. `rocker/tidyverse:4.4.0` provides: Ubuntu LTS;
+3. `rocker/tidyverse:4.4.0` provides: Debian (the base
+   for `rocker/r-ver` since the 2022 reorganisation);
    R 4.4.0; RStudio Server; and the tidyverse package
    suite pre-installed. A container starts immediately
    without package installation, useful for teaching
