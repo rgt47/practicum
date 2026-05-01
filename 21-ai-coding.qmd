@@ -1,0 +1,481 @@
+# AI-Assisted Coding {#sec-ai-coding}
+
+::: {.callout-note}
+## Sources
+
+Blog posts `46-ellmerinRcoding` (ellmer package),
+`36-simpleshinyappwithchatgpt`; the `ellmer` package
+from Posit; direct experience with Claude Code during
+the development of this book.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-21.
+
+1. What does the `ellmer` R package provide that a
+   browser-based chatbot does not?
+2. What are three classes of bug that large language
+   models routinely introduce into R code?
+3. Why is it important to write the first draft of a
+   non-trivial function without AI assistance before
+   asking an LLM to refine it?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Use an LLM as a code-review assistant rather than a
+  code generator.
+- Call an LLM programmatically from R with `ellmer`.
+- Set up Claude Code, ChatGPT, or a local LLM for
+  terminal-based workflows.
+- Identify and avoid the LLM-specific failure modes
+  that appear in R code (hallucinated APIs, silent
+  type coercions, misuse of functions with confusing
+  defaults).
+- Adopt the 'verify, then trust' workflow for every
+  piece of AI-generated code.
+- Recognise when LLM assistance is net-helpful and
+  when it is net-harmful.
+
+## Orientation
+
+Large language models are now capable of producing
+working R code for the majority of exercises in this
+book. This is a new fact, and it deserves an explicit
+response. The position taken here is: **use LLMs as
+an amplifier, not a replacement**. Treat every line
+of generated code as a hypothesis to be tested, not
+a result to be trusted.
+
+This chapter is the meta-chapter on the
+'Collaborating with an LLM' callouts that appear
+throughout this book and its companion. It covers
+the tooling, the failure modes, and the workflow.
+
+## The statistician's contribution {#sec-ai-coding-human}
+
+The skill is not getting code from an LLM; LLMs
+produce code easily. The skill is judging which
+code to trust, when, and why.
+
+**Reading is more valuable than writing now.** A
+generation ago, the bottleneck was producing code.
+Now, the bottleneck is reading produced code with
+sufficient care to spot the bugs. The
+biostatistician who can audit LLM-generated code
+quickly is the biostatistician who benefits from the
+LLM.
+
+**Domain knowledge is the moat.** An LLM cannot
+tell you whether to dichotomise a continuous
+outcome, whether to control for a baseline
+covariate, or whether to use a one-sided or
+two-sided test. These judgements depend on
+substantive understanding the LLM does not have.
+
+**Skepticism by default.** When the LLM produces a
+function that looks right, ask: how would I know if
+this were wrong? Run on adversarial inputs.
+Compare to a known-good reference. Read the source.
+The plausibility of the output is not the
+correctness of the output.
+
+**Document your prompt.** When the LLM produces
+something useful, save the prompt. The prompt is the
+specification; if you ever need to regenerate or
+revise the code, the prompt is the context. The
+'Collaborating with an LLM' callouts in this book
+are exemplars: prompt, what to watch for, how to
+verify.
+
+These judgements are what distinguish AI assistance
+that produces correct, defensible code from AI
+assistance that produces working-looking but wrong
+code.
+
+## The `ellmer` package
+
+`ellmer` (from Posit) provides an R-native interface
+to LLM APIs:
+
+```r
+install.packages("ellmer")
+library(ellmer)
+
+# pick a backend
+chat <- chat_claude(model = "claude-sonnet-4-5")
+# or chat_openai(), chat_gemini(), chat_ollama() for local
+
+# single turn
+chat$chat("Translate this regex to plain English: '^\\d{3}-\\d{2}-\\d{4}$'")
+
+# multi-turn keeps history
+chat$chat("What about variants with no separator?")
+
+# streaming
+chat$chat_async("Long analysis...", stream = TRUE)
+```
+
+Why programmatic access matters:
+
+- **Reproducibility.** A prompt in a script is
+  versionable; a copy-paste from a chat window is
+  not.
+- **Composition.** You can wrap an LLM call inside
+  an R function: input from your data, output back
+  to your pipeline.
+- **Tooling.** `ellmer` supports tool use (the LLM
+  calls R functions you provide), structured output
+  (JSON schema validation), and streaming.
+
+Set the API key once via environment variable:
+
+```r
+# in .Renviron (project-local)
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+```
+
+Restart R; `ellmer` reads the env vars automatically.
+
+## Claude Code and similar CLI agents
+
+For book-sized work or large refactors, an
+interactive CLI agent (Claude Code, GitHub Copilot
+CLI, Cursor) gives the LLM direct file-edit and
+shell-execution access. The agent can read files,
+make targeted edits, run tests, and iterate based on
+the output.
+
+When to reach for a CLI agent:
+
+- Multi-file refactors where the LLM needs to see
+  the whole project structure.
+- Iterative debugging where the LLM needs to run
+  the code and observe failures.
+- Large-scope tasks (write a chapter, set up a
+  package) where copy-paste would be tedious.
+
+When not:
+
+- Quick lookups (use the chat window).
+- Tasks where you want full control of every edit
+  (the agent is more autonomous than you may want).
+
+The CLI agent is more powerful and more dangerous
+than a chat window. The verification step
+(reviewing every change before commit) is the
+safety mechanism.
+
+## LLM failure modes in R
+
+A non-exhaustive catalogue of bugs that appear in
+LLM-generated R code:
+
+**Hallucinated functions.** The LLM produces
+`dplyr::mutate_groups()` (does not exist) or
+`tidyr::pivot_wider_with_progress()` (made up).
+Looks plausible; is not real. Run the code and a
+'function not found' error catches it.
+
+**Silent type coercion.** The LLM uses `==` between
+a numeric and a character; R coerces; the comparison
+silently fails. Or the LLM compares a factor with
+a character; the comparison sometimes works,
+sometimes does not.
+
+**Wrong default in look-alike functions.** `t.test`
+in R defaults to Welch's correction; in some
+languages it does not. The LLM may assume the wrong
+default. Similarly, `cor` defaults to pairwise
+Pearson; LLM-trained code may assume something
+else.
+
+**Outdated APIs from training cut-off.** The LLM
+was trained before `dplyr 1.1.0`'s `relationship`
+argument; its joins lack the assertion. Or the LLM
+quotes the deprecated `dplyr::summarise_each` when
+the modern `across` would do.
+
+**Brittle regexes.** A regex that works on the
+example inputs but fails on plausible variants
+(international characters, leading whitespace,
+unusual punctuation).
+
+**Plausibly-wrong statistics.** The LLM uses a
+chi-square when Fisher's exact is needed for sparse
+tables. Or computes 'standard error' as the
+sample SD without the divide by `sqrt(n)`. These
+look right at the surface and require statistical
+review to catch.
+
+**`T` vs `TRUE`.** Some LLM-generated code uses `T`
+as a literal. `T` is a variable that defaults to
+`TRUE`, which means `T <- FALSE` later breaks the
+code. Best practice: always use the constants `TRUE`
+and `FALSE`.
+
+**Hybrid base/tidyverse.** A pipeline that mixes
+`dplyr::filter` and `stats::filter` (which is a
+time-series function with completely different
+semantics). The error message is unhelpful.
+
+**Untested edge cases.** The LLM produces code that
+works on the example you provided but breaks on
+NA, empty, single-row, or zero-variance input.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: catching a hallucinated API
+
+**Question.** The LLM produces:
+
+```r
+data |> dplyr::summarise_groups(mean(x))
+```
+
+You run it; R errors with 'could not find function
+"summarise_groups"'. What is the right fix?
+
+**Answer.**
+
+The function does not exist. The LLM hallucinated
+it from `summarise` and `group_by`. The correct
+modern dplyr is:
+
+```r
+data |> dplyr::group_by(grp) |> dplyr::summarise(mean = mean(x))
+```
+
+The LLM may also have meant `summarise(.by = grp, ...)`
+in newer dplyr. Verify against the package
+documentation rather than against another LLM
+suggestion. The general lesson: when an LLM-
+suggested function is unfamiliar, look it up in
+`?package::function` or on the package's CRAN page
+before trusting that it exists. The 'function not
+found' error is the cheapest catch; the harder
+catches are functions that exist but do something
+different from what the LLM thinks.
+
+:::
+
+## The verify-first workflow
+
+Before committing any LLM-generated code:
+
+1. **Read end-to-end.** Understand what the code is
+   doing line by line. If you cannot, ask the LLM
+   to explain (and then verify the explanation).
+2. **Run on the happy path.** Confirm it produces
+   the expected output for typical input.
+3. **Run on edge cases.** NA, empty input, wrong
+   type, single observation, all-zeros, all-NA.
+   These are where bugs hide.
+4. **Compare to a reference.** A known-good
+   implementation, a closed-form solution, a
+   simpler version you wrote yourself.
+5. **Write a test.** Lock the behaviour in
+   testthat. Future regressions are caught
+   automatically.
+6. **Only then commit.**
+
+Skipping any step turns the LLM into a
+plausibility-generator rather than a correctness-
+generator.
+
+## When not to reach for an LLM
+
+Tasks where the cognitive cost of evaluating the
+output exceeds the cost of writing it yourself:
+
+**Functions you have written many times.** A simple
+`mutate(age_group = cut(...))` is faster typed
+than prompted. The LLM round-trip costs more than
+the typing.
+
+**Code where correctness is hard to verify.** A
+complex regex on text you do not have full
+examples of. The LLM's output may be plausible but
+wrong on inputs you have not seen yet.
+
+**Domain-specific judgements.** Should you use
+multiple imputation or complete-case? Is this
+covariate a confounder? These depend on knowledge
+the LLM lacks. Solicit suggestions, but do not
+delegate the judgement.
+
+**Code you cannot afford to ship without
+understanding.** A function in your statistical
+inference code base that other people will rely
+on. Audit, test, and review with full
+understanding.
+
+The LLM is a leverage tool. Leverage works only
+when you understand the load.
+
+## Prompt patterns that work
+
+A few patterns yield better results than free-form
+chat:
+
+**Specify the output shape.** 'Return a tibble with
+columns x, y, z.' Less ambiguity, fewer follow-up
+turns.
+
+**Provide examples.** 'Input: c("Aug 2024", "Sep
+2024"). Output: c(2024-08-01, 2024-09-01)'. The LLM
+infers the rule.
+
+**Ask for tests.** 'Write the function and three
+tests covering happy path, NA input, and empty
+input.' Tests double as a specification check.
+
+**Demand explanation.** 'Write the function and
+explain in one paragraph why your implementation is
+correct.' If the explanation is shaky, the
+implementation is too.
+
+**Negative constraints.** 'Do not use a for loop.
+Do not use base R's `merge`.' Constrains the
+solution space.
+
+The 'Collaborating with an LLM' callouts elsewhere
+in this book follow this template: a prompt, what
+to watch for in the response, and how to verify.
+Use the same structure when you save your own
+prompts.
+
+## Worked example: a short ellmer script
+
+```r
+library(ellmer)
+
+# a function that takes an R function and returns a one-paragraph
+# explanation of what it does
+explain_function <- function(fn) {
+  src <- deparse(fn)
+  prompt <- paste0(
+    "Explain in one paragraph what this R function does, ",
+    "and identify any obvious bugs or edge cases it does not handle:\n\n",
+    paste(src, collapse = "\n")
+  )
+  chat <- chat_claude(model = "claude-sonnet-4-5")
+  chat$chat(prompt)
+}
+
+# use it
+explain_function(function(x) {
+  x |> filter(!is.na(value)) |> summarise(mean = mean(value))
+})
+```
+
+The function: takes another R function, asks Claude
+to explain it. Useful for code review of unfamiliar
+functions. The LLM's explanation is a starting
+point; verify against your own reading.
+
+## Where this book stands
+
+This book was developed with extensive use of Claude
+Code (an Anthropic CLI agent). The exercise was
+deliberate: produce a usable book about statistical
+computing in the AI era while using AI tools to do
+so. Lessons from that experience appear throughout
+the 'Collaborating with an LLM' callouts.
+
+The honest accounting: roughly 70% of the prose was
+drafted with LLM assistance, all of it reviewed and
+edited. Roughly 30% of the code examples were
+generated; the rest were written by hand. Bugs
+caught: a steady stream, mostly variants of the
+failure modes catalogued above.
+
+The book exists because the LLM amplified the
+author's writing throughput. The book is correct
+(to the extent it is) because the author verified
+every claim. The combination is what worked. Either
+alone would have been worse.
+
+## Principle in use
+
+Three habits define defensible AI-assisted coding:
+
+1. **Verify before trusting.** Read end-to-end, run
+   on edge cases, compare to a reference, test.
+2. **Use the LLM as an amplifier.** Domain
+   knowledge and substantive judgement remain the
+   analyst's. The LLM accelerates routine work.
+3. **Document the prompt.** A working prompt is a
+   reusable specification. Save it in comments
+   alongside the code, in a project-level prompts
+   library, or as a 'Collaborating with an LLM'
+   callout in your documentation.
+
+## Exercises
+
+1. Install `ellmer`. Write a short R function that
+   uses `chat_claude()` to summarise a block of
+   code you paste in. Keep the function under 20
+   lines.
+2. Pick a function from an earlier chapter and ask
+   an LLM to rewrite it. Score the rewrite
+   against: correctness, style, test coverage,
+   documentation. Decide whether to adopt the
+   rewrite and why.
+3. Find an instance in your own recent code where
+   an LLM gave you working-looking but wrong code.
+   Write up the failure mode as a one-page case
+   study for your research group.
+4. Use an LLM to generate five adversarial inputs
+   that break a function you wrote. Keep the ones
+   that actually break. Write tests for them.
+5. Set up Claude Code or a similar CLI agent.
+   Use it to refactor a small project; document
+   one bug it introduced and one improvement it
+   made.
+
+## Further reading
+
+- `ellmer` documentation at `ellmer.tidyverse.org`
+ , the R-native interface to LLMs.
+- Anthropic Claude Code documentation at
+  `docs.claude.com/en/docs/claude-code`, the CLI
+  agent used to develop this book.
+- *AI Engineering* by Chip Huyen (2024) ---
+  patterns for production LLM applications.
+
+## Prerequisites answers {#sec-quiz-answers-21}
+
+1. `ellmer` provides a standard R interface to
+   multiple LLM backends (Anthropic, OpenAI,
+   Google, etc.) with multi-turn history, streaming
+   output, and tool-calling support. It lets you
+   invoke the model from scripts, parameterise
+   prompts with R values, and build a programmatic
+   layer over what would otherwise be manual
+   copy-paste. A browser chatbot is interactive
+   only and produces no reproducible artefact.
+2. (Any three of:) hallucinated APIs (calling
+   functions or arguments that do not exist),
+   silent type coercions that change results
+   subtly, misuse of functions whose defaults
+   differ from their names (e.g., `t.test()`
+   defaults to Welch's correction), brittle regexes
+   that look right but miss edge cases, hybrid
+   base/tidyverse code that conflicts (`filter`
+   from base vs `dplyr`), and pasting outdated
+   package APIs from the model's training cut-off.
+3. Writing the first draft yourself forces you to
+   understand the problem. Without that
+   understanding, you cannot evaluate the LLM's
+   proposal: you will accept plausible-looking
+   code whose bugs you cannot see. With it, you
+   can judge the LLM's suggestion on its merits
+   and spot the small differences that matter. The
+   habit is the single biggest determinant of
+   whether AI assistance produces correct work or
+   plausible-looking work.

@@ -1,0 +1,544 @@
+# Rmd Workflow: Conversions and Tables {#sec-rmd-workflow}
+
+::: {.callout-note}
+## Sources
+
+Blog posts `17-rapidconversionRtoRmd`,
+`38-tableplacementrmarkdown`,
+`07-multilanguagequartodemo`.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-12.
+
+1. What is the quickest way to convert an existing `.R`
+   script into an `.Rmd` or `.qmd`, preserving comments
+   as prose?
+2. Why do tables and figures in rendered PDFs often
+   appear in unexpected places, and what do `fig.pos`
+   and `tbl-pos` do?
+3. How do you ensure that a figure or table label
+   defined in an Rmd is clickable (hyperlinked) in both
+   the HTML and the PDF outputs?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Convert between `.R`, `.Rmd`, and `.qmd` quickly and
+  losslessly.
+- Control LaTeX float placement with `fig.pos`/`tbl-pos`
+  and inline anchoring (`[H]`).
+- Produce cross-referenced figures and tables that
+  hyperlink correctly in HTML, PDF, and Word outputs.
+- Switch a project's engine between `knitr` and Quarto
+  without rewriting chunks.
+- Run a multi-language document (R, Python, Julia) in a
+  single render via `reticulate` or `JuliaCall`.
+- Debug common Rmd/Quarto rendering failures.
+
+## Orientation
+
+A mature Rmd workflow is the difference between an
+analysis that can be quickly iterated on and one that is
+a maze of manual edits. This chapter collects the
+practical tricks that pay off on the fifth rendered
+version of a document, when the small frictions of the
+first render compound into hours of manual cleanup.
+
+The chapter applies to both R Markdown (`.Rmd`) and
+Quarto (`.qmd`); Quarto is the modern default but R
+Markdown remains widely used. Most concepts and
+syntax transfer between them.
+
+## The statistician's contribution {#sec-rmd-workflow-human}
+
+Most Rmd workflow questions are mechanical. The
+judgements:
+
+**Decide on a primary format and stick to it.** A
+project that mixes `.R` files, `.Rmd` reports, and
+`.qmd` papers is hard to maintain. Pick a primary
+format for the project (`.qmd` for new work) and
+convert anything else to match.
+
+**LaTeX float discipline.** Floats are LaTeX's way of
+making documents look polished, but they can place a
+figure pages away from where you cited it. For a paper,
+let LaTeX do its job; readers expect floating figures.
+For a report meant to be read top-to-bottom, force
+inline placement with `fig.pos = 'H'`. The right
+default depends on the audience.
+
+**Multi-language honesty.** Mixing R, Python, and Julia
+in one document is technically possible. Whether it is
+*helpful* depends on whether the languages do
+genuinely different jobs (R for statistics, Python for
+deep learning, Julia for performance) or whether the
+mix is showmanship. Single-language is usually the
+right answer.
+
+**Convert before the document is large.** Converting a
+1000-line `.Rmd` to `.qmd` is harder than converting a
+100-line one. If you suspect the document will grow,
+convert early.
+
+These judgements are what separate a workflow that
+saves time from one that creates new categories of
+problem.
+
+## Converting between formats
+
+The conversion tools:
+
+**`.R` → `.Rmd` / `.qmd`** with `knitr::spin()`:
+
+```r
+# script.R has special comments:
+#' # Title
+#' Some prose explaining what this does.
+1 + 1
+#' Another paragraph of prose.
+2 + 2
+```
+
+```r
+knitr::spin("script.R", knit = FALSE)
+# produces script.Rmd with prose and chunks
+```
+
+The `#'` prefix marks a comment as prose; everything
+else becomes code. For converting an existing
+heavily-commented script to a literate document, this
+is the fast path.
+
+**`.Rmd` → `.R`** with `knitr::purl()`:
+
+```r
+knitr::purl("paper.Rmd", documentation = 0)
+# extracts code chunks into paper.R
+```
+
+`documentation = 1` keeps prose as comments; `2` keeps
+prose as roxygen-style comments.
+
+**`.Rmd` → `.qmd`** with `knitr::convert_chunk_header()`
+or `quarto convert`:
+
+```bash
+quarto convert paper.Rmd -o paper.qmd
+```
+
+Most chunk options translate directly. The differences
+to handle by hand:
+
+- YAML differences (Quarto uses slightly different
+  format keys: `format: html` vs. `output: html_document`).
+- Chunk-option syntax: knitr uses
+  ` ```{r chunk-name, echo = FALSE} `; Quarto's
+  preferred syntax uses `#|` directives:
+  ```{r}
+  #| label: chunk-name
+  #| echo: false
+  ```
+- Cross-reference syntax: knitr uses `\@ref(fig:scatter)`;
+  Quarto uses `@fig-scatter` (different prefix).
+
+**`.ipynb` ↔ `.qmd`**:
+
+```bash
+quarto convert notebook.ipynb -o notebook.qmd
+quarto convert notebook.qmd -o notebook.ipynb
+```
+
+For collaborators who prefer Jupyter, this conversion
+is lossless: text becomes Markdown, code becomes
+chunks, and metadata round-trips.
+
+## Float placement in PDF
+
+The frustration: you place `\@ref(fig:demographics)` in
+your prose and the figure appears two pages later.
+LaTeX is exercising its default 'avoid widow lines'
+heuristic.
+
+The fix in knitr Rmd:
+
+````Rmd
+```r
+plot(...)
+```
+````
+
+Or globally:
+
+```r
+knitr::opts_chunk$set(fig.pos = "H")
+```
+
+In Quarto:
+
+```yaml
+execute:
+  fig-pos: "H"
+```
+
+`H` is from the `float` LaTeX package, meaning 'place
+exactly here, do not float'. Add to the YAML:
+
+```yaml
+header-includes:
+  - \usepackage{float}
+```
+
+For tables, the equivalent is `tbl-pos: 'H'` in Quarto
+or `kable_styling(latex_options = "HOLD_position")` in
+knitr+kableExtra.
+
+The LaTeX float-position options:
+
+- `h` (here, if possible)
+- `t` (top of page)
+- `b` (bottom of page)
+- `p` (separate float page)
+- `H` (exactly here, requires `float` package)
+- `!` prefix overrides LaTeX's preferences
+
+The default `htbp` lets LaTeX decide; `H` forces
+inline.
+
+For HTML output, LaTeX float positioning is
+irrelevant; figures appear in source order.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: floating figures
+
+**Question.** You write 'Figure 3 shows demographics'
+and the rendered PDF puts Figure 3 four pages later.
+Why, and what is the fix?
+
+**Answer.**
+
+LaTeX defers floats (figures and tables) when placing
+them at the source location would create awkward white
+space or break a paragraph. By default, LaTeX is
+willing to push floats forward to find a 'better'
+spot, sometimes pages later. Two fixes: (1) Use
+`fig-pos: "H"` (with `\usepackage{float}` in the
+header) to force exactly-here placement; (2) Refer to
+floats by their cross-reference ('see
+@fig-demographics') rather than 'Figure 3', so the
+hyperlink is correct regardless of placement.
+Combination: use cross-references universally; force
+positioning only for documents that must be read
+linearly.
+
+:::
+
+## Cross-references
+
+Quarto's cross-reference system is consistent across
+formats:
+
+````qmd
+See @fig-demographics for the cohort breakdown
+(@tbl-baseline summarises baseline characteristics).
+
+```r
+#| label: fig-demographics
+#| fig-cap: "Demographics by treatment arm"
+ggplot(...) + ...
+```
+
+```r
+#| label: tbl-baseline
+#| tbl-cap: "Baseline characteristics"
+gtsummary::tbl_summary(...)
+```
+````
+
+Labels follow the prefix convention: `fig-`, `tbl-`,
+`eq-`, `sec-`, `lst-`, `tip-`. References use the
+`@` prefix to match.
+
+In knitr Rmd, the equivalent syntax is more verbose:
+
+````Rmd
+```r
+ggplot(...) + ...
+```
+````
+
+```Rmd
+See \@ref(fig:demographics).
+```
+
+Both produce hyperlinks in HTML and PDF.
+
+For sections:
+
+```qmd
+## Methods {#sec-methods}
+
+See @sec-methods for details.
+```
+
+The numeric value of the cross-reference is set by the
+order of the labelled object in the document; this is
+why renumbering happens automatically when you
+reorder.
+
+## Engine choice: knitr vs. Quarto
+
+Both are options for `.qmd` files. Default is `knitr`;
+`engine: jupyter` switches to Jupyter for Python-heavy
+documents.
+
+`knitr` chunks support all the chunk options you know
+from Rmd. Quarto's `#|` syntax is preferred but the
+old `{r, opt = val}` syntax still works. For most R
+work, the engine choice is invisible.
+
+For mixing R and Python heavily in one document,
+Jupyter engine may produce cleaner output. For pure R
+or R-with-occasional-Python, knitr is fine.
+
+## Multi-language documents
+
+Quarto natively supports R, Python, and Julia. With
+`reticulate` (R-Python) and `JuliaCall` (R-Julia),
+chunks can pass values across languages.
+
+````qmd
+---
+format: html
+---
+
+```r
+library(reticulate)
+x <- 1:10
+```
+
+```python
+import numpy as np
+arr = np.array(r.x)         # access R variable
+print(arr.mean())
+```
+
+```r
+print(py$arr)               # access Python variable
+```
+````
+
+The `r.x` syntax in Python accesses R's `x`; the
+`py$arr` syntax in R accesses Python's `arr`.
+Coercion is automatic for common types (numeric
+vectors, data frames, lists).
+
+For a typical biostatistical workflow, this is
+overkill: stick to R unless the project genuinely
+needs another language (deep learning in Python, a
+specialised Julia package). Multi-language is real
+infrastructure cost.
+
+## Common rendering failures
+
+**'LaTeX Error: File `tinytex.sty` not found'**:
+install TinyTeX (`tinytex::install_tinytex()`) or full
+LaTeX. Quarto's PDF output requires LaTeX.
+
+**'pandoc: ... unknown writer'**: out-of-date Quarto
+or pandoc. Update Quarto.
+
+**'undefined cross-reference'**: a `@fig-foo` reference
+to a label `fig-foo` that does not exist (typo, or
+the chunk producing the figure was not labelled).
+Render with `--verbose` to find which reference is
+broken.
+
+**Figures appearing in wrong places**: float-
+positioning issue (above).
+
+**Slow renders**: cache with `freeze: auto` (Quarto)
+or `cache = TRUE` (knitr) for expensive chunks.
+
+**'Object not found'**: a chunk depends on a variable
+defined in an earlier chunk that did not run (or was
+`eval = FALSE`). Check chunk order and `eval`/`include`
+options.
+
+## Worked example: converting a script to a paper
+
+Starting from `analysis.R`:
+
+```r
+# Load and clean data
+d <- read.csv("data.csv")
+d <- na.omit(d)
+
+# Fit model
+fit <- lm(y ~ x1 + x2, data = d)
+summary(fit)
+
+# Plot
+plot(d$x1, d$y, xlab = "x1", ylab = "y")
+abline(fit)
+```
+
+Step 1: convert with `spin`:
+
+```r
+knitr::spin("analysis.R", knit = FALSE, format = "Rmd")
+# → analysis.Rmd
+```
+
+Step 2: convert to `.qmd`:
+
+```bash
+quarto convert analysis.Rmd -o analysis.qmd
+```
+
+Step 3: add YAML, prose, cross-references:
+
+````qmd
+---
+title: "Effect of x1 on y"
+format:
+  html: default
+  pdf: default
+execute:
+  echo: false
+  warning: false
+---
+
+# Methods
+
+We analysed &#96;{r} nrow(d)&#96; complete cases.
+
+```r
+#| label: fig-scatter
+#| fig-cap: "Scatterplot of y on x1"
+plot(d$x1, d$y, xlab = "x1", ylab = "y")
+abline(fit)
+```
+
+@fig-scatter shows the relationship; the fitted slope
+is &#96;{r} round(coef(fit)["x1"], 2)&#96;.
+````
+
+Step 4: render. Half an hour from script to first-draft
+paper.
+
+## Collaborating with an LLM on Rmd workflow
+
+LLMs handle conversions well; the cross-format
+subtleties need verification.
+
+**Prompt 1: converting `.R` to `.qmd`.** Paste the
+script and ask the LLM to produce a `.qmd` with
+appropriate chunk options and prose.
+
+*What to watch for.* The LLM may invent prose where
+the original had none. Sticking close to the
+original's intent is the right move; rewriting is for
+later.
+
+*Verification.* Render both and compare outputs.
+Check that no comments or code were lost.
+
+**Prompt 2: diagnosing rendering failures.** Paste
+the error message and ask: 'what's wrong and how to
+fix?'
+
+*What to watch for.* Common errors (LaTeX missing,
+cross-reference broken, package not installed) are
+easy. Less common (Quarto version mismatch, pandoc
+filter issues) are harder; verify against the
+official documentation.
+
+*Verification.* Apply the fix and re-render. If it
+works, done; if not, the LLM may have misdiagnosed.
+
+**Prompt 3: cross-format cross-references.** Describe
+the document and ask: 'set up cross-references that
+work in HTML, PDF, and Word.'
+
+*What to watch for.* Quarto's `@fig-foo` syntax works
+universally. The LLM should use it. If it suggests
+`\ref{fig:foo}`, push back: that is LaTeX-only.
+
+*Verification.* Render to all three formats and
+inspect the cross-references in each.
+
+## Principle in use
+
+Three habits define defensible Rmd workflow:
+
+1. **Convert to a single primary format.** `.qmd` for
+   new work; convert legacy `.Rmd` if active. A
+   project that mixes formats is harder to maintain
+   than the conversion cost.
+2. **Use Quarto cross-references universally.** They
+   work across HTML, PDF, and Word; LaTeX-specific
+   labelling does not.
+3. **Cache expensive computations.** `freeze: auto`
+   on the Quarto side, `cache = TRUE` on the knitr
+   side. Don't re-run a 5-minute chunk on every typo
+   fix.
+
+## Exercises
+
+1. Take a recent `.R` analysis and convert it to a
+   `.qmd` via `knitr::spin`. Re-render. Note what
+   `spin` handles well and what needs manual cleanup.
+2. In a Quarto PDF, force every table to appear
+   exactly where declared in the source (no LaTeX
+   float rearrangement). Verify with a three-table
+   document.
+3. Build a minimal reproducible example (MWE) of a
+   cross-reference that works in HTML but not in PDF.
+   File the bug upstream or post it on the Quarto
+   discussion forum.
+4. Convert a `.Rmd` paper of yours to `.qmd`. Render
+   both versions to PDF and diff the output; explain
+   any differences.
+5. Build a `.qmd` that calls Python via reticulate to
+   compute one number used in the prose. Render and
+   verify the Python output is faithful to the R
+   value.
+
+## Further reading
+
+- Xie, Dervieux, and Riederer (2020), *R Markdown
+  Cookbook*, the recipe book.
+- Xie (2020), *bookdown: Authoring Books and
+  Technical Documents with R Markdown*, long-form
+  documents.
+- Quarto's `quarto convert` documentation for
+  format-conversion details.
+
+## Prerequisites answers {#sec-quiz-answers-12}
+
+1. `knitr::spin('script.R')` is the canonical fast
+   path: it turns a commented `.R` file into a
+   rendered `.Rmd` by treating any comment starting
+   with `#'` as prose and everything else as code
+   chunks. For `.qmd`, the same convention works
+   under `quarto convert`. Half an hour from script
+   to literate document.
+2. LaTeX treats figures and tables as floats and
+   rearranges them by default to avoid bad page
+   breaks. `fig.pos = 'H'` (requires the `float`
+   package) and `tbl-pos: 'H'` in Quarto YAML tell
+   LaTeX 'place this exactly here, no reflow'. In
+   chunks, `fig.pos = 'htbp'` means 'try here, then
+   top, then bottom, then a float page' in order.
+3. Use Quarto's cross-reference system:
+   `{#fig-scatter}` on the figure plus `@fig-scatter`
+   in the prose. Quarto handles HTML and PDF (and
+   Word) anchoring with the same source syntax.
+   Hand-rolled `\label{}` / `\ref{}` works only in
+   PDF. The Quarto syntax is the durable choice.

@@ -1,0 +1,554 @@
+# Data Wrangling Essentials {#sec-wrangling}
+
+::: {.callout-note}
+## Sources
+
+Stat 545 Chapters 5--9 (Jenny Bryan, UBC) and blog
+posts `04-lowercasingdataframes`, `15-piping`,
+`43-dynamic-column-names`.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-13.
+
+1. What is 'tidy data' as defined by Wickham (2014)
+   [@wickham2014tidy], and how does it differ from a
+   typical 'wide' clinical data layout?
+2. Write the `dplyr` pipeline that keeps only rows
+   where `age >= 18`, selects `age`, `sex`, and
+   `outcome`, and summarises outcome by sex.
+3. What does `tidyr::pivot_longer()` do, and when
+   should you reach for it rather than `pivot_wider()`?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Identify tidy and non-tidy data layouts.
+- Use the core `dplyr` verbs (`filter`, `select`,
+  `mutate`, `arrange`, `summarise`, `group_by`)
+  idiomatically with the native pipe `|>`.
+- Reshape data with `pivot_longer()` and
+  `pivot_wider()`, including using `names_sep` and
+  `names_pattern` for compound column names.
+- Pass dynamic column names to `dplyr` verbs using
+  `{{ }}` and `.data[[ ]]`.
+- Clean column names with `janitor::clean_names()`.
+- Recognise common wrangling antipatterns and replace
+  them with tidy equivalents.
+
+## Orientation
+
+Real biomedical data arrive wide, irregular, and full
+of inconsistent coding. Most of a biostatistician's
+time is spent reshaping, joining, cleaning, and
+type-converting before a single model is fit. The
+tidyverse stack is the dominant toolkit for this
+work; fluency with it pays back on every project.
+
+This chapter is not exhaustive, the tidyverse is too
+large for that. It covers the verbs and patterns that
+recur in clinical and epidemiological work.
+
+## The statistician's contribution {#sec-wrangling-human}
+
+The verbs are mechanical. The judgements:
+
+**Tidy first, model later.** Untidy data leads to
+joins that are subtly wrong, summaries that mean the
+wrong thing, and models that conflate observations.
+Reshaping into tidy form before modelling is not
+optional; it is the precondition for the modelling
+to be correct.
+
+**Keep raw data raw.** Never overwrite the input file
+with cleaned data. The cleaning script is the
+authoritative record of what you did; the cleaned
+data is a build product. If `data/raw/visits.csv`
+is the original, write to `data/derived/visits.rds`,
+not back to `visits.csv`.
+
+**Document the cleaning rules.** 'Removed implausible
+values' is not a documented rule. 'Removed BP > 250 or
+BP < 50 (n = 12 rows, 0.6% of data)' is. The cleaning
+script's comments are the audit trail.
+
+**Recognise the cost of pivoting.** Pivoting is
+expensive on large data: a wide dataset of $10^6$ rows
+with 100 timepoints becomes a long dataset of $10^8$
+rows. Sometimes the analysis demands long; sometimes
+keeping it wide is appropriate. Pivot when the
+operation requires it, not as ritual.
+
+These judgements determine whether the wrangling
+script produces correct, audit-able data.
+
+## Tidy data: three rules
+
+Wickham (2014) defines tidy data by three rules:
+
+1. Each variable forms a column.
+2. Each observation forms a row.
+3. Each type of observational unit forms a separate
+   table.
+
+Rule 1 violation: 'blood pressure at visit 2' is
+encoded as a column rather than as a value of a
+'visit' variable.
+
+Rule 2 violation: one row contains data from multiple
+patients, or one patient's data is spread across
+multiple rows without a clear unit.
+
+Rule 3 violation: patient demographics are mixed with
+visit-level outcomes in one table; both should be
+separate (linked by a patient ID).
+
+A typical wide clinical layout violates rules 1 and 2:
+
+```
+patient_id  bp_v1  bp_v2  bp_v3  hr_v1  hr_v2  hr_v3
+       001    140    138    136     72     70     68
+       002    150    148    146     78     76     74
+```
+
+The same data tidied:
+
+```
+patient_id  visit  measure  value
+       001      1  bp           140
+       001      1  hr            72
+       001      2  bp           138
+       001      2  hr            70
+...
+```
+
+The tidy form makes group operations natural: 'mean BP
+by visit' is `group_by(visit) |> summarise(mean(bp))`,
+not a custom column-traversal.
+
+## Core dplyr verbs
+
+The vocabulary of tidy wrangling:
+
+```r
+library(dplyr)
+library(palmerpenguins)
+data(penguins)
+
+# filter rows
+penguins |> filter(species == "Adelie")
+
+# select columns
+penguins |> select(species, body_mass_g, flipper_length_mm)
+
+# create new columns
+penguins |> mutate(mass_kg = body_mass_g / 1000)
+
+# sort
+penguins |> arrange(desc(body_mass_g))
+
+# group and summarise
+penguins |>
+  group_by(species, island) |>
+  summarise(mean_mass = mean(body_mass_g, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")
+```
+
+The pipe `|>` (R 4.1+) chains operations
+left-to-right. Each verb takes a tibble and returns a
+tibble. The pipeline reads as a sequence of
+transformations: 'filter, then select, then group, then
+summarise'.
+
+The `magrittr` `%>%` is the older alternative, still
+widely used. Functionally equivalent for most code;
+`|>` has slightly different placeholder semantics
+(`_` instead of `.`). For new code, prefer `|>`.
+
+## Common dplyr patterns
+
+**Renaming**:
+
+```r
+penguins |> rename(mass = body_mass_g, flipper = flipper_length_mm)
+```
+
+**Counting**:
+
+```r
+penguins |> count(species, sex, sort = TRUE)
+```
+
+**Distinct values**:
+
+```r
+penguins |> distinct(species, island)
+```
+
+**Slicing**:
+
+```r
+penguins |> slice_max(body_mass_g, n = 5)        # 5 heaviest
+penguins |> slice_sample(n = 100)                # random 100
+```
+
+**Conditional updates** with `case_when`:
+
+```r
+penguins |> mutate(
+  size = case_when(
+    body_mass_g <  3500 ~ "small",
+    body_mass_g <  5000 ~ "medium",
+    body_mass_g >= 5000 ~ "large"
+  )
+)
+```
+
+**Across multiple columns**:
+
+```r
+penguins |> summarise(
+  across(where(is.numeric), \(x) mean(x, na.rm = TRUE))
+)
+```
+
+`across()` applies a function across multiple columns
+matched by `where()` (predicate), `starts_with()`,
+`matches()`, etc. Replaces the older `_at` and `_if`
+suffixes.
+
+## Reshaping with `tidyr`
+
+```r
+library(tidyr)
+
+# wide to long
+wide |> pivot_longer(
+  cols      = starts_with("bp_v"),
+  names_to  = "visit",
+  names_prefix = "bp_v",
+  values_to = "bp"
+)
+
+# more complex: bp_v1, hr_v1, bp_v2, hr_v2 ...
+wide |> pivot_longer(
+  cols           = matches("_v"),
+  names_to       = c("measure", "visit"),
+  names_pattern  = "(.+)_v(.+)",
+  values_to      = "value"
+)
+# now has columns: patient_id, measure, visit, value
+
+# long to wide
+long |> pivot_wider(
+  names_from  = visit,
+  values_from = bp,
+  names_prefix = "bp_v"
+)
+```
+
+`names_pattern` and `names_sep` parse complex column
+names into multiple new columns. The first version of
+this is often wrong; print intermediate results and
+verify.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: when to pivot
+
+**Question.** Your data has one row per patient with
+columns `bp_baseline`, `bp_3mo`, `bp_6mo`. You want to
+plot BP trajectory over time, faceted by treatment
+arm. Should you pivot to long format?
+
+**Answer.**
+
+Yes. `ggplot2`'s grammar maps variables to aesthetics
+(x = time, y = bp, colour = treatment). With the wide
+format, 'time' is implicit in the column names and
+cannot be a single x-axis variable. Pivoting to long
+makes time an explicit column:
+
+```r
+long <- wide |>
+  pivot_longer(cols = starts_with("bp_"),
+               names_to  = "time",
+               names_prefix = "bp_",
+               values_to = "bp")
+
+ggplot(long, aes(time, bp, group = patient_id)) +
+  geom_line() +
+  facet_wrap(~ treatment)
+```
+
+The pivot is the precondition for the plot. If
+instead you wanted to compute a within-patient
+change ('bp_6mo - bp_baseline'), the wide format is
+preferable. The right shape depends on the
+operation.
+
+:::
+
+## `janitor::clean_names()`
+
+Clinical CRF exports come with column names like
+`Patient ID`, `Age (years)`, `SBP at baseline (mmHg)`.
+These are unworkable in R: spaces, parentheses, units
+in names. `janitor::clean_names()` standardises:
+
+```r
+library(janitor)
+d <- read.csv("crf.csv") |> clean_names()
+names(d)
+#> [1] "patient_id"  "age_years"  "sbp_at_baseline_mm_hg"
+```
+
+Run on every dataset on arrival. Saves quoting and
+backtick-escaping for the rest of the project.
+
+## Dynamic column names
+
+When you want to write functions that take column
+names as arguments, two idioms apply.
+
+**`{{ }}` (embrace)** for bare names:
+
+```r
+summarise_col <- function(df, col, fn = mean) {
+  df |> summarise(result = fn({{ col }}, na.rm = TRUE))
+}
+
+summarise_col(penguins, body_mass_g, fn = median)
+```
+
+**`.data[[name]]`** for character strings:
+
+```r
+summarise_col_str <- function(df, col_name, fn = mean) {
+  df |> summarise(result = fn(.data[[col_name]], na.rm = TRUE))
+}
+
+summarise_col_str(penguins, "body_mass_g", fn = median)
+```
+
+The two approaches reflect different sources of the
+column name. Bare-name interface (`{{ }}`) is what
+most users expect; string interface (`.data[[ ]]`) is
+useful for programmatic generation of names.
+
+`rlang::sym()` and `!!` are older patterns; `{{ }}` is
+preferred in modern code.
+
+## Common antipatterns
+
+**Loop over rows**:
+
+```r
+# bad
+result <- numeric(nrow(df))
+for (i in seq_len(nrow(df))) {
+  result[i] <- compute_something(df[i, ])
+}
+
+# good (vectorised)
+df |> mutate(result = compute_something_vectorised(...))
+```
+
+R's vectorised operations are 10--100× faster than row
+loops, and are usually clearer.
+
+**Hardcoded column indices**:
+
+```r
+# bad
+df[, c(2, 4, 7)]
+
+# good
+df |> select(age, sex, outcome)
+```
+
+Indices break when columns are reordered or added;
+names are robust.
+
+**Manipulating raw data files**:
+
+```r
+# bad
+write.csv(d, "data.csv", row.names = FALSE)        # overwrites input
+
+# good
+write_rds(d, "data/derived/cleaned.rds")
+```
+
+Raw data should be read-only.
+
+**`stringsAsFactors` paranoia**:
+
+```r
+# unnecessary in R 4.0+
+options(stringsAsFactors = FALSE)
+```
+
+The default changed in R 4.0; the option is no-op now.
+
+## Worked example: cohort cleanup
+
+```r
+library(tidyverse)
+library(janitor)
+
+# read raw export
+raw <- read_csv("data/raw/visits.csv", show_col_types = FALSE)
+
+# clean names, restrict to adults, derive age groups
+clean <- raw |>
+  clean_names() |>
+  filter(age >= 18, !is.na(outcome)) |>
+  mutate(
+    age_group = cut(age, breaks = c(18, 40, 65, Inf),
+                    right = FALSE,
+                    labels = c("18-39", "40-64", "65+")),
+    visit_date = as.Date(visit_date)
+  )
+
+# pivot to long for repeated measures
+long <- clean |>
+  pivot_longer(
+    cols      = starts_with("bp_"),
+    names_to  = "visit",
+    names_prefix = "bp_",
+    values_to = "bp"
+  ) |>
+  filter(!is.na(bp))
+
+# save the derived data
+saveRDS(long, "data/derived/visits_long.rds")
+```
+
+The script is the audit trail: clean column names,
+filter inclusions documented as code, derived
+variables computed and named, output written to a
+non-raw location. A reviewer can read the script and
+recover exactly what cleaning happened.
+
+## Collaborating with an LLM on wrangling
+
+LLMs handle dplyr/tidyr well; the trap is producing
+working code on the wrong data shape.
+
+**Prompt 1: tidying a dataset.** Paste the column
+names and 5 rows of head, ask: 'tidy this with
+`pivot_longer`. Show me the result.'
+
+*What to watch for.* The LLM will produce code that
+runs. Whether it produces the *correct* tidy form
+depends on understanding the semantics of the columns
+(are `bp_v1` and `bp_v2` two visits of the same BP
+measurement, or are they different measurement types?).
+
+*Verification.* Run the code; inspect the long form;
+check that one observation per row holds.
+
+**Prompt 2: writing a helper function with dynamic
+column names.** Describe the function (takes a column
+name, applies a verb) and ask the LLM to use modern
+tidy-eval idioms.
+
+*What to watch for.* `{{ }}` for bare names,
+`.data[[ ]]` for strings, `enquo`/`!!` for
+backwards-compatible code. The LLM may use older
+patterns; modern is preferred.
+
+*Verification.* Test the function with both bare
+names and strings to confirm it handles the input
+form you expect.
+
+**Prompt 3: cleaning column names.** Paste a list of
+messy names and ask: 'clean these names; explain the
+transformation rules.'
+
+*What to watch for.* The LLM may apply a one-off
+transformation rather than recommending
+`janitor::clean_names()`. The package solution is
+better because it is consistent across all your
+files.
+
+*Verification.* Compare the LLM output to
+`janitor::clean_names()`'s output on the same input.
+
+## Principle in use
+
+Three habits define defensible wrangling:
+
+1. **Tidy data first.** Wide-to-long when the analysis
+   needs long; long-to-wide when it needs wide. Tidy
+   is not the goal; correctness is. Tidy is usually
+   the path to correctness.
+2. **Keep raw data read-only.** Cleaning scripts
+   produce derived data; the raw file is sacrosanct.
+3. **Use `clean_names()` on every read.** The cost is
+   one line; the benefit is the rest of the script
+   becomes easier to write.
+
+## Exercises
+
+1. Using `palmerpenguins::penguins`, compute the mean
+   bill length for each species-island combination,
+   dropping rows with missing bill length. Return a
+   tidy tibble with columns `species`, `island`,
+   `mean_bill`, `n`.
+2. Reshape a synthetic wide clinical dataset (one row
+   per patient, columns `bp_v1`, `bp_v2`, `bp_v3`)
+   into long format with one row per patient-visit.
+3. Write a function `summarise_col(df, col, fn)` that
+   accepts `col` as a bare column name and `fn` as a
+   function; apply it to the penguins data with
+   `col = bill_length_mm` and `fn = median`.
+4. Take a real CRF export (or simulate one) with
+   messy column names and apply
+   `janitor::clean_names()`. Document any rename
+   decisions you make manually beyond what janitor
+   does.
+5. Using `case_when`, derive a clinical
+   classification variable from three or four
+   continuous predictors. Verify the classification
+   covers all rows (no NAs introduced unexpectedly).
+
+## Further reading
+
+- [@wickham2023r4ds] Chapters 3--7, canonical
+  applied wrangling introduction.
+- [@wickham2014tidy], the original Tidy Data
+  paper; essential for the three rules.
+- [@bryan2019stat545] Chapters 5--9, slower-paced
+  alternative.
+- The `dplyr` and `tidyr` cheat sheets at
+  `posit.co/resources/cheatsheets`.
+
+## Prerequisites answers {#sec-quiz-answers-13}
+
+1. Tidy data satisfies three properties: each
+   variable forms a column, each observation forms a
+   row, and each type of observational unit forms a
+   separate table. A typical wide clinical layout has
+   one row per patient and one column per (variable,
+   timepoint) pair, which violates the first two
+   properties: 'blood pressure at visit 2' is not a
+   variable, and one patient's row contains many
+   observations. Tidying makes group operations
+   natural and prevents whole categories of bugs.
+2. `df |> filter(age >= 18) |> select(age, sex, outcome) |> group_by(sex) |> summarise(mean_outcome = mean(outcome, na.rm = TRUE))`.
+   The pipe-chained verbs read as a sequence of
+   transformations.
+3. `pivot_longer()` reshapes from wide to long:
+   columns become values in a new column. Use it
+   when columns encode a variable (like visit
+   number) that should be a row index. Use
+   `pivot_wider()` when rows encode a variable that
+   should be a column (e.g., computing a difference
+   between two visit values). The right shape
+   depends on the next operation.

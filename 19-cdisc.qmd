@@ -1,0 +1,508 @@
+# Clinical Data Standards: CDISC, SDTM, and ADaM {#sec-cdisc}
+
+::: {.callout-note}
+## Sources
+
+Authored directly for this book at
+`~/Dropbox/prj/tch/01-phb228-stat-computing/phb228-2026/textbook/19-cdisc.qmd`.
+Target audience: students heading to pharma or CRO statistical
+programming roles who have no prior exposure to CDISC. Written
+in response to reports from alumni that a gap in this area was
+felt on the first day of their industry positions.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-19.
+
+1. What is the difference between SDTM and ADaM, and which one
+   does a biostatistician typically build?
+2. In the CDISC convention, does `CNSR = 1` indicate a censored
+   observation or an event?
+3. What is the role of `ADSL` relative to other ADaM datasets
+   such as `ADLB` or `ADTTE`?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Name the four main CDISC standards (SDTM, ADaM, CDASH, SEND)
+  and identify which are required for FDA submissions.
+- Describe the data flow from CRF through SDTM to ADaM to
+  tables, listings, and figures (TLFs).
+- Read an SDTM domain and an ADaM dataset and explain how rows
+  and variables relate.
+- Derive a minimal `ADSL` and `ADTTE` from synthetic SDTM
+  domains using R.
+- Recognise the common ADaM variable names (`USUBJID`,
+  `PARAMCD`, `AVAL`, `CNSR`, and the population flags).
+- Explain the purpose of Define-XML, the annotated CRF (aCRF),
+  and the reviewer guides (SDRG, ADRG).
+
+## Orientation
+
+Alumni of this programme working in pharmaceutical companies
+and contract research organisations (CROs) have reported that
+their first weeks on the job involved encountering data
+structures, variable names, and regulatory conventions that the
+statistics curriculum had not prepared them for. This chapter
+addresses that gap.
+
+The Clinical Data Interchange Standards Consortium (CDISC) is
+a non-profit that publishes data standards for clinical trials.
+Since December 2016, the United States Food and Drug
+Administration (FDA) has required that sponsors submit clinical
+trial data in CDISC formats to support new drug applications
+(NDAs) and biologics license applications (BLAs). The two
+formats a statistician will touch are SDTM (Study Data
+Tabulation Model) and ADaM (Analysis Data Model).
+
+The organising insight for the chapter is this: SDTM is how
+the data arrives at the statistician's desk; ADaM is what the
+statistician builds, documents, and analyses. Your deliverables
+as an industry biostatistician will, with high probability, be
+either ADaM datasets and their specifications, or tables
+derived from them.
+
+## The statistician's contribution {#sec-cdisc-human}
+
+CDISC mechanics are mechanical. The judgements:
+
+**Traceability is non-negotiable.** Every ADaM
+variable must point back to its SDTM source. The
+Define-XML and the ADaM specification document the
+mapping. Skipping the documentation does not save
+time; it produces an FDA submission that fails
+review and an ADaM that the next statistician
+cannot understand.
+
+**Get the censoring convention right.** The
+`CNSR = 1` convention is the inverse of R's
+`survival::Surv(event = 1)`. Inverting once at the
+boundary (when reading ADTTE into R) is correct;
+inverting twice or not at all silently produces
+wrong survival curves. Verify on every analysis.
+
+**Population flags carry inferential meaning.** A
+modified intent-to-treat (mITT) analysis includes
+patients who took at least one dose; a per-protocol
+(PP) analysis excludes protocol violations. The
+SAP pre-specifies which population each analysis
+uses; the ADSL flags (`ITTFL`, `SAFFL`, `EFFFL`,
+`PPROTFL`) implement the choice. Using the wrong
+flag at analysis time changes the estimand.
+
+**ADaM specifications are written, then built.**
+The standard workflow: write the ADaM spec
+(spreadsheet or YAML), validate it, then implement
+the derivations against the spec. Building first
+and writing the spec from the result is a
+common antipattern; the spec is the contract that
+gets reviewed.
+
+These judgements are what distinguish defensible
+CDISC programming from boilerplate-following.
+
+## The regulatory pipeline
+
+The flow of clinical trial data from collection to submission
+follows a standardised pipeline:
+
+1. **Protocol** defines the trial design, endpoints, and
+   statistical analysis plan (SAP).
+2. **CRF** (Case Report Form) is the instrument sites use to
+   record observations on each participant.
+3. **SDTM** domains are built by data management from the
+   collected CRF data and submitted to the FDA as the raw
+   tabulations layer.
+4. **ADaM** datasets are derived from SDTM by biostatistics
+   programmers. They are analysis-ready and also submitted to
+   the FDA.
+5. **TLFs** (Tables, Listings, and Figures) are produced from
+   ADaM for the Clinical Study Report (CSR) that accompanies
+   the submission.
+
+Two rules organise this pipeline:
+
+- **Immutability of source.** Once SDTM is locked, it is not
+  edited to accommodate new analyses. A new analytic need
+  produces a new ADaM variable, not a change to SDTM.
+- **Traceability.** Every ADaM variable must point back to its
+  SDTM source and its derivation logic, documented in the
+  ADaM specification and the Define-XML.
+
+## SDTM: the FDA's view of the raw data
+
+SDTM organises a trial's observations into **domains**, each a
+dataset covering one topic area. Core domains you will see
+include:
+
+- `DM`: demographics (one row per subject).
+- `EX`: exposure or dosing (one row per dose).
+- `AE`: adverse events (one row per event).
+- `LB`: laboratory results (one row per test result).
+- `VS`: vital signs.
+- `DS`: disposition and end-of-study status.
+
+Two features of SDTM are worth noting. First, its structure is
+**vertical**: within a domain, each row is a single
+observation, and the same variable names (`USUBJID`, `VISIT`,
+`--TESTCD`, `--ORRES`, `--STRESN`) recur across domains.
+Second, dates are stored as ISO 8601 character strings such
+as `'2024-03-15'` or `'2024-03-15T08:30'`, not as R `Date`
+objects; this is an FDA submission requirement.
+
+You do not usually build SDTM as a biostatistician. You read
+it.
+
+## ADaM: the analysis-ready layer
+
+ADaM datasets take SDTM as input and produce rows and columns
+shaped for direct use by statistical procedures. There are
+three principal structures:
+
+- **ADSL** (Subject-Level Analysis Dataset): exactly one row
+  per subject. Contains treatment assignment, demographics,
+  baseline covariates, key dates, and population flags. Every
+  other ADaM dataset joins back to `ADSL` by `USUBJID`.
+- **BDS** (Basic Data Structure): one row per subject per
+  parameter per analysis visit. Used for longitudinal,
+  laboratory, vital-signs, and time-to-event analyses. Common
+  examples include `ADLB`, `ADVS`, and `ADTTE`.
+- **OCCDS** (Occurrence Data Structure): one row per
+  occurrence. Used for adverse events (`ADAE`) and
+  concomitant medications (`ADCM`).
+
+A few variable-name conventions recur across every ADaM
+dataset you will encounter:
+
+| Variable | Meaning |
+|---|---|
+| `USUBJID` | Unique subject identifier, sponsor-wide. |
+| `TRT01P`, `TRT01A` | Planned and actual treatment, period 1. |
+| `PARAMCD`, `PARAM` | Parameter code and decoded name. |
+| `AVAL`, `AVALC` | Analysis value (numeric, character). |
+| `AVISIT`, `AVISITN` | Analysis visit (character, numeric). |
+| `CNSR` | Censoring indicator (1 = censored). |
+| `ITTFL`, `SAFFL`, `EFFFL` | Population flags. |
+| `ANL01FL` | Analysis record flag. |
+| `DTYPE` | Derivation type (e.g. `'LOCF'`). |
+
+The `CNSR` convention is the single most common source of
+day-one errors for new statisticians. CDISC uses `CNSR = 1`
+for censored and `CNSR = 0` for event. The `survival::Surv()`
+function in R uses the opposite convention: `event = 1`. When
+moving between `ADTTE` and `Surv()`, invert.
+
+**Controlled terminology.** CDISC publishes codelists that
+enumerate the valid values of categorical variables. `SEX`,
+for instance, takes values in `{'M', 'F', 'U',
+'UNDIFFERENTIATED'}`, not `'Male'`, `'male'`, or `'1'`. Your
+ADaM specification will cite the relevant CDISC codelist
+version for each controlled variable.
+
+## Worked example: SDTM to ADaM to survival in R
+
+The example below fabricates minimal SDTM domains, derives
+`ADSL` and `ADTTE` for overall survival, and fits a
+Kaplan-Meier estimator and a Cox model. The row granularity
+changes at each step; tracking it is the concept.
+
+```{r}
+#| label: cdisc-setup
+#| message: false
+
+library(dplyr)
+library(survival)
+
+set.seed(47)
+n <- 100
+```
+
+### Fabricate SDTM domains
+
+Real SDTM has many more required variables per domain. We keep
+only what ADaM needs so that the pipeline is visible.
+
+```{r}
+#| label: cdisc-sdtm
+
+dm <- tibble(
+  USUBJID = sprintf('STUDY01-%03d', 1:n),
+  AGE     = round(rnorm(n, 62, 10)),
+  SEX     = sample(c('M', 'F'), n, replace = TRUE),
+  RACE    = sample(
+    c('WHITE', 'BLACK OR AFRICAN AMERICAN', 'ASIAN'),
+    n, replace = TRUE, prob = c(0.70, 0.20, 0.10)),
+  ARM     = sample(c('Placebo', 'Drug 50mg'), n,
+                   replace = TRUE),
+  RFSTDTC = as.Date('2024-01-01') +
+            sample(0:180, n, replace = TRUE)
+)
+
+ex <- dm |>
+  mutate(EXSTDTC = RFSTDTC + sample(0:3, n(), replace = TRUE),
+         EXTRT   = ARM) |>
+  select(USUBJID, EXSTDTC, EXTRT)
+
+ds <- dm |>
+  mutate(
+    hazard   = if_else(ARM == 'Drug 50mg', 0.0015, 0.0030),
+    tt_event = rexp(n(), rate = hazard),
+    t_admin  = 365 + sample(0:180, n(), replace = TRUE),
+    obs_time = pmin(tt_event, t_admin),
+    DSDECOD  = if_else(tt_event <= t_admin,
+                       'DEATH', 'COMPLETED'),
+    DSSTDTC  = RFSTDTC + round(obs_time)
+  ) |>
+  select(USUBJID, DSDECOD, DSSTDTC)
+```
+
+### Derive ADSL
+
+`ADSL` has exactly one row per subject. Every population flag,
+every treatment variable, and every demographic that a
+downstream analysis will stratify on is placed here.
+
+```{r}
+#| label: cdisc-adsl
+
+adsl <- dm |>
+  left_join(ex |> select(USUBJID, EXSTDTC),
+            by = 'USUBJID') |>
+  left_join(ds, by = 'USUBJID') |>
+  mutate(
+    TRT01P = ARM,
+    TRT01A = ARM,
+    TRTSDT = EXSTDTC,
+    TRTEDT = DSSTDTC,
+    AGEGR1 = cut(AGE, c(-Inf, 65, Inf),
+                 labels = c('<65', '>=65')),
+    SAFFL  = if_else(!is.na(TRTSDT), 'Y', 'N'),
+    ITTFL  = 'Y',
+    EFFFL  = SAFFL
+  ) |>
+  select(USUBJID, AGE, AGEGR1, SEX, RACE,
+         TRT01P, TRT01A, TRTSDT, TRTEDT,
+         SAFFL, ITTFL, EFFFL)
+
+stopifnot(nrow(adsl) == n_distinct(adsl$USUBJID))
+```
+
+### Derive ADTTE
+
+`ADTTE` follows the BDS structure: one row per subject per
+time-to-event parameter. Here we build a single parameter,
+overall survival (OS). A real `ADTTE` might stack additional
+rows for progression-free survival (PFS), disease-free survival
+(DFS), or time to treatment failure (TTF).
+
+```{r}
+#| label: cdisc-adtte
+
+adtte <- adsl |>
+  left_join(ds, by = 'USUBJID') |>
+  mutate(
+    PARAMCD  = 'OS',
+    PARAM    = 'Overall Survival (days)',
+    STARTDT  = TRTSDT,
+    ADT      = DSSTDTC,
+    AVAL     = as.numeric(ADT - STARTDT),
+    CNSR     = if_else(DSDECOD == 'DEATH', 0L, 1L),
+    EVNTDESC = if_else(CNSR == 0L, 'Death',
+                       'Administrative censoring'),
+    ANL01FL  = 'Y'
+  ) |>
+  select(USUBJID, TRT01P, TRT01A, SAFFL, EFFFL,
+         PARAMCD, PARAM, STARTDT, ADT, AVAL, CNSR,
+         EVNTDESC, ANL01FL)
+
+stopifnot(all(adtte$AVAL >= 0),
+          all(adtte$CNSR %in% c(0L, 1L)))
+
+head(adtte)
+```
+
+### Analyse from ADTTE
+
+Note the `1L - CNSR` inversion from the CDISC convention to
+`survival::Surv()`.
+
+```{r}
+#| label: cdisc-survival
+
+analysis <- adtte |>
+  filter(EFFFL == 'Y', PARAMCD == 'OS')
+
+fit <- survfit(Surv(AVAL, 1L - CNSR) ~ TRT01P,
+               data = analysis)
+print(fit)
+
+cox <- coxph(Surv(AVAL, 1L - CNSR) ~ TRT01P,
+             data = analysis)
+summary(cox)
+```
+
+The progression of row granularity across the pipeline is the
+concept to retain: `dm` is one row per subject, `ex` is one row
+per dose, `ds` is one row per disposition event, `adsl` returns
+to one row per subject, and `adtte` is one row per subject per
+parameter. Tracking this at every join is how you avoid
+silently duplicating subjects; the `stopifnot()` calls above
+are the doctrinal minimum.
+
+## The submission package
+
+A complete submission to the FDA is not only SDTM and ADaM
+datasets. It includes several supporting artefacts:
+
+- **Define-XML**: machine-readable metadata describing every
+  variable in every dataset, with controlled terminology
+  references, derivations, and provenance. Reviewers ingest
+  it to navigate the submission.
+- **Annotated CRF (aCRF)**: the blank CRF with SDTM variable
+  names annotated on each field. It is the bridge from what
+  was collected to what was submitted.
+- **Study Data Reviewer's Guide (SDRG)** and **Analysis Data
+  Reviewer's Guide (ADRG)**: narrative PDFs that explain
+  conformance decisions, known issues, and analysis choices.
+- **Statistical Analysis Plan (SAP)**: pre-specifies every
+  analysis that appears in the CSR, including populations,
+  estimands, and sensitivity analyses.
+
+You will not usually author Define-XML by hand. Tools such as
+`pinnacle21` and the open-source pharmaverse packages generate
+it from ADaM specifications.
+
+## The pharmaverse
+
+Until the late 2010s, most ADaM work in industry was done in
+SAS. Since approximately 2020, a coordinated open-source
+initiative called the **pharmaverse** has produced R packages
+that implement ADaM derivations with validation intended for
+regulatory use. The principal packages include:
+
+- `admiral`: modular ADaM derivations. The reference
+  implementation for `ADSL`, `ADAE`, `ADLB`, `ADTTE`, and
+  others.
+- `metacore` and `metatools`: read and validate ADaM
+  specifications.
+- `xportr`: export to SAS transport (XPT) format, which the
+  FDA still requires.
+- `pharmaverseadam`: reference ADaM datasets for teaching and
+  testing.
+
+At a sponsor or CRO that has adopted R, expect to encounter
+these packages in production pipelines. They are a more useful
+thing to learn than any proprietary alternative.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: the censoring inversion
+
+**Question.** You read an `ADTTE` dataset into R
+and fit `survival::Surv(AVAL, CNSR)` directly,
+without inversion. What survival curve do you
+produce, and how would you spot the bug?
+
+**Answer.**
+
+You produce the curve of *censoring* over time
+rather than the curve of survival. `Surv(time, event)`
+treats the second argument as 'event happened'
+(`event = 1`); `CNSR = 1` means 'censored', i.e.
+event did *not* happen. The fitted survival curve
+will look upside down: the treatment that delays
+the event will appear to have lower 'survival'
+because its participants accrue more
+administrative censoring as they live longer. The
+fix is `Surv(AVAL, 1L - CNSR)`. Spot the bug by
+sanity-checking against the median survival time
+or the event rate: if a treatment everyone agrees
+helps survival shows up worse than placebo, suspect
+the inversion. The error is among the most common
+day-one mistakes for statisticians moving from
+academic survival to CDISC ADTTE.
+
+:::
+
+## Principle in use
+
+Three habits define defensible CDISC work:
+
+1. **Specs before code.** Write the ADaM
+   specification first; implement against it. The
+   spec is the contract; the code is the
+   implementation.
+2. **Verify the censoring convention at the
+   boundary.** `CNSR = 1` means censored; invert
+   once when crossing into R's `survival::Surv()`.
+3. **Use population flags deliberately.** ITT,
+   safety, efficacy, each is a substantive
+   choice the SAP pre-specifies. Match analysis
+   filter to spec.
+
+## With AI assistance {.unnumbered}
+
+::: {.callout-tip}
+## Prompts to try
+
+1. Paste an SDTM domain (even a synthetic one) and ask the LLM
+   to describe its shape, its role, and its relationship to
+   other domains. Check whether the model correctly identifies
+   the granularity (one row per what).
+2. Give the LLM an `ADSL` specification and ask it to generate
+   an `admiral`-style derivation. Compare its output to the
+   `admiral` reference implementation. Does it use the correct
+   helper functions, or does it reinvent them?
+3. Ask the LLM to write a reviewer-facing explanation of the
+   `CNSR` convention. Evaluate whether the explanation would
+   be accepted at face value by a new statistician, or whether
+   it contains subtle errors about which value means what.
+:::
+
+## Exercises
+
+1. Extend the `ADTTE` in the worked example to include a
+   second parameter, progression-free survival (PFS), stacked
+   as additional rows. Add a synthetic progression event to
+   the `DS` domain to support it. Verify that
+   `nrow(adtte) == 2 * n`.
+2. Build a minimal `ADAE` (OCCDS structure) from a fabricated
+   `AE` SDTM domain. Include `AEDECOD`, `AESER`, `AESEV`, and
+   a treatment-emergent flag `TRTEMFL` derived from whether
+   `AESTDTC >= TRTSDT`.
+3. Install `admiral` and `pharmaverseadam` from CRAN. Load
+   `pharmaverseadam::adsl` and compare its column list to the
+   `ADSL` built in this chapter. Which variables are missing
+   from our simplified version, and which of them would matter
+   for a real oncology analysis?
+4. Write an ADaM specification table (in Quarto) for the
+   `ADTTE` built above: variable name, label, type, source,
+   and derivation. Render it to PDF.
+
+## Further reading
+
+- CDISC Foundational Standards at `cdisc.org/standards/foundational`, authoritative reference.
+- `admiral` documentation at `pharmaverse.github.io/admiral`, the CRAN implementation.
+- FDA Study Data Technical Conformance Guide, the regulatory requirements.
+
+## Prerequisites answers {#sec-quiz-answers-19}
+
+1. SDTM (Study Data Tabulation Model) holds the regulatory
+   view of the raw, collected clinical data, organised into
+   domains such as `DM`, `AE`, `LB`, and `EX`. ADaM (Analysis
+   Data Model) holds analysis-ready datasets derived from
+   SDTM. A biostatistician typically builds ADaM; SDTM is
+   built by data management or clinical programmers.
+2. `CNSR = 1` indicates a censored observation. `CNSR = 0`
+   indicates the event of interest. This convention is the
+   inverse of `survival::Surv()`, which uses `event = 1`.
+3. `ADSL` is the subject-level anchor dataset. It contains
+   exactly one row per subject, with treatment assignment,
+   demographics, baseline covariates, key dates, and
+   population flags. Every other ADaM dataset (`ADLB`,
+   `ADTTE`, `ADAE`, and so on) joins back to `ADSL` by
+   `USUBJID` and inherits treatment and population flags
+   from it.

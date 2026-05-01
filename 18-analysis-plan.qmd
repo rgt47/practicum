@@ -1,0 +1,540 @@
+# Statistical Analysis Plans {#sec-analysis-plan}
+
+::: {.callout-note}
+## Sources
+
+Adapted from author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-18.
+
+1. What is the primary purpose of a pre-registered
+   Statistical Analysis Plan (SAP)?
+2. Name at least five sections every clinical SAP
+   should contain.
+3. Why is it important, both scientifically and
+   ethically, to distinguish pre-specified from
+   exploratory analyses in the body of a SAP?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Draft a SAP using the 243B template as a starting
+  point.
+- Pre-specify primary, secondary, and exploratory
+  analyses with enough detail that a collaborator
+  could execute them without further instruction.
+- Compute sample-size requirements with `zzpower` and
+  report them in the SAP.
+- Define missing-data strategies, sensitivity
+  analyses, and multiple-testing corrections
+  explicitly.
+- Version-control the SAP and tag the submitted
+  version before data access.
+- Distinguish pre-specified from exploratory analyses
+  in the analysis plan and the eventual paper.
+
+## Orientation
+
+The SAP is the professional biostatistician's most
+important non-code document. It locks in the analysis
+before the data are seen, so that the published
+results reflect hypotheses rather than post-hoc
+choices. Federally funded trials require it; so do
+most journals for confirmatory analyses; so should you
+for your own integrity.
+
+The SAP exists to constrain analyst degrees of
+freedom. Without it, the analysis plan is whatever
+the analyst chose after looking at the data, and the
+nominal Type-I error rate of the reported tests is
+not what the math says it is. With it, the analysis
+is anchored to a written-down plan that is on the
+public record.
+
+## The statistician's contribution {#sec-analysis-plan-human}
+
+The SAP is judgement work, not boilerplate.
+
+**Specify enough to constrain.** A SAP that says 'we
+will fit a regression model' has not specified
+anything. A SAP that says 'multivariable logistic
+regression of 30-day readmission on home-health
+visit (yes/no), adjusted for age (continuous), sex,
+ejection fraction (continuous), and discharge
+medication count (continuous), with a 5% Type-I
+error rate, two-sided' has constrained the
+researcher degrees of freedom that matter. Aim for
+the second.
+
+**Pre-specify what you commit to.** A primary
+analysis is a commitment. The Type-I error rate of
+that test is the rate the reader is told. Adding
+sensitivity analyses, exploratory analyses, and
+'data-prompted' analyses afterwards is fine ---
+provided they are labelled as such. Mixing them with
+the primary changes what the primary actually means.
+
+**Be honest about uncertainty in the plan.** When
+you do not know the right method until you see the
+data, say so. 'If the residuals show
+heteroscedasticity, we will use HC1 standard errors;
+otherwise classical SEs' is more honest than 'we
+will use HC1 SEs' (which constrains a choice that
+should be data-driven) or 'we will use SEs' (which
+constrains nothing).
+
+**Tag the SAP at data access.** Git tag
+`sap-v1.0-locked` at the moment the data become
+accessible. The tag is the proof of pre-
+specification. Later amendments are dated tags
+(`sap-v1.1-amendment-1`); their relationship to the
+data-access timeline is auditable.
+
+These judgements are what make a SAP a serious
+document rather than a regulatory chore.
+
+## Why pre-register?
+
+The case rests on three observations:
+
+1. **Researcher degrees of freedom inflate Type-I
+   error.** With many possible analyses (which
+   covariates to include, which transformations,
+   which subgroups), the chance that *some* analysis
+   produces $p < 0.05$ under the null is much
+   greater than 5%. Simmons et al. (2011) calculate
+   that 4 commonly-encountered degrees of freedom
+   inflate Type-I from 5% to about 60%.
+
+2. **The 'garden of forking paths'** (Gelman and
+   Loken 2013): even without conscious p-hacking,
+   the analysis is data-driven if the analyst made
+   choices in response to early data exploration.
+   The reported test's calibration depends on the
+   *unmade* choices that would have been made on
+   different data.
+
+3. **Pre-registration constrains the choices.** A
+   SAP written before data access fixes the
+   covariates, the model class, the missingness
+   strategy, the multiple-comparison correction. The
+   eventual analysis is what was pre-specified; any
+   deviation is documented as an amendment or as
+   exploratory.
+
+The trade-off is honest: pre-registration restricts
+flexibility. The flexibility it restricts was
+producing inflated false-positive rates anyway.
+
+## The 243B SAP template
+
+A standard biostatistical SAP has these sections:
+
+1. **Background and rationale.** Why this study, in
+   half a page. Sets the audience for the rest.
+2. **Research questions and hypotheses.** Numbered.
+   Each question paired with the specific
+   statistical hypothesis it implies.
+3. **Study design.** RCT (parallel, crossover,
+   cluster), observational cohort, case-control,
+   etc. Sample size and power justification reference
+   this design.
+4. **Inclusion and exclusion criteria.** As a numbered
+   list. Each criterion testable from data alone.
+5. **Primary outcome definition.** Operationalised:
+   the data fields, the time window, the value
+   transformation. A second analyst should compute
+   the same outcome variable.
+6. **Secondary outcomes.** Same level of detail.
+7. **Covariates.** Each one named, with its
+   transformation if any (continuous? categorised?
+   reference level?). Effects of interest specified.
+8. **Primary analysis.** Specific test or model.
+   Expected output (point estimate, CI, p-value).
+   Type-I error rate.
+9. **Secondary analyses.** Each one its own subsection
+   with the same level of detail.
+10. **Sensitivity analyses.** Each labelled as
+    sensitivity (e.g., 'sensitivity to missing-data
+    assumption'); pre-specified, not data-driven.
+11. **Missing-data handling.** Specific strategy:
+    complete-case, multiple imputation, IPW; the
+    assumed mechanism (MCAR, MAR, MNAR); diagnostic
+    checks.
+12. **Multiple testing.** Family-wise correction
+    (Bonferroni, Holm, etc.) or false discovery
+    rate (BH) procedure; the family of tests it
+    applies to.
+13. **Reporting.** What gets reported, in what
+    table/figure, in what manuscript.
+
+The template is a checklist; not every section is
+needed for every study. For an observational
+secondary analysis, sections 3 and 4 are simpler;
+sections 8--12 are the same.
+
+## Sample size with `zzpower`
+
+`zzpower` provides power calculations for the
+standard clinical-trial designs:
+
+```r
+library(zzpower)
+
+# parallel-group RCT, continuous outcome
+power_t_two_sample(
+  delta = 0.5,        # standardised effect
+  alpha = 0.05,
+  power = 0.80,
+  ratio = 1           # 1:1 allocation
+)
+#> n per group: 64
+```
+
+For more complex designs (cluster RCTs, crossover,
+stratified, multi-arm), the package has analogous
+functions. For situations not covered in closed
+form, simulate:
+
+```r
+power_simulate(
+  n_per_arm = 64,
+  delta = 0.5,
+  alpha = 0.05,
+  generator = function(n, delta) ...,
+  test = function(d) t.test(...)$p.value,
+  R = 5000
+)
+#> Empirical power: 0.81
+```
+
+In the SAP, report the sample size with the
+underlying assumptions:
+
+> The study will enrol 64 participants per arm
+> (total $n = 128$), to achieve 80% power to detect
+> a standardised effect of 0.5 at a two-sided
+> $\alpha = 0.05$, assuming an attrition rate of
+> 10%.
+
+If the assumptions are uncertain, present a table of
+required sample sizes under several effect sizes,
+and choose the planned sample size based on
+feasibility.
+
+## Pre-specified vs. exploratory
+
+A pre-specified analysis is one that:
+
+- Was written down in the SAP before data access.
+- Has its statistical properties (Type-I error rate,
+  CI coverage) calibrated to the SAP's specification,
+  not to the analyst's choices afterwards.
+- Carries the full inferential authority of the
+  study.
+
+An exploratory analysis is one that:
+
+- Was generated after seeing the data, or that was
+  not pre-specified for some reason (a reviewer
+  request, an unexpected finding).
+- Has its statistical properties uncalibrated.
+- Is hypothesis-generating, not confirmatory.
+
+In the SAP, separate them clearly:
+
+> **Pre-specified analyses.** [list]
+>
+> **Exploratory analyses (hypothesis-generating,
+> reported with appropriate caution).** [list]
+
+In the paper, label them in the methods section:
+
+> The primary analysis was a multivariable logistic
+> regression of 30-day readmission on home-health
+> visit, pre-specified in the analysis plan
+> (Supplementary Material, version 1.0). Subgroup
+> analyses by age were exploratory and are reported
+> as hypothesis-generating.
+
+The convention spares the reader from over-
+interpreting exploratory findings while preserving
+their scientific value as motivation for follow-up.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: pre-spec vs. exploratory
+
+**Question.** You have pre-specified a primary
+logistic regression. Reviewers ask for a subgroup
+analysis by age. You run it and find a significant
+interaction. How should this appear in the paper?
+
+**Answer.**
+
+The subgroup analysis is exploratory because it was
+not pre-specified. Even though the data showed a
+significant interaction, the test's Type-I error
+rate is not 5% in any meaningful sense: the test
+was selected after the data were seen. Report the
+result clearly labelled as exploratory and
+hypothesis-generating, not as a confirmatory
+finding. The interaction is a candidate for a
+future pre-registered study; in the current paper,
+it joins the discussion section as an interesting
+observation, not the results section as a
+confirmatory test. Mislabelling exploratory
+findings as confirmatory is among the most common
+forms of inferential overreach in clinical
+research.
+
+:::
+
+## Version control and tagging
+
+The SAP lives in the project's Git repository:
+
+```
+project/
+├── SAP/
+│   ├── sap-v1.0.qmd       # current SAP
+│   ├── sap-v1.0.pdf       # rendered version submitted to ClinicalTrials.gov
+│   └── amendments/
+│       ├── amendment-1.qmd
+│       └── amendment-2.qmd
+└── ...
+```
+
+Tag the moment of data lock:
+
+```bash
+git tag -a sap-v1.0-locked -m "SAP locked at data access 2026-04-23"
+git push origin sap-v1.0-locked
+```
+
+Later amendments are separate commits and tags:
+
+```bash
+git tag -a sap-v1.1-amendment-1 -m "Amendment 1: revised missing-data strategy following blinded data review"
+```
+
+Amendments must be made before unblinded data
+analysis to retain confirmatory status; amendments
+made after unblinding (after seeing outcomes) are
+exploratory by definition.
+
+For trials, deposit the locked SAP at the trial
+registry (ClinicalTrials.gov, ANZCTR, ISRCTN) at
+the time of registration. The deposited copy is the
+authoritative pre-specification.
+
+## Worked example: SAP outline
+
+> **Title:** Statistical Analysis Plan for the
+> Effect of Post-Discharge Home Health Visits on
+> 30-Day Readmission in Heart Failure (HF-HOME-RCT)
+>
+> **Version:** 1.0, locked 2026-04-23.
+>
+> ## 1. Background
+>
+> Patients hospitalised with heart failure have a
+> 25% 30-day readmission rate. Home-health visits
+> within 7 days of discharge have been associated
+> with reduced readmission in observational studies
+> [...]. We test the causal effect with a parallel-
+> group RCT.
+>
+> ## 2. Research question
+>
+> Does receipt of $\geq 1$ home-health visit within
+> 7 days of discharge reduce 30-day all-cause
+> readmission in HF patients?
+>
+> ## 3. Design
+>
+> Parallel-group, individually randomised, open-
+> label RCT. 1:1 allocation. Stratified by site and
+> baseline ejection fraction.
+>
+> ## 4. Eligibility
+>
+> Inclusion: (a) admitted with primary diagnosis
+> heart failure (ICD-10 I50.x); (b) age $\geq 18$;
+> (c) discharged alive.
+> Exclusion: (a) hospice; (b) inability to consent;
+> (c) prior enrolment in this trial.
+>
+> ## 5. Primary outcome
+>
+> Binary: 30-day all-cause readmission, defined as
+> any inpatient admission to any institution within
+> 30 days of index discharge. Source: institutional
+> EHR linked to state HIE.
+>
+> ## 8. Primary analysis
+>
+> Multivariable logistic regression of readmission
+> on treatment (home-health visit yes/no), adjusted
+> for age (continuous), sex, ejection fraction
+> (continuous), discharge medication count
+> (continuous), and site (random intercept).
+> Estimand: marginal odds ratio (Hernan and
+> Robins). Two-sided $\alpha = 0.05$. Sample size:
+> 1500 (750 per arm) for 80% power to detect
+> OR = 0.75 at baseline rate 0.25.
+>
+> ## 11. Missing data
+>
+> Outcome: complete from the institutional EHR; if
+> any missingness, complete-case primary; multiple
+> imputation by chained equations as sensitivity.
+> Covariates: $<5\%$ missing assumed MAR;
+> imputation as for outcome.
+>
+> ## 12. Multiple testing
+>
+> Primary outcome: no correction (one test).
+> Secondary outcomes: Bonferroni at $\alpha = 0.05/k$
+> for $k$ secondary tests.
+
+This level of specificity is what 'pre-specified'
+means. Vagueness invites researcher degrees of
+freedom.
+
+## Collaborating with an LLM on SAPs
+
+LLMs draft SAP boilerplate well; the substantive
+choices need human judgement.
+
+**Prompt 1: drafting boilerplate sections.** Paste
+the project description and ask: 'draft sections
+1--4 of a SAP using the 243B template.'
+
+*What to watch for.* The output will likely be the
+right shape. Verify the inclusion/exclusion
+criteria are checkable from data alone (no
+'eligible at investigator discretion'). Verify the
+outcome definition is operational.
+
+*Verification.* Hand the draft to a clinical
+collaborator; ask whether the outcome and
+eligibility could be applied without further
+instruction.
+
+**Prompt 2: classifying analyses.** Paste a list of
+analyses and ask: 'which are pre-specified
+(confirmatory) and which are exploratory?'
+
+*What to watch for.* The classification depends on
+when each analysis was decided. The LLM cannot
+know this; it can only flag analyses that look
+exploratory in nature (subgroup, post-hoc).
+Cross-check with your timeline.
+
+*Verification.* For each analysis, ask: 'was this
+in the SAP at data access?' If yes,
+pre-specified; if no, exploratory.
+
+**Prompt 3: power calculation.** Describe the
+design and effect size; ask the LLM to compute
+required sample size and to verify against
+`zzpower`.
+
+*What to watch for.* The LLM may produce a
+formula-based answer that disagrees with `zzpower`.
+The reasons are usually different assumptions
+(unbalanced allocation, attrition, paired vs.
+unpaired). Reconcile by stating assumptions
+explicitly.
+
+*Verification.* Compute by hand for a simple case;
+verify the LLM and `zzpower` agree.
+
+## Principle in use
+
+Three habits define defensible SAP practice:
+
+1. **Specify with enough detail that a second
+   analyst would produce the same result.** Vague
+   pre-specification is barely pre-specification.
+2. **Tag the SAP at data access.** Git tag plus
+   trial-registry deposit gives an audit trail of
+   when the analysis was committed.
+3. **Distinguish pre-specified from exploratory in
+   the paper.** Reader interpretation of evidence
+   strength depends on this label.
+
+## Exercises
+
+1. Draft a SAP (skeleton only) for a hypothetical
+   cluster randomised trial of a patient-education
+   intervention. Use the 243B template.
+2. Use `zzpower` to compute the required sample
+   size for the primary analysis in exercise 1
+   under three plausible effect sizes (small,
+   medium, large). Include the table in the SAP.
+3. Locate a published paper with a publicly
+   available SAP. Audit whether the paper's
+   analyses match the SAP. Identify any deviations;
+   classify them as amendments, exploratory, or
+   unreported.
+4. Take an analysis you completed without a SAP and
+   write a retrospective SAP describing what should
+   have been pre-specified. Note which choices were
+   data-driven; flag those as exploratory.
+5. Write an amendment to a SAP that revises the
+   missing-data strategy following a blinded data
+   review. Tag both versions in git; verify the
+   timeline is auditable.
+
+## Further reading
+
+- ICH E9 *Statistical Principles for Clinical
+  Trials*, the regulatory baseline document.
+- The SPIRIT guidelines at `spirit-statement.org`
+ , standard protocol items for clinical trials.
+- The CONSORT guidelines at
+  `consort-statement.org`, reporting standards
+  that interact with SAP discipline.
+- Simmons, Nelson, and Simonsohn (2011), 'False-
+  Positive Psychology', *Psychological Science* ---
+  the canonical demonstration of researcher
+  degrees of freedom.
+
+## Prerequisites answers {#sec-quiz-answers-18}
+
+1. The SAP locks in the analysis plan before data
+   access, so that the eventual published results
+   reflect hypotheses formed in advance rather than
+   post-hoc choices made in the light of the data.
+   It limits the 'garden of forking paths' that
+   would otherwise inflate Type-I error and enable
+   p-hacking. Federally funded trials require it;
+   confirmatory analyses in any setting benefit
+   from it.
+2. (Any five of:) background and rationale;
+   research questions and hypotheses; study design /
+   cohort definition; inclusion/exclusion criteria;
+   primary outcome definition; secondary outcomes;
+   covariates; primary analysis; secondary
+   analyses; sensitivity analyses; missing-data
+   handling; multiple-testing correction; reporting/
+   publication plan.
+3. Pre-specified analyses represent commitments
+   made before data access; they carry the full
+   inferential authority of the study's sampling
+   plan. Exploratory analyses are generated after
+   seeing the data; they are hypothesis-generating,
+   not confirmatory, and should be reported with
+   appropriate caution. Conflating the two misleads
+   readers about the evidential strength of the
+   findings and is one of the most common sources
+   of reproducibility failure in biomedical
+   research.

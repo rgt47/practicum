@@ -1,0 +1,193 @@
+# Introduction {#sec-intro}
+
+## What is 'practicum'?
+
+A practicum is a supervised, hands-on course of
+study. This book is a practicum in the fullest
+sense: it teaches skills that cannot be acquired by
+reading, only by doing. Every chapter ends with
+exercises that require you to sit at a keyboard
+and produce an artefact, whether that is a Git
+commit, a Docker container, or a finished analysis
+report.
+
+The book is the companion to *Statistical Computing
+in the Age of AI*, the methods-focused volume. The
+two books cover complementary territory: the
+methods volume teaches what to compute and why;
+this volume teaches how to compute it
+reproducibly.
+
+## What this book covers
+
+This book covers the practical craft of
+biostatistical data analysis:
+
+- **Reproducible research infrastructure.** Git
+  (@sec-git-solo), `renv` (@sec-renv), Docker
+  (@sec-docker), research compendia
+  (@sec-rrtools), the `zzcollab` framework
+  (@sec-zzcollab).
+- **Federal compliance.** OSTP, NIH DMSP, NSF, FDA
+  expectations (@sec-federal).
+- **Workstation setup.** R, Quarto, Git,
+  dotfiles, editor choice (@sec-workstation).
+- **Cloud compute.** AWS, GCP, university HPC
+  (@sec-cloud).
+- **Data wrangling.** The tidyverse stack
+  (@sec-wrangling, @sec-types, @sec-joins).
+- **Reporting.** Quarto and R Markdown
+  (@sec-quarto, @sec-rmd-workflow).
+- **Communication.** Publication-quality figures
+  (@sec-graphics).
+- **Analysis practice.** Statistical analysis
+  plans (@sec-analysis-plan), missing data
+  handling (@sec-missing), CDISC standards
+  (@sec-cdisc), testing data analysis workflows
+  (@sec-testing).
+- **AI-assisted coding.** LLMs as amplifier, not
+  replacement (@sec-ai-coding).
+- **Cross-language fluency.** SAS for regulatory
+  bridging (@sec-sas).
+- **Case studies.** End-to-end small analysis
+  (@sec-penguins) and longitudinal modelling
+  (@sec-adni).
+
+## What this book does not cover
+
+- The statistical theory underlying specific
+  models (linear, generalised linear, mixed,
+  survival). For that, see the companion book
+  *Statistical Computing in the Age of AI* or a
+  standard reference.
+- Experimental design, sample-size calculation,
+  or causal inference beyond what is needed to
+  execute an analysis plan.
+- Specialised computing platforms (Bioconductor,
+  Stan, deep-learning frameworks) beyond brief
+  mention.
+- Statistical theory in any depth.
+
+The trade-off is deliberate. The book aims for
+breadth across the workflow rather than depth on
+any one method.
+
+## Who this book is for
+
+The intended reader is a graduate student or
+early-career biostatistician who has working R
+fluency and is now learning to operate
+professionally: working on teams, satisfying
+regulatory requirements, producing reproducible
+artefacts that survive peer review.
+
+The book assumes:
+
+- R proficiency at the level of *R for Data
+  Science* (Wickham and Grolemund).
+- Familiarity with statistical methods at the
+  master's level (linear and generalised linear
+  models, basic survival, regression diagnostics).
+- Comfort with the command line and basic file-
+  system operations.
+
+The book does not assume:
+
+- Prior Git, Docker, or `renv` experience.
+- Prior collaboration with clinical investigators.
+- Experience with regulatory or
+  industry-sponsored research.
+
+## How to read this book
+
+For each chapter, the recommended workflow is:
+
+1. **Read** the chapter through once, without
+   running code. Notice the structure: an opening
+   quiz, learning objectives, the
+   statistician's-contribution section, the
+   technical sections, the LLM callouts, the
+   exercises.
+2. **Replicate** the examples in your own
+   environment. Type, do not copy-paste. The
+   typing forces you to read each character; the
+   copy-paste does not.
+3. **Do** the exercises without consulting an
+   LLM. The cognitive cost of producing the
+   answer yourself is part of the learning.
+4. **Extend** by pasting the AI-assisted practice
+   prompts (the 'Collaborating with an LLM'
+   callouts) into an LLM and critiquing the
+   responses against your own work.
+
+The book is dense. Reading two chapters per week
+is a sustainable pace; covering it in a quarter
+or trimester is realistic. The exercises are the
+work; the chapters are the scaffolding.
+
+## The chapter pattern
+
+Every chapter follows the same structure:
+
+- **Prerequisites quiz.** Three open-ended
+  questions, in the style of *Advanced R*
+  [@wickham2019advr]. Answer them honestly; if
+  all three are easy, you can bypass the
+  chapter. Answers appear in the
+  Prerequisites-answers section at the end.
+- **Learning objectives.** What you will be able
+  to do.
+- **Orientation.** A short prose framing of the
+  topic.
+- **The statistician's contribution.** What no
+  tool can automate. The judgements that
+  distinguish defensible practice from rote use.
+- **Technical sections.** The how-to.
+- **Worked examples.** Code that demonstrates
+  the chapter's tools on a realistic problem.
+- **Collaborating with an LLM.** Prompts that
+  work, what to watch for, how to verify.
+- **Principle in use.** Three habits the chapter
+  has been building toward.
+- **Exercises.** The work.
+- **Further reading.** Where to go next on this
+  topic.
+- **Prerequisites answers.** End of chapter.
+
+The pattern is repeated deliberately. By the
+third chapter you know where to find each
+component.
+
+## On the Age-of-AI framing
+
+The companion textbook is titled *Statistical
+Computing in the Age of AI*. This Practicum is
+named for its content (Biostatistics Practicum)
+rather than the AI framing, but the framing is
+present throughout: every chapter has a
+'Collaborating with an LLM' section showing how
+to use AI assistance for the chapter's tools, and
+chapter 21 is the meta-chapter on AI-assisted
+coding more generally.
+
+The position the books take is consistent: large
+language models are an amplifier of analyst
+productivity, not a replacement for analyst
+judgement. The book argues this position by
+demonstration. Use the AI assistance the book
+describes; verify it the way the book describes;
+form your own view.
+
+## What this book is, in three sentences
+
+A graduate practicum in the daily craft of
+biostatistical data analysis. Six arcs:
+reproducibility, workstation, infrastructure,
+reporting, analysis practice, case studies. The
+test of the book is whether, after working
+through it, you can produce a reproducible,
+defensible analysis on a real biomedical question
+with an interdisciplinary team, using AI
+assistance without being misled by it.
+
+Good luck.

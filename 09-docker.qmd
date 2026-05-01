@@ -1,0 +1,544 @@
+# Docker for Reproducibility {#sec-docker}
+
+::: {.callout-note}
+## Sources
+
+Blog posts `32-sharermdcodeviadocker`,
+`33-shareshinycodeviadocker`; the `rocker` project;
+the author's own Docker + `renv` demo materials.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-09.
+
+1. What is the difference between a Docker image and a
+   Docker container?
+2. Why might a data analyst prefer Docker over `renv`
+   for long-term reproducibility, and what does Docker
+   capture that `renv` alone does not?
+3. What does the base image `rocker/tidyverse:4.4.0`
+   give you out of the box?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Pull a `rocker` base image and start an R session
+  inside a container.
+- Write a `Dockerfile` that layers system dependencies,
+  R packages via `renv`, and your project source, in
+  build-cache-friendly order.
+- Run RStudio Server in a container accessible from a
+  browser.
+- Use Docker Compose for multi-service analyses (R +
+  database, R + Shiny).
+- Deposit a built image in Docker Hub or GitHub
+  Container Registry for persistent distribution.
+- Diagnose common Docker build failures (missing
+  system libraries, slow rebuilds, image bloat).
+
+## Orientation
+
+`renv` pins R packages but not the operating system,
+the system libraries, or the R build itself. Docker
+captures all three. For analyses that must reproduce
+exactly years later, or that depend on tricky system
+libraries (geospatial, GDAL, BLAS variants, JAGS, Stan),
+Docker is the right tool.
+
+The `rocker` project provides curated Docker images for
+R: minimal R, R with tidyverse, R with geospatial
+libraries, RStudio Server, and others. They are the
+foundation for almost all R-in-Docker work.
+
+This chapter does not assume prior Docker experience.
+The mental model and the canonical recipes are enough
+for most biostatistical workflows.
+
+## The statistician's contribution {#sec-docker-human}
+
+Docker mechanics are mechanical. The judgements:
+
+**Pick the right base image.** `rocker/r-ver:4.4.0` is
+minimal: a few hundred MB. `rocker/tidyverse:4.4.0`
+adds tidyverse (faster startup if your project uses it,
+larger image). `rocker/geospatial:4.4.0` adds GDAL,
+PROJ, and CRS libraries (essential for geospatial work,
+overkill otherwise). Pick the smallest base that has
+your prerequisites.
+
+**Layer order matters.** Docker caches each `RUN`
+layer. Put slow-changing layers (system dependencies,
+`renv::restore()`) early, fast-changing layers (project
+source) late. A change to your analysis script should
+not invalidate the package-installation layer.
+
+**Pin everything.** `FROM rocker/r-ver:4.4.0` is good;
+`FROM rocker/r-ver:latest` is bad. The first reproduces;
+the second drifts. The same applies to system packages
+(`apt-get install r-base`): pin versions in the
+Dockerfile or accept that 'latest' will eventually
+break.
+
+**Decide where the data goes.** Embedding data in the
+image makes the image self-contained but bloats it.
+Mounting data via a volume keeps the image small but
+breaks the 'one image, full reproduction' promise. For
+small data, embed; for large or sensitive data, mount.
+
+These judgements are what make Docker a reproducibility
+tool rather than a slow build system.
+
+## Images, containers, and layers
+
+The Docker mental model:
+
+- **Image**: an immutable, read-only template. Contains
+  an OS, system libraries, application code,
+  configuration. Stored on disk as a stack of *layers*.
+- **Container**: a running instance of an image. Adds a
+  writable layer on top of the image's layers; the
+  container's filesystem changes do not modify the
+  image.
+- **Layer**: each `RUN` / `COPY` / `ADD` instruction in a
+  Dockerfile produces a layer. Layers are cached;
+  rebuilds reuse unchanged layers, which is why layer
+  order matters for build speed.
+- **Registry**: a server that stores images. Docker Hub
+  is the public default; GitHub Container Registry, AWS
+  ECR, and others are alternatives.
+
+Common operations:
+
+```bash
+# pull an image
+docker pull rocker/tidyverse:4.4.0
+
+# run a container interactively
+docker run -it --rm rocker/tidyverse:4.4.0 R
+
+# run a container with a mounted volume
+docker run -it --rm -v $(pwd):/work \
+  rocker/tidyverse:4.4.0 R
+
+# build an image from a Dockerfile in the current directory
+docker build -t my-analysis:v1.0 .
+
+# list local images
+docker images
+
+# remove an image
+docker rmi my-analysis:v1.0
+```
+
+The `--rm` flag removes the container when it exits;
+without it, stopped containers accumulate.
+
+## The `rocker` project
+
+[`rocker-project.org`](https://rocker-project.org/)
+maintains the standard R Docker images:
+
+- **`rocker/r-ver`**: minimal R on Debian. Smallest
+  image; useful as a base for `renv`-based projects
+  where you install everything yourself.
+- **`rocker/rstudio`**: R plus RStudio Server. For
+  interactive use in the browser.
+- **`rocker/tidyverse`**: R, RStudio, and the tidyverse.
+  Most common starting point for biostatistical work.
+- **`rocker/geospatial`**: tidyverse plus GDAL/PROJ for
+  spatial analysis.
+- **`rocker/verse`**: tidyverse plus LaTeX for paper
+  rendering.
+- **`rocker/binder`**: configured for use with the
+  Binder service (myBinder.org).
+- **`bioconductor/bioconductor_docker`**: similar
+  ecosystem for genomics/Bioconductor.
+
+Each image is tagged with R version (e.g.,
+`rocker/tidyverse:4.4.0`) and built reproducibly from
+public Dockerfiles. Pinning a tag pins the
+environment.
+
+## A research-compendium Dockerfile
+
+```dockerfile
+# pin to a specific R version (and rocker tag)
+FROM rocker/r-ver:4.4.0
+
+# system libraries that R packages need
+# (curl/openssl/xml2 covers most CRAN packages)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxml2-dev \
+    libfontconfig1-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libtiff5-dev \
+    libjpeg-dev \
+    pandoc \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# install renv (a known version)
+RUN R -e 'install.packages("renv", \
+  repos = "https://cloud.r-project.org", version = "1.0.7")'
+
+# restore project packages from lockfile
+WORKDIR /work
+COPY renv.lock renv.lock
+RUN R -e 'renv::restore()'
+
+# copy the project source AFTER package install (cache friendly)
+COPY . /work
+
+# default command: render the paper
+CMD ["R", "-e", "rmarkdown::render('analysis/paper/paper.qmd')"]
+```
+
+The order matters: lockfile → renv install → project
+source. Changes to `analysis/paper/paper.qmd` only
+invalidate the last layer (a fast COPY); changes to
+`renv.lock` invalidate the package install. Without
+this ordering, every change to the manuscript triggers
+a full reinstall, which is slow.
+
+Build:
+
+```bash
+docker build -t readmissions:v1.0 .
+```
+
+Run the analysis:
+
+```bash
+docker run --rm -v $(pwd)/analysis/paper:/output \
+  readmissions:v1.0
+```
+
+The mounted volume makes the rendered PDF appear in your
+host's file system.
+
+## RStudio Server in a container
+
+For interactive work with the project's pinned
+environment:
+
+```bash
+docker run -d --rm \
+  -p 8787:8787 \
+  -e PASSWORD=secret \
+  -v $(pwd):/home/rstudio \
+  --name analysis-rstudio \
+  rocker/tidyverse:4.4.0
+```
+
+Then open `http://localhost:8787` in a browser; log in
+as `rstudio` with password `secret`. Your project
+files are mounted under `/home/rstudio`. Inside the
+container, run `renv::restore()` to install the
+project's packages.
+
+This pattern is useful for teaching (every student gets
+the same environment) and for collaborative analysis
+(everyone runs the same RStudio).
+
+## Sharing a container
+
+Push the image to a registry:
+
+```bash
+# tag for Docker Hub
+docker tag readmissions:v1.0 username/readmissions:v1.0
+docker push username/readmissions:v1.0
+
+# or to GitHub Container Registry
+docker tag readmissions:v1.0 ghcr.io/username/readmissions:v1.0
+docker push ghcr.io/username/readmissions:v1.0
+```
+
+A reader pulls with:
+
+```bash
+docker pull username/readmissions:v1.0
+docker run --rm username/readmissions:v1.0
+```
+
+For long-term archival, push the built image's tarball
+to Zenodo:
+
+```bash
+docker save -o readmissions-v1.0.tar readmissions:v1.0
+gzip readmissions-v1.0.tar
+# upload readmissions-v1.0.tar.gz to Zenodo for a DOI
+```
+
+This produces a self-contained, citable artefact that
+will outlive Docker Hub or GitHub.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: image vs. container
+
+**Question.** You build an image `readmissions:v1.0`,
+run a container from it, install a new R package
+inside the running container, then exit. Is the new
+package available next time you run a container from
+the same image?
+
+**Answer.**
+
+No. The image is immutable; changes inside a container
+live only in the container's writable layer, which is
+discarded when the container exits (with `--rm`) or
+otherwise lost when the container is removed. To add
+the package permanently, edit the Dockerfile (add a
+`renv::install` step or update `renv.lock`) and rebuild
+the image. This is the discipline that makes Docker a
+reproducibility tool: changes happen in the
+Dockerfile, in version control, not on running
+containers. The 'works on my machine' problem becomes
+'works on this image, which everyone has'.
+
+:::
+
+## Docker Compose for multi-service analyses
+
+For analyses that need a database, a Shiny app talking
+to an R session, or other multi-process setups, Docker
+Compose orchestrates several containers:
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  r:
+    build: .
+    volumes:
+      - ./analysis:/work/analysis
+      - ./data:/work/data
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: research
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+```
+
+```bash
+docker compose up -d
+docker compose exec r R       # interactive R session in the r service
+docker compose down            # stop both services
+```
+
+The `docker compose` (subcommand) form is current as of
+Docker 20.10+; the older `docker-compose` (hyphenated
+binary) is being deprecated.
+
+For most biostatistical analyses, a single container is
+enough. Compose is useful when the analysis interacts
+with another service (a database, a queue) that should
+also be reproducibly versioned.
+
+## Common build failures
+
+**System library missing.** A package compile fails with
+'cannot find -lcurl' or 'fatal error: openssl/...'.
+Add the corresponding `lib*-dev` to the
+`apt-get install` line. The R packages `curl`, `xml2`,
+`openssl`, `httr2`, `sf` are common offenders.
+
+**Slow rebuilds.** Every change triggers package
+reinstallation. The fix: copy `renv.lock` first, then
+restore, then copy the rest of the project. Layer
+caching does the rest.
+
+**Image bloat.** `apt-get install` without
+`--no-install-recommends` and `rm -rf /var/lib/apt/lists/*`
+produces images that are gigabytes larger than
+necessary. The standard one-liner above mitigates this.
+
+**Architecture mismatch.** Building on Apple Silicon
+(arm64) and deploying on a Linux x86_64 server
+produces an image that does not run. Use Docker
+Buildx to build multi-arch images:
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t username/readmissions:v1.0 --push .
+```
+
+## Worked example: complete dockerised compendium
+
+```dockerfile
+# Dockerfile
+FROM rocker/r-ver:4.4.0
+
+# system deps for tidyverse, sf, brms
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcurl4-openssl-dev libssl-dev libxml2-dev \
+    libfontconfig1-dev libfreetype6-dev libpng-dev \
+    libgdal-dev libproj-dev libgeos-dev \
+    pandoc texlive-xetex \
+    && rm -rf /var/lib/apt/lists/*
+
+# renv at a fixed version
+RUN R -e 'install.packages("renv", repos = "https://cloud.r-project.org")'
+
+WORKDIR /work
+COPY renv.lock renv.lock
+RUN R -e 'renv::restore()'
+
+COPY . /work
+
+# render the paper by default
+CMD ["R", "-e", "rmarkdown::render('analysis/paper/paper.qmd')"]
+```
+
+```bash
+# build and run
+docker build -t readmissions:v1.0 .
+docker run --rm -v $(pwd)/output:/work/output readmissions:v1.0
+
+# push for sharing
+docker tag readmissions:v1.0 ghcr.io/username/readmissions:v1.0
+docker push ghcr.io/username/readmissions:v1.0
+```
+
+A reader, given the GitHub repository of the
+compendium, runs:
+
+```bash
+git clone https://github.com/username/readmissions.git
+cd readmissions
+docker build -t readmissions:v1.0 .
+docker run --rm readmissions:v1.0
+```
+
+The paper renders. They have reproduced your
+environment exactly.
+
+## Collaborating with an LLM on Docker
+
+LLMs handle Docker reasonably; subtle issues with
+caching and platform variants need verification.
+
+**Prompt 1: drafting a Dockerfile.** Paste the
+`renv.lock` and project structure, ask: 'write a
+Dockerfile that builds reproducibly, with proper layer
+caching, on the rocker/r-ver:4.4.0 base.'
+
+*What to watch for.* Layer ordering (lockfile before
+project source). System dependencies (the LLM may miss
+ones for less-common packages like `sf`, `brms`,
+`rstan`). The `--no-install-recommends` and cleanup
+patterns.
+
+*Verification.* Build the image. Make a trivial change
+to the project source; rebuild. The rebuild should be
+fast (cache hit on the package install layer). If it
+re-installs everything, layer order is wrong.
+
+**Prompt 2: diagnosing a build error.** Paste the
+error and the Dockerfile and ask the LLM to diagnose.
+
+*What to watch for.* Most build errors are missing
+system libraries. The LLM should map the error to the
+needed `apt-get install` package. For genuinely
+exotic errors (Apple Silicon vs. amd64, GitHub
+Container Registry auth), responses are more variable.
+
+*Verification.* Apply the fix and rebuild. Iterate.
+
+**Prompt 3: choosing a base image.** Describe the
+project's package needs and ask the LLM to recommend
+between `rocker/r-ver`, `rocker/tidyverse`,
+`rocker/geospatial`, etc.
+
+*What to watch for.* The smallest viable base is the
+right answer for production; convenience may justify a
+larger base for development.
+
+*Verification.* Run the project's setup in each
+candidate and time it. Build size matters less than
+'does it build at all'.
+
+## Principle in use
+
+Three habits define defensible Docker use:
+
+1. **Pin everything.** Specific R version, specific
+   rocker tag, specific package versions via
+   `renv.lock`, specific system libraries.
+2. **Order layers for cache.** Slow-changing first,
+   fast-changing last. The package-install layer
+   should not invalidate on every code change.
+3. **Push to a registry, archive to Zenodo.** The
+   image is the artefact; persist it where it can
+   outlive your laptop and your Docker Hub account.
+
+## Exercises
+
+1. Dockerise a simple existing analysis of yours.
+   Build the image, run it, and verify it produces
+   identical output.
+2. Run RStudio Server in a Docker container, connect
+   from your browser, and render one Quarto document
+   inside.
+3. Push your image to Docker Hub. Pull it from a
+   different machine and verify it reproduces the
+   analysis.
+4. Make a deliberate change to the project source.
+   Rebuild. Confirm the cache is hit on the
+   package-install layer; if not, fix layer order.
+5. Use Docker Compose to run a two-service setup: an
+   R container plus a PostgreSQL container. Connect
+   from R to the database and run a query.
+
+## Further reading
+
+- Boettiger (2015), *An introduction to Docker for
+  reproducible research*, ACM SIGOPS Operating Systems
+  Review, the motivating paper for R.
+- The `rocker` project at `rocker-project.org` ---
+  canonical R Docker images.
+- Docker's own documentation at `docs.docker.com`.
+
+## Prerequisites answers {#sec-quiz-answers-09}
+
+1. A Docker image is an immutable read-only template
+   that includes an OS, system libraries, and
+   application code. A container is a running instance
+   of an image, with its own writable filesystem
+   layer. Many containers can be run from one image;
+   terminating a container does not modify the image.
+   The image is the artefact; the container is the
+   process.
+2. `renv` captures R packages only. Docker captures the
+   operating system, system libraries (BLAS,
+   geospatial libs, compilers), the R build itself,
+   *and* R packages. When an analysis depends on a
+   specific OS or system lib, only Docker can
+   guarantee bit-identical reproduction years later.
+   For pure-R analyses, `renv` may suffice; for
+   anything with non-R dependencies, Docker is the
+   prudent choice.
+3. `rocker/tidyverse:4.4.0` provides: Debian (the base
+   for `rocker/r-ver` since the 2022 reorganisation);
+   R 4.4.0; RStudio Server; and the tidyverse package
+   suite pre-installed. A container starts immediately
+   without package installation, useful for teaching
+   and for rapid-turnaround collaborative analyses.
+   It is larger than `rocker/r-ver` but the trade-off
+   is justified when most projects use tidyverse
+   anyway.

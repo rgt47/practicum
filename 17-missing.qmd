@@ -1,0 +1,660 @@
+# Missing Data: Diagnosis, Imputation, Reporting {#sec-missing}
+
+::: {.callout-note}
+## Why this chapter exists
+
+The April 2026 survey of peer US biostatistics MS
+programmes found that 14 of 22 teach missing-data
+handling as a core or near-core topic (Michigan
+BIOSTAT 880, UW BIOST 531, UNC BIOS 767, UT Health
+Houston PH 2735, Emory BIOS 567, Yale BIS 629, Iowa
+BIOS 7210, Florida PHC 6067). Every real clinical
+dataset has missing values, and the decisions
+around them often move point estimates more than
+the model choice does. This chapter is the
+Practicum's response.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-17.
+
+1. What do MCAR, MAR, and MNAR stand for, and how do
+   the three mechanisms differ in their implications
+   for valid analysis?
+2. A dataset has 12% missingness on a single
+   continuous predictor. What is the difference
+   between complete-case analysis, mean imputation,
+   and multiple imputation in what each does to the
+   estimate of that predictor's coefficient and its
+   standard error?
+3. What three quantities does Rubin's rules combine
+   across the $M$ imputed datasets to produce a
+   single pooled estimate and its variance?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Diagnose the missingness pattern in a dataset with
+  `naniar::vis_miss()` and `naniar::gg_miss_var()`.
+- Distinguish MCAR, MAR, and MNAR and defend a
+  mechanism assumption using substantive argument
+  rather than tests.
+- Perform multiple imputation with `mice` using
+  predictive mean matching for continuous variables
+  and logistic regression for binary variables.
+- Apply Rubin's rules to pool estimates and
+  variances across $M$ imputed datasets.
+- Report missingness and imputation per CONSORT and
+  STROBE guidelines.
+- Conduct sensitivity analyses to MNAR via delta
+  adjustment, tipping-point analysis, or
+  pattern-mixture models.
+
+## Orientation
+
+Missing data is the least-loved topic in an MS
+curriculum because its answers are rarely clean.
+Complete-case analysis is simple but throws
+information away and biases estimates under
+anything stronger than MCAR. Multiple imputation
+preserves information but adds a modelling layer
+with its own assumptions. Sensitivity analysis is
+essential but open-ended.
+
+The pragmatic stance is: document the missingness,
+be honest about the mechanism, implement one
+principled approach (most often multiple imputation
+via `mice`), and report the sensitivity of
+conclusions to alternative approaches.
+
+## The statistician's contribution {#sec-missing-human}
+
+Missing data is the chapter where judgement
+matters most.
+
+**The mechanism is an assumption, not a fact.**
+MCAR/MAR/MNAR cannot be distinguished from the
+observed data alone. Whatever mechanism you assume
+is a substantive claim about why the missingness
+occurred, defended by what you know about the data
+collection. 'The patient was lost to follow-up'
+could be MCAR (random administrative loss), MAR
+(loss correlated with observed baseline), or MNAR
+(loss correlated with the unobserved outcome). The
+correct response is to argue from the clinical
+context, not from a hypothesis test.
+
+**Imputation is modelling.** When you impute, you
+are fitting a model for the missing values. That
+model has assumptions. Bad imputation introduces
+bias more cleanly than complete-case analysis
+would. The tools (`mice`, `Amelia`, `mi`) make
+imputation easy; making it *correct* requires
+attending to the imputation model's specification.
+
+**Outcome and predictor missingness are not
+symmetric.** Missing outcome data with MAR-on-
+covariates is well-handled by likelihood methods.
+Missing predictor data is trickier and almost
+always demands imputation. The two cases warrant
+different strategies.
+
+**Pre-specify the missing-data plan.** The SAP
+(chapter 18) should specify the primary
+missing-data approach before data access.
+Choosing the strategy after seeing the data --
+'we tried complete case, then MI, and report MI
+because it gave a smaller p-value' -- is
+indistinguishable from p-hacking.
+
+These judgements are what make missing-data
+handling defensible rather than mechanical.
+
+## The three mechanisms
+
+Rubin (1976) defines three missingness mechanisms.
+Let $Y$ be the variable of interest; $R$ the
+indicator that $Y$ is observed; $X$ other observed
+variables.
+
+**MCAR (Missing Completely At Random).**
+$P(R \mid Y, X) = P(R)$: missingness is
+independent of both observed and unobserved data.
+Example: a clinical CRF page is occasionally lost
+in the mail, with the loss process unrelated to
+patient or measurement.
+
+**MAR (Missing At Random).**
+$P(R \mid Y, X) = P(R \mid X)$: missingness
+depends only on observed data. Example: older
+patients more often miss follow-up visits than
+younger ones; conditional on age, missingness is
+independent of the missing outcome.
+
+**MNAR (Missing Not At Random).**
+$P(R \mid Y, X)$ depends on $Y$ itself, even
+after conditioning on $X$. Example: patients with
+worse symptoms are more likely to drop out
+because they get worse, and the dropout itself is
+the bad news. Conditional on observed
+covariates, missingness still depends on the
+unobserved outcome.
+
+The three are progressively more restrictive in
+the methods they allow:
+
+| Mechanism | Complete case | Likelihood / MI | Sensitivity needed? |
+|-----------|---------------|-----------------|---------------------|
+| MCAR      | Unbiased      | Unbiased        | No                  |
+| MAR       | Biased        | Unbiased        | No                  |
+| MNAR      | Biased        | Biased          | Yes                 |
+
+In practice, MCAR is rare, MAR is the default
+working assumption, and MNAR is what sensitivity
+analyses are for. The data cannot distinguish
+MAR from MNAR, so the choice rests on substantive
+reasoning.
+
+## Diagnosing missingness
+
+Before any imputation, look at the pattern. The
+`naniar` package provides ggplot-friendly
+diagnostics:
+
+```r
+library(naniar)
+library(palmerpenguins)
+
+# overall missingness
+vis_miss(penguins)               # row-by-column heatmap
+
+# per-variable counts
+gg_miss_var(penguins)            # bar chart of missing per variable
+
+# co-occurrence of missing across variables
+gg_miss_upset(penguins)          # UpSet-style intersection plot
+
+# case-level
+miss_case_summary(penguins)      # how many missing per row
+```
+
+Patterns to look for:
+
+- **Univariate.** Missingness in one variable, no
+  obvious correlation with others. Often MCAR or
+  monotone (a CRF that follows a single page).
+- **Monotone.** Once a variable is missing, all
+  subsequent variables are too. Common in
+  longitudinal dropout: visit 5 missing implies
+  visits 6, 7, ..., $n$ are all missing.
+- **Arbitrary.** Missingness scattered across
+  variables and rows. Most realistic clinical
+  data.
+
+The pattern affects strategy. Monotone missingness
+admits simpler imputation models (sequential
+regression). Arbitrary missingness needs the
+full multivariate machinery (`mice` with chained
+equations).
+
+## Complete-case analysis
+
+The simplest approach: drop rows with any
+missingness. R's default for `lm`, `glm`, and most
+modelling functions is `na.omit` (or
+`na.action = na.omit`).
+
+```r
+fit_cc <- lm(Ozone ~ Solar.R + Wind + Temp, data = airquality)
+nrow(fit_cc$model)              # rows actually used
+```
+
+When complete-case is acceptable:
+
+- **MCAR holds.** Then complete-case is unbiased,
+  just less efficient than imputation.
+- **The lost rows are few** (under 5% perhaps).
+  The bias from MAR violations is bounded by the
+  fraction lost.
+- **As a sensitivity check.** Even when the
+  primary analysis uses MI, reporting complete-case
+  as a sensitivity shows whether conclusions
+  depend on the imputation.
+
+When complete-case is not acceptable: substantial
+missingness with plausible MAR. The bias can be
+large.
+
+## Single imputation: what *not* to do
+
+**Mean imputation** replaces missing values with
+the sample mean. Two problems:
+
+1. The variance is biased downward: the imputed
+   values have no noise, so the apparent
+   variability is too small. Standard errors are
+   too narrow; CIs too short.
+2. Coefficients on the imputed variable are
+   attenuated toward zero (regression dilution).
+
+```r
+# do not do this
+df$x[is.na(df$x)] <- mean(df$x, na.rm = TRUE)
+```
+
+**Last observation carried forward (LOCF)** is
+deprecated except as a pre-specified sensitivity
+analysis. It assumes patients who drop out
+remain at their last observed value, which is
+biologically implausible for most diseases. ICH
+E9(R1) (2019) explicitly cautions against it.
+
+**Single regression imputation without noise**
+produces coefficients that are too tight: the
+imputed values lie exactly on a regression
+surface, hiding the variability that should be
+present.
+
+The common theme: single imputation
+underestimates variance because it pretends the
+imputed values have no uncertainty. Multiple
+imputation fixes this by drawing many plausible
+values per missing cell.
+
+## Multiple imputation with `mice`
+
+The three-step procedure:
+
+1. **Impute** $M$ complete datasets, each with a
+   different draw of plausible values.
+2. **Analyse** each imputed dataset separately,
+   using the planned analysis.
+3. **Pool** the $M$ results with Rubin's rules to
+   produce a single pooled estimate and variance.
+
+In R:
+
+```r
+library(mice)
+
+# step 1: impute
+imp <- mice(airquality, m = 25, method = "pmm", seed = 1,
+            printFlag = FALSE)
+
+# step 2: analyse each
+fits <- with(imp, lm(Ozone ~ Solar.R + Wind + Temp))
+
+# step 3: pool
+pooled <- pool(fits)
+summary(pooled, conf.int = TRUE)
+```
+
+`mice` defaults:
+
+- **`method = "pmm"`** for continuous variables:
+  predictive mean matching. The imputed value is
+  drawn from the observed values whose predicted
+  values are closest to the missing observation's
+  predicted value. PMM is robust to model
+  misspecification.
+- **`method = "logreg"`** for binary, `polyreg`
+  for unordered categorical, `polr` for ordered
+  categorical. `mice` picks defaults
+  appropriately.
+- **`m = 5`** is the historical default; `m = 25`
+  or higher is the modern recommendation
+  (Bodner 2008: $M$ should exceed the percentage
+  of missing information).
+- **`seed`**: set for reproducibility.
+
+Always include the outcome in the imputation
+model when imputing predictors: omitting it
+biases the imputation toward the null
+(Moons et al. 2006).
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: include the outcome?
+
+**Question.** You are imputing missing values of
+a continuous predictor `bmi` for a logistic
+regression of `outcome` on `bmi + age + sex`.
+Should the imputation model include `outcome`?
+
+**Answer.**
+
+Yes. Including the outcome in the imputation
+model preserves the relationship between `bmi`
+and `outcome`. Excluding it biases the imputed
+`bmi` values toward null association with
+`outcome`, which then attenuates the
+coefficient on `bmi` in the analysis. The
+intuition: if `bmi` is plausibly related to
+`outcome`, then a patient with a high outcome
+has a higher prior probability of high BMI;
+the imputation should reflect that. Moons et
+al. (2006) make the case formally. The
+`mice` default is to use all variables in the
+predictor matrix, including the outcome,
+which is correct. Removing the outcome ('to
+avoid contamination') is a common but wrong
+intuition.
+
+:::
+
+## Rubin's rules
+
+Pool the $M$ analyses:
+
+- **Pooled point estimate** $\bar\beta = \frac{1}{M} \sum_{m=1}^M \hat\beta_m$.
+- **Within-imputation variance** $\bar U = \frac{1}{M} \sum_m \mathrm{Var}(\hat\beta_m)$.
+- **Between-imputation variance** $B = \frac{1}{M-1} \sum_m (\hat\beta_m - \bar\beta)^2$.
+- **Total variance** $T = \bar U + (1 + 1/M) B$.
+
+The $(1 + 1/M)$ factor is a finite-sample
+correction.
+
+Degrees of freedom use the Barnard-Rubin
+adjustment (the `mice` default), which produces
+slightly conservative t-tests for moderate $M$.
+
+`mice::pool()` does all of this automatically.
+Inspect the components:
+
+```r
+summary(pooled)$df         # degrees of freedom per coefficient
+summary(pooled)$fmi        # fraction of missing information
+summary(pooled)$lambda     # proportion of variance attributable to missingness
+```
+
+`fmi` (fraction of missing information) is a
+useful summary: how much of the variance in
+$\hat\beta$ is due to missing data. Values above
+0.5 suggest the analysis is heavily influenced
+by imputation; consider sensitivity.
+
+## A worked example
+
+Using `airquality`:
+
+```r
+library(naniar)
+library(mice)
+library(broom.mixed)
+
+# 1. visualise pattern
+vis_miss(airquality)
+gg_miss_upset(airquality)
+
+# 2. complete-case
+fit_cc <- lm(Ozone ~ Solar.R + Wind + Temp, data = airquality)
+broom::tidy(fit_cc, conf.int = TRUE)
+nrow(fit_cc$model)              # 111 rows used
+
+# 3. multiple imputation
+imp <- mice(airquality, m = 25, method = "pmm", seed = 1,
+            printFlag = FALSE)
+fits <- with(imp, lm(Ozone ~ Solar.R + Wind + Temp))
+pooled <- pool(fits)
+summary(pooled, conf.int = TRUE)
+nrow(airquality)                # 153 rows analysed via MI
+
+# 4. sensitivity: delta adjustment
+# (assume Ozone with missingness is systematically
+# 0.5 SD lower than MAR-imputed values)
+imp_delta <- mice(airquality, m = 25, method = "pmm",
+                  seed = 1, printFlag = FALSE)
+imp_delta$imp$Ozone <- imp_delta$imp$Ozone -
+                       0.5 * sd(airquality$Ozone, na.rm = TRUE)
+fits_delta <- with(imp_delta, lm(Ozone ~ Solar.R + Wind + Temp))
+pool(fits_delta) |> summary()
+```
+
+Compare the three coefficient estimates and their
+standard errors. If the conclusions are similar
+under all three, you have a robust result. If
+they diverge, the missing-data assumption is
+load-bearing and the paper should say so.
+
+## Reporting missing data
+
+CONSORT 2010 (item 13b, randomised trials) and
+STROBE (item 12c, observational studies) require:
+
+- The number of participants with missing data,
+  per variable.
+- The methods used to handle missing data.
+- Sensitivity analyses if the missingness is
+  substantial.
+
+A sample reporting paragraph:
+
+> Of 1,000 enrolled patients, 23 (2.3%) had
+> missing baseline body mass index and 47 (4.7%)
+> had missing 12-month follow-up outcome.
+> Patterns of missingness are shown in
+> Supplementary Figure S1. Missing baseline BMI
+> was assumed missing at random (MAR) given age,
+> sex, and treatment arm. Missing follow-up
+> outcomes were imputed using multiple imputation
+> with chained equations ($M = 25$, predictive
+> mean matching for continuous variables, logistic
+> regression for binary), including all baseline
+> covariates and the treatment indicator. Pooled
+> estimates use Rubin's rules. Sensitivity to
+> MNAR was assessed via a delta adjustment of
+> $\pm 0.5$ SD on the imputed outcomes; results
+> were qualitatively similar (Supplementary
+> Table S5).
+
+The level of detail demonstrates that you have
+thought about the issue, not papered over it.
+
+## Sensitivity analyses
+
+Three standard sensitivity approaches:
+
+**Delta adjustment.** After MI under MAR, shift
+the imputed values by $\pm \delta$ to mimic an
+MNAR scenario. Refit the analysis. The result
+shows how robust conclusions are to the MNAR
+direction. Implementation: edit `imp$imp` after
+calling `mice`, then re-fit.
+
+**Tipping-point analysis.** Vary $\delta$
+continuously and find the value at which the
+conclusion 'tips' (e.g., the treatment effect
+loses statistical significance). The tipping
+point's clinical plausibility is the question:
+if it requires a $\delta$ much larger than
+clinical experience suggests is realistic, the
+conclusion is robust.
+
+**Pattern-mixture models.** Specify different
+imputation models for different missingness
+patterns. The framework is explicit about MNAR
+assumptions per pattern; the implementation is
+more involved than delta adjustment.
+
+For a typical paper, delta adjustment with one or
+two values of $\delta$ is sufficient sensitivity.
+For high-stakes regulatory submissions or papers
+where the missingness is large, tipping-point
+analysis is more thorough.
+
+## Pre-specifying the missing-data plan
+
+The SAP (chapter 18) should specify the primary
+missing-data strategy *before* data access. A
+typical pre-specification:
+
+> Primary analysis will use multiple imputation
+> with $M = 25$ datasets, predictive mean matching
+> for continuous variables and logistic
+> regression for binary variables, including all
+> outcome and covariate information. Pooling
+> follows Rubin's rules. Sensitivity to the MAR
+> assumption will be assessed via a delta
+> adjustment of $\pm 0.5$ SD on the imputed
+> outcome.
+
+Specifying details ($M$, methods, sensitivity)
+prevents the post-hoc choice that turns
+missingness handling into another researcher
+degree of freedom.
+
+## Collaborating with an LLM on missing data
+
+LLMs handle the mechanics; the substantive
+mechanism reasoning is the analyst's.
+
+**Prompt 1: classifying the mechanism.** Paste a
+missingness summary and a brief description of
+the data collection; ask: 'classify each
+variable's likely mechanism (MCAR / MAR /
+MNAR) and justify.'
+
+*What to watch for.* The LLM may overreach: it
+cannot know the substantive context, so its
+classifications are guesses. Treat the output
+as a starting list, not an answer. Add the
+clinical reasoning yourself.
+
+*Verification.* Discuss with the clinical
+collaborator. Their substantive view wins;
+update the classifications accordingly.
+
+**Prompt 2: writing the `mice` call.** Describe
+the dataset (variable types, missingness rates)
+and ask: 'write the `mice` call with appropriate
+methods per variable and an explanation of the
+choices.'
+
+*What to watch for.* Method selection per
+variable type. Inclusion of the outcome in the
+predictor matrix. Use of `m = 25` or higher
+rather than the historical `m = 5`. The LLM
+should know all of this; if it does not, push.
+
+*Verification.* Run the call. Inspect
+`imp$method`; verify each variable has the
+expected method. Check `imp$predictorMatrix`;
+verify the outcome is included for predictor
+imputation.
+
+**Prompt 3: writing the SAP missing-data
+section.** Describe the trial and ask the LLM
+to draft the missing-data subsection of the
+SAP.
+
+*What to watch for.* The pre-specification
+should be specific enough that a reader cannot
+ask 'which?' on key choices. Vague language
+('appropriate imputation') is not
+pre-specification. The LLM may be vague; push
+for specifics.
+
+*Verification.* Show to a colleague who has
+seen FDA or EMA SAPs; their feedback
+recalibrates.
+
+## Principle in use
+
+Three habits define defensible missing-data
+practice:
+
+1. **Mechanism is an assumption, defended by
+   substance.** No test produces it; clinical
+   context produces it. State the assumption.
+2. **Multiple imputation includes the outcome.**
+   Excluding it attenuates effect estimates.
+3. **Sensitivity analyses are not optional.**
+   Especially when missingness is substantial.
+   Report them in the paper, not just in
+   supplementary materials.
+
+## Exercises
+
+1. Load `airquality` (built-in). Visualise the
+   missingness pattern with `naniar`. Fit
+   `lm(Ozone ~ Solar.R + Wind + Temp)` via
+   complete-case analysis; then via multiple
+   imputation with `m = 20`. Compare coefficients
+   and standard errors.
+2. Construct a small synthetic dataset with 20%
+   MAR missingness on one covariate. Implement
+   three analyses: complete case, mean
+   imputation, and multiple imputation. Report
+   the bias of each in the coefficient of
+   interest across 500 simulated replicates.
+3. Write the missing-data section of a SAP for a
+   hypothetical trial in which ~15% of outcome
+   observations are expected to be missing due
+   to dropout. Pre-specify the primary approach
+   and at least two sensitivity analyses.
+4. Use the `mice::ampute()` function to induce
+   MAR missingness on a complete dataset. Fit
+   the analysis on the full data and on the
+   amputed-then-imputed data. Compare estimates;
+   verify MI recovers the truth approximately.
+5. Implement a delta-adjustment sensitivity
+   analysis for an MI-based logistic regression.
+   Vary $\delta$ over $(-1, 1)$ in steps of 0.25
+   and plot the coefficient as a function of
+   $\delta$. Identify the tipping point if any.
+
+## Further reading
+
+- van Buuren (2018), *Flexible Imputation of
+  Missing Data*, 2nd ed., book-length
+  treatment of the `mice` approach.
+- Little and Rubin (2019), *Statistical Analysis
+  with Missing Data*, 3rd ed., the
+  authoritative reference.
+- The `mice` package documentation at
+  `amices.org/mice`, package-level reference.
+- ICH E9(R1) (2019) on estimands and missing data
+  in clinical trials.
+
+## Prerequisites answers {#sec-quiz-answers-17}
+
+1. **MCAR** (Missing Completely At Random): the
+   probability of missingness is independent of
+   both observed and unobserved data.
+   Complete-case analysis is unbiased but
+   inefficient. **MAR** (Missing At Random):
+   missingness depends only on *observed* data;
+   conditional on the observed, it is independent
+   of the unobserved. Complete-case is biased
+   but model-based methods (multiple imputation,
+   likelihood) are consistent. **MNAR** (Missing
+   Not At Random): missingness depends on the
+   unobserved data itself. No method is
+   consistent without additional assumptions;
+   sensitivity analysis is the honest response.
+2. **Complete-case analysis** drops the ~12% of
+   rows with missing data, reducing the
+   effective sample size; it is unbiased only
+   under MCAR. **Mean imputation** replaces
+   missing values with the sample mean, biasing
+   the variance estimate downward (artificially
+   narrow confidence intervals) and attenuating
+   coefficients toward zero when the missing
+   variable is a predictor. **Multiple
+   imputation** produces $M$ plausible completed
+   datasets, fits the model on each, and pools
+   with Rubin's rules; the pooled standard error
+   correctly reflects both within- and
+   between-imputation uncertainty.
+3. Rubin's rules combine (i) the mean of the
+   $M$ point estimates, (ii) the mean of the
+   $M$ within-imputation variances (the within
+   component), and (iii) the variance of the
+   $M$ point estimates scaled by $(1 + 1/M)$
+   (the between component). The pooled
+   variance is within + between; the pooled
+   estimate is the mean of estimates; degrees
+   of freedom use the Barnard-Rubin adjustment.

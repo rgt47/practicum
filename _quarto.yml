@@ -1,0 +1,155 @@
+project:
+  type: book
+  output-dir: _book
+
+book:
+  title: 'Biostatistics Practicum'
+  subtitle: 'Reproducible analysis workflows for biostatisticians'
+  author: 'The rgtlab Curriculum Project'
+  date: today
+  date-format: 'YYYY-MM-DD'
+
+  cover-image: images/cover.png
+  favicon: images/favicon.png
+
+  site-url: https://practicum.rgtlab.org
+  repo-url: https://github.com/rgt47/practicum
+  repo-branch: main
+  repo-actions: [edit, issue]
+
+  search: true
+  page-navigation: true
+  bread-crumbs: true
+  sidebar:
+    style: docked
+    collapse-level: 1
+
+  chapters:
+    - half-title.qmd
+    - copyright.qmd
+    - index.qmd
+    - preface.qmd
+    - conventions.qmd
+    - 00-intro.qmd
+
+    - part: 'Reproducibility Mindset'
+      chapters:
+        - 01-why.qmd
+        - 02-federal.qmd
+        - 03-team-science.qmd
+
+    - part: 'Data Science Workstation'
+      chapters:
+        - 04-workstation.qmd
+        - 05-git-solo.qmd
+        - 06-cloud.qmd
+
+    - part: 'Reproducible Infrastructure'
+      chapters:
+        - 07-rrtools.qmd
+        - 08-renv.qmd
+        - 09-docker.qmd
+        - 10-zzcollab.qmd
+
+    - part: 'Reproducible Reporting'
+      chapters:
+        - 11-quarto.qmd
+        - 12-rmd-workflow.qmd
+
+    - part: 'Data Wrangling and Graphics'
+      chapters:
+        - 13-wrangling.qmd
+        - 14-types.qmd
+        - 15-joins.qmd
+        - 16-graphics.qmd
+        - 17-missing.qmd
+
+    - part: 'Analysis Practice'
+      chapters:
+        - 18-analysis-plan.qmd
+        - 19-cdisc.qmd
+        - 20-testing.qmd
+        - 21-ai-coding.qmd
+        - 22-sas.qmd
+
+    - part: 'Case Studies and Synthesis'
+      chapters:
+        - 23-penguins.qmd
+        - 24-adni.qmd
+        - 25-synthesis.qmd
+
+    - references.qmd
+
+  appendices:
+    - C-alternative-wrangling.qmd
+    - credits.qmd
+    - colophon.qmd
+
+format:
+  html:
+    theme:
+      - cosmo
+      - practicum.scss
+    include-after-body: nav-toggle.html
+    code-annotations: hover
+    code-link: true
+    code-copy: hover
+    code-overflow: wrap
+    code-tools:
+      source: repo
+      toggle: false
+    code-block-bg: true
+    code-block-border-left: '#2c7a7b'
+    highlight-style: arrow
+    fig-width: 7
+    fig-height: 4.5
+    fig-align: center
+    tbl-cap-location: top
+    toc-depth: 3
+    anchor-sections: true
+    smooth-scroll: true
+
+  pdf:
+    documentclass: scrbook
+    classoption: [11pt]
+    toc: false
+    code-annotations: below
+    highlight-style: arrow
+    geometry:
+      - paperwidth=6.5in
+      - paperheight=9in
+      - top=0.9in
+      - bottom=0.9in
+      - inner=0.9in
+      - outer=0.7in
+    include-in-header:
+      text: |
+        \usepackage{fontspec}
+        \setmonofont{DejaVu Sans Mono}[Scale=0.9]
+    include-before-body:
+      text: |
+        \begin{titlepage}
+        \thispagestyle{empty}
+        \newgeometry{margin=0pt}
+        \noindent\makebox[\paperwidth]{%
+          \includegraphics[width=\paperwidth,height=\paperheight,keepaspectratio]{images/cover.png}%
+        }
+        \restoregeometry
+        \end{titlepage}
+        \cleardoublepage
+
+bibliography: references.bib
+csl: https://www.zotero.org/styles/apa
+
+execute:
+  freeze: auto
+  echo: true
+  warning: false
+  message: false
+
+knitr:
+  opts_chunk:
+    comment: '#>'
+    collapse: true
+    fig.retina: 2
+    dpi: 150
