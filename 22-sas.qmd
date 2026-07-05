@@ -1,5 +1,19 @@
 # SAS for R Programmers {#sec-sas}
 
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*The determined Real Programmer can write FORTRAN programs
+in any language.*
+
+[Ed Post]{.smallcaps}, *Real Programmers Don't Use Pascal*
+(1983)
+```{=latex}
+\end{flushright}
+```
+:::
+
 ::: {.callout-note}
 ## Why this chapter exists
 
@@ -451,25 +465,35 @@ from R's. What might have gone wrong?
 
 **Answer.**
 
-SAS's default coding for `CLASS` variables is
-effect coding (sum-to-zero), not reference
-coding. R's default is reference coding
-(treatment contrast). With effect coding, the
-coefficients represent deviations from the grand
+Two distinct differences live here, and it helps
+to keep them separate. The first is the
+*parameterization*: `PROC LOGISTIC` (and
+`PROC GENMOD`) default to effect coding
+(sum-to-zero), whereas R's `glm` uses reference
+coding (treatment contrasts). Under effect coding
+the coefficients are deviations from the grand
 mean rather than differences from a reference
-level; the signs and magnitudes do not match
-R's. The fix is to specify reference coding
-explicitly:
+level, so signs and magnitudes will not match R's.
+The second difference appears even after you switch
+SAS to reference coding: SAS and R disagree on
+*which level is the reference*. R takes the first
+level in sort order (alphabetically 'Adelie'); SAS
+takes the last. So matching R requires setting
+both the parameterization and the reference level:
 
 ```sas
 class treatment (param = ref ref = 'placebo');
 ```
 
-This makes SAS produce coefficients that match
-R's. Without it, the SAS output is correct under
-SAS's defaults but disagrees with R's defaults.
-The difference is the most common source of
-'why don't my SAS and R agree?' confusion at the
+`param = ref` requests reference coding (available
+in `PROC LOGISTIC`, `PROC GENMOD`, and
+`PROC GLMSELECT`; `PROC GLM` uses its own
+less-than-full-rank parameterization and does not
+take this option), and `ref = 'placebo'` names the
+level R would have chosen. With both set, the
+coefficients match within rounding. This pair of
+differences is the most common source of 'why
+don't my SAS and R agree?' confusion at the
 boundary.
 
 :::
@@ -645,18 +669,27 @@ data work.penguins_clean;
 run;
 
 proc glm data = work.penguins_clean;
-  class species (param = ref ref = 'Adelie');
+  class species;
   model body_mass_g = flipper_length_mm species / clparm solution;
 run;
 quit;
 ```
 
-Coefficient point estimates and 95% Wald CIs
-should match between the two within rounding.
-If they do not, suspect the reference level (R
-defaults to alphabetical 'Adelie'; SAS default
-is alphabetical last, hence the explicit
-`ref = 'Adelie'`).
+The `flipper_length_mm` slope, the overall fit,
+and the fitted values match R exactly (within
+rounding). The `species` coefficients, however,
+will not line up term for term, because `PROC GLM`
+uses a less-than-full-rank parameterization whose
+`solution` reports each level against the *last*
+sorted level (Gentoo), whereas R's `lm` reports
+each against the *first* (Adelie). To force the two
+to agree term for term, either relevel in R with
+`relevel(species, ref = 'Gentoo')`, or fit the SAS
+model in a procedure that accepts reference coding
+(`PROC GENMOD` or `PROC GLMSELECT` with
+`class species (param = ref ref = 'Adelie')`). The
+inference is identical either way; only the
+labelling of the reference level differs.
 
 ## Collaborating with an LLM on SAS
 

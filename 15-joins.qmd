@@ -1,5 +1,17 @@
 # Joining and Reshaping {#sec-joins}
 
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*Only connect.*
+
+[E. M. Forster]{.smallcaps}, *Howards End* (1910)
+```{=latex}
+\end{flushright}
+```
+:::
+
 ::: {.callout-note}
 ## Sources
 
@@ -102,37 +114,45 @@ dplyr's two-table verbs:
 `semi_join` and `anti_join` are filtering joins: they
 filter `x` based on `y` without adding `y`'s columns.
 The other four are mutating joins: they add columns.
+The choice among them reduces to two questions, shown
+in @fig-join-choice: do you want to keep rows that
+fail to match, and if so, from which side.
 
-```r
+```{mermaid}
+%%| label: fig-join-choice
+%%| fig-cap: "Choosing a join. The first question is whether unmatched
+%%|   rows should survive; the second is from which table. The
+%%|   filtering joins (semi, anti) answer a different question again:
+%%|   keep or drop rows of x by their presence in y, adding no columns."
+flowchart TD
+  Q1{"Keep rows that<br/>have no match?"}
+  Q1 -->|"No, matches only"| INNER["inner_join"]
+  Q1 -->|"Yes"| Q2{"Unmatched rows<br/>from which side?"}
+  Q2 -->|"Left table x"| LEFT["left_join"]
+  Q2 -->|"Right table y"| RIGHT["right_join"]
+  Q2 -->|"Both"| FULL["full_join"]
+  Q1 -->|"Just filter x,<br/>add no columns"| Q3{"Keep matched<br/>or unmatched?"}
+  Q3 -->|"Matched"| SEMI["semi_join"]
+  Q3 -->|"Unmatched"| ANTI["anti_join"]
+```
+
+The `dplyr` package ships two toy tables, `band_members`
+and `band_instruments`, that make the row-count
+differences concrete. We run the four mutating and
+filtering variants and look at what each returns.
+
+```{r}
+#| label: joins-band
+#| message: false
 library(dplyr)
 
 band_members
-#> # A tibble: 3 × 2
-#>   name  band
-#>   <chr> <chr>
-#> 1 Mick  Stones
-#> 2 John  Beatles
-#> 3 Paul  Beatles
-
 band_instruments
-#> # A tibble: 3 × 2
-#>   name  plays
-#>   <chr> <chr>
-#> 1 John  guitar
-#> 2 Paul  bass
-#> 3 Keith guitar
 
-inner_join(band_members, band_instruments, by = "name")
-# 2 rows: John, Paul (the names in both)
-
-left_join(band_members, band_instruments, by = "name")
-# 3 rows: Mick (NA), John, Paul
-
-full_join(band_members, band_instruments, by = "name")
-# 4 rows: Mick (NA), John, Paul, Keith (NA)
-
-anti_join(band_members, band_instruments, by = "name")
-# 1 row: Mick (in members, not in instruments)
+inner_join(band_members, band_instruments, by = "name")  # John, Paul
+left_join(band_members, band_instruments, by = "name")   # + Mick (NA)
+full_join(band_members, band_instruments, by = "name")   # + Keith (NA)
+anti_join(band_members, band_instruments, by = "name")   # Mick only
 ```
 
 The choice of join is determined by the question:
@@ -145,6 +165,40 @@ The choice of join is determined by the question:
   `anti_join`.
 - 'Combine all patients from both files, even those
   in only one': `full_join`.
+
+### The same joins in pandas
+
+The `pandas` library folds the mutating joins into a
+single `merge` call whose `how` argument selects the
+variant. The filtering joins have no direct `merge`
+equivalent; they are expressed with `isin`.
+
+| dplyr | pandas |
+|---|---|
+| `inner_join(x, y, by = "id")` | `x.merge(y, on="id", how="inner")` |
+| `left_join(x, y, by = "id")` | `x.merge(y, on="id", how="left")` |
+| `right_join(x, y, by = "id")` | `x.merge(y, on="id", how="right")` |
+| `full_join(x, y, by = "id")` | `x.merge(y, on="id", how="outer")` |
+| `semi_join(x, y, by = "id")` | `x[x["id"].isin(y["id"])]` |
+| `anti_join(x, y, by = "id")` | `x[~x["id"].isin(y["id"])]` |
+
+```{r}
+#| label: joins-bind
+#| echo: false
+band_members <- dplyr::band_members
+band_instruments <- dplyr::band_instruments
+```
+
+```{python}
+#| label: joins-pandas
+import pandas as pd
+
+band_members = r.band_members
+band_instruments = r.band_instruments
+
+# left join keeps Mick, who plays no instrument in the table
+band_members.merge(band_instruments, on="name", how="left")
+```
 
 ## Many-to-many joins
 

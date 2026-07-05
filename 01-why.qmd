@@ -1,5 +1,22 @@
 # Why Reproducible Research {#sec-why}
 
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*An article about computational science in a scientific
+publication is not the scholarship itself, it is merely
+advertising of the scholarship. The actual scholarship is
+the complete software development environment and the
+complete set of instructions which generated the figures.*
+
+[Jonathan B. Buckheit and David L. Donoho]{.smallcaps},
+*WaveLab and Reproducible Research* (1995)
+```{=latex}
+\end{flushright}
+```
+:::
+
 ::: {.callout-note}
 ## Sources
 
@@ -78,7 +95,14 @@ These are progressively harder. Methods reproducibility is
 a software engineering problem; results reproducibility is
 a sampling problem; inferential reproducibility is a
 methodological problem about how analyst degrees of
-freedom shape conclusions.
+freedom shape conclusions. The distinction is worth
+holding in one view:
+
+| Kind | Held fixed | Allowed to vary | Nature of the problem |
+|---|---|---|---|
+| Methods (computational) | data and code | machine, operator | software engineering |
+| Results (replicability) | population and question | the data sample | sampling |
+| Inferential | data and question | the analyst | analyst degrees of freedom |
 
 This book is about methods reproducibility. Without it,
 the harder kinds are unobtainable: if you cannot reproduce
@@ -89,7 +113,28 @@ a bug.
 ## The anatomy of a reproducible analysis
 
 Three things must travel together for an analysis to be
-methods-reproducible:
+methods-reproducible, shown in @fig-repro-legs. If any one
+of the three is missing, the analysis cannot be rerun, and
+the whole edifice falls in the manner of a stool missing a
+leg.
+
+```{mermaid}
+%%| label: fig-repro-legs
+%%| fig-cap: "The three ingredients of a methods-reproducible analysis.
+%%|   Each is necessary; the absence of any one is a distinct and
+%%|   common failure mode, noted beneath it."
+flowchart TD
+  R["Reproducible<br/>analysis"]
+  R --> C["Code<br/><i>every step, executable</i>"]
+  R --> D["Data<br/><i>raw inputs, versioned</i>"]
+  R --> E["Environment<br/><i>packages, R version, OS</i>"]
+  C -.->|"missing: undocumented<br/>manual steps"| Cx[" "]
+  D -.->|"missing: 'the file<br/>Jane emailed me'"| Dx[" "]
+  E -.->|"missing: 'works on<br/>my machine'"| Ex[" "]
+  style Cx fill:none,stroke:none
+  style Dx fill:none,stroke:none
+  style Ex fill:none,stroke:none
+```
 
 **Code.** Every step from raw input to final output, as
 executable code in a single language and stack. No 'I

@@ -153,3 +153,5 @@ knitr:
     collapse: true
     fig.retina: 2
     dpi: 150
+    out.width: '100%'
+    fig.align: center

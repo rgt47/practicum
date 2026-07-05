@@ -1,5 +1,18 @@
 # Clinical Data Standards: CDISC, SDTM, and ADaM {#sec-cdisc}
 
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*The nice thing about standards is that you have so many to
+choose from.*
+
+[Andrew S. Tanenbaum]{.smallcaps}, *Computer Networks* (1981)
+```{=latex}
+\end{flushright}
+```
+:::
+
 ::: {.callout-note}
 ## Sources
 
@@ -123,6 +136,25 @@ follows a standardised pipeline:
 5. **TLFs** (Tables, Listings, and Figures) are produced from
    ADaM for the Clinical Study Report (CSR) that accompanies
    the submission.
+
+@fig-cdisc-pipeline shows the flow and, crucially, the
+row granularity at each stage, which is the quantity a
+statistician must track across every join.
+
+```{mermaid}
+%%| label: fig-cdisc-pipeline
+%%| fig-cap: "The regulatory data pipeline from protocol to FDA
+%%|   submission. SDTM is the immutable source the statistician reads;
+%%|   ADaM is the analysis-ready layer the statistician builds."
+flowchart TD
+  P["Protocol and SAP<br/><i>design, endpoints, estimands</i>"] --> C["CRF<br/><i>site data entry</i>"]
+  C --> S["SDTM domains<br/>DM · EX · AE · LB · VS · DS<br/><i>one row per observation</i>"]
+  S --> A["ADaM datasets<br/>ADSL · ADTTE · ADAE<br/><i>analysis-ready</i>"]
+  A --> T["TLFs<br/><i>tables, listings, figures</i>"]
+  T --> R["CSR and FDA submission<br/><i>Define-XML, aCRF, SDRG, ADRG</i>"]
+  S -.->|"immutable once locked"| S
+  A -.->|"traceable to SDTM"| S
+```
 
 Two rules organise this pipeline:
 
@@ -343,6 +375,32 @@ print(fit)
 cox <- coxph(Surv(AVAL, 1L - CNSR) ~ TRT01P,
              data = analysis)
 summary(cox)
+```
+
+The `print(fit)` output reports the median survival and
+event counts per arm, but the figure a reviewer expects
+is the Kaplan-Meier curve. We produce it with
+`survminer::ggsurvplot`, including the risk table that
+regulatory reviewers look for beneath the curve.
+
+```{r}
+#| label: fig-cdisc-km
+#| fig-cap: "Kaplan-Meier overall-survival curves by treatment arm,
+#|   derived from the fabricated ADTTE. The drug arm shows the longer
+#|   survival that its lower simulated hazard was constructed to
+#|   produce. The risk table beneath reports subjects still at risk."
+#| fig-width: 7
+#| fig-height: 6
+#| message: false
+library(survminer)
+
+ggsurvplot(fit, data = analysis,
+           conf.int   = TRUE,
+           risk.table = TRUE,
+           xlab       = "Days from treatment start",
+           ylab       = "Overall survival probability",
+           legend.title = "Arm",
+           ggtheme    = theme_minimal())
 ```
 
 The progression of row granularity across the pipeline is the

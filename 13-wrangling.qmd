@@ -1,5 +1,19 @@
 # Data Wrangling Essentials {#sec-wrangling}
 
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*Tidy datasets are all alike, but every messy dataset is
+messy in its own way.*
+
+[Hadley Wickham]{.smallcaps}, *Tidy Data*, Journal of
+Statistical Software (2014)
+```{=latex}
+\end{flushright}
+```
+:::
+
 ::: {.callout-note}
 ## Sources
 
@@ -170,6 +184,43 @@ widely used. Functionally equivalent for most code;
 `|>` has slightly different placeholder semantics
 (`_` instead of `.`). For new code, prefer `|>`.
 
+### The same verbs in pandas
+
+Many students arrive with more `pandas` than `dplyr`,
+and a good deal of collaborative biostatistics now
+crosses the two. The verbs map almost one to one, which
+makes the translation worth having in front of you.
+
+| Task | dplyr | pandas |
+|---|---|---|
+| Filter rows | `filter(species == "Adelie")` | `df[df["species"] == "Adelie"]` |
+| Select columns | `select(species, body_mass_g)` | `df[["species", "body_mass_g"]]` |
+| New column | `mutate(kg = body_mass_g / 1000)` | `df.assign(kg = df["body_mass_g"] / 1000)` |
+| Sort | `arrange(desc(body_mass_g))` | `df.sort_values("body_mass_g", ascending=False)` |
+| Group and summarise | `group_by(species) \|> summarise(m = mean(body_mass_g))` | `df.groupby("species")["body_mass_g"].mean()` |
+
+Quarto runs the Python through `reticulate`, and the
+`r` object carries the R data frame across without an
+intermediate file.
+
+```{r}
+#| label: wrangle-r-obj
+#| echo: false
+#| message: false
+library(palmerpenguins)
+penguins_df <- na.omit(penguins)
+```
+
+```{python}
+#| label: wrangle-pandas
+import pandas as pd
+
+df = r.penguins_df
+
+# group and summarise: mean body mass and count per species
+df.groupby("species", observed=True)["body_mass_g"].agg(["mean", "size"])
+```
+
 ## Common dplyr patterns
 
 **Renaming**:
@@ -256,6 +307,64 @@ long |> pivot_wider(
 names into multiple new columns. The first version of
 this is often wrong; print intermediate results and
 verify.
+
+### Reshape and plot: a runnable example
+
+To make the wide-to-long move concrete, we simulate a
+small trial with systolic blood pressure recorded at
+three visits, one row per patient. This is the wide
+clinical layout that arrives from a CRF export.
+
+```{r}
+#| label: wrangle-wide
+#| message: false
+library(tidyverse)
+
+set.seed(2)
+wide <- tibble(
+  patient_id = sprintf("P%03d", 1:8),
+  arm        = rep(c("Placebo", "Active"), each = 4),
+  bp_v1      = round(rnorm(8, 145, 8)),
+  bp_v2      = round(rnorm(8, 140, 8)),
+  bp_v3      = round(rnorm(8, 136, 8))
+)
+wide
+```
+
+`pivot_longer` turns the three `bp_v*` columns into a
+single `bp` value column indexed by `visit`, giving one
+row per patient per visit.
+
+```{r}
+#| label: wrangle-long
+long <- wide |>
+  pivot_longer(starts_with("bp_v"),
+               names_to = "visit", names_prefix = "bp_v",
+               values_to = "bp") |>
+  mutate(visit = as.integer(visit))
+head(long, 6)
+```
+
+The long form is the precondition for the trajectory
+plot: `visit` is now an explicit variable that can be
+mapped to the x-axis.
+
+```{r}
+#| label: fig-bp-trajectory
+#| fig-cap: "Systolic blood-pressure trajectories from the simulated
+#|   trial. Thin lines are individual patients; heavy lines are arm
+#|   means. Reshaping to long format is what makes visit an x-axis
+#|   variable."
+#| fig-width: 6.5
+#| fig-height: 4
+ggplot(long, aes(visit, bp, colour = arm)) +
+  geom_line(aes(group = patient_id), alpha = 0.4) +
+  stat_summary(aes(group = arm), fun = mean, geom = "line",
+               linewidth = 1.3) +
+  scale_colour_manual(values = c(Placebo = "#9d2235", Active = "#1f4e79")) +
+  labs(x = "Visit", y = "Systolic BP (mmHg)", colour = "Arm") +
+  theme_minimal()
+```
 
 ::: {.callout-note icon=false collapse=true}
 ## Check your understanding: when to pivot

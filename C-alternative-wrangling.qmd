@@ -94,12 +94,26 @@ dt[, .(mean_bmi = mean(bmi, na.rm = TRUE)), by = sex]
 dt[age >= 18][, .(mean_bmi = mean(bmi)), by = sex]
 ```
 
-TODO: why `:=` exists (modify by reference, avoiding the
-copy-on-modify cost that dplyr and base pay); `keyby` vs
-`by` (sorts); the `.SD` idiom for applying a function over
-many columns; the non-obvious gotcha that `data.table`
-returns a `data.table` on `[` where a `data.frame` would
-return a vector.
+Four features of this syntax repay explanation. First,
+the `:=` operator assigns *by reference*: it modifies the
+`data.table` in place rather than returning a copy, which
+is what lets `data.table` avoid the copy-on-modify cost
+that both `dplyr` and base R pay on every mutation. On a
+million-row cohort this is the difference between an
+instantaneous update and a multi-second one. Second,
+`keyby` behaves like `by` but additionally sorts the
+result by the grouping variable and sets it as a key,
+which speeds subsequent joins on that key. Third, the
+`.SD` idiom ('Subset of Data') is how one applies a
+function across many columns at once, as in
+`dt[, lapply(.SD, mean), by = sex, .SDcols = is.numeric]`;
+it is the `data.table` analogue of `across()`. Fourth, a
+gotcha worth internalising early: `data.table` returns a
+`data.table` when you subset with `[`, where a
+`data.frame` would sometimes drop to a vector. The
+`drop = TRUE` surprise that catches base-R users does not
+arise, which is a mercy, but code that assumed a vector
+will need adjusting.
 
 ## Side-by-side: eight common operations
 

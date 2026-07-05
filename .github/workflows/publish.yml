@@ -35,6 +35,7 @@ jobs:
             any::broom
             any::survival
             any::palmerpenguins
+            any::tidyverse
             any::patchwork
             any::naniar
             any::mice
@@ -42,6 +43,8 @@ jobs:
             any::gtsummary
             any::janitor
             any::GGally
+            any::survminer
+            any::UpSetR
             any::reticulate
 
       # Committed _freeze/ results are reused when a chapter is unchanged, so

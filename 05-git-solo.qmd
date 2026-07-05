@@ -1,5 +1,18 @@
 # Git and GitHub for Solo Developers {#sec-git-solo}
 
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*Those who cannot remember the past are condemned to repeat
+it.*
+
+[George Santayana]{.smallcaps}, *The Life of Reason* (1905)
+```{=latex}
+\end{flushright}
+```
+:::
+
 ::: {.callout-note}
 ## Sources
 
@@ -156,6 +169,32 @@ git log --since="2 weeks ago"    # recent activity
 The mental model: a branch is a movable pointer to a
 commit. Creating a branch is making a new pointer; the
 branch 'moves forward' as you make commits.
+@fig-git-branch shows the shape a solo analyst's history
+tends to take: a main line carrying the trustworthy
+analysis, with short-lived branches for experiments that
+are merged back if they work out and abandoned if they do
+not.
+
+```{mermaid}
+%%| label: fig-git-branch
+%%| fig-cap: "A solo analyst's branch history. The main line carries
+%%|   the analysis of record and is tagged at submission; a
+%%|   sensitivity-analysis branch explores an alternative and is merged
+%%|   only once it is trusted."
+gitGraph
+  commit id: "init compendium"
+  commit id: "clean data"
+  branch sensitivity-analysis
+  checkout sensitivity-analysis
+  commit id: "MNAR sensitivity"
+  commit id: "tipping point"
+  checkout main
+  commit id: "primary model"
+  merge sensitivity-analysis
+  commit id: "manuscript" tag: "submitted-v1"
+```
+
+The `git` commands that produce such a history:
 
 ```bash
 # create and switch (modern)

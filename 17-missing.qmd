@@ -1,5 +1,18 @@
 # Missing Data: Diagnosis, Imputation, Reporting {#sec-missing}
 
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*Absence of evidence is not evidence of absence.*
+
+[Douglas G. Altman and J. Martin Bland]{.smallcaps},
+*British Medical Journal* (1995)
+```{=latex}
+\end{flushright}
+```
+:::
+
 ::: {.callout-note}
 ## Why this chapter exists
 
@@ -163,22 +176,45 @@ reasoning.
 
 Before any imputation, look at the pattern. The
 `naniar` package provides ggplot-friendly
-diagnostics:
+diagnostics. The row-by-column heatmap is the first
+thing to look at: it shows at a glance which
+variables carry missingness and whether it clusters
+in particular rows.
 
-```r
+```{r}
+#| label: fig-vis-miss
+#| fig-cap: "Missingness heatmap for the Palmer Penguins data. Each
+#|   row is an observation, each column a variable; missing cells are
+#|   marked. The `sex` variable carries most of the missingness."
+#| fig-width: 7
+#| fig-height: 4
+#| message: false
 library(naniar)
 library(palmerpenguins)
 
-# overall missingness
 vis_miss(penguins)               # row-by-column heatmap
+```
 
-# per-variable counts
+A per-variable bar chart quantifies what the heatmap
+suggests:
+
+```{r}
+#| label: fig-gg-miss-var
+#| fig-cap: "Count of missing values per variable. Two body
+#|   measurements and `sex` account for essentially all the
+#|   missingness in the penguin data."
+#| fig-width: 6
+#| fig-height: 3.5
 gg_miss_var(penguins)            # bar chart of missing per variable
+```
 
-# co-occurrence of missing across variables
+Two further diagnostics are worth knowing. The
+UpSet plot shows how missingness co-occurs across
+variables, and the case summary counts missing
+cells per row:
+
+```r
 gg_miss_upset(penguins)          # UpSet-style intersection plot
-
-# case-level
 miss_case_summary(penguins)      # how many missing per row
 ```
 
@@ -267,7 +303,33 @@ values per missing cell.
 
 ## Multiple imputation with `mice`
 
-The three-step procedure:
+Multiple imputation proceeds in three steps, shown
+in @fig-mi-steps: impute several completed datasets,
+analyse each one separately, then pool the results.
+The reason for the fan-out and recombination is the
+whole point of the method: the variation between the
+$M$ analyses is what carries the uncertainty due to
+missingness that single imputation discards.
+
+```{mermaid}
+%%| label: fig-mi-steps
+%%| fig-cap: "The three steps of multiple imputation. The between-dataset
+%%|   variation recovered at the pooling step is the uncertainty that
+%%|   single imputation throws away."
+flowchart LR
+  D["Incomplete<br/>data"] --> I1["Imputed set 1"]
+  D --> I2["Imputed set 2"]
+  D --> Id["...set M"]
+  I1 --> A1["Fit 1"]
+  I2 --> A2["Fit 2"]
+  Id --> Ad["Fit M"]
+  A1 --> P["Pool<br/>Rubin's rules<br/><i>within + between variance</i>"]
+  A2 --> P
+  Ad --> P
+  P --> R["One pooled<br/>estimate and SE"]
+```
+
+The three steps in detail:
 
 1. **Impute** $M$ complete datasets, each with a
    different draw of plausible values.

@@ -1,5 +1,19 @@
 # Testing Data Analysis Workflows {#sec-testing}
 
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*Program testing can be used to show the presence of bugs,
+but never to show their absence.*
+
+[Edsger W. Dijkstra]{.smallcaps}, *Notes on Structured
+Programming* (1970)
+```{=latex}
+\end{flushright}
+```
+:::
+
 ::: {.callout-note}
 ## Sources
 
@@ -50,11 +64,32 @@ reproducibility failures. This chapter brings the
 habits of software engineering to bear on the
 practice of data analysis.
 
-The framework is `testthat` (3rd edition). The
-companion textbook covers `testthat` in the package-
-development context (chapter 20 of *Statistical
-Computing in the Age of AI*). This chapter focuses on
+The framework used in this chapter is `testthat`
+(3rd edition), because it is the framework the reader
+is most likely to meet in the wider R ecosystem and
+in the companion textbook (chapter 20 of *Statistical
+Computing in the Age of AI*, which covers it in the
+package-development context). This chapter focuses on
 applying it to non-package analysis code.
+
+::: {.callout-note}
+## A note on tinytest
+
+The house standard for projects scaffolded with
+`zzcollab` is `tinytest`, not `testthat`. The two are
+close cousins: `tinytest` has no dependencies, keeps
+each test file runnable on its own, and uses the same
+`expect_*()` vocabulary. Everything in this chapter
+transfers with small substitutions, principally
+`expect_equal()` and `expect_true()` in place of their
+`testthat` namesakes, and `tinytest::test_package()`
+or `run_test_dir()` in place of `testthat::test_local()`.
+Where a project already depends on `testthat`, stay with
+it; where you are starting fresh under `zzcollab`, prefer
+`tinytest`. The discipline the chapter teaches, testing
+statistical content rather than plumbing, is identical
+under either framework.
+:::
 
 ## The statistician's contribution {#sec-testing-human}
 

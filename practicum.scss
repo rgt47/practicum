@@ -102,3 +102,53 @@ body.nav-hide-all {
     padding-right: 1rem;
   }
 }
+
+/*-- epigraphs (one per chapter, set below the title) --*/
+.bookepigraph {
+  max-width: 32em;
+  margin: 0.2em 0 2.4em auto;
+  text-align: right;
+  font-size: 0.95em;
+  color: #555;
+  line-height: 1.45;
+}
+
+.bookepigraph em {
+  font-style: italic;
+}
+
+.bookepigraph .smallcaps {
+  font-variant: small-caps;
+  color: #2c7a7b;
+}
+
+/*-- keep figures, images, and diagrams within the content column --*/
+.cell-output-display img,
+.quarto-figure img,
+figure img,
+p img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Mermaid diagrams render as inline SVG; cap them to the column width
+   and centre them so wide flowcharts scale down instead of overflowing */
+.cell-output-display svg,
+pre.mermaid svg,
+.quarto-figure svg,
+figure.quarto-float svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* wide tables (side-by-side code translations) scroll rather than
+   push the page wider on narrow screens */
+.cell-output-display > table,
+.quarto-figure > table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}

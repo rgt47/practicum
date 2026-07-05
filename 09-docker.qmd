@@ -1,5 +1,17 @@
 # Docker for Reproducibility {#sec-docker}
 
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*But it works on my machine.*
+
+[A folk theorem of software]{.smallcaps} (n.d.)
+```{=latex}
+\end{flushright}
+```
+:::
+
 ::: {.callout-note}
 ## Sources
 
@@ -200,12 +212,35 @@ COPY . /work
 CMD ["R", "-e", "rmarkdown::render('analysis/paper/paper.qmd')"]
 ```
 
-The order matters: lockfile → renv install → project
-source. Changes to `analysis/paper/paper.qmd` only
-invalidate the last layer (a fast COPY); changes to
-`renv.lock` invalidate the package install. Without
-this ordering, every change to the manuscript triggers
-a full reinstall, which is slow.
+The order matters: lockfile, then renv install, then
+project source. @fig-docker-layers shows why. Docker
+caches each layer and reuses it on the next build unless
+that layer or something above it has changed. Copying the
+lockfile and restoring packages *before* copying the
+frequently-edited manuscript means that an ordinary day of
+writing invalidates only the fast final `COPY`, leaving
+the slow package-restore layer untouched.
+
+```{mermaid}
+%%| label: fig-docker-layers
+%%| fig-cap: "Docker layer caching. Slow, slow-changing layers go early;
+%%|   the fast, frequently-edited source goes last. Editing the
+%%|   manuscript invalidates only the final COPY, so the expensive
+%%|   package restore is reused from cache."
+flowchart TD
+  A["FROM rocker/verse<br/><i>cached base image</i>"] --> B["RUN apt-get system deps<br/><i>rarely changes</i>"]
+  B --> C["COPY renv.lock + restore<br/><i>changes when packages change</i>"]
+  C --> D["COPY . /work<br/><i>changes every edit</i>"]
+  D --> E["CMD render paper"]
+  style C fill:#e8f4f4,stroke:#2c7a7b
+  style D fill:#fbe9e7,stroke:#9d2235
+```
+
+Changes to `analysis/paper/paper.qmd` only invalidate the
+last layer (a fast COPY); changes to `renv.lock`
+invalidate the package install. Without this ordering,
+every change to the manuscript triggers a full reinstall,
+which is slow.
 
 Build:
 
