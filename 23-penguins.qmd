@@ -170,21 +170,24 @@ project, the output should be clean.
 
 ## Reading and cleaning
 
-```r
+```{r}
+#| label: fig-penguins-missing
+#| fig-cap: "Missingness map for the raw penguin data. Missingness is
+#|   concentrated in `sex`, with two rows missing all four morphology
+#|   measurements."
+#| fig-width: 7
+#| fig-height: 4
+#| message: false
 library(palmerpenguins)
 library(naniar)
 
 # inspect missingness
 vis_miss(penguins)
+```
+
+```{r}
+#| label: penguins-miss-summary
 miss_var_summary(penguins)
-#> # A tibble: 8 × 3
-#>   variable          n_miss pct_miss
-#>   <chr>              <int>    <num>
-#> 1 sex                   11    3.20
-#> 2 bill_length_mm         2    0.58
-#> 3 bill_depth_mm          2    0.58
-#> 4 flipper_length_mm      2    0.58
-#> 5 body_mass_g            2    0.58
 ```
 
 Missingness is mostly in `sex` (11 rows, 3.2%);
@@ -200,10 +203,10 @@ collection issues, not a relationship to body
 mass), and the analysis is descriptive rather
 than inferential. Document the choice:
 
-```r
+```{r}
+#| label: penguins-clean
 penguins_clean <- na.omit(penguins)
 nrow(penguins_clean)
-#> [1] 333
 ```
 
 We drop 11 rows; analyses use $n = 333$.
@@ -238,7 +241,13 @@ order rather than alphabetical.
 
 ## Exploratory scatter plots
 
-```r
+```{r}
+#| label: fig-penguins-scatter
+#| fig-cap: "Body mass against flipper length, coloured by species and
+#|   faceted by island. Three clear clusters emerge, and the within-cluster
+#|   association motivates the model that follows."
+#| fig-width: 7.5
+#| fig-height: 4
 library(ggplot2)
 
 theme_set(theme_minimal())
@@ -539,7 +548,7 @@ practice:
 - [@horst2022palmerpenguins], the R Journal
   paper introducing the dataset.
 - The `palmerpenguins` package vignettes at
-  `allisonhorst.github.io/palmerpenguins` ---
+  `allisonhorst.github.io/palmerpenguins`,
   teaching examples.
 
 ## Prerequisites answers {#sec-quiz-answers-23}

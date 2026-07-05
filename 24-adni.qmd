@@ -160,6 +160,32 @@ and baseline ADAS13 are reliable predictors;
 the question is whether a multivariable model
 can outperform any one of them.
 
+The analytic cohort is not the enrolled cohort, and
+the gap between the two is itself a reportable result.
+@fig-adni-cohort traces the derivation in the manner of
+a CONSORT flow diagram: from the full ADNIMERGE roster,
+we restrict to the MCI strata of interest, require
+sufficient follow-up to observe the three-year outcome,
+and drop records with missing key predictors. Each
+exclusion is a number the manuscript must state, because
+a reader cannot judge selection bias without it.
+
+```{mermaid}
+%%| label: fig-adni-cohort
+%%| fig-cap: "Cohort-derivation flow for the ADNI analysis, in the
+%%|   CONSORT style. Every arrow is an exclusion with a count the
+%%|   manuscript must report; the analytic cohort is smaller than the
+%%|   enrolled cohort, and by how much is itself a finding."
+flowchart TD
+  A["ADNIMERGE baseline roster<br/><i>all participants</i>"] --> B{"Baseline DX in<br/>EMCI or LMCI?"}
+  B -->|"No: CN, SMC, AD"| BX["Excluded"]
+  B -->|"Yes"| C{"Followed at least<br/>3 years, or converted<br/>before then?"}
+  C -->|"No: insufficient<br/>follow-up"| CX["Excluded"]
+  C -->|"Yes"| D{"Key predictors<br/>observed?"}
+  D -->|"No: missing<br/>APOE4 / ADAS13 / educ"| DX["Excluded or imputed<br/>per SAP"]
+  D -->|"Yes"| E["Analytic cohort"]
+```
+
 ## The ADNI dataset
 
 **Source.** ADNI (Alzheimer's Disease
@@ -674,11 +700,11 @@ Three habits define defensible ADNI work:
 
 ## Further reading
 
-- The ADNI website at `adni.loni.usc.edu` ---
+- The ADNI website at `adni.loni.usc.edu`,
   study overview and data-use agreement.
 - Weiner et al. (2017), *Recent publications
   from the Alzheimer's Disease Neuroimaging
-  Initiative*, *Alzheimer's & Dementia* ---
+  Initiative*, *Alzheimer's & Dementia*,
   orientation to the study's publication
   history.
 - Grassi et al. (2019), 'A novel ensemble-based

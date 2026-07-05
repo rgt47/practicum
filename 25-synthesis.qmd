@@ -153,22 +153,22 @@ material:
 
 **Year one (consolidation).**
 
-- *R Packages*, 2nd ed. [@wickham2023rpkgs] ---
+- *R Packages*, 2nd ed. [@wickham2023rpkgs],
   package development. Read end to end; build a
   package with each chapter.
 - *R for Data Science*, 2nd ed.
   [@wickham2023r4ds], tidyverse depth. The
   Practicum touched many of these chapters; the
   full book has more.
-- *Advanced R*, 2nd ed. [@wickham2019advr] ---
+- *Advanced R*, 2nd ed. [@wickham2019advr],
   the R language. Memory model, functional
   programming, environments, S4. Read when you
   hit a corner case.
-- *Happy Git with R* [@bryan2019happygit] ---
+- *Happy Git with R* [@bryan2019happygit],
   Git for R users in depth.
 - *Bayesian Data Analysis*, 3rd ed.
   [@gelman2013bda] or *Statistical Rethinking*,
-  2nd ed. [@mcelreath2020rethinking] ---
+  2nd ed. [@mcelreath2020rethinking],
   Bayesian computation. Pick one based on
   preferred level.
 
@@ -199,7 +199,7 @@ year two, specialise toward your applied area.
 ## A note on judgement
 
 The Practicum has emphasised tools and habits.
-What it could not teach directly is judgement ---
+What it could not teach directly is judgement,
 the small decisions about which test, which
 covariate, which transformation, which audience.
 Judgement comes from practice: working on real

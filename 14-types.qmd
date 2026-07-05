@@ -520,7 +520,9 @@ Three habits define defensible type handling:
   `stringr`, `lubridate`.
 - [@bryan2019stat545] Chapters 10--13, detailed
   type-specific coverage.
-- The `regular-expressions.info` website ---
+- [@grolemund2011dates], the `lubridate` paper, for
+  the date and time-zone handling in this chapter.
+- The `regular-expressions.info` website,
   comprehensive regex reference.
 
 ## Prerequisites answers {#sec-quiz-answers-14}
