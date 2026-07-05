@@ -56,6 +56,18 @@ plot to a polished multi-panel figure: ggplot2 for
 the plot, purrr for iteration over groups, patchwork
 for composition.
 
+```{r}
+#| label: setup-graphics
+#| echo: false
+#| message: false
+#| warning: false
+library(tidyverse)
+library(patchwork)
+library(palmerpenguins)
+library(broom)
+penguins_clean <- na.omit(penguins)
+```
+
 ## The statistician's contribution {#sec-graphics-human}
 
 Software handles the mechanics. The judgements:
@@ -93,7 +105,13 @@ The pattern: split data by a grouping variable, apply
 a plotting function to each group, collect into a
 named list.
 
-```r
+```{r}
+#| label: fig-purrr-adelie
+#| fig-cap: "One plot per species, produced by mapping a plotting
+#|   function over a split data frame. Only the Adelie panel is shown;
+#|   `plots` holds all three."
+#| fig-width: 6
+#| fig-height: 4
 library(tidyverse)
 library(palmerpenguins)
 
@@ -106,14 +124,21 @@ plots <- penguins_clean |>
     ggplot(d, aes(flipper_length_mm, body_mass_g)) +
       geom_point() +
       geom_smooth(method = "lm") +
-      labs(title = name) +
+      labs(title = name,
+           x = "Flipper length (mm)", y = "Body mass (g)") +
       theme_minimal()
   })
 
 # inspect one
 plots$Adelie
+```
 
-# save all
+The same iteration writes every panel to disk. This
+is a side effect, so we reach for `walk2` rather than
+`map2`:
+
+```r
+# save all three panels as publication-quality PDFs
 walk2(plots,
       paste0("figures/penguin-", names(plots), ".pdf"),
       \(p, path) ggsave(path, p, width = 6, height = 4))
@@ -151,7 +176,13 @@ same plot, `wrap_plots` (or the `+` and `/`
 operators) combines independent plots that may
 differ in everything.
 
-```r
+```{r}
+#| label: fig-patchwork
+#| fig-cap: "Three distinct views of the penguin data composed into one
+#|   figure with patchwork. The species legend is collected once and
+#|   placed at the bottom."
+#| fig-width: 7.5
+#| fig-height: 6
 library(patchwork)
 
 p1 <- ggplot(penguins_clean,
@@ -228,7 +259,8 @@ each species' (same geom, conditioned on species),
 A function that returns a `theme()` object, applied
 once per session:
 
-```r
+```{r}
+#| label: theme-practicum
 theme_practicum <- function(base_size = 11) {
   theme_minimal(base_size = base_size) +
     theme(
@@ -349,11 +381,13 @@ generation; covered in the analysis-plan chapter
 
 ## Worked example: regression diagnostic figure
 
-```r
-library(tidyverse)
-library(patchwork)
-library(broom)
-
+```{r}
+#| label: fig-diagnostics
+#| fig-cap: "A composed regression-diagnostic figure: residuals versus
+#|   fitted, a normal Q-Q plot, and Cook's distance, all sharing the
+#|   house theme."
+#| fig-width: 7
+#| fig-height: 6
 theme_set(theme_practicum())
 
 fit <- lm(body_mass_g ~ flipper_length_mm + species,
@@ -383,7 +417,12 @@ p_cook <- ggplot(diag, aes(seq_len(nrow(diag)), .cooksd)) +
 
 (p_resid + p_qq) / p_cook +
   plot_layout(heights = c(1, 0.7))
+```
 
+To write the composed figure to disk for a manuscript,
+add a `ggsave` call after building it:
+
+```r
 ggsave("figures/diagnostics.pdf", width = 7, height = 6,
        device = cairo_pdf)
 ```
@@ -393,6 +432,117 @@ diagnostics, bottom row a single observation-level
 diagnostic. House theme applied via
 `theme_set(theme_practicum())`. Saved as a
 publication-quality PDF.
+
+## Worked example: a longitudinal trajectory figure
+
+The penguin data are cross-sectional, and cross-sectional
+scatter plots are the easy case. The figure a
+biostatistician is asked for most often is harder: the
+trajectory of a repeated-measures outcome over time, by
+treatment arm, with the individual patients visible
+behind the group means. To illustrate, we simulate a
+small two-arm trial in which a cognitive score (higher
+is worse, in the manner of ADAS-Cog) declines more
+slowly on the active arm than on placebo.
+
+```{r}
+#| label: fig-trajectory
+#| fig-cap: "A longitudinal trajectory figure for a simulated two-arm
+#|   trial. Thin lines are individual patients; heavy lines are arm
+#|   means with a 95% confidence ribbon. This is the figure the
+#|   in-house `zzlongplot` package produces by default."
+#| fig-width: 7
+#| fig-height: 4.5
+set.seed(1)
+n_id   <- 60
+months <- c(0, 6, 12, 18, 24)
+
+sim <- expand_grid(id = seq_len(n_id), month = months) |>
+  mutate(arm = if_else(id <= n_id / 2, "Placebo", "Active")) |>
+  group_by(id) |>
+  mutate(
+    slope = if_else(first(arm) == "Placebo", 0.45, 0.20) +
+            rnorm(1, 0, 0.08),
+    adas  = 20 + rnorm(1, 0, 4) + slope * month + rnorm(n(), 0, 1.5)
+  ) |>
+  ungroup()
+
+arm_means <- sim |>
+  group_by(arm, month) |>
+  summarise(mean = mean(adas), se = sd(adas) / sqrt(n()),
+            .groups = "drop")
+
+pal <- c(Placebo = "#9d2235", Active = "#1f4e79")
+
+ggplot(sim, aes(month, adas, colour = arm)) +
+  geom_line(aes(group = id), alpha = 0.15) +
+  geom_ribbon(data = arm_means,
+              aes(month, ymin = mean - 1.96 * se,
+                  ymax = mean + 1.96 * se, fill = arm),
+              alpha = 0.2, colour = NA, inherit.aes = FALSE) +
+  geom_line(data = arm_means, aes(month, mean, colour = arm),
+            linewidth = 1.1, inherit.aes = FALSE) +
+  scale_colour_manual(values = pal) +
+  scale_fill_manual(values = pal) +
+  labs(x = "Month", y = "ADAS-Cog (higher is worse)",
+       colour = "Arm", fill = "Arm",
+       title = "Simulated cognitive decline by treatment arm")
+```
+
+The individual trajectories, drawn at low opacity,
+convey the within-arm heterogeneity that a plot of
+group means alone would hide. The confidence ribbon on
+the arm means keeps the reader from over-reading a
+separation that is within the noise. The real ADNI
+version of this figure appears in @sec-adni.
+
+## The same figure in Python
+
+Many students arrive with more Python than R, and a
+good deal of collaborative biostatistics now crosses
+the two languages. Where a comparison is instructive we
+show the Python equivalent alongside the R. Quarto
+executes Python chunks through `reticulate`, and the
+`r` object makes an R data frame available to Python
+without writing an intermediate file. Here is the
+body-mass-versus-flipper-length scatter in `pandas` and
+`matplotlib`.
+
+```{python}
+#| label: fig-py-scatter
+#| fig-cap: "The penguin scatter reproduced in Python. The cleaned R
+#|   data frame crosses into Python through reticulate's `r` object,
+#|   so no intermediate file is written."
+#| fig-width: 6
+#| fig-height: 4
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+df = r.penguins_clean
+colours = {"Adelie": "#1f4e79", "Chinstrap": "#9d2235",
+           "Gentoo": "#2e8b57"}
+
+fig, ax = plt.subplots(figsize=(6, 4))
+for species, sub in df.groupby("species", observed=True):
+    ax.scatter(sub["flipper_length_mm"], sub["body_mass_g"],
+               label=species, color=colours[species], alpha=0.7, s=18)
+ax.set_xlabel("Flipper length (mm)")
+ax.set_ylabel("Body mass (g)")
+ax.legend(title="Species")
+fig.tight_layout()
+plt.show()
+```
+
+For a reader who wants the grammar of graphics in
+Python rather than the imperative `matplotlib` style,
+the `plotnine` package reproduces the `ggplot2` API
+almost verbatim (`from plotnine import ggplot, aes,
+geom_point`). The choice between them is a matter of
+taste and of what the rest of the analysis is written
+in. The judgement the figure requires, one message per
+plot, uncertainty shown, colour chosen for legibility,
+does not change with the language.
 
 ## Collaborating with an LLM on graphics
 

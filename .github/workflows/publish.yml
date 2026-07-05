@@ -35,8 +35,29 @@ jobs:
             any::broom
             any::survival
             any::palmerpenguins
+            any::patchwork
+            any::naniar
+            any::mice
+            any::gt
+            any::gtsummary
+            any::janitor
+            any::GGally
+            any::reticulate
+
+      # Committed _freeze/ results are reused when a chapter is unchanged, so
+      # a full R/Python execution is not normally required in CI. Python is
+      # provisioned here only as a fallback for chapters that are re-executed.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: pip install pandas numpy matplotlib statsmodels scikit-learn plotnine
 
       - name: Render book
+        env:
+          RETICULATE_PYTHON: python
         run: quarto render
 
       - name: Deploy to Netlify
