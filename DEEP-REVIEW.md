@@ -200,47 +200,46 @@ Kurtzer et al. (2017) on Singularity, and the `targets` manual,
 support the new topics recommended in section 9 and are ready to be
 cited as that material is written.
 
-## 9. Recommended new topics
+## 9. New topics (now drafted)
 
 The peer comparison identified a short list of practical topics
 that sit squarely in the book's remit, are taught at multiple peer
-institutions, and are currently absent. The author has asked that
-these be added as material rather than merely noted. They are
-listed here in priority order, with the intended home for each. The
-prose for these sections remains to be written; this review
-establishes the plan and has seeded the bibliography.
+institutions, and were absent. All six have now been drafted, in
+voice and following the book's chapter pattern, and were verified to
+render. They are listed here in priority order with their homes.
 
-1. **Databases and SQL (highest peer frequency, seven courses).**
-   A new chapter, or a major section of the wrangling part, on
-   `DBI` and `dbplyr`: querying a clinical data warehouse or REDCap
-   back-end at the source rather than exporting flat files.
-   Biostatistics students meet this on their first project.
-2. **The Unix shell (five-plus courses).** A short chapter on the
-   command line as the substrate under Docker, Git, and HPC job
-   submission, which the book currently assumes rather than teaches.
-3. **Pipeline tooling with `targets` (a reproducibility-specific
-   gap).** The dependency-aware build tool that makes a compendium
-   re-runnable end to end. This is the natural capstone to the
-   existing infrastructure chapters.
-4. **Continuous integration with GitHub Actions.** Running the
-   book's existing tests and `renv` checks automatically on every
-   push. Few peers teach this, so it would differentiate the book
-   rather than merely bring it to parity.
-5. **HIPAA de-identification and data ethics (biostat-critical).**
-   The Safe Harbor eighteen-identifier rule and basic
-   disclosure-control practice. Conspicuously absent given the
-   clinical-data focus, and explicitly taught at Broman and Johns
-   Hopkins. This belongs in or beside the federal-requirements
-   chapter.
-6. **Regular expressions and dates (daily tools).** Chapter 14
-   already covers `stringr` and `lubridate`; the recommendation is
-   to strengthen it with a runnable, bilingual example and to frame
-   the material against clinical free-text and interval arithmetic.
+1. **Databases and SQL** (`15b-databases.qmd`, in the wrangling
+   part). `DBI` and `dbplyr`, querying at the source with a runnable
+   in-memory SQLite example that shows the SQL and the `dbplyr`
+   translation side by side, lazy evaluation, and `collect()`.
+2. **The Unix shell** (`04b-shell.qmd`, in the workstation part).
+   Navigation, file inspection, pipes and redirection, `grep` and
+   `find`, and a safe short script, framed as the substrate under
+   Docker, Git, and HPC.
+3. **Pipeline tooling with `targets`** (`10b-targets.qmd`, in the
+   infrastructure part). The dependency graph, a `_targets.R` plan,
+   selective rebuilding, and its relationship to the compendium and
+   Docker. Code is display-only, since `targets` was not installed
+   in the build environment.
+4. **Continuous integration** (`20b-ci.qmd`, in the analysis-practice
+   part). GitHub Actions anatomy, what to check (restore, render,
+   test), and reading a failing check, using the book's own
+   `publish.yml` as the worked example.
+5. **HIPAA de-identification and data ethics** (`02b-deidentification.qmd`,
+   after the federal chapter). The two HIPAA methods, the eighteen
+   Safe Harbor identifiers, a runnable Safe Harbor transformation
+   (salted hashing, date shifting, generalisation, suppression),
+   quasi-identifiers and k-anonymity, and the obligations that
+   survive de-identification.
+6. **Regular expressions and dates** (added to `14-types.qmd`). A
+   runnable, bilingual example that parses a messy clinical dosing
+   field with regex and `lubridate`, with the `pandas` equivalent
+   alongside.
 
-A parenthetical scope note in the preface should also record that
-simulation design, bootstrap, optimization, and Bayesian computing
-are treated in the companion volume, so their absence reads as
-deliberate.
+One item from the plan remains outstanding: a parenthetical scope
+note in the preface recording that simulation design, bootstrap,
+optimization, and Bayesian computing are treated in the companion
+volume, so that their absence reads as deliberate.
 
 ## 10. Residual items and caveats
 
