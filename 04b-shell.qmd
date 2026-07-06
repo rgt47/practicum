@@ -1,0 +1,348 @@
+# The Unix Shell {#sec-shell}
+
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*This is the Unix philosophy: write programs that do one
+thing and do it well. Write programs to work together.*
+
+[Doug McIlroy]{.smallcaps}, *A Quarter Century of Unix*
+(1994)
+```{=latex}
+\end{flushright}
+```
+:::
+
+::: {.callout-note}
+## Why this chapter exists
+
+The shell is the substrate under everything else in this
+book: Docker is driven from it, Git began as a set of
+shell commands, and every high-performance cluster is
+reached through it. The peer survey found the command line
+taught explicitly at Harvard's data-science course,
+Berkeley 243, Karl Broman's reproducibility course, and
+both Software and Data Carpentry. The Practicum has until
+now assumed the shell rather than taught it; this chapter
+supplies the working subset.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-04b.
+
+1. What does the pipe operator `|` do in the shell, and
+   how does it resemble the R pipe `|>`?
+2. What is the difference between an absolute path and a
+   relative path, and what do `.`, `..`, `~`, and `/`
+   refer to?
+3. Why might you write a short shell script to run an
+   analysis pipeline rather than clicking through the steps
+   by hand each time?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Navigate the filesystem with `pwd`, `ls`, `cd`, and
+  understand absolute versus relative paths.
+- Inspect and manipulate files with `cat`, `less`, `head`,
+  `tail`, `cp`, `mv`, `rm`, and `mkdir`.
+- Combine small tools with pipes and redirection to build
+  a data-inspection one-liner.
+- Search file contents with `grep` and file trees with
+  `find`.
+- Write and run a short, commented shell script.
+
+## Orientation
+
+The shell is a text interface to the operating system. You
+type a command, the shell runs a program, and the program
+prints its output. Its power comes from a design decision
+made in the early 1970s: build many small programs, each
+doing one thing well, and let the output of one become the
+input of the next. A modern data scientist can go far
+without the shell, but not without friction, because the
+tools the field depends on, Docker, Git, `ssh`, cluster
+schedulers, are all operated from it.
+
+This chapter teaches the subset that recurs in applied
+biostatistics: moving around the filesystem, inspecting
+data files, combining tools with pipes, and writing a
+short script to make a pipeline repeatable. We use the
+`bash` shell, the common default on Linux and the one
+inside almost every Docker container; macOS now ships
+`zsh`, which differs only in details that do not matter
+here.
+
+## The statistician's contribution {#sec-shell-human}
+
+The commands are mechanical. The judgements:
+
+**Prefer a script to a sequence of clicks.** A pipeline you
+run by hand is a pipeline you will run differently next
+time. A shell script records the steps, runs them
+identically every time, and is version-controlled. The
+reproducibility argument of chapter 1 applies to the shell
+as much as to R.
+
+**Destructive commands deserve respect.** `rm` does not
+move a file to a trash can; it deletes it. `rm -rf` on the
+wrong directory is unrecoverable. Read a deletion command
+before running it, and never build one from an
+un-inspected variable.
+
+**Inspect before you load.** A malformed or enormous data
+file will choke R if you read it blind. A few seconds with
+`head`, `wc -l`, and `file` at the shell tells you the row
+count, the delimiter, and the encoding before R ever sees
+it.
+
+**Keep the shell out of the analysis proper.** The shell is
+excellent glue: fetching files, orchestrating steps,
+inspecting inputs. It is a poor place to do statistics.
+Draw the line where chapter 13 draws it, and do the
+analysis in R.
+
+These judgements are what make the shell an asset rather
+than a hazard.
+
+## Navigating the filesystem
+
+Three commands answer 'where am I, what is here, and how do
+I move'.
+
+```bash
+pwd                 # print working directory (where am I?)
+ls                  # list files here
+ls -la              # long listing, including hidden files
+cd ~/research/trial # change directory (absolute path from home)
+cd ..               # up one level
+cd -                # back to the previous directory
+```
+
+Paths come in two kinds. An *absolute* path starts from the
+root and names the full location: `/home/user/data/visits.csv`.
+A *relative* path starts from where you are:
+`data/visits.csv`. The shorthands recur constantly: `.` is
+the current directory, `..` is the parent, `~` is your home
+directory, and `/` is the root. A path that begins with `/`
+or `~` is absolute; anything else is relative to the
+working directory.
+
+## Inspecting and manipulating files
+
+```bash
+cat file.csv           # print the whole file
+less file.csv          # page through it (q to quit)
+head -n 20 file.csv    # first 20 lines
+tail -n 20 file.csv    # last 20 lines
+wc -l file.csv         # count lines
+file data.bin          # guess the file type and encoding
+
+mkdir -p data/derived  # make a directory (and parents)
+cp a.csv b.csv         # copy
+mv a.csv archive/      # move or rename
+rm scratch.csv         # delete (no undo)
+```
+
+For a data file about to enter R, `head`, `wc -l`, and
+`file` are the quick triage: how many rows, what delimiter,
+what encoding. Discovering that a 'CSV' is tab-separated,
+or that it carries a byte-order mark, is far cheaper at the
+shell than after a puzzling `read_csv` failure.
+
+## Pipes and redirection
+
+The pipe `|` connects the output of one command to the
+input of the next, exactly as R's `|>` connects functions.
+Redirection sends output to a file with `>` (overwrite) or
+`>>` (append).
+
+```bash
+# how many unique treatment arms appear in column 3?
+cut -d',' -f3 visits.csv | sort | uniq -c
+
+# save the count of data rows to a log
+wc -l visits.csv > rowcount.txt
+
+# the ten largest files in a directory tree
+du -ah . | sort -rh | head -n 10
+```
+
+The first line reads as a sentence: take the third
+comma-delimited field, sort it, then count the unique
+values. Each tool does one thing; the pipe composes them.
+This is the same compositional idea as a `dplyr` pipeline,
+in a different notation.
+
+## Searching with grep and find
+
+`grep` searches file *contents*; `find` searches the file
+*tree*.
+
+```bash
+# lines mentioning a subject id across all CSVs
+grep "STUDY01-042" data/*.csv
+
+# case-insensitive, with line numbers
+grep -in "hba1c" analysis/*.R
+
+# every R script modified in the last 7 days
+find . -name "*.R" -mtime -7
+
+# every file over 100 MB (candidates to keep out of Git)
+find . -type f -size +100M
+```
+
+`grep` with a regular expression is the fastest way to
+answer 'where is this variable used?' across a project, and
+`find` is how you locate the large files that should never
+enter version control.
+
+## Writing a short script
+
+A shell script is a text file of commands with a `#!` line
+naming the interpreter. It turns a sequence you would
+otherwise retype into a single, version-controlled command.
+
+```bash
+#!/usr/bin/env bash
+# fetch-and-check.sh: download the extract and sanity-check it
+set -euo pipefail          # stop on error, unset variable, or failed pipe
+
+DATA_DIR="data/raw"
+mkdir -p "$DATA_DIR"
+
+echo "Downloading extract..."
+curl -sSL "$1" -o "$DATA_DIR/visits.csv"
+
+rows=$(wc -l < "$DATA_DIR/visits.csv")
+echo "Downloaded $rows lines."
+
+if [ "$rows" -lt 2 ]; then
+  echo "ERROR: file has no data rows" >&2
+  exit 1
+fi
+```
+
+Two habits make shell scripts safe. The `set -euo pipefail`
+line tells the shell to stop at the first error rather than
+plough on through a broken pipeline, which is the single
+most valuable line in any script. Quoting variables as
+`"$DATA_DIR"` protects against paths that contain spaces.
+Make the script executable with `chmod +x fetch-and-check.sh`
+and run it with `./fetch-and-check.sh <url>`.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: reading a pipeline
+
+**Question.** What does
+`cut -d',' -f5 labs.csv | sort | uniq -c | sort -rn | head`
+do, read left to right?
+
+**Answer.**
+
+It extracts the fifth comma-delimited field of `labs.csv`
+(say, the test name), sorts those values so identical ones
+are adjacent, counts the occurrences of each distinct value
+(`uniq -c` requires the prior `sort`), sorts those counts
+in descending numeric order, and prints the top few. In
+one line it answers 'which lab tests appear most often in
+this file?', the shell equivalent of
+`count(test, sort = TRUE)` in `dplyr`.
+
+:::
+
+## Collaborating with an LLM on the shell
+
+LLMs write shell fluently, and the shell is where a wrong
+command does the most damage, so verification matters most
+here.
+
+**Prompt 1: composing a pipeline.** Describe the file and
+the question and ask for a shell one-liner.
+
+*What to watch for.* The delimiter and the field number,
+and whether a `sort` precedes `uniq`. Read the pipeline as
+a sentence before running it.
+
+*Verification.* Run it on a small copy first, or pipe the
+result to `head`, before trusting it on the real file.
+
+**Prompt 2: writing a script.** Ask for a script with
+`set -euo pipefail` and quoted variables, and read every
+line before running it.
+
+*What to watch for.* Any `rm`, `mv`, or redirection that
+could overwrite data. Never run an LLM-generated deletion
+command built from a variable without inspecting the
+expanded value.
+
+*Verification.* Dry-run destructive steps by replacing
+`rm` with `echo rm` first, to see what would be deleted.
+
+## Principle in use
+
+Three habits define defensible shell use:
+
+1. **Script it, do not click it.** A repeated pipeline
+   belongs in a version-controlled script, not in your
+   memory of what you typed.
+2. **Read destructive commands before running them.** `rm`
+   has no undo; inspect the target, especially when it
+   comes from a variable.
+3. **Inspect data at the shell before loading it in R.**
+   `head`, `wc -l`, and `file` are three seconds well spent.
+
+## Exercises
+
+1. Using only the shell, determine the number of data rows,
+   the delimiter, and the column names of a CSV file you
+   have on hand.
+2. Write a pipeline that reports the five most frequent
+   values of a chosen column in a CSV, with their counts.
+3. Use `find` to list every file over 50 MB in a project
+   directory, then explain which of them should be excluded
+   from Git and why.
+4. Write a shell script that takes a directory as its
+   argument, counts the `.R` and `.qmd` files in it, and
+   prints the totals. Include `set -euo pipefail` and
+   quote your variables.
+5. Use `grep` to find every place a particular variable
+   name is used across a project's R scripts, and compare
+   the result to what your editor's search returns.
+
+## Further reading
+
+- The Software Carpentry lesson 'The Unix Shell' at
+  `swcarpentry.github.io/shell-novice`, a gentle hands-on
+  introduction.
+- [@broman2019tools4rr], which covers the command line in
+  the context of reproducible research.
+- @sec-docker and @sec-cloud, where the shell is the
+  interface to containers and remote servers.
+
+## Prerequisites answers {#sec-quiz-answers-04b}
+
+1. The pipe `|` sends the standard output of the command on
+   its left to the standard input of the command on its
+   right, so small tools compose into a pipeline. It is the
+   direct ancestor of R's `|>`, which sends the value on its
+   left as the first argument of the function on its right;
+   both let you read a transformation left to right as a
+   sequence of steps.
+2. An absolute path names a location from the filesystem
+   root and begins with `/` (or `~` for home); a relative
+   path is interpreted from the current working directory.
+   `.` is the current directory, `..` its parent, `~` your
+   home directory, and `/` the root.
+3. A hand-run sequence of steps is easy to run differently
+   or incompletely next time, and it records nothing. A
+   shell script runs the steps identically every time, can
+   be version-controlled and reviewed, and documents the
+   pipeline, which is the reproducibility argument of
+   chapter 1 applied to orchestration.

@@ -1,0 +1,295 @@
+# Continuous Integration with GitHub Actions {#sec-ci}
+
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*If it hurts, do it more frequently, and bring the pain
+forward.*
+
+[Jez Humble and David Farley]{.smallcaps}, *Continuous
+Delivery* (2010)
+```{=latex}
+\end{flushright}
+```
+:::
+
+::: {.callout-note}
+## Why this chapter exists
+
+The book has taught tests (@sec-testing), dependency
+pinning (@sec-renv), and reproducible reports
+(@sec-quarto). Continuous integration is what runs those
+checks automatically on every change, so that a broken
+pipeline is caught within minutes rather than discovered at
+submission. The peer survey found this taught at almost no
+comparison course, because the canonical curricula predate
+the practice; adding it places the Practicum ahead of its
+peers rather than merely level with them.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-20b.
+
+1. What is continuous integration, and what does it
+   automate that a disciplined analyst might otherwise do by
+   hand?
+2. In a GitHub Actions workflow, what triggers a run, and
+   where does the run execute?
+3. Why is 'it renders on my machine' an insufficient
+   guarantee that a collaborator can reproduce your
+   analysis, and how does CI address the gap?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Explain what continuous integration provides and why it
+  matters for reproducible analysis.
+- Read a GitHub Actions workflow file and identify its
+  triggers, jobs, and steps.
+- Configure a workflow that restores an `renv` environment,
+  runs the test suite, and renders the report on every
+  push.
+- Interpret a failing check and locate the step that broke.
+- Use CI as a reproducibility guarantee rather than merely
+  a testing convenience.
+
+## Orientation
+
+Continuous integration is the practice of automatically
+building and checking a project every time it changes.
+When you push a commit, a fresh machine in the cloud checks
+out the code, reconstructs the environment, runs the tests,
+and renders the report; if anything fails, you are told
+within minutes. The value for the biostatistician is
+specific: CI runs your analysis on a machine that is not
+yours, from a clean state, which is the closest thing to a
+proof that a collaborator could reproduce it.
+
+This chapter uses GitHub Actions, the CI system built into
+GitHub, because it is free for public repositories and
+integrates with the R tooling the book already uses. The
+concepts, triggers, jobs, and steps run on a clean
+machine, transfer to GitLab CI, Jenkins, and the other
+systems.
+
+## The statistician's contribution {#sec-ci-human}
+
+The configuration is mechanical. The judgements:
+
+**CI proves reproducibility, not just correctness.** A
+passing test suite says the code does what its tests check.
+A passing CI run says more: that the analysis reconstructs
+from `renv.lock` on a machine that is not yours and
+produces the report. That second guarantee is the one that
+matters when a reviewer, or a future you, must re-run the
+work.
+
+**A green check is only as good as what it runs.** CI that
+renders the report but runs no tests proves the report
+compiles, not that the numbers are right. Decide
+deliberately what the workflow checks: at minimum, restore
+the environment and render; better, run the statistical
+tests of @sec-testing as well.
+
+**Fail loudly and early.** The purpose of CI is to surface
+a break at the moment it is introduced, when the cause is
+one small commit, rather than at submission, when the cause
+is buried in months of history. Configure the workflow to
+fail the build on a test failure, not to warn and continue.
+
+**Keep secrets out of the workflow.** Credentials, tokens,
+and any protected data belong in the platform's encrypted
+secrets, never in the workflow file, which is
+version-controlled and often public. The de-identification
+discipline of @sec-deident applies to the pipeline as much
+as to the data.
+
+These judgements are what make CI a reproducibility
+instrument rather than a decorative badge.
+
+## Anatomy of a workflow
+
+A GitHub Actions workflow is a YAML file in
+`.github/workflows/`. It names the events that trigger it,
+one or more jobs, and the steps within each job. The steps
+run in order on a fresh virtual machine that GitHub
+provisions for the run.
+
+```yaml
+name: Check analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-renv@v2   # restore renv.lock
+
+      - name: Run tests
+        run: Rscript -e 'testthat::test_dir("tests")'
+
+      - name: Render report
+        run: quarto render
+```
+
+Read it top to bottom. The `on` block says the workflow
+runs on every push to `main` and on every pull request. The
+single job, `check`, runs on a fresh Ubuntu machine. Its
+steps check out the code, install R, restore the exact
+package versions from `renv.lock`, run the test suite, and
+render the report. If any step exits with an error, the job
+fails and GitHub marks the commit with a red cross; if all
+pass, a green check.
+
+The `r-lib/actions` collection supplies the R-specific
+steps, `setup-r`, `setup-renv`, `setup-r-dependencies`, so
+that a working R-on-CI configuration is a few lines rather
+than a hand-built installation.
+
+## What to check
+
+A useful workflow for an analysis compendium checks three
+things, in increasing order of value.
+
+First, that the *environment restores*: `setup-renv`
+rebuilds the library from `renv.lock` on a clean machine.
+This alone catches the most common reproducibility failure,
+a package the analyst had installed locally but never
+recorded.
+
+Second, that the *report renders*: `quarto render` runs the
+whole document, executing every code chunk. A chunk that
+depends on a file that is not in the repository, or on a
+manual step, fails here.
+
+Third, that the *tests pass*: the statistical checks of
+@sec-testing run, confirming not merely that the code runs
+but that it produces the right answers on known inputs.
+
+A workflow that does all three turns every push into a
+reproducibility audit.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: what a green check proves
+
+**Question.** Your CI workflow restores `renv` and renders
+the report, and the check is green. A collaborator still
+reports that a figure differs from yours. What does the
+green check tell you, and what does it not?
+
+**Answer.**
+
+The green check tells you that the analysis reconstructs
+from `renv.lock` on a clean machine and that the report
+renders without error, so the discrepancy is not a missing
+package or an uncommitted file. It does not tell you the
+figure is correct, because the workflow renders but does
+not test the figure's content. If the collaborator's figure
+differs, suspect an unseeded random step, a data version
+mismatch, or a genuine analytic difference, and add a test
+that pins the figure's underlying numbers so that CI would
+catch the change next time.
+
+:::
+
+## Reading a failing check
+
+When a check fails, GitHub shows the log of the job, with
+the failing step highlighted. The discipline is to read the
+log from the failing step, not the top: the first error is
+usually the cause, and the cascade below it is
+consequence. Common failures and their meaning:
+
+- A `setup-renv` failure means `renv.lock` references a
+  package that will not install on the clean machine, often
+  a system dependency the workflow did not provide.
+- A render failure with 'object not found' means a code
+  chunk depends on something created outside the document,
+  a manual step that reproducibility requires be made
+  explicit.
+- A test failure means the statistical check did not hold;
+  read the expectation and the observed value in the log.
+
+The book you are reading is itself built this way: a
+workflow restores its packages, provisions Python, and
+renders the whole book on every push, so that a broken
+chunk is caught before it reaches the published site.
+
+## Principle in use
+
+Three habits define defensible continuous integration:
+
+1. **Let CI prove reproducibility.** A clean-machine
+   restore-and-render is the closest thing to a guarantee
+   that a collaborator can reproduce the work.
+2. **Check what matters.** Restore the environment, render
+   the report, and run the tests; a workflow that renders
+   but does not test proves too little.
+3. **Fail early and read the first error.** The point is to
+   catch a break at the commit that caused it, and the first
+   log error is usually the cause.
+
+## Exercises
+
+1. Add a GitHub Actions workflow to an existing analysis
+   compendium that restores `renv` and renders the report
+   on every push. Confirm it runs and turns green.
+2. Deliberately commit a change that removes a package from
+   `renv.lock` but leaves its use in the code. Observe the
+   CI failure and read the log to locate the cause.
+3. Extend the workflow to run a `testthat` (or `tinytest`)
+   suite. Add a test that pins a key numeric result and
+   confirm CI fails when you change that result.
+4. Introduce a code chunk that reads a file not committed
+   to the repository. Show that CI catches the missing
+   dependency even though the report renders on your own
+   machine.
+5. Read the `publish.yml` workflow in this book's own
+   repository. Identify its triggers, the R and Python it
+   provisions, and the step that renders the book.
+
+## Further reading
+
+- The GitHub Actions documentation at
+  `docs.github.com/actions`, the platform reference.
+- The `r-lib/actions` repository at
+  `github.com/r-lib/actions`, with ready-made R workflows
+  and examples.
+- @sec-testing, @sec-renv, and @sec-quarto, the checks that
+  a workflow automates.
+
+## Prerequisites answers {#sec-quiz-answers-20b}
+
+1. Continuous integration automatically builds and checks a
+   project on every change: it reconstructs the environment,
+   runs the tests, and renders the report. It automates the
+   clean-state re-run that a disciplined analyst might do by
+   hand occasionally, but does it on every push and on a
+   machine that is not theirs.
+2. A workflow is triggered by events, commonly a push to a
+   branch or the opening of a pull request, declared in the
+   `on` block. The run executes on a fresh virtual machine
+   that GitHub provisions for the purpose, starting from a
+   clean checkout of the repository.
+3. 'It renders on my machine' depends on packages, files,
+   and manual steps that exist only on your machine and may
+   not be recorded. CI reconstructs the analysis from the
+   committed sources and `renv.lock` on a clean machine, so
+   a passing run demonstrates that the analysis is
+   reproducible from what is actually in the repository, not
+   from the state of your laptop.

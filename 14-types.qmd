@@ -278,6 +278,83 @@ declaring the wall clock was always in the new zone.
 Confusing them is a common source of 1- to 24-hour
 errors.
 
+## A runnable example: parsing a messy clinical field
+
+The three tools of this chapter earn their place on the
+free-text fields that clinical data are full of. To
+illustrate, consider a single column recording a dosing
+instruction as the site typed it, with the drug, the
+amount, and the start date all run together and formatted
+inconsistently. We use a regular expression to pull out the
+structured pieces and `lubridate` to parse the dates, which
+arrive in three different formats.
+
+```{r}
+#| label: types-regex-dates
+#| message: false
+library(tidyverse)
+
+dosing <- tibble(
+  raw = c("Metformin 500mg started 2026-01-14",
+          "Lisinopril 10 mg started 01/22/2026",
+          "Atorvastatin 20mg started Feb 3 2026",
+          "Aspirin 81 mg started 2026-02-19")
+)
+
+parsed <- dosing |>
+  mutate(
+    drug   = str_extract(raw, "^[A-Za-z]+"),
+    dose   = as.integer(str_extract(raw, "\\d+(?=\\s?mg)")),
+    date_s = str_extract(raw, "(?<=started ).*$"),
+    start  = parse_date_time(date_s, orders = c("ymd", "mdy", "bdy")) |>
+             as_date()
+  ) |>
+  select(drug, dose, start)
+
+parsed
+```
+
+Three regular-expression constructs do the work. The anchor
+`^[A-Za-z]+` takes the leading word, the drug. The
+lookahead `\\d+(?=\\s?mg)` takes the digits that precede
+`mg` without capturing the `mg` itself. The lookbehind
+`(?<=started )` takes everything after the word `started`,
+which is the date in whatever format the site used;
+`parse_date_time` then tries each candidate format in turn.
+The result is a tidy three-column table from a single messy
+string.
+
+### The same parsing in Python
+
+`pandas` exposes the same operations through its `.str`
+accessor and `to_datetime`. The regular expressions are
+identical, because the regex dialect is shared; only the
+surrounding idiom differs.
+
+```{python}
+#| label: types-py
+import pandas as pd
+
+dosing = r.dosing            # the R tibble, via reticulate
+
+out = pd.DataFrame({
+    "drug": dosing["raw"].str.extract(r"^([A-Za-z]+)")[0],
+    "dose": dosing["raw"].str.extract(r"(\d+)\s?mg")[0].astype(int),
+    "start": pd.to_datetime(
+        dosing["raw"].str.extract(r"started (.*)$")[0],
+        format="mixed"),
+})
+out
+```
+
+The `format="mixed"` argument is `pandas`' counterpart to
+supplying several `orders` to `parse_date_time`: it lets
+each value be parsed by whichever format fits. The lesson is
+that regex and date parsing are portable skills; the drug,
+dose, and date fall out the same way in either language,
+and a biostatistician who knows the constructs can work in
+whichever the project uses.
+
 ::: {.callout-note icon=false collapse=true}
 ## Check your understanding: factor reference level
 

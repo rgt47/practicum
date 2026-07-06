@@ -1,0 +1,324 @@
+# Reproducible Pipelines with targets {#sec-targets}
+
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*Make is a tool which controls the generation of
+executables and other non-source files of a program from
+the program's source files.*
+
+[Stuart Feldman]{.smallcaps}, *Make: A Program for
+Maintaining Computer Programs* (1979)
+```{=latex}
+\end{flushright}
+```
+:::
+
+::: {.callout-note}
+## Why this chapter exists
+
+A research compendium holds the code, the data, and the
+environment, but it does not by itself make the analysis
+re-runnable end to end; that requires a tool that knows
+which step depends on which. The peer survey found
+dependency-aware pipeline tools taught in two generations,
+GNU Make at Broman's reproducibility course and Software
+Carpentry, and the modern `targets` package at Monash's
+collaborative-practices course. For a book that already
+teaches compendia and Docker, a build tool is the missing
+piece, and this chapter supplies it.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-10b.
+
+1. When you edit one data-cleaning function in a long
+   analysis, what does a dependency-aware pipeline tool do
+   that re-sourcing all your scripts by hand does not?
+2. What is a directed acyclic graph, and why is it the
+   right abstraction for an analysis pipeline?
+3. Why is 'I re-ran everything and the numbers changed, but
+   I am not sure which step caused it' a symptom that a
+   pipeline tool would prevent?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Explain the problem that a dependency-aware build tool
+  solves, and why manual re-running does not.
+- Structure an analysis as a set of `targets` connected by
+  their dependencies.
+- Write a `_targets.R` plan defining the pipeline.
+- Run the pipeline with `tar_make()` and understand what is
+  and is not re-executed.
+- Inspect the dependency graph and retrieve built objects.
+
+## Orientation
+
+An analysis is a chain of steps: read the raw data, clean
+it, derive variables, fit a model, produce a figure. When
+you change one step, everything downstream of it is stale
+and everything upstream is fine. Doing this bookkeeping by
+hand, remembering which steps to re-run after a change, is
+tedious and error-prone, and the errors are the silent
+kind: a figure built from a stale intermediate that you
+forgot to rebuild.
+
+The `targets` package automates the bookkeeping. You
+declare the steps and their dependencies; `targets` works
+out the order, runs only what has changed and what depends
+on it, and skips the rest. It is the R successor to GNU
+Make, designed around R objects rather than files. The
+payoff is twofold: pipelines run faster because unchanged
+steps are skipped, and results are trustworthy because
+nothing downstream of a change is ever left stale.
+
+## The statistician's contribution {#sec-targets-human}
+
+The tool is mechanical. The judgements:
+
+**Decompose the analysis into honest steps.** A pipeline is
+only as clear as its decomposition. Steps should be
+meaningful units, read, clean, model, report, each a
+function with explicit inputs and outputs, not one
+thousand-line script. The decomposition is a modelling
+decision about the analysis, and it is yours to make.
+
+**Stale results are worse than slow ones.** The reason to
+adopt a pipeline tool is not speed; it is trust. When
+`targets` reports that a target is up to date, you know it
+reflects the current code and data. Re-running everything
+by hand offers no such guarantee, because you might forget
+a step.
+
+**Determinism is a precondition.** A pipeline tool assumes
+that the same inputs produce the same outputs. Set your
+random seeds; `targets` has explicit support for
+reproducible seeding. A step that quietly depends on the
+wall clock or an unpinned package defeats the tool's
+promise.
+
+**The plan is documentation.** The `_targets.R` file is a
+readable statement of the analysis's structure: what
+depends on what, in what order. It is often the most useful
+single artefact for a new collaborator trying to
+understand the project.
+
+These judgements are what make a pipeline trustworthy
+rather than merely automated.
+
+## The dependency graph
+
+The organising idea is the directed acyclic graph, or DAG.
+Each step is a node; an arrow from step A to step B means B
+uses A's output. 'Directed' because dependencies have a
+direction; 'acyclic' because a step cannot, even
+indirectly, depend on itself. Given the graph, the order of
+execution is determined, and so is the set of steps that a
+change makes stale: everything reachable by following the
+arrows forward from the changed node.
+
+@fig-targets-dag shows the graph for a small analysis.
+
+```{mermaid}
+%%| label: fig-targets-dag
+%%| fig-cap: "The dependency graph of a small analysis pipeline.
+%%|   Editing `clean_data` makes the model, the figure, and the report
+%%|   stale, but leaves the raw-data import untouched; targets rebuilds
+%%|   exactly the stale nodes and no others."
+flowchart LR
+  R["raw_file"] --> I["import"]
+  I --> C["clean_data"]
+  C --> M["fit_model"]
+  C --> F["make_figure"]
+  M --> Rep["report"]
+  F --> Rep
+```
+
+## A minimal pipeline
+
+A `targets` project keeps its pipeline definition in a file
+named `_targets.R` at the project root. The plan lists the
+targets; each `tar_target()` names a step and gives the R
+expression that produces it. Functions referenced in the
+plan live in an `R/` directory that the plan sources.
+
+```r
+# _targets.R
+library(targets)
+tar_source()          # source the helper functions in R/
+
+list(
+  tar_target(raw_file, "data/raw/visits.csv", format = "file"),
+  tar_target(visits,   read_visits(raw_file)),
+  tar_target(clean,    clean_visits(visits)),
+  tar_target(model,    fit_model(clean)),
+  tar_target(figure,   make_figure(clean)),
+  tar_target(report,   render_report(model, figure))
+)
+```
+
+Declaring `raw_file` with `format = "file"` tells `targets`
+to watch the file's contents, so that editing the raw data
+invalidates everything downstream. The dependencies are not
+declared explicitly; `targets` reads them from the code,
+noticing that `clean` uses `visits`, that `model` and
+`figure` both use `clean`, and so on. That is how it builds
+the graph in @fig-targets-dag without your drawing it.
+
+## Running and inspecting
+
+```r
+library(targets)
+
+tar_make()            # run everything that is out of date
+
+tar_visnetwork()      # view the dependency graph interactively
+
+tar_read(model)       # retrieve a built target into the session
+tar_load(clean)       # load a target under its own name
+```
+
+The first `tar_make()` builds every target. Edit
+`clean_visits()` and run `tar_make()` again, and `targets`
+rebuilds `clean`, `model`, `figure`, and `report`, the
+nodes downstream of the change, while skipping the
+untouched `read_visits()` step and reporting it as up to
+date. Nothing you did not change, and nothing upstream of
+what you changed, is re-executed. On a pipeline whose model
+fit takes an hour, this is the difference between an
+iteration that costs minutes and one that costs the whole
+hour.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: what gets rebuilt?
+
+**Question.** Your pipeline is the one in @fig-targets-dag.
+You edit the `make_figure` function and run `tar_make()`.
+Which targets are rebuilt, and which are skipped?
+
+**Answer.**
+
+`figure` is rebuilt because you changed its function, and
+`report` is rebuilt because it depends on `figure`.
+Everything else, `import`, `clean_data`, and `fit_model`,
+is skipped, because none of them lies downstream of the
+change: the figure does not feed the model. This is the
+whole value of the tool: it rebuilds the two stale targets
+and leaves the model fit, which may be expensive, alone.
+
+:::
+
+## Relationship to the compendium and Docker
+
+A `targets` pipeline sits naturally inside the research
+compendium of @sec-rrtools: the `_targets.R` plan and the
+`R/` functions live in the package structure, `renv`
+(@sec-renv) pins the packages the pipeline uses, and the
+Dockerfile (@sec-docker) can end with `CMD Rscript -e
+'targets::tar_make()'` so that building the image runs the
+entire analysis. The compendium holds the ingredients;
+`targets` is the recipe that assembles them in the right
+order, and re-assembles only what has changed. Together
+they deliver the end-to-end re-runnability that a
+compendium alone only promises.
+
+## Collaborating with an LLM on pipelines
+
+LLMs write `targets` plans competently; the judgement they
+cannot supply is the decomposition.
+
+**Prompt 1: drafting a plan.** Describe the analysis steps
+and their inputs and outputs, and ask for a `_targets.R`
+plan and the corresponding `R/` functions.
+
+*What to watch for.* Whether file inputs use
+`format = "file"`, and whether the decomposition matches
+the analysis you actually have rather than a generic
+template.
+
+*Verification.* Run `tar_visnetwork()` and confirm the
+dependency graph matches your mental model; run
+`tar_make()` twice and confirm the second run skips
+everything.
+
+**Prompt 2: diagnosing a rebuild.** When `targets` rebuilds
+more than you expected, paste the plan and ask why a target
+is invalidated.
+
+*What to watch for.* Hidden dependencies on global
+variables or on the wall clock, which make targets rebuild
+when you did not expect it.
+
+*Verification.* Use `tar_outdated()` to list what is out of
+date and reason about why before accepting the explanation.
+
+## Principle in use
+
+Three habits define defensible pipeline work:
+
+1. **Decompose into honest, functional steps.** Each target
+   is a function with explicit inputs and outputs, not a
+   monolithic script.
+2. **Trust up-to-date, distrust hand-running.** The tool's
+   value is the guarantee that nothing downstream of a
+   change is left stale.
+3. **Seed for determinism.** A pipeline assumes reproducible
+   steps; set seeds and pin packages so the assumption
+   holds.
+
+## Exercises
+
+1. Convert a small existing analysis (read, clean, model,
+   plot) into a `targets` pipeline with one target per
+   step and the functions in `R/`.
+2. Run `tar_make()`, then edit the cleaning function and
+   run it again. Confirm from the output which targets were
+   rebuilt and which were skipped, and explain why.
+3. Use `tar_visnetwork()` to view the dependency graph.
+   Add a second figure that depends on the model, and
+   observe how the graph changes.
+4. Declare the raw-data path with and without
+   `format = "file"`. Edit the raw file in each case and
+   show that only the `format = "file"` version invalidates
+   the downstream targets.
+5. Add a `CMD` line to a Dockerfile that runs
+   `targets::tar_make()`, so that building the image
+   executes the whole pipeline. Explain how this closes the
+   loop with the compendium and `renv`.
+
+## Further reading
+
+- [@landau2021targets], the `targets` user manual, the
+  authoritative and readable reference.
+- The `targets` package website at
+  `docs.ropensci.org/targets`, with function documentation
+  and examples.
+- @sec-rrtools and @sec-docker, the compendium and
+  container context this pipeline sits inside.
+
+## Prerequisites answers {#sec-quiz-answers-10b}
+
+1. A dependency-aware tool rebuilds exactly the steps that
+   are downstream of the change and leaves the rest alone,
+   and it guarantees that nothing stale survives. Re-sourcing
+   all your scripts by hand either wastes time re-running
+   unchanged steps or, worse, forgets a step and leaves a
+   downstream result built from a stale intermediate.
+2. A directed acyclic graph is a set of nodes connected by
+   arrows that have a direction and form no cycles. It is
+   the right abstraction because an analysis step depends on
+   its inputs (direction) and cannot depend on itself
+   (acyclic), so the graph determines both the execution
+   order and the set of steps a change makes stale.
+3. The symptom means you cannot attribute a change in
+   results to a specific step, which is exactly the
+   bookkeeping a pipeline tool maintains. `targets` records
+   what each target depended on, so a change is always
+   traceable to the step that caused it, and stale results
+   never silently survive.

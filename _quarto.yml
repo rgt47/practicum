@@ -36,11 +36,13 @@ book:
       chapters:
         - 01-why.qmd
         - 02-federal.qmd
+        - 02b-deidentification.qmd
         - 03-team-science.qmd
 
     - part: 'Data Science Workstation'
       chapters:
         - 04-workstation.qmd
+        - 04b-shell.qmd
         - 05-git-solo.qmd
         - 06-cloud.qmd
 
@@ -50,6 +52,7 @@ book:
         - 08-renv.qmd
         - 09-docker.qmd
         - 10-zzcollab.qmd
+        - 10b-targets.qmd
 
     - part: 'Reproducible Reporting'
       chapters:
@@ -61,6 +64,7 @@ book:
         - 13-wrangling.qmd
         - 14-types.qmd
         - 15-joins.qmd
+        - 15b-databases.qmd
         - 16-graphics.qmd
         - 17-missing.qmd
 
@@ -69,6 +73,7 @@ book:
         - 18-analysis-plan.qmd
         - 19-cdisc.qmd
         - 20-testing.qmd
+        - 20b-ci.qmd
         - 21-ai-coding.qmd
         - 22-sas.qmd
 

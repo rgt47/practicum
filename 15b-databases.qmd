@@ -1,0 +1,429 @@
+# Databases and SQL for Biostatisticians {#sec-databases}
+
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*The most valuable commodity I know of is information.*
+
+[Gordon Gekko]{.smallcaps}, *Wall Street* (1987)
+```{=latex}
+\end{flushright}
+```
+:::
+
+::: {.callout-note}
+## Why this chapter exists
+
+Clinical data rarely arrive as a tidy CSV. They live in a
+REDCap project, an institutional data warehouse, or an
+electronic health record extract, and the biostatistician
+reaches them through a query rather than a file. The
+survey of peer programmes found relational databases and
+SQL taught as a core skill in at least seven of the
+comparison courses (Berkeley 243, UNC 735, Michigan 625,
+Minnesota 8054, the Johns Hopkins data-science sequence,
+and both Software and Data Carpentry). This chapter brings
+the Practicum to parity.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass
+this chapter. You can find the answers at the end of the
+chapter in @sec-quiz-answers-15b.
+
+1. What is the difference between querying a table with
+   `DBI::dbGetQuery()` and reading a whole table into
+   memory with `dbReadTable()`, and why does the
+   distinction matter for a ten-million-row table?
+2. In the `dbplyr` model of database access, what does a
+   pipeline of `dplyr` verbs actually do before you call
+   `collect()`, and where does the computation happen?
+3. Why is it preferable, for reproducibility, to record
+   the SQL query that produced an analytic dataset rather
+   than to save the extracted CSV alone?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Connect to a database from R with `DBI` and an
+  appropriate backend driver (`RSQLite`, `duckdb`,
+  `RPostgres`).
+- Write basic `SELECT` queries with filtering, joining,
+  grouping, and aggregation.
+- Express the same query with `dbplyr` using familiar
+  `dplyr` verbs, and inspect the SQL it generates.
+- Distinguish lazy from eager evaluation and use
+  `collect()` deliberately.
+- Reason about when to push work to the database and when
+  to pull data into R.
+
+## Orientation
+
+A database is a store that lets many users query
+structured data efficiently and safely. For the
+biostatistician, the practical point is that the data are
+usually too large, too sensitive, or too frequently
+updated to hand around as flat files. Querying at the
+source has three advantages: you pull only the rows and
+columns you need, you leave the authoritative copy
+untouched, and you record, in the query itself, exactly
+how your analytic dataset was derived.
+
+This chapter is not a database course. It teaches the
+subset of SQL and the `DBI`/`dbplyr` tooling that covers
+the recurring needs of applied biostatistics: connect,
+filter, join, aggregate, and extract. The deeper matters
+of schema design, indexing, and transaction management
+belong to a database text and to your data-engineering
+colleagues.
+
+## The statistician's contribution {#sec-databases-human}
+
+The query mechanics are mechanical. The judgements:
+
+**Query at the source, extract deliberately.** The
+temptation is to pull the whole table into R and work
+there, because R is where you are comfortable. On a small
+table this is harmless. On a large one it is slow,
+memory-hungry, and it obscures the derivation. Push the
+filtering and aggregation to the database; pull only the
+analytic dataset.
+
+**The query is the provenance.** A CSV named
+`analytic_data_final_v3.csv` records nothing about how it
+was made. The SQL that produced it records everything.
+Keep the query in the compendium, under version control,
+and treat the extracted file as a build product in the
+manner of chapter 13's raw-data rule.
+
+**Beware the silent row multiplication.** A join in SQL
+inflates rows exactly as a join in `dplyr` does, and the
+database will not warn you. The verification habit from
+chapter 15, count the rows and check against
+expectation, applies with equal force here.
+
+**Respect the boundary between analyst and warehouse.**
+You usually have read-only access to an institutional
+warehouse, and that is correct. You are a consumer of the
+data, not its custodian. Do not write back; extract, and
+do your derivations in your own space.
+
+These judgements are what make database-backed analysis
+reproducible and safe.
+
+## Connecting with DBI
+
+The `DBI` package provides a backend-independent interface;
+a driver package supplies the connection to a specific
+database engine. For teaching we use `RSQLite`, which
+gives a complete SQL database in a single file or in
+memory, with no server to configure. The same code works
+against PostgreSQL (`RPostgres`), DuckDB (`duckdb`), or
+SQL Server (`odbc`) by changing only the `dbConnect` line.
+
+To make the example self-contained, we create an in-memory
+database and populate it with a tiny clinical schema: a
+one-row-per-patient demographics table and a
+one-row-per-visit table of blood-pressure measurements.
+
+```{r}
+#| label: db-setup
+#| message: false
+library(DBI)
+library(RSQLite)
+library(dplyr)
+library(dbplyr)
+
+con <- dbConnect(RSQLite::SQLite(), ":memory:")
+
+demographics <- data.frame(
+  patient_id = 1:5,
+  age        = c(64, 71, 58, 66, 73),
+  arm        = c("Active", "Placebo", "Active", "Placebo", "Active")
+)
+
+visits <- data.frame(
+  patient_id = c(1, 1, 2, 3, 3, 3, 4, 5),
+  visit      = c(1, 2, 1, 1, 2, 3, 1, 1),
+  sbp        = c(140, 138, 150, 145, 143, 141, 139, 152)
+)
+
+dbWriteTable(con, "demographics", demographics)
+dbWriteTable(con, "visits", visits)
+
+dbListTables(con)
+```
+
+In a real setting the `dbConnect` call would name a
+server, a database, and credentials, ideally drawn from an
+environment variable or a `config` file rather than
+written into the script:
+
+```r
+con <- dbConnect(
+  RPostgres::Postgres(),
+  host     = "warehouse.example.edu",
+  dbname   = "clinical",
+  user     = Sys.getenv("DB_USER"),
+  password = Sys.getenv("DB_PASS")
+)
+```
+
+## Querying with SQL
+
+The `SELECT` statement is the workhorse. It names the
+columns, the source table, and optional filtering,
+joining, grouping, and ordering. Here we ask for the mean
+systolic blood pressure and the number of visits per
+treatment arm, joining the two tables on `patient_id`.
+
+```{r}
+#| label: db-sql
+dbGetQuery(con, "
+  SELECT d.arm,
+         COUNT(*)     AS n_visits,
+         AVG(v.sbp)   AS mean_sbp
+  FROM visits AS v
+  JOIN demographics AS d
+    ON v.patient_id = d.patient_id
+  GROUP BY d.arm
+")
+```
+
+The clauses read in the order the database applies them:
+`FROM` and `JOIN` assemble the rows, `WHERE` (absent here)
+filters them, `GROUP BY` partitions them, the aggregate
+functions summarise each partition, and `SELECT` names
+what comes back. `dbGetQuery()` returns the result as an
+ordinary data frame, which is what you want for a small
+summary. For a large intermediate result you would not use
+it, for the reason discussed next.
+
+## Querying with dbplyr
+
+Writing SQL by hand is a skill worth having, but for most
+extractions you can stay in `dplyr`. The `dbplyr` package
+translates a `dplyr` pipeline into SQL, sends it to the
+database, and leaves the result there until you ask for
+it. A reference to a database table behaves almost exactly
+like a tibble.
+
+```{r}
+#| label: db-dbplyr
+visits_tbl <- tbl(con, "visits")
+demo_tbl   <- tbl(con, "demographics")
+
+summary_q <- visits_tbl |>
+  inner_join(demo_tbl, by = "patient_id") |>
+  group_by(arm) |>
+  summarise(n_visits = n(),
+            mean_sbp = mean(sbp, na.rm = TRUE))
+
+summary_q
+```
+
+The object `summary_q` is *lazy*: no computation has yet
+crossed into R. The pipeline has been recorded, and when
+printed it shows only a preview fetched from the database.
+To see the SQL that `dbplyr` generated, ask for it:
+
+```{r}
+#| label: db-showquery
+summary_q |> show_query()
+```
+
+The generated SQL is the same query we wrote by hand,
+which is the point: `dbplyr` lets you think in `dplyr` and
+still push the work to the database. When you are ready to
+bring the result into R, for plotting, modelling, or
+anything the database cannot do, call `collect()`.
+
+```{r}
+#| label: db-collect
+analytic <- summary_q |> collect()
+analytic
+```
+
+Everything up to `collect()` ran in the database; only the
+small summary crossed into memory. This is the pattern to
+internalise: filter and aggregate lazily against the
+table, then `collect()` the modest result. The
+verification habit still applies, so we check the row
+count is what a per-arm summary should give.
+
+```{r}
+#| label: db-verify
+stopifnot(nrow(analytic) == n_distinct(demographics$arm))
+```
+
+```{r}
+#| label: db-disconnect
+#| echo: false
+dbDisconnect(con)
+```
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: where does the work happen?
+
+**Question.** You write
+`tbl(con, "labs") |> filter(test == "HbA1c") |> summarise(m = mean(value))`
+against a table of fifty million laboratory results, then
+call `collect()`. How much data crosses from the database
+into R, and what would have happened had you called
+`collect()` before the `filter`?
+
+**Answer.**
+
+With `collect()` at the end, only the single summarised
+value crosses into R: the database does the filtering and
+the averaging, and returns one number. Had you called
+`collect()` first, all fifty million rows would have been
+pulled into memory before R did any work, which on most
+laptops would exhaust RAM and fail. The rule is to
+`collect()` as late as possible, after the database has
+reduced the data to the size you actually need.
+
+:::
+
+## When to push, when to pull
+
+The database is good at set operations on large data:
+filtering, joining, grouping, aggregating. R is good at
+everything else: modelling, plotting, iteration, anything
+statistical. The dividing line is `collect()`. Push the
+data-reduction work to the database; pull the reduced
+result into R for the analysis. A useful test: if a step
+makes the data smaller (a filter, an aggregate), it
+usually belongs before `collect()`; if a step needs the
+full statistical machinery of R (fitting a mixed model,
+drawing a figure), it belongs after.
+
+Two cautions. First, not every R function has a SQL
+translation; `dbplyr` will tell you when it cannot
+translate a verb, and then you must either rewrite it or
+`collect()` earlier. Second, a query that is cheap to
+write can be expensive to run; on a shared warehouse, a
+careless cross-join can inconvenience every other user, so
+test on a `LIMIT`-ed subset before running the full
+extraction.
+
+## Reproducibility of the extraction
+
+The analytic dataset is a build product, and the query is
+its recipe. Keep the query in the compendium as a `.sql`
+file or an R script, so that the derivation is
+version-controlled and re-runnable. Record the date of
+extraction and, where the warehouse supports it, the data
+snapshot or freeze identifier, because a warehouse is a
+living system and today's query may return different rows
+next month. The pattern mirrors the raw-data discipline of
+chapter 13: the query and its output date are the audit
+trail that lets a reviewer reconstruct exactly which rows
+your analysis rested on.
+
+## Collaborating with an LLM on databases
+
+LLMs write competent SQL and `dbplyr`; the traps are
+correctness on joins and the silent scale of a query.
+
+**Prompt 1: drafting a query.** Describe the tables, their
+keys, and the summary you want, and ask for both the SQL
+and the `dbplyr` equivalent.
+
+*What to watch for.* The join key and the join type. An
+LLM will happily write an inner join where you needed a
+left join, dropping patients with no visits. State the
+cardinality you expect.
+
+*Verification.* Run against a `LIMIT`-ed subset; count the
+rows; confirm the count matches the expected number of
+groups or patients.
+
+**Prompt 2: translating hand-written SQL to `dbplyr`.**
+Paste a `SELECT` statement and ask for the `dplyr`
+pipeline that generates it.
+
+*What to watch for.* Aggregations and `GROUP BY`
+translate cleanly; window functions and correlated
+subqueries less so. Compare `show_query()` on the result
+against the original.
+
+*Verification.* Confirm the two produce identical results
+on a small table before trusting the translation on the
+full one.
+
+## Principle in use
+
+Three habits define defensible database work:
+
+1. **Query at the source; `collect()` late.** Push
+   filtering and aggregation to the database; pull only the
+   analytic result into R.
+2. **The query is the provenance.** Version-control the
+   SQL that produced the analytic dataset; treat the
+   extract as a build product with a recorded date.
+3. **Verify joins in SQL as in R.** Count the rows; a
+   silent many-to-many inflates the data in a database
+   exactly as it does in `dplyr`.
+
+## Exercises
+
+1. Create an in-memory SQLite database with the
+   `demographics` and `visits` tables from this chapter.
+   Write a SQL query that returns, per patient, the number
+   of visits and the change in systolic blood pressure
+   from the first to the last visit.
+2. Express the same query with `dbplyr`. Use
+   `show_query()` to inspect the generated SQL and compare
+   it to your hand-written version.
+3. Add a third table, `labs`, with columns `patient_id`,
+   `test`, and `value`. Write a `dbplyr` pipeline that
+   returns the mean HbA1c per treatment arm, joining all
+   three tables. Verify the row count.
+4. Deliberately write a query that produces a
+   many-to-many join between `visits` and a table with
+   duplicate `patient_id` values. Observe the inflated row
+   count and explain it.
+5. Using the `duckdb` backend instead of `RSQLite`, read a
+   large CSV file directly with `duckdb`'s
+   `read_csv_auto` and run an aggregation without ever
+   loading the file into R. Compare the memory use to
+   `readr::read_csv()` followed by `dplyr`.
+
+## Further reading
+
+- The `DBI` documentation at `dbi.r-dbi.org`, the
+  interface reference.
+- The `dbplyr` documentation at `dbplyr.tidyverse.org`,
+  including the list of translatable verbs.
+- [@wickham2023r4ds], the databases chapter, applied
+  introduction to `DBI` and `dbplyr`.
+- The DuckDB documentation at `duckdb.org`, for
+  file-backed analytical queries without a server.
+
+## Prerequisites answers {#sec-quiz-answers-15b}
+
+1. `dbGetQuery()` sends a query and returns only its
+   result; a `SELECT` with filtering and aggregation
+   returns a small summary regardless of table size.
+   `dbReadTable()` reads an entire table into memory, so
+   on a ten-million-row table it pulls all ten million
+   rows across, which is slow and may exhaust memory. Use
+   `dbGetQuery()` (or lazy `dbplyr`) to let the database do
+   the reduction.
+2. A `dbplyr` pipeline builds up a query lazily: each verb
+   adds to a SQL statement that has not yet run. No
+   computation crosses into R until you call `collect()`
+   (or print, which fetches a preview). The computation
+   happens in the database; R receives only the collected
+   result.
+3. The extracted CSV records the rows but not their
+   derivation. The SQL query records exactly which tables,
+   filters, joins, and aggregations produced the analytic
+   dataset, so a reviewer can reconstruct or re-run it.
+   A warehouse is also a living system, so pairing the
+   query with an extraction date documents the snapshot the
+   analysis rested on.
