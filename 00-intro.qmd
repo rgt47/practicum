@@ -44,15 +44,19 @@ biostatistical data analysis:
   (@sec-git-solo), `renv` (@sec-renv), Docker
   (@sec-docker), research compendia
   (@sec-rrtools), the `zzcollab` framework
-  (@sec-zzcollab).
-- **Federal compliance.** OSTP, NIH DMSP, NSF, FDA
-  expectations (@sec-federal).
-- **Workstation setup.** R, Quarto, Git,
-  dotfiles, editor choice (@sec-workstation).
+  (@sec-zzcollab), and dependency-aware pipelines
+  (@sec-targets).
+- **Federal compliance and data protection.** OSTP,
+  NIH DMSP, NSF, FDA expectations (@sec-federal), and
+  HIPAA de-identification (@sec-deident).
+- **Workstation and shell.** R, Quarto, Git,
+  dotfiles, editor choice (@sec-workstation), and the
+  Unix command line (@sec-shell).
 - **Cloud compute.** AWS, GCP, university HPC
   (@sec-cloud).
 - **Data wrangling.** The tidyverse stack
-  (@sec-wrangling, @sec-types, @sec-joins).
+  (@sec-wrangling, @sec-types, @sec-joins) and
+  querying databases with SQL (@sec-databases).
 - **Reporting.** Quarto and R Markdown
   (@sec-quarto, @sec-rmd-workflow).
 - **Communication.** Publication-quality figures
@@ -61,11 +65,13 @@ biostatistical data analysis:
   plans (@sec-analysis-plan), missing data
   handling (@sec-missing), CDISC standards
   (@sec-cdisc), testing data analysis workflows
-  (@sec-testing).
+  (@sec-testing), and continuous integration
+  (@sec-ci).
 - **AI-assisted coding.** LLMs as amplifier, not
   replacement (@sec-ai-coding).
 - **Cross-language fluency.** SAS for regulatory
-  bridging (@sec-sas).
+  bridging (@sec-sas), with Python shown alongside R
+  where the comparison instructs.
 - **Case studies.** End-to-end small analysis
   (@sec-penguins) and longitudinal modelling
   (@sec-adni).

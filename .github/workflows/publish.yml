@@ -45,6 +45,11 @@ jobs:
             any::GGally
             any::survminer
             any::UpSetR
+            any::DBI
+            any::RSQLite
+            any::dbplyr
+            any::duckdb
+            any::digest
             any::reticulate
 
       # Committed _freeze/ results are reused when a chapter is unchanged, so
