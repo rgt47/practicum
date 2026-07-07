@@ -125,15 +125,12 @@ fail to match, and if so, from which side.
 %%|   filtering joins (semi, anti) answer a different question again:
 %%|   keep or drop rows of x by their presence in y, adding no columns."
 flowchart TD
-  Q1{"Keep rows that<br/>have no match?"}
-  Q1 -->|"No, matches only"| INNER["inner_join"]
-  Q1 -->|"Yes"| Q2{"Unmatched rows<br/>from which side?"}
-  Q2 -->|"Left table x"| LEFT["left_join"]
-  Q2 -->|"Right table y"| RIGHT["right_join"]
+  Q1{"Keep rows with<br/>no match?"}
+  Q1 -->|"No"| INNER["inner_join"]
+  Q1 -->|"Yes"| Q2{"Unmatched from<br/>which side?"}
+  Q2 -->|"Left x"| LEFT["left_join"]
+  Q2 -->|"Right y"| RIGHT["right_join"]
   Q2 -->|"Both"| FULL["full_join"]
-  Q1 -->|"Just filter x,<br/>add no columns"| Q3{"Keep matched<br/>or unmatched?"}
-  Q3 -->|"Matched"| SEMI["semi_join"]
-  Q3 -->|"Unmatched"| ANTI["anti_join"]
 ```
 
 The `dplyr` package ships two toy tables, `band_members`

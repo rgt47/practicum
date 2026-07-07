@@ -131,7 +131,7 @@ arrows forward from the changed node.
 %%|   Editing `clean_data` makes the model, the figure, and the report
 %%|   stale, but leaves the raw-data import untouched; targets rebuilds
 %%|   exactly the stale nodes and no others."
-flowchart LR
+flowchart TD
   R["raw_file"] --> I["import"]
   I --> C["clean_data"]
   C --> M["fit_model"]

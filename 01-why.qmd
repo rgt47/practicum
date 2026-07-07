@@ -121,19 +121,13 @@ leg.
 ```{mermaid}
 %%| label: fig-repro-legs
 %%| fig-cap: "The three ingredients of a methods-reproducible analysis.
-%%|   Each is necessary; the absence of any one is a distinct and
-%%|   common failure mode, noted beneath it."
+%%|   Each is necessary, and each has a characteristic failure mode: code
+%%|   with undocumented manual steps, data that is 'the file a colleague
+%%|   emailed me', and an environment that only 'works on my machine'."
 flowchart TD
-  R["Reproducible<br/>analysis"]
-  R --> C["Code<br/><i>every step, executable</i>"]
-  R --> D["Data<br/><i>raw inputs, versioned</i>"]
-  R --> E["Environment<br/><i>packages, R version, OS</i>"]
-  C -.->|"missing: undocumented<br/>manual steps"| Cx[" "]
-  D -.->|"missing: 'the file<br/>Jane emailed me'"| Dx[" "]
-  E -.->|"missing: 'works on<br/>my machine'"| Ex[" "]
-  style Cx fill:none,stroke:none
-  style Dx fill:none,stroke:none
-  style Ex fill:none,stroke:none
+  R["Reproducible<br/>analysis"] --> C["Code<br/><i>every step<br/>executable</i>"]
+  R --> D["Data<br/><i>raw inputs,<br/>versioned</i>"]
+  R --> E["Environment<br/><i>packages, R<br/>version, OS</i>"]
 ```
 
 **Code.** Every step from raw input to final output, as
