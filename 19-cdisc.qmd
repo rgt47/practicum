@@ -442,9 +442,9 @@ initiative called the **pharmaverse** has produced R packages
 that implement ADaM derivations with validation intended for
 regulatory use. The principal packages include:
 
-- `admiral`: modular ADaM derivations. The reference
-  implementation for `ADSL`, `ADAE`, `ADLB`, `ADTTE`, and
-  others.
+- `admiral` [@mancini2026admiral]: modular ADaM derivations. The
+  reference implementation for `ADSL`, `ADAE`, `ADLB`,
+  `ADTTE`, and others.
 - `metacore` and `metatools`: read and validate ADaM
   specifications.
 - `xportr`: export to SAS transport (XPT) format, which the
@@ -542,9 +542,17 @@ Three habits define defensible CDISC work:
 
 ## Further reading
 
-- CDISC Foundational Standards at `cdisc.org/standards/foundational`, authoritative reference.
-- `admiral` documentation at `pharmaverse.github.io/admiral`, the CRAN implementation.
-- FDA Study Data Technical Conformance Guide, the regulatory requirements.
+- CDISC Foundational Standards at
+  `cdisc.org/standards/foundational`, the authoritative
+  reference for SDTM and ADaM themselves.
+- [@mancini2026admiral], the `admiral` package, the CRAN
+  implementation of the ADaM derivations.
+- [@fda2024conformance], the FDA Study Data Technical
+  Conformance Guide, which states what a submission must
+  contain.
+- [@ich2019e9r1], for the estimand framework that
+  determines which population flag an analysis should
+  use.
 
 ## Prerequisites answers {#sec-quiz-answers-19}
 

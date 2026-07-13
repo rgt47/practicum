@@ -61,10 +61,14 @@ exactly years later, or that depend on tricky system
 libraries (geospatial, GDAL, BLAS variants, JAGS, Stan),
 Docker is the right tool.
 
-The `rocker` project provides curated Docker images for
-R: minimal R, R with tidyverse, R with geospatial
-libraries, RStudio Server, and others. They are the
-foundation for almost all R-in-Docker work.
+The `rocker` project [@boettiger2017rocker] provides
+curated Docker images for R: minimal R, R with
+tidyverse, R with geospatial libraries, RStudio Server,
+and others. They are the foundation for almost all
+R-in-Docker work. The case for containers in research
+computing specifically was made by Boettiger
+[-@boettiger2015introduction], and it is the argument
+this chapter assumes.
 
 This chapter does not assume prior Docker experience.
 The mental model and the canonical recipes are enough
@@ -542,11 +546,13 @@ Three habits define defensible Docker use:
 
 ## Further reading
 
-- Boettiger (2015), *An introduction to Docker for
-  reproducible research*, ACM SIGOPS Operating Systems
-  Review, the motivating paper for R.
-- The `rocker` project at `rocker-project.org`,
+- [@boettiger2015introduction], the motivating paper
+  for containers in reproducible research.
+- [@boettiger2017rocker], the `rocker` project and its
   canonical R Docker images.
+- [@kurtzer2017singularity], for Apptainer, the
+  unprivileged runtime you will need on a shared HPC
+  cluster where Docker is forbidden (@sec-cloud).
 - Docker's own documentation at `docs.docker.com`.
 
 ## Prerequisites answers {#sec-quiz-answers-09}

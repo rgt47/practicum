@@ -118,10 +118,10 @@ document.
 
 ## Literate programming
 
-Donald Knuth's original idea: source code and prose
-should live together in one document, with the prose
-explaining the code as a human would explain it to
-another human. The compiler extracts the code; a
+Donald Knuth's original idea [@knuth1984literate]:
+source code and prose should live together in one
+document, with the prose explaining the code as a human
+would explain it to another human. The compiler extracts the code; a
 'weaver' produces the human-readable document.
 
 Quarto implements this with code chunks and prose
@@ -580,9 +580,10 @@ Three habits define defensible Quarto use:
 
 - Quarto documentation at `quarto.org`, canonical
   reference.
-- Xie, Dervieux, and Riederer (2020), *R Markdown
-  Cookbook*, recipes that largely translate to
-  Quarto.
+- [@xie2020cookbook], *R Markdown Cookbook*, recipes
+  that largely translate to Quarto.
+- [@knuth1984literate], the paper that named the idea
+  this chapter implements.
 - Stat 545 Chapter 4 (Jenny Bryan, UBC), excellent
   applied introduction.
 

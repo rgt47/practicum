@@ -125,7 +125,9 @@ control from a false sense of safety.
 ## The two HIPAA methods
 
 The Privacy Rule recognises exactly two ways to
-de-identify protected health information.
+de-identify protected health information, and the HHS
+guidance [@hhs2012deident] is the authoritative
+statement of both.
 
 **Safe Harbor** removes eighteen specified categories of
 identifier. It is mechanical and checkable, which is its
@@ -396,12 +398,11 @@ Three habits define defensible de-identification:
 
 ## Further reading
 
-- The HHS guidance on de-identification methods at
-  `hhs.gov/hipaa`, the authoritative source for Safe Harbor
-  and Expert Determination.
-- The `sdcMicro` package and its vignettes, for k-anonymity
-  and statistical disclosure control in R.
-- El Emam and Arbuckle (2013), *Anonymizing Health Data*,
+- [@hhs2012deident], the authoritative HHS guidance on
+  Safe Harbor and Expert Determination.
+- [@templ2015sdcmicro], the `sdcMicro` package, for
+  k-anonymity and statistical disclosure control in R.
+- [@elemam2013anonymizing], *Anonymizing Health Data*,
   a practical book-length treatment.
 - @sec-federal on the federal data-sharing requirements
   that de-identification enables.

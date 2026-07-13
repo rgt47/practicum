@@ -125,12 +125,13 @@ The case rests on three observations:
    covariates to include, which transformations,
    which subgroups), the chance that *some* analysis
    produces $p < 0.05$ under the null is much
-   greater than 5%. Simmons et al. (2011) calculate
-   that 4 commonly-encountered degrees of freedom
-   inflate Type-I from 5% to about 60%.
+   greater than 5%. Simmons, Nelson, and Simonsohn
+   [-@simmons2011false] calculate that four
+   commonly-encountered degrees of freedom inflate
+   Type-I error from 5% to about 60%.
 
-2. **The 'garden of forking paths'** (Gelman and
-   Loken 2013): even without conscious p-hacking,
+2. **The 'garden of forking paths'**
+   [@gelman2013garden]: even without conscious p-hacking,
    the analysis is data-driven if the analyst made
    choices in response to early data exploration.
    The reported test's calibration depends on the
@@ -512,17 +513,18 @@ Three habits define defensible SAP practice:
 
 ## Further reading
 
-- ICH E9 *Statistical Principles for Clinical
-  Trials*, the regulatory baseline document.
-- The SPIRIT guidelines at `spirit-statement.org`
- , standard protocol items for clinical trials.
-- The CONSORT guidelines at
-  `consort-statement.org`, reporting standards
-  that interact with SAP discipline.
-- Simmons, Nelson, and Simonsohn (2011), 'False-
-  Positive Psychology', *Psychological Science*,
-  the canonical demonstration of researcher
-  degrees of freedom.
+- [@ich1998e9], *Statistical Principles for Clinical
+  Trials*, the regulatory baseline document, and
+  [@ich2019e9r1], its addendum on estimands.
+- [@chan2013spirit], the SPIRIT statement on
+  standard protocol items for clinical trials.
+- [@schulz2010consort], the CONSORT reporting
+  standard that interacts with SAP discipline, and
+  [@vonelm2007strobe] for observational studies.
+- [@simmons2011false], the canonical demonstration
+  of researcher degrees of freedom.
+- [@gelman2013garden], on why the problem persists
+  even without conscious p-hacking.
 
 ## Prerequisites answers {#sec-quiz-answers-18}
 

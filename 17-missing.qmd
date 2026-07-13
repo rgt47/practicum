@@ -133,7 +133,8 @@ handling defensible rather than mechanical.
 
 ## The three mechanisms
 
-Rubin (1976) defines three missingness mechanisms.
+Rubin [-@rubin1976inference] defines three missingness
+mechanisms.
 Let $Y$ be the variable of interest; $R$ the
 indicator that $Y$ is observed; $X$ other observed
 variables.
@@ -290,8 +291,9 @@ df$x[is.na(df$x)] <- mean(df$x, na.rm = TRUE)
 deprecated except as a pre-specified sensitivity
 analysis. It assumes patients who drop out
 remain at their last observed value, which is
-biologically implausible for most diseases. ICH
-E9(R1) (2019) explicitly cautions against it.
+biologically implausible for most diseases. The
+ICH E9(R1) addendum [@ich2019e9r1] explicitly
+cautions against it.
 
 **Single regression imputation without noise**
 produces coefficients that are too tight: the
@@ -373,14 +375,14 @@ summary(pooled, conf.int = TRUE)
   appropriately.
 - **`m = 5`** is the historical default; `m = 25`
   or higher is the modern recommendation
-  (Bodner 2008: $M$ should exceed the percentage
-  of missing information).
+  [@bodner2008what]: $M$ should exceed the percentage
+  of missing information.
 - **`seed`**: set for reproducibility.
 
 Always include the outcome in the imputation
 model when imputing predictors: omitting it
 biases the imputation toward the null
-(Moons et al. 2006).
+[@moons2006using].
 
 ::: {.callout-note icon=false collapse=true}
 ## Check your understanding: include the outcome?
@@ -487,8 +489,9 @@ load-bearing and the paper should say so.
 
 ## Reporting missing data
 
-CONSORT 2010 (item 13b, randomised trials) and
-STROBE (item 12c, observational studies) require:
+CONSORT 2010 (item 13b, randomised trials)
+[@schulz2010consort] and STROBE (item 12c,
+observational studies) [@vonelm2007strobe] require:
 
 - The number of participants with missing data,
   per variable.
@@ -677,13 +680,15 @@ practice:
 - [@vanbuuren2018flexible], *Flexible Imputation of
   Missing Data*, 2nd ed., book-length
   treatment of the `mice` approach.
-- Little and Rubin (2019), *Statistical Analysis
+- [@little2019statistical], *Statistical Analysis
   with Missing Data*, 3rd ed., the
   authoritative reference.
 - The `mice` package documentation at
   `amices.org/mice`, package-level reference.
-- ICH E9(R1) (2019) on estimands and missing data
+- [@ich2019e9r1] on estimands and missing data
   in clinical trials.
+- [@rubin1976inference], the paper that defined the
+  MCAR/MAR/MNAR taxonomy this chapter rests on.
 
 ## Prerequisites answers {#sec-quiz-answers-17}
 

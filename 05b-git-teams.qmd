@@ -706,9 +706,8 @@ Three habits define defensible team Git:
 - [@bryan2019happygit], the standard reference for Git in R
   workflows, whose chapters on collaboration cover the same
   ground from a slightly different angle.
-- Pro Git by Chacon and Straub at `git-scm.com/book`,
-  chapters 3 and 5, the canonical treatment of branching and
-  distributed workflows.
+- [@chacon2014progit], chapters 3 and 5, the canonical
+  treatment of branching and distributed workflows.
 - [@wickham2023rpkgs], whose pull-request and code-review
   material is written for package development but transfers
   directly to compendia.

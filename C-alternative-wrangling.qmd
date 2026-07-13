@@ -59,7 +59,8 @@ precedence surprises, and you can always fall back to
 
 ## `data.table`
 
-`data.table` is the high-performance alternative. Its
+`data.table` [@barrett2026datatable] is the
+high-performance alternative. Its
 syntax is a compressed `DT[i, j, by]` form that takes
 roughly a week to become fluent in but is dramatically
 faster than base or dplyr on any dataset above a few
@@ -130,8 +131,8 @@ will need adjusting.
 
 ## `arrow`
 
-The `arrow` package provides a lazy, columnar back-end to
-the tidyverse. You write `dplyr` verbs against an Arrow
+The `arrow` package [@richardson2026arrow] provides a lazy,
+columnar back-end to the tidyverse. You write `dplyr` verbs against an Arrow
 `Dataset` object, which plans the computation as a
 directed acyclic graph and executes it only when you call
 `collect()`. This makes it possible to run `dplyr`-style

@@ -113,8 +113,8 @@ code.
 
 ## The `ellmer` package
 
-`ellmer` (from Posit) provides an R-native interface
-to LLM APIs:
+`ellmer` [@wickham2026ellmer], from Posit, provides an
+R-native interface to LLM APIs:
 
 ```r
 install.packages("ellmer")
@@ -454,13 +454,16 @@ Three habits define defensible AI-assisted coding:
 
 ## Further reading
 
-- `ellmer` documentation at `ellmer.tidyverse.org`
- , the R-native interface to LLMs.
+- [@wickham2026ellmer], the R-native interface to
+  LLMs used throughout this chapter.
 - Anthropic Claude Code documentation at
   `docs.claude.com/en/docs/claude-code`, the CLI
   agent used to develop this book.
-- *AI Engineering* by Chip Huyen (2024),
-  patterns for production LLM applications.
+- [@huyen2024ai], *AI Engineering*, patterns for
+  production LLM applications.
+- [@wickham2023style], the style guide worth
+  imposing on generated code, since a diff you
+  cannot read is a diff you cannot audit.
 
 ## Prerequisites answers {#sec-quiz-answers-21}
 

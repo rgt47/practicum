@@ -74,9 +74,8 @@ specific ways.
 ## What 'reproducible' actually means
 
 The terms in this space are slippery. The most useful
-definitions, taken from the influential Goodman, Fanelli,
-and Ioannidis 2016 *Science Translational Medicine*
-editorial:
+definitions are those of Goodman, Fanelli, and Ioannidis
+[-@goodman2016what]:
 
 - **Methods reproducibility** (sometimes called
   *computational* reproducibility): given the same data
@@ -363,10 +362,8 @@ Three habits make reproducibility automatic:
   framing this book uses.
 - [@marwick2018rrtools], the `rrtools` package that
   implements the framing.
-- Goodman, Fanelli, and Ioannidis (2016), 'What does
-  research reproducibility mean?', *Science
-  Translational Medicine*, the canonical taxonomy
-  used in this chapter.
+- [@goodman2016what], the canonical taxonomy used in
+  this chapter.
 - [@peng2011reproducible], the short *Science* piece
   that put computational reproducibility on the agenda.
 - [@sandve2013ten] and [@wilson2017good], two widely

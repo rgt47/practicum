@@ -519,10 +519,12 @@ Three habits define a defensible workstation:
 
 - Wickham's RStudio cheatsheets at
   `rstudio.com/resources/cheatsheets`, print them.
-- Pro Git by Chacon and Straub at `git-scm.com/book`,
-  the canonical free Git book.
-- Yihui Xie's blog at `yihui.org`, practical R
-  workstation setup posts.
+- [@chacon2014progit], the canonical free Git book.
+- [@bryan2019happygit], for the R-specific half of
+  the Git setup.
+- [@wickham2023style], the tidyverse style guide,
+  worth configuring your editor to follow from the
+  first project rather than the fifth.
 - The `rig` documentation at `github.com/r-lib/rig`.
 
 ## Prerequisites answers {#sec-quiz-answers-04}

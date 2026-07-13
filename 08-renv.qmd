@@ -60,9 +60,10 @@ environment on any machine. This chapter covers the
 common workflow and the in-house `zzrenvcheck` tool
 that audits it.
 
-`renv` succeeded `packrat` (which is now deprecated)
-and is itself maintained by Posit. It is the modern
-standard for project-level R package management.
+`renv` [@ushey2026renv] succeeded `packrat` (which is
+now deprecated) and is itself maintained by Posit. It
+is the modern standard for project-level R package
+management.
 
 ## The statistician's contribution {#sec-renv-human}
 
@@ -486,8 +487,8 @@ Three habits define defensible renv use:
 
 ## Further reading
 
-- `renv` documentation at `rstudio.github.io/renv`,
-  definitive reference.
+- [@ushey2026renv], the `renv` package and its
+  documentation, the definitive reference.
 - The `renv` CRAN vignettes, start with
   'Introduction to renv'.
 - Posit's *Reproducible environments* technical guide.

@@ -154,7 +154,7 @@ discrimination (AUC 0.75--0.80) is useful
 clinically; one with AUC 0.95 has likely been
 trained or evaluated wrong.
 
-Prior work (Grassi et al. 2019 and others) has
+Prior work [@grassi2019novel] has
 established that age, education, APOE4 status,
 and baseline ADAS13 are reliable predictors;
 the question is whether a multivariable model
@@ -702,19 +702,14 @@ Three habits define defensible ADNI work:
 
 - The ADNI website at `adni.loni.usc.edu`,
   study overview and data-use agreement.
-- Weiner et al. (2017), *Recent publications
-  from the Alzheimer's Disease Neuroimaging
-  Initiative*, *Alzheimer's & Dementia*,
-  orientation to the study's publication
-  history.
-- Grassi et al. (2019), 'A novel ensemble-based
-  machine learning algorithm to predict the
-  conversion from mild cognitive impairment to
-  Alzheimer's disease using socio-demographic
-  characteristics, clinical information, and
-  neuropsychological measures', *Frontiers in
-  Neurology*, one example of the cohort-
-  prediction approach this chapter sketches.
+- [@weiner2017recent], an orientation to the
+  study's publication history.
+- [@grassi2019novel], one example of the
+  cohort-prediction approach this chapter
+  sketches.
+- [@vanbuuren2018flexible], for the missing-data
+  handling that any real ADNI cohort will
+  require.
 
 ## Prerequisites answers {#sec-quiz-answers-24}
 

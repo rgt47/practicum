@@ -243,8 +243,8 @@ willing to push floats forward to find a 'better'
 spot, sometimes pages later. Two fixes: (1) Use
 `fig-pos: "H"` (with `\usepackage{float}` in the
 header) to force exactly-here placement; (2) Refer to
-floats by their cross-reference ('see
-@fig-demographics') rather than 'Figure 3', so the
+floats by their cross-reference (`see @fig-demographics`)
+rather than by a hand-typed 'Figure 3', so the
 hyperlink is correct regardless of placement.
 Combination: use cross-references universally; force
 positioning only for documents that must be read
@@ -526,10 +526,10 @@ Three habits define defensible Rmd workflow:
 
 ## Further reading
 
-- Xie, Dervieux, and Riederer (2020), *R Markdown
-  Cookbook*, the recipe book.
-- Xie (2020), *bookdown: Authoring Books and
-  Technical Documents with R Markdown*, long-form
+- [@xie2020cookbook], *R Markdown Cookbook*, the
+  recipe book.
+- [@xie2016bookdown], *bookdown: Authoring Books and
+  Technical Documents with R Markdown*, for long-form
   documents.
 - Quarto's `quarto convert` documentation for
   format-conversion details.
