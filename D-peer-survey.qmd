@@ -1,0 +1,85 @@
+# The Peer-Programme Survey {#sec-peer-survey}
+
+Several chapters of this book justify their inclusion by
+reference to a survey of the graduate curricula of peer United
+States biostatistics programmes: @sec-shell on the command
+line, @sec-deident on de-identification, @sec-databases on SQL,
+@sec-missing on missing data, @sec-targets on pipeline tools,
+@sec-ci on continuous integration, and @sec-sas on SAS. This
+appendix records the sources on which those claims rest, so
+that a reader can check them.
+
+## Scope
+
+The survey covers master's-level curricula in biostatistics and
+allied statistical-computing courses at United States
+institutions. It was conducted by consulting the public course
+catalogues, syllabi, and course pages listed below. Where a
+programme's catalogue was the only public record, the catalogue
+is cited; where an individual course published a syllabus, the
+syllabus is cited in preference, because it states the
+software and the topics rather than merely the title.
+
+Two properties of the evidence base deserve statement, because
+they bound what the survey can support. First, a public
+catalogue records what a programme says it teaches, not what is
+taught; a topic covered in a single lecture and a topic given a
+whole course both appear as a line in a syllabus, and the
+survey cannot distinguish them except where the syllabus is
+detailed. Second, curricula change annually, and the sources
+below were consulted in the years their entries record. A claim
+of the form 'most peer programmes teach X' should be read as a
+claim about the published curricula at that time, not as a
+durable fact about the field.
+
+## Sources consulted
+
+Course-level sources, where a syllabus or course page was
+available:
+
+| Institution | Course | Source |
+|---|---|---|
+| Johns Hopkins | Statistical Computing (140.776) | [@hopkins-biostat776-2024] |
+| UNC Chapel Hill | Statistical Computing (BIOS 735) | [@unc-bios735-2024] |
+| U. Washington | Statistical Computing (BIOST 561) | [@uw-biost561-2024] |
+| U. Washington | Statistical Methods for Missing Data (BIOST 531) | [@uw-biost531-2019] |
+| U. Michigan | Statistical Computing (BIOSTAT 615) | [@umich-biostat615-2024] |
+| U. Michigan | Missing Data (BIOSTAT 880) | [@umich-biostat880-2024] |
+| Columbia | Advanced Statistical Computing (P8160) | [@columbia-p8160-2025] |
+| UC Berkeley | Introduction to Statistical Computing (STAT 243) | [@berkeley-stat243-2024] |
+| U. Florida | Statistical Programming (PHC 6089) | [@uf-phc6089-2025] |
+
+Programme-level sources, where the public record is a catalogue
+or curriculum page rather than a syllabus:
+
+| Institution | Source |
+|---|---|
+| Yale | [@yale-biostat-2024] |
+| Emory | [@emory-bios-2024] |
+| U. Minnesota | [@umn-biostat-2024] |
+| UCLA | [@ucla-biostat-2024] |
+| Duke | [@duke-biostat-2024] |
+| Vanderbilt | [@vanderbilt-biostat-2024] |
+| U. Iowa | [@uiowa-biostat-2024] |
+| U. Pittsburgh | [@pitt-biostat-2024] |
+| U. Pennsylvania | [@penn-ggeb-2024] |
+| Brown | [@brown-biostat-2024] |
+| Boston University | [@bu-biostat-2024] |
+| New York University | [@nyu-gphgu-2024] |
+| Northwestern | [@northwestern-biostat-2024] |
+| UT Health Houston | [@utheuston-biostat-2024] |
+
+## Related material
+
+The survey is a comparison of curricula, not of textbooks. Two
+teaching resources outside the survey shaped this book directly
+and are cited where they bear on a chapter: Jenny Bryan's STAT
+545 at the University of British Columbia
+[@bryan2019stat545], which is the pedagogical model for the
+Practicum's approach, and Karl Broman's *Tools for Reproducible
+Research* [@broman2019tools4rr], which is the closest peer
+treatment of the reproducibility material in Part I. Frank
+Harrell's *R Workflow for Reproducible Data Analysis and
+Reporting* [@harrell2024rworkflow] covers adjacent ground from
+a different angle and is the work a reader of this book should
+consult next on analysis workflow specifically.

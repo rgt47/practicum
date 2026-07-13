@@ -20,11 +20,13 @@ States* (1928)
 A biostatistician working with clinical data handles
 protected health information on the first day, and the
 obligations that attach to it are not optional. The survey
-of peer curricula found explicit treatment of
-de-identification and human-subjects protection at Karl
-Broman's *Tools for Reproducible Research* and in the
-Johns Hopkins statistical-computing sequence, and the
-topic is conspicuous by its absence from most others. For
+of peer curricula (@sec-peer-survey) found explicit
+treatment of de-identification and human-subjects
+protection in Karl Broman's *Tools for Reproducible
+Research* [@broman2019tools4rr] and in the Johns Hopkins
+statistical-computing sequence [@hopkins-biostat776-2024],
+and the topic is conspicuous by its absence from most
+others. For
 a book aimed at students who will spend their careers with
 clinical data, the omission would be indefensible, and
 this chapter fills it.

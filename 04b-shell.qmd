@@ -20,9 +20,10 @@ thing and do it well. Write programs to work together.*
 The shell is the substrate under everything else in this
 book: Docker is driven from it, Git began as a set of
 shell commands, and every high-performance cluster is
-reached through it. The peer survey found the command line
-taught explicitly at Harvard's data-science course,
-Berkeley 243, Karl Broman's reproducibility course, and
+reached through it. The peer survey (@sec-peer-survey)
+found the command line taught explicitly at Berkeley
+STAT 243 [@berkeley-stat243-2024], in Karl Broman's
+reproducibility course [@broman2019tools4rr], and in
 both Software and Data Carpentry. The Practicum has until
 now assumed the shell rather than taught it; this chapter
 supplies the working subset.

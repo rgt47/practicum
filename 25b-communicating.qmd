@@ -1,0 +1,669 @@
+# Communicating a Finished Analysis {#sec-communicating}
+
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*The single biggest problem in communication is the illusion
+that it has taken place.*
+
+[William H. Whyte]{.smallcaps}, *Is Anybody Listening?* (1950)
+```{=latex}
+\end{flushright}
+```
+:::
+
+::: {.callout-note}
+## Why this chapter exists
+
+The book has taught the reader to produce a defensible
+analysis and has stopped there. @sec-team-science covers the
+register in which a statistician should speak to a clinician,
+and @sec-graphics covers the figure, but neither addresses the
+artefact the reader will actually be judged on. A working
+biostatistician delivers findings in three forms, and writes
+some of them weekly: the talk, the memo, and the response to
+reviewers. A book that devotes a chapter to SAS on grounds of
+employability cannot reasonably be silent about the three
+documents that constitute the job.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-25b.
+
+1. Why is the order in which you conducted an analysis almost
+   never the right order in which to present it?
+2. Your primary analysis found no effect. What, precisely, is
+   the difference between reporting that as 'no evidence of an
+   effect' and as 'evidence of no effect', and which one are
+   you usually entitled to?
+3. A reviewer asks you to re-run the primary analysis with a
+   different exclusion criterion. What in your compendium
+   determines whether that costs you an hour or a week?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Structure a set of findings as an argument rather than as a
+  chronology, using the and/but/therefore skeleton.
+- Give a twenty-minute talk to a clinical audience that leads
+  with the conclusion and defends it afterwards.
+- Write a one-page memo to a principal investigator that a
+  busy reader can act on in four minutes.
+- Write a point-by-point response to reviewers that concedes
+  what should be conceded and defends what should be defended,
+  on technical grounds.
+- Report a null result without either apologising for it or
+  overclaiming it.
+- Give and receive structured peer review on an analysis.
+
+## Orientation
+
+An analysis is a chronology: you obtained the data, cleaned
+it, described it, modelled it, checked the model, and arrived
+at an estimate. That chronology is the right order for doing
+the work, for the compendium, and for the methods section. It
+is the wrong order for almost every act of communication,
+because it withholds the thing the audience came for until the
+end, and asks them to hold six irrelevant facts in memory on
+the promise that the payoff is coming.
+
+Presenting an analysis is not narration. It is argument: here
+is the claim, here is the evidence, here is what would have
+changed my mind. The three genres in this chapter are three
+audiences for that argument, differing in how much of the
+evidence they want and how much of the argument they will
+tolerate being told. The talk gets the least evidence and the
+most argument; the response to reviewers gets the most
+evidence and the least latitude.
+
+## The statistician's contribution {#sec-communicating-human}
+
+Everything in this chapter is judgement; there is no tool.
+
+**Lead with the answer.** The clinical collaborator has one
+question, and it is the one they asked you three months ago.
+Answer it in the first sentence, then defend the answer.
+Statisticians resist this, because the defence is where the
+work was and the answer feels unearned without it. The
+audience does not share that feeling. They experience a
+withheld conclusion as evasion, and their attention is spent
+before you reach it.
+
+**Calibrate the claim to the evidence, in both directions.**
+Overclaiming is the familiar sin, and the more common one. The
+opposite failure is real and is a particular affliction of the
+careful: a hedge so complete that the reader cannot tell what
+you found, and therefore substitutes their own prior. If the
+confidence interval excludes any clinically meaningful effect,
+say so plainly. If it does not, say that plainly too. The
+verbs matter, and the discipline of @sec-team-science, that
+'we found X' and 'the data are consistent with X' and 'we
+cannot rule out X' are three different claims, is the whole of
+the skill.
+
+**Decide what the audience should do differently.** Every
+communication has an implicit request: fund this, publish
+this, stop this, change the protocol, collect more data,
+believe nothing yet. If you cannot state the request, you are
+not yet ready to write. A memo that ends without one is a
+memo the PI files and forgets.
+
+**Do not let the reviewer set the statistics.** A reviewer who
+asks for a subgroup analysis is asking for something that,
+performed as asked, is exploratory and uncalibrated
+(@sec-analysis-plan). You should do it, report it, and label
+it. What you must not do is quietly promote it into the
+confirmatory frame because a reviewer requested it. The
+request does not launder the inference, and the response
+letter is where you say so, politely and once.
+
+These judgements are what distinguish a statistician who is
+consulted again from one who is merely correct.
+
+## The narrative arc
+
+The most portable structure for a scientific argument has
+three parts, and it is easier to remember as a skeleton of
+conjunctions than as a diagram.
+
+**And.** The stable state of the world, which the audience
+already accepts. 'Patients hospitalised with heart failure
+have a thirty-day readmission rate of about twenty-five per
+cent, and post-discharge home-health visits are widely
+believed to reduce it.'
+
+**But.** The disruption. The reason the work exists. 'But the
+belief rests on observational studies in which the patients
+who received visits were systematically healthier than those
+who did not.'
+
+**Therefore.** The response, and the finding. 'Therefore we
+randomised 1,500 patients, and we find that home-health visits
+reduce thirty-day readmission by 4.2 percentage points, with a
+confidence interval from 1.1 to 7.3.'
+
+Three sentences, and the audience now knows what you did, why,
+and what you found. Everything else in the talk or the memo is
+support for the third sentence. @fig-arc contrasts the
+structure with the chronology it replaces.
+
+```{mermaid}
+%%| label: fig-arc
+%%| fig-cap: "The chronology of an analysis, on the left, is the order in
+%%|   which the work was done and the order the methods section follows.
+%%|   The argument, on the right, is the order in which it should be
+%%|   presented. The estimate moves from last to first, and the
+%%|   chronology becomes the defence rather than the narrative."
+flowchart LR
+  subgraph CHRON["Chronology (how you worked)"]
+    direction TB
+    C1["obtain data"] --> C2["clean"]
+    C2 --> C3["describe"]
+    C3 --> C4["model"]
+    C4 --> C5["diagnose"]
+    C5 --> C6["estimate"]
+  end
+  subgraph ARG["Argument (how you present)"]
+    direction TB
+    A1["AND<br/><i>what is accepted</i>"] --> A2["BUT<br/><i>why the work exists</i>"]
+    A2 --> A3["THEREFORE<br/><i>the estimate</i>"]
+    A3 --> A4["the defence<br/><i>design, model, diagnostics</i>"]
+    A4 --> A5["what would<br/>change my mind"]
+  end
+  C6 -.->|"becomes the<br/>opening, not<br/>the ending"| A3
+```
+
+The final element of the argument is the one statisticians
+most often omit and the one that most raises a sceptical
+audience's trust: state what would have changed your mind. 'If
+the sensitivity analysis under a plausible MNAR mechanism had
+moved the estimate below one percentage point, I would not be
+presenting this.' A speaker who volunteers the conditions
+under which they would have been wrong is a speaker worth
+believing.
+
+## The talk
+
+Twenty minutes, a clinical audience, most of whom will not
+remember a number.
+
+**The first two minutes carry the talk.** Deliver the arc
+above. If the audience leaves after two minutes they should
+have the finding. Everything after is for those who want to
+know whether to believe it.
+
+**One idea per slide, and the idea is the title.** A slide
+titled 'Results' says nothing. A slide titled 'Home-health
+visits reduced readmission by 4.2 points' says the thing, and
+the figure beneath it is the evidence for the title. If a
+listener reads only the titles, they should get the argument.
+
+**Show the estimate with its uncertainty, once, and large.**
+The coefficient plot of @sec-graphics, with the interval, is
+the single most important object in the talk. Do not bury it
+in a regression table, and do not show a regression table at
+all unless someone asks.
+
+**Anticipate the three questions.** For any clinical analysis
+they are, reliably: how did you handle the patients who
+dropped out, could this be confounding, and does it hold in
+the subgroup I care about. Have a backup slide for each. A
+backup slide answered in ten seconds does more for your
+credibility than the entire prepared talk.
+
+**Do not show code.** Ever, in this genre. The compendium is
+where the code lives, and the audience is not there to audit
+it. A single line naming the repository and the DOI, at the
+end, discharges the obligation.
+
+## The memo
+
+One page, to a principal investigator, usually in response to
+'what did you find?' or 'is this worth pursuing?'.
+
+The memo has a fixed shape, and its virtue is that the reader
+can stop at any point and still have something usable.
+
+1. **The finding, in one sentence, with the number and its
+   interval.** No preamble.
+2. **The request.** What you want the reader to do. Approve
+   the manuscript, drop the arm, collect more data, stop.
+3. **The three things they should know.** The design in one
+   line, the estimate in one line, the principal threat to it
+   in one line.
+4. **The caveats, ranked.** Not an exhaustive list. The two or
+   three that could actually change the conclusion, in
+   descending order of how much they could change it.
+5. **What you propose to do next, with a time cost.**
+
+The discipline is subtractive. Anything that does not survive
+the question 'would the PI act differently if they knew this?'
+comes out. Most methods detail comes out. The model
+specification comes out. Diagnostics come out. They live in
+the compendium, and the memo says where.
+
+### Worked example: a memo
+
+> **To:** Dr. X, Cardiology
+> **From:** A. Statistician
+> **Re:** HF-HOME primary analysis, 2026-06-15
+>
+> **Finding.** Home-health visits within seven days of
+> discharge reduced thirty-day all-cause readmission by 4.2
+> percentage points (95% CI 1.1 to 7.3; from 24.8% to 20.6%).
+> The pre-specified primary analysis supports the trial's
+> hypothesis.
+>
+> **Request.** Approval to proceed to manuscript, targeting
+> submission in six weeks.
+>
+> **What you should know.**
+>
+> - Design: 1,500 patients, 1:1 randomised, stratified by
+>   site and baseline ejection fraction. The analysis is the
+>   one pre-specified in SAP v1.0, tagged before unblinding.
+> - Estimate: the interval excludes zero but includes effects
+>   as small as 1.1 points. The trial was powered to detect
+>   4.5, so we are estimating an effect at roughly the size we
+>   planned for, with the imprecision that implies.
+> - Principal threat: 6.3% of patients had no outcome
+>   ascertainable from the state health-information exchange.
+>   These are handled by multiple imputation, and the
+>   pre-specified MNAR sensitivity analysis moves the estimate
+>   to 3.6 points (CI 0.4 to 6.8). The conclusion is
+>   directionally robust but the lower bound is close to zero.
+>
+> **Caveats, ranked.**
+>
+> 1. The missing outcomes above. If patients lost to the
+>    exchange were readmitted at a substantially higher rate
+>    than those retained, the effect could fall below clinical
+>    relevance. I do not think this is likely, because loss to
+>    the exchange is driven by out-of-state address rather
+>    than by illness, but it is the assumption the result
+>    rests on and the manuscript must say so.
+> 2. Open-label design. Readmission is a hard endpoint and
+>    unlikely to be influenced by knowledge of arm, but the
+>    decision to admit is a clinician's judgement and is not
+>    fully hard.
+> 3. Single health system. External validity is unaddressed.
+>
+> **Next.** Draft methods and results in two weeks. I propose
+> adding the tipping-point analysis for the missing outcomes
+> (roughly one day) because a reviewer will ask for it and it
+> is cheaper to have it than to be asked.
+
+Notice what the memo does not contain: the model formula, the
+covariate list, the diagnostics, the Table 1, the software
+versions. It contains a pointer to the compendium, where all
+of that lives, and it contains every fact on which the PI's
+decision turns. It is also honest in a specific way that
+matters: it volunteers that the lower bound is close to zero
+and that the sensitivity analysis erodes the estimate. A PI
+who learns that from a reviewer instead of from you will not
+trust the next memo.
+
+## Null results
+
+The analysis found nothing. This happens constantly, and the
+handling of it separates careful statisticians from the rest.
+
+The first distinction is the one in this chapter's quiz.
+**Absence of evidence is not evidence of absence.** A wide
+confidence interval that includes zero means you could not
+distinguish the effect from nothing; it does not mean the
+effect is nothing. The claim you are entitled to is 'we found
+no evidence that X', not 'we found that X does not work'. The
+second claim requires an interval narrow enough to exclude any
+effect you would have cared about, and you should say so
+explicitly when you have it:
+
+> The confidence interval (from -0.4 to 0.6 percentage points)
+> excludes the 2-point difference the trial was designed to
+> detect and, indeed, excludes any difference we would regard
+> as clinically meaningful. This is not an inconclusive
+> result; it is a reasonably precise null.
+
+That is a strong scientific statement and a publishable one.
+Contrast it with the same data described as 'the difference
+was not statistically significant (p = 0.72)', which tells the
+reader nothing about whether the study was informative.
+
+The second distinction is between a null result and a failed
+study. A trial that enrolled half its target and produced an
+interval spanning every effect from harmful to miraculous has
+not produced a null result; it has produced no result, and the
+honest report says so. Presenting an underpowered null as
+evidence of no effect is one of the more consequential forms
+of misreporting in the clinical literature, and the
+statistician is the only person on the team positioned to stop
+it.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: what may you claim?
+
+**Question.** Your trial estimates a treatment effect of 0.3
+percentage points with a 95% confidence interval from -3.9 to
+4.5. The minimum clinically important difference agreed at the
+outset was 2 points. The PI would like to write 'the
+intervention was not effective'. What do you say?
+
+**Answer.**
+
+You say that the sentence is not supported. The interval
+includes effects as large as 4.5 points, more than twice the
+minimum clinically important difference, so the data are
+entirely consistent with a clinically important benefit. They
+are also consistent with a clinically important harm. The
+study did not distinguish these possibilities, and the correct
+report is that it was uninformative about effects in the range
+that matters: 'we found no evidence of an effect, but the
+study cannot exclude a clinically important benefit or harm'.
+
+The sentence the PI wants would be defensible only if the
+interval lay wholly inside the region of clinical
+indifference, for example from -1.2 to 1.4, which excludes the
+2-point difference on both sides. Then, and only then, 'the
+intervention was not effective at any clinically meaningful
+magnitude' is a claim the data support. The distinction is
+between a precise null and an inconclusive one, and conflating
+them is how the literature acquires its 'negative' trials that
+were merely small.
+
+:::
+
+## The response to reviewers
+
+The manuscript comes back with three reviewers and eleven
+comments, of which five are statistical and land on you. The
+response letter is its own genre and follows strict
+conventions.
+
+**Quote every comment, respond to every comment, in order.**
+Number them. Reproduce the reviewer's text verbatim, in a
+distinguishable typeface, and place your response beneath it.
+An editor reading the letter must be able to verify, without
+cross-referencing, that nothing was ignored. Silence on a
+comment reads as evasion even when it was an oversight.
+
+**Say what changed and where.** 'We have added the requested
+sensitivity analysis (Methods, p. 8; Supplementary Table S6;
+Figure 3 revised).' A response that agrees with a point but
+does not say where the manuscript now reflects it forces the
+editor to hunt, and irritating the editor is a strictly
+dominated strategy.
+
+**Concede quickly what should be conceded.** If the reviewer
+is right, say so in one sentence, make the change, and move
+on. Defensive paragraphs attached to a concession make the
+concession look grudging and invite scrutiny of the rest.
+
+**Disagree on technical grounds, once, and without heat.**
+When the reviewer is wrong, the response states the technical
+reason, offers the analysis that demonstrates it, and stops.
+It does not restate the point three ways, and it does not
+imply that the reviewer has failed to read the paper, even
+when they plainly have not.
+
+**Do not let a request change the inferential status of an
+analysis.** This is the statistical judgement at the centre of
+the genre. When a reviewer asks for a subgroup analysis, they
+are asking for an analysis that was not pre-specified. Perform
+it, report it, and label it exploratory. The temptation, and
+it is a real one because the reviewer holds the decision, is
+to fold it into the results as though it had been planned. It
+was not, and doing so is precisely the practice
+@sec-analysis-plan exists to prevent.
+
+### Worked example: three responses
+
+> **Comment 1.3.** *'The authors should report a sensitivity
+> analysis to the missing outcome data, which at 6.3% is not
+> negligible.'*
+>
+> We agree, and we thank the reviewer. A delta-adjustment
+> sensitivity analysis under a plausible MNAR mechanism was
+> pre-specified in SAP v1.0 but, on review, was reported only
+> in the supplement. We have moved it into the main text
+> (Results, p. 12) and added a tipping-point analysis
+> (Supplementary Figure S4). The conclusion is unchanged: the
+> effect estimate falls from 4.2 to 3.6 points, and the
+> interval continues to exclude zero until the imputed
+> outcomes are shifted by more than 1.4 standard deviations,
+> a magnitude we regard as implausible given that loss to
+> follow-up was driven by out-of-state address rather than by
+> clinical status.
+>
+> **Comment 2.1.** *'The effect appears larger in patients
+> with reduced ejection fraction. The authors should present
+> this subgroup as a primary finding, as it is likely the
+> mechanism.'*
+>
+> We have added the subgroup analysis (Supplementary Table
+> S7), which does show a larger point estimate in the reduced-
+> ejection-fraction stratum (5.8 vs 3.1 points), with an
+> interaction test that is not significant (p = 0.31). We
+> respectfully decline to present it as a primary finding, for
+> two reasons. First, it was not pre-specified: the analysis
+> plan (deposited at ClinicalTrials.gov before unblinding,
+> and cited in the Methods) names a single primary analysis in
+> the full randomised population, and promoting a subgroup
+> selected after the data were seen would render its nominal
+> error rate uninterpretable. Second, the trial was not
+> powered for interaction, and an apparent difference of this
+> magnitude between strata is well within what sampling
+> variation produces under a common true effect. We now
+> report the subgroup as exploratory and hypothesis-generating
+> (Results, p. 14; Discussion, p. 19), and we note it as a
+> candidate for prospective testing.
+>
+> **Comment 3.2.** *'A logistic regression is inappropriate
+> here; the authors should have used a Cox model.'*
+>
+> The outcome is binary readmission within a fixed 30-day
+> window, ascertained for all patients, and every patient was
+> followed for the full window or had their outcome
+> ascertained through linkage. There is therefore no censoring
+> to accommodate, and the estimand of interest is a risk
+> difference over a fixed horizon rather than a hazard ratio.
+> A Cox model would answer a different question and would
+> require an assumption (proportional hazards) that the design
+> does not need. We have added a sentence to the Methods
+> (p. 7) making the estimand explicit, which we hope clarifies
+> the choice.
+
+Three comments, three different postures: agree and fix, agree
+to perform but decline to reframe, and disagree on technical
+grounds. None of the three is defensive, and all three tell
+the editor exactly where in the manuscript to look.
+
+Observe also what made the first response cheap to write. The
+sensitivity analysis existed, because the SAP pre-specified
+it; the tipping-point analysis took a day, because the
+compendium rebuilds with one command; and the claim that the
+plan predates unblinding is verifiable, because the SAP was
+tagged in Git (@sec-analysis-plan) and deposited at the
+registry. The infrastructure chapters of this book pay their
+return here, at the moment when a reviewer asks a question six
+months after you last thought about the analysis.
+
+## Peer review as a practice
+
+The skills above are trained by performing review, not by
+receiving it. A reviewer who has had to articulate why an
+analysis is unconvincing writes more convincing analyses.
+
+When reviewing a colleague's analysis, the questions worth
+asking, roughly in the order that catches the most:
+
+- What is the claim, and can I find it stated in one sentence?
+- Does the reported estimate come with an interval, and is the
+  interval interpreted rather than merely printed?
+- Is the primary analysis the one that was pre-specified, and
+  can I verify that from the artefact rather than the prose?
+- What is the denominator, and does it match the flow diagram?
+- Which single assumption, if wrong, would most change the
+  conclusion, and does the paper name it?
+- Would I be able to re-run this?
+
+When receiving review, the discipline is to separate the
+comment from its tone. A reviewer who is rude and right has
+still handed you a free defect report. The response letter is
+not the place to relitigate the tone, and the mildest possible
+version of the disagreement is invariably the most effective.
+
+## Collaborating with an LLM on communication
+
+Language models write fluent prose and are correspondingly
+dangerous here, because fluency in this genre is often the
+vehicle for an overclaim.
+
+**Prompt 1: drafting the memo.** Paste the estimate, the
+interval, the design, and the sensitivity results, and ask for
+a one-page memo in the structure of this chapter.
+
+*What to watch for.* Calibration. The model will reach for
+'significant', 'demonstrates', and 'confirms' where the
+evidence supports 'is consistent with'. It will also tend to
+soften or omit the caveat that hurts. Read the draft asking
+one question: does any sentence claim more than the interval
+permits?
+
+*Verification.* Take each sentence containing a claim and
+check it against the confidence interval. Then hand the memo
+to a colleague and ask them what you found and what you want
+them to do. If they cannot say, the memo has failed
+regardless of how well it reads.
+
+**Prompt 2: drafting the response to reviewers.** Paste the
+reviewer's comment and your position, and ask for a response.
+
+*What to watch for.* Two failure modes, in opposite
+directions. The model is agreeable by disposition and will
+concede points it should defend, including, characteristically,
+agreeing to promote an exploratory subgroup analysis because
+the reviewer asked. It also occasionally produces a defensive
+paragraph where one sentence would do. You supply the posture;
+the model supplies the prose.
+
+*Verification.* For every conceded point, ask whether you
+actually agree. For every defended point, check that the
+defence is technical rather than rhetorical.
+
+**Prompt 3: adversarial review of your own draft.** Paste the
+results section and ask the model to review it as a hostile
+statistical reviewer, listing every claim not supported by the
+reported evidence.
+
+*What to watch for.* This is the most valuable of the three
+prompts, because the model is better at finding overclaims in
+text than at avoiding them in its own. Expect a mix of real
+findings and pedantry; the real findings are worth the sort.
+
+*Verification.* Each flagged claim is a hypothesis about a
+weakness. Check it against the analysis. The ones that survive
+are the comments a real reviewer will make, and you now have
+six weeks rather than six days to address them.
+
+## Principle in use
+
+Three habits define defensible communication:
+
+1. **Lead with the answer, then defend it.** The chronology of
+   the analysis is the order you worked, not the order anyone
+   should hear.
+2. **Match the claim to the interval, in both directions.** No
+   evidence of an effect is not evidence of no effect, and a
+   precise null is a real finding that deserves to be stated
+   as one.
+3. **Never let a request change an analysis's inferential
+   status.** A reviewer may ask for the subgroup. They cannot
+   make it confirmatory.
+
+## Exercises
+
+1. Take the last analysis you completed and write its and/but/
+   therefore in three sentences. If the 'but' is difficult to
+   write, ask yourself why the analysis was performed.
+2. Write the one-page memo for that analysis, following the
+   five-part structure in this chapter. Give it to a colleague
+   who does not know the project and ask them, without
+   prompting, what you found and what you want them to do.
+   Revise until they can answer both.
+3. Take a published paper reporting a null result. Determine
+   from the reported interval whether it is a precise null or
+   an inconclusive one, and then check what the abstract
+   claims. Write a paragraph on the gap, if any.
+4. Find a set of published reviewer comments and author
+   responses (many journals now publish them). Identify one
+   response that concedes what it should have defended, or
+   defends what it should have conceded, and rewrite it.
+5. Review a colleague's analysis against the six questions in
+   the peer-review section. Deliver the review in writing.
+   Then ask them which comment was most useful, and why; it is
+   rarely the one you expected.
+
+## Further reading
+
+- [@perez2020team], on the communication skills that
+  interdisciplinary team science demands of statisticians.
+- [@wilke2019fundamentals], whose closing chapters on telling
+  a story with figures are the visual counterpart to the
+  narrative arc taught here.
+- Douglas Altman and Martin Bland's *Statistics Notes* series
+  in the *BMJ*, in particular 'Absence of evidence is not
+  evidence of absence' (1995), the two-page paper this
+  chapter's null-results section restates at greater length.
+- The ICMJE recommendations at `icmje.org`, for the
+  conventions governing what a manuscript and its
+  correspondence must contain.
+- @sec-analysis-plan and @sec-git-solo, the infrastructure
+  that makes a response to reviewers cheap rather than
+  ruinous.
+
+## Prerequisites answers {#sec-quiz-answers-25b}
+
+1. Because the chronology withholds the conclusion until the
+   end and asks the audience to retain the preliminaries on
+   the promise of a payoff they cannot yet evaluate. An
+   audience wants the claim first and the evidence second, so
+   that they know what the evidence is evidence *for*. The
+   chronology remains the right order for the methods section
+   and for the compendium, where the reader's purpose is
+   verification rather than comprehension. For a talk or a
+   memo, structure the material as an argument: the accepted
+   state of the world, the disruption that motivated the work,
+   the finding, the defence, and the conditions under which
+   you would have concluded otherwise.
+2. 'No evidence of an effect' says that the study could not
+   distinguish the effect from zero, which is a statement
+   about the study's resolution. 'Evidence of no effect' says
+   that the effect is absent, or at least too small to matter,
+   which is a statement about the world. You are entitled to
+   the second only when the confidence interval excludes every
+   effect you would have regarded as clinically meaningful; a
+   precise null is a real and publishable finding. When the
+   interval is wide and includes important effects in either
+   direction, the study is uninformative in the range that
+   matters, and saying so is the honest report. Presenting an
+   underpowered null as evidence of no effect is a
+   consequential and common misreport, and the statistician is
+   usually the only person positioned to prevent it.
+3. Three things, all of which this book has argued for on
+   other grounds. A pre-specified analysis plan tagged in Git
+   before data lock (@sec-analysis-plan), so that you can
+   demonstrate which analysis was primary and when it was
+   fixed. A compendium that rebuilds with one command
+   (@sec-rrtools, @sec-zzcollab), so that changing the
+   exclusion criterion is an edit and a re-render rather than
+   an archaeological expedition. And a pinned environment
+   (@sec-renv, @sec-docker), so that the re-run six months
+   later produces the published numbers rather than subtly
+   different ones you then have to explain. Without them, the
+   reviewer's request is a week of reconstruction and a
+   discrepancy you cannot account for.

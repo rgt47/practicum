@@ -16,12 +16,16 @@
 ::: {.callout-note}
 ## Why this chapter exists
 
-The April 2026 survey of peer US biostatistics MS
-programmes found that 14 of 22 teach missing-data
-handling as a core or near-core topic (Michigan
-BIOSTAT 880, UW BIOST 531, UNC BIOS 767, UT Health
-Houston PH 2735, Emory BIOS 567, Yale BIS 629, Iowa
-BIOS 7210, Florida PHC 6067). Every real clinical
+The survey of peer US biostatistics MS programmes
+(@sec-peer-survey) found missing-data handling
+taught as a core or near-core topic at a majority of
+them, including dedicated courses at Michigan
+[@umich-biostat880-2024] and the University of
+Washington [@uw-biost531-2019], and coverage within
+the curricula at Emory [@emory-bios-2024], Yale
+[@yale-biostat-2024], Iowa [@uiowa-biostat-2024],
+UT Health Houston [@utheuston-biostat-2024], and
+Florida [@uf-phc6089-2025]. Every real clinical
 dataset has missing values, and the decisions
 around them often move point estimates more than
 the model choice does. This chapter is the

@@ -21,11 +21,13 @@ Maintaining Computer Programs* (1979)
 A research compendium holds the code, the data, and the
 environment, but it does not by itself make the analysis
 re-runnable end to end; that requires a tool that knows
-which step depends on which. The peer survey found
-dependency-aware pipeline tools taught in two generations,
-GNU Make at Broman's reproducibility course and Software
-Carpentry, and the modern `targets` package at Monash's
-collaborative-practices course. For a book that already
+which step depends on which. The peer survey
+(@sec-peer-survey) found dependency-aware pipeline tools
+taught in two generations, GNU Make at Broman's
+reproducibility course [@broman2019tools4rr] and in
+Software Carpentry, and the modern `targets` package
+[@landau2021targets] in more recent collaborative-practice
+courses. For a book that already
 teaches compendia and Docker, a build tool is the missing
 piece, and this chapter supplies it.
 :::

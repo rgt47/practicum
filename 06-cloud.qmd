@@ -396,6 +396,38 @@ libraries pre-installed. The right first stop for
 academic work when available; the queue waits and
 shared environment are the trade-offs.
 
+One trade-off deserves more than a mention, because it
+collides with @sec-docker. Most HPC clusters do not permit
+Docker, and for a good reason: the Docker daemon runs as
+root, and a shared multi-tenant cluster cannot grant every
+user root. The standard substitute is **Apptainer**
+(formerly Singularity), a container runtime designed for
+exactly this setting, which runs unprivileged and can build
+its image directly from your Docker image
+[@kurtzer2017singularity]:
+
+```bash
+# on the cluster, convert the image you already built
+apptainer pull analysis.sif docker://ghcr.io/you/analysis:v1.0
+
+# run the pipeline inside it, under SLURM
+srun apptainer exec analysis.sif Rscript scripts/main.R
+```
+
+The reproducibility argument of @sec-docker survives the
+move intact: the image is the same image, and the pinned
+environment is the same environment. Only the runtime
+changes. Discovering this at the point of submitting your
+first cluster job, rather than in advance, is a common and
+avoidable afternoon.
+
+Within a single node, the parallelism is R's own. The
+`future` framework [@bengtsson2021future] lets the same
+code run sequentially on your laptop and across the
+cluster's cores by changing one line, the plan, which keeps
+the parallel and serial versions of an analysis from
+diverging.
+
 For most academic biostatistics work, the priority
 ordering is: laptop (interactive), university HPC
 (batch), AWS/GCP (when HPC is unavailable or

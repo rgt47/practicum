@@ -82,12 +82,14 @@ book:
       chapters:
         - 23-penguins.qmd
         - 24-adni.qmd
+        - 25b-communicating.qmd
         - 25-synthesis.qmd
 
     - references.qmd
 
   appendices:
     - C-alternative-wrangling.qmd
+    - D-peer-survey.qmd
     - credits.qmd
     - colophon.qmd
 

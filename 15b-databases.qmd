@@ -19,12 +19,15 @@ Clinical data rarely arrive as a tidy CSV. They live in a
 REDCap project, an institutional data warehouse, or an
 electronic health record extract, and the biostatistician
 reaches them through a query rather than a file. The
-survey of peer programmes found relational databases and
-SQL taught as a core skill in at least seven of the
-comparison courses (Berkeley 243, UNC 735, Michigan 625,
-Minnesota 8054, the Johns Hopkins data-science sequence,
-and both Software and Data Carpentry). This chapter brings
-the Practicum to parity.
+survey of peer programmes (@sec-peer-survey) found
+relational databases and SQL taught as a core skill in
+several of the comparison courses, among them Berkeley
+STAT 243 [@berkeley-stat243-2024], UNC BIOS 735
+[@unc-bios735-2024], Michigan [@umich-biostat615-2024],
+Minnesota [@umn-biostat-2024], and the Johns Hopkins
+statistical-computing sequence [@hopkins-biostat776-2024],
+as well as in both Software and Data Carpentry. This
+chapter brings the Practicum to parity.
 :::
 
 ## Prerequisites

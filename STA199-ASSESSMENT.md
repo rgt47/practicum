@@ -52,6 +52,32 @@ new or extended chapters are proposed below, none of which should be
 copied from STA 199; the course is useful as evidence that the gaps
 exist and as a source of examples, not as a source of text.
 
+## Standing constraint: no STA 199 datasets
+
+**No dataset used in STA 199 is to be used in the Practicum.** This
+is a firm constraint on everything proposed below, not a preference.
+
+The reason is that the STA 199 datasets are uniformly small, tidy,
+public, and non-clinical, and most arrive as a pre-cleaned course CSV
+(income inequality, Bechdel, sales taxes, Durham climate, Hollywood
+age gaps, Madison ice cover, Chicago taxis, NC counties, inflation,
+Card and Krueger, Duke Lemur Center; plus `openintro::email`,
+`openintro::duke_forest`, and `usdata` county data). That is the right
+choice for a first course in data science and precisely the wrong one
+for this book, whose central claim is that real biomedical data arrive
+wide, irregular, and inconsistently coded. A pre-cleaned CSV cannot
+demonstrate the cleaning discipline of @sec-wrangling, and a dataset
+with no patients cannot demonstrate anything in @sec-deident.
+
+Where a new chapter needs data, use one of the sources the book has
+already established: `palmerpenguins` (already used, and the only
+overlap with STA 199, which is incidental and predates it), a
+synthetic clinical dataset fabricated in the chapter as @sec-cdisc and
+@sec-deident already do, or ADNI under its data-use agreement. The
+acquisition chapter's API example is to use a synthetic REDCap-shaped
+payload committed to the repository, for this reason and also so that
+the chapter renders in CI without a network call.
+
 ## What STA 199 contains
 
 The course spans 26 lectures, six labs, six homeworks, fifteen
