@@ -291,10 +291,10 @@ sharply:
 
 ```{r}
 #| label: overlap-demo
-set.seed(11)
+set.seed(18)
 
 a <- rnorm(60, mean = 100, sd = 12)
-b <- rnorm(60, mean = 106, sd = 12)
+b <- rnorm(60, mean = 105, sd = 12)
 
 ci <- function(x) {
   m  <- mean(x)
@@ -307,10 +307,20 @@ rbind(group_a = ci(a), group_b = ci(b)) |> round(1)
 t.test(b, a)
 ```
 
-The two intervals overlap, plainly. The two-sample test rejects
-at the 5% level. Anyone reading the overlap off a figure and
-concluding 'no significant difference' has reached the opposite
-conclusion from the one the data support.
+The two intervals overlap: group A reaches 102.7 and group B
+begins at 101.7. The two-sample test nonetheless rejects at the
+5% level ($p = 0.02$). Anyone reading the overlap off a figure
+and concluding 'no significant difference' has reached the
+opposite conclusion from the one the data support.
+
+The overlap here is about one point, which is deliberate: the
+fallacy does its damage in exactly this regime, where the
+intervals graze each other and the difference is real. As the
+difference grows the intervals separate and the two readings
+agree; as it shrinks the test stops rejecting and they agree
+again. It is the middle, where an analyst is most likely to be
+looking for guidance from the figure, that the overlap heuristic
+gets wrong.
 
 @fig-overlap shows why. The correct object to look at is not
 the pair of intervals but the interval for their difference,
