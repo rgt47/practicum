@@ -1,0 +1,757 @@
+# Git for Teams {#sec-git-teams}
+
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*Given enough eyeballs, all bugs are shallow.*
+
+[Eric S. Raymond]{.smallcaps}, *The Cathedral and the Bazaar*
+(1999)
+```{=latex}
+\end{flushright}
+```
+:::
+
+::: {.callout-note}
+## Why this chapter exists
+
+@sec-git-solo taught Git for one analyst working alone, and
+@sec-team-science taught the social norms of working with
+others. Between them sits the thing neither covers: the
+mechanics of two statisticians committing to one repository.
+The gap is not academic. The continuous-integration workflow
+of @sec-ci is triggered by pull requests the reader has never
+been shown how to open, and both case studies (@sec-penguins,
+@sec-adni) assume a compendium that passes between team
+members. This chapter closes the gap.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-05b.
+
+1. Your collaborator has pushed three commits to `main` since
+   you last pulled, and you have two local commits of your
+   own. What does `git pull` actually do, and what are the two
+   shapes the resulting history can take?
+2. What is a merge conflict, and why is the right resolution
+   of a conflict in analysis code almost never 'take mine' or
+   'take theirs'?
+3. Why does a pull request improve on pushing directly to
+   `main`, even on a team of two who trust each other
+   completely?
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Explain the fetch, merge, and rebase operations and predict
+  the history each produces.
+- Work on a shared repository through feature branches and
+  pull requests, and protect `main` so that direct pushes are
+  impossible.
+- Resolve a merge conflict in R source and in `renv.lock`,
+  preserving both collaborators' intent rather than choosing a
+  side.
+- Review a colleague's analysis diff, knowing what a
+  statistician should look for that a software engineer would
+  not.
+- Configure a repository so that the conflicts that should
+  never happen cannot happen.
+- Use `git blame` and `git bisect` to attribute a change in a
+  result to the commit that caused it.
+
+## Orientation
+
+The mechanics of Git do not change when a second person joins
+the project. The commit is still a snapshot, the branch is
+still a movable pointer, the tag is still fixed. What changes
+is that the repository is no longer the record of what you
+did; it is the record of what the team did, and the team is
+now the unit that has to be able to reconstruct it.
+
+Three consequences follow, and this chapter is organised
+around them. First, two people editing one file at the same
+time will eventually collide, and Git can only resolve the
+collision when the edits do not overlap; the rest of the time
+it hands the problem to a human, and the human must know what
+the two edits meant. Second, the history is now something a
+colleague reads, which raises the cost of a bad commit message
+from mild self-harm to a shared tax. Third, and most
+consequentially for a statistician, a change to the analysis
+is now something that arrives from someone else, and somebody
+has to look at it before it becomes the analysis of record.
+That somebody is you, and the practice is code review.
+
+## The statistician's contribution {#sec-git-teams-human}
+
+The commands are mechanical. The judgements:
+
+**A merge conflict is a disagreement about the analysis, not
+about the text.** Git presents a conflict as two versions of a
+region of a file, and the tooling invites you to pick one. In
+analysis code this is almost always wrong. If your colleague
+changed the exclusion threshold from 250 to 220 and you
+changed the same line to add a lower bound, the correct
+resolution contains both changes, and the fact that the two of
+you independently touched the exclusion criteria within a week
+is itself a finding worth a conversation. Resolve the conflict
+by understanding both intents, not by choosing a winner.
+
+**Review the analysis, not the code.** A software engineer
+reviewing a diff asks whether it compiles, whether it is
+tested, whether it is idiomatic. A statistician reviewing an
+analysis diff asks those questions and then asks the ones that
+matter more: has the join cardinality changed, is the seed
+still set, has a filter silently altered the denominator, does
+this new covariate appear in the analysis plan. A green test
+suite does not answer any of them. The review is where the
+statistical judgement of @sec-team-science meets the
+infrastructure of this chapter, and it is the highest-value
+thing a second pair of eyes does on a research compendium.
+
+**Protect the analysis of record.** The `main` branch is the
+version of the analysis you would defend. Anything that has
+not been reviewed and has not passed CI is not that. Branch
+protection is not bureaucracy on a team of two; it is the
+mechanism that makes the claim 'the analysis on `main` is the
+analysis we reported' true rather than aspirational.
+
+**Prevent the conflicts that should never occur.** A conflict
+in a hand-written R script is a genuine disagreement and
+deserves a human. A conflict in a rendered HTML file, a
+`_freeze/` cache, or a figure is noise generated by committing
+build products, and the fix is to stop committing them. A
+conflict in `renv.lock` is a real dependency disagreement
+wearing the costume of a JSON merge failure, and it deserves a
+deliberate resolution rather than a text edit. Knowing which
+conflicts to prevent and which to resolve is the difference
+between a repository that is pleasant to share and one that
+everybody dreads pulling.
+
+These judgements are what make a shared repository an asset
+rather than a source of friction.
+
+## Remotes, fetch, and the two shapes of history
+
+A remote is a copy of the repository somewhere else, usually
+on GitHub, conventionally named `origin`. Your local
+repository knows about it, and it caches its state in a
+*remote-tracking branch* called `origin/main`. That cached
+state is only as fresh as your last fetch.
+
+```bash
+git fetch origin        # update origin/main; touch nothing else
+git status              # 'behind by 3 commits' now means something
+git log --oneline main..origin/main    # what they did
+git log --oneline origin/main..main    # what I did
+```
+
+`git fetch` is the only network operation in Git that cannot
+surprise you: it updates your picture of the remote and leaves
+your work alone. Everything else is local. The habit worth
+forming is to fetch first and look, rather than to pull and
+find out.
+
+When you and a collaborator have both committed, the histories
+have diverged, and you must reconcile them. There are exactly
+two shapes the reconciliation can take.
+
+**Merge** creates a new commit with two parents, one from each
+line of development. The history is a true record: it shows
+that the two lines existed in parallel and were joined.
+
+```bash
+git merge origin/main
+```
+
+**Rebase** replays your commits, one at a time, on top of
+theirs, as though you had started from their latest state. The
+history is linear and reads as though the parallel work never
+happened.
+
+```bash
+git rebase origin/main
+```
+
+`git pull` does one of these for you, depending on
+configuration, which is exactly the ambiguity that makes it a
+poor thing to type without thinking. Configure it explicitly
+and forget about it:
+
+```bash
+git config --global pull.rebase true    # or false, but choose
+```
+
+For a small analysis team, rebase-on-pull for your own
+unpushed work and merge for integrating a completed branch is
+a workable default: your local history stays clean, and the
+integration of a finished piece of work is recorded as the
+event it was. The one absolute rule is the one every Git
+tutorial states and every team eventually violates: **never
+rebase commits that someone else has pulled.** Rewriting
+shared history forces everyone downstream to reconcile a
+history that no longer matches theirs, and the recovery is
+tedious.
+
+## Feature branches and pull requests
+
+The workflow that scales from two statisticians to twenty is
+the same one used across open-source software, and it has four
+steps.
+
+@fig-git-pr shows the shape. Work happens on a short-lived
+branch named for what it does. When it is ready, it is
+proposed for inclusion through a pull request, which is a
+request that someone else look at it. CI runs against the
+proposed merge. A human reviews. Only then does it join the
+analysis of record.
+
+```{mermaid}
+%%| label: fig-git-pr
+%%| fig-cap: "The feature-branch workflow. Work never lands on `main`
+%%|   directly: it arrives through a pull request that CI has checked
+%%|   and a colleague has read. The branch is short-lived and is
+%%|   deleted once merged."
+flowchart LR
+  A["git switch -c<br/>sensitivity-mnar"] --> B["commit,<br/>push branch"]
+  B --> C["open pull<br/>request"]
+  C --> D["CI runs<br/><i>renv restore,<br/>tests, render</i>"]
+  C --> E["colleague<br/>reviews diff"]
+  D --> F{"both<br/>pass?"}
+  E --> F
+  F -->|"no"| B
+  F -->|"yes"| G["merge to main<br/><i>analysis of record</i>"]
+  G --> H["delete branch"]
+```
+
+In commands:
+
+```bash
+# 1. branch from the current main
+git switch main
+git pull
+git switch -c sensitivity-mnar
+
+# 2. work, commit, push the branch
+git add R/sensitivity.R
+git commit -m "Add delta-adjustment sensitivity under MNAR"
+git push -u origin sensitivity-mnar
+
+# 3. open the pull request
+gh pr create --fill --reviewer colleague-username
+
+# 4. after review and a green check
+gh pr merge --squash --delete-branch
+```
+
+The `--squash` flag collapses the branch's commits into one on
+`main`. For an analysis repository this is usually right: the
+fifteen commits of a working afternoon ('fix typo', 'actually
+fix typo') are noise, and what `main` should record is the one
+logical change. Reserve a true merge for branches whose
+internal commits are each meaningful.
+
+Three properties of this workflow are worth naming, because
+they are the reasons to adopt it rather than pushing to `main`
+and hoping.
+
+**Nothing unreviewed becomes the analysis.** The pull request
+is a gate, and a gate that a human must open.
+
+**CI checks the proposal, not the aftermath.** @sec-ci
+described a workflow that restores `renv`, runs the tests, and
+renders the report. Running it on a pull request means the
+question 'does this change break the analysis' is answered
+before the change lands, rather than after.
+
+**The branch is a unit of thought.** A branch named
+`sensitivity-mnar` contains the sensitivity analysis and
+nothing else. Six months later, the pull request that merged
+it is a small, self-contained document explaining what was
+added, why, and what the reviewer asked about. It is the best
+record of an analytic decision the tooling will ever give you
+for free.
+
+### Protecting `main`
+
+The workflow is a convention until the repository enforces it.
+On GitHub, under Settings, Branches, add a protection rule for
+`main` that requires a pull request before merging, requires
+the status check from @sec-ci to pass, and forbids force
+pushes. On a team of one this is unnecessary; on a team of two
+it is the cheapest insurance available, because the failure it
+prevents (a hurried Friday push straight to `main` that breaks
+the render and is discovered on Monday) is the one that
+actually happens.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: why bother on a team of two?
+
+**Question.** You and one colleague, who is careful and whom
+you trust, are the only contributors. Why not simply agree to
+be careful and push to `main`?
+
+**Answer.**
+
+Because the protection is not against carelessness, it is
+against the absence of a second reader. Pushing to `main`
+means the analysis of record changed and nobody looked. The
+pull request costs about ninety seconds and buys three things
+you cannot get otherwise: a second pair of eyes on a
+statistical change, a CI run against the proposed state rather
+than the merged one, and a durable written record of why the
+change was made, attached to the change itself. The 'we are
+careful' argument also fails for a specific structural reason:
+it is not your colleague's carelessness you are guarding
+against, nor your own, but the interaction of two correct
+changes that are wrong together. That is precisely the failure
+no individual can catch by being careful alone.
+
+:::
+
+## Merge conflicts
+
+A conflict occurs when two commits change the same region of
+the same file and Git cannot decide which change to keep. It
+inserts markers into the file and stops:
+
+```r
+analytic <- visits |>
+  filter(
+<<<<<<< HEAD
+    sbp <= 250,
+=======
+    sbp >= 50, sbp <= 220,
+>>>>>>> origin/main
+    !is.na(outcome)
+  )
+```
+
+The region above `=======` is what you have; the region below
+is what arrived. The marker `>>>>>>>` names its source. Your
+job is to edit the file so that it says what the analysis
+should say, and to delete all three marker lines.
+
+Read the two versions as statements about the analysis rather
+than as text. Yours drops implausibly high blood pressures.
+Theirs adds a lower bound and tightens the upper one. These
+are not alternatives; they are two halves of one decision that
+two people made independently, and the resolution that
+preserves both intents is:
+
+```r
+analytic <- visits |>
+  filter(
+    sbp >= 50, sbp <= 220,
+    !is.na(outcome)
+  )
+```
+
+with a message to your colleague asking why 220, because one
+of you has a reason and the other should hear it. Note what
+happened: the conflict surfaced a substantive disagreement
+about an exclusion criterion that would otherwise have been
+settled silently by whoever pushed last. That is the conflict
+doing its job.
+
+The mechanics around the edit:
+
+```bash
+git status                    # which files are conflicted
+# ... edit each file, remove all markers ...
+git add R/cohort.R            # mark this file resolved
+git commit                    # conclude the merge
+
+git merge --abort             # or: back out, think, try again
+```
+
+`git merge --abort` returns you to the state before the merge
+began and is the right move whenever the conflict is larger
+than you expected. There is no penalty for backing out and
+approaching it again with the diff in front of you.
+
+### Conflicts in `renv.lock`
+
+The lockfile is JSON, and Git will happily present a conflict
+in it. Do not resolve it by hand. The two of you have
+installed different versions of something, and the lockfile is
+a build product of the library (@sec-renv). The correct
+resolution is to decide which dependency state you want and
+regenerate:
+
+```bash
+git checkout --theirs renv.lock   # take one side wholesale
+git add renv.lock
+```
+
+```r
+renv::restore()                   # match the library to it
+# install anything of yours that is genuinely still needed
+renv::snapshot()                  # regenerate the lockfile
+```
+
+Then commit the regenerated lockfile. The principle
+generalises: a conflict in a generated file is resolved by
+regenerating the file, never by editing it.
+
+### The conflicts that should never happen
+
+Most conflicts a research team experiences are self-inflicted,
+caused by committing files that are outputs rather than
+sources. A rendered `paper.html`, a `_freeze/` cache, a
+`figures/*.png`, an `.Rproj.user/` directory: every one of
+these changes on every render, on every machine, and every one
+of them will conflict, meaninglessly, forever. The remedy is a
+`.gitignore` that keeps them out of the repository:
+
+```
+# outputs and caches
+*.html
+*.pdf
+/_book/
+/figures/
+.Rproj.user/
+.Rhistory
+.RData
+
+# renv library (the lockfile is committed; the library is not)
+renv/library/
+renv/staging/
+```
+
+@sec-quarto argues for committing `_freeze/` so that
+collaborators and CI need not re-run expensive chunks. That
+argument stands, and it is in genuine tension with this one.
+Resolve it by deciding as a team: either commit `_freeze/` and
+accept that the person who renders last regenerates it (and
+resolve any conflict in it by regenerating, per the rule
+above), or leave it out and let CI bear the cost. Both are
+defensible. Not deciding is what produces the weekly conflict
+nobody understands.
+
+Two files repay a `.gitattributes` entry, which tells Git how
+to treat them:
+
+```
+# never attempt to merge these; take one side and regenerate
+renv.lock merge=ours
+*.rds binary
+*.qmd text eol=lf
+```
+
+The line ending declaration matters more than it looks: a team
+that mixes Windows and macOS machines without it will
+eventually produce a diff in which every line of a file has
+changed, and no review is possible through that noise.
+
+## Reviewing an analysis diff
+
+Code review in software engineering asks whether the code is
+correct, tested, and clear. Reviewing a change to a research
+compendium asks all of that and then asks the questions that
+are specific to this discipline. A checklist, in rough order
+of how often it catches something:
+
+**Did the denominator change?** A new `filter()` anywhere
+upstream changes the sample size of everything downstream. If
+a diff adds a filter, the review asks: how many rows does this
+remove, is that number reported, and does the analysis plan
+sanction the exclusion.
+
+**Did the join cardinality change?** A new join, or a change
+to an existing one, can silently multiply rows (@sec-joins). A
+diff that adds a join without a `relationship` argument is
+incomplete.
+
+**Is the seed still set, and is it still in the same place?**
+Moving a `set.seed()` call, or adding a stochastic step above
+one, changes every random draw downstream. The results will
+change; the diff will not say so.
+
+**Is this analysis pre-specified?** A new model, a new
+covariate, or a new subgroup is either in the analysis plan
+(@sec-analysis-plan) or it is exploratory, and the code should
+say which. This is the question a software reviewer cannot
+ask and a statistician must.
+
+**Are the numbers in the prose still computed?** A diff that
+changes the model but leaves a hardcoded estimate in the text
+has just made the manuscript wrong (@sec-quarto).
+
+**Does the test suite exercise the change?** A new branch in
+the cleaning logic with no new test is a branch that will
+break silently later (@sec-testing).
+
+Leave the review as comments on the pull request, on the
+specific lines. The conversation is then attached to the
+change forever, which is worth more than the same conversation
+held at a desk.
+
+## Attribution: blame and bisect
+
+When a number changes and nobody knows why, two commands
+answer the question.
+
+`git blame` reports, for every line of a file, the commit that
+last changed it:
+
+```bash
+git blame -L 40,60 R/cohort.R
+```
+
+The `-L` flag restricts the output to a line range, which is
+almost always what you want. The command is named
+unfortunately; its use is archaeological rather than
+accusatory. The commit hash it reports leads to the message,
+which leads (if @sec-git-solo's advice about writing messages
+that explain why was followed) to the reason.
+
+`git bisect` finds the commit that changed a result, by binary
+search over the history. You tell it a commit where the result
+was right and one where it was wrong, and it checks out the
+midpoint and asks you:
+
+```bash
+git bisect start
+git bisect bad                 # current state is wrong
+git bisect good v1.0-submitted # this tag was right
+# Git checks out a midpoint; you re-run and judge:
+git bisect good                # or: git bisect bad
+# ... repeat about log2(n) times ...
+# Git names the first bad commit.
+git bisect reset
+```
+
+Over a hundred commits this converges in about seven steps. It
+can be automated, which is where it becomes genuinely powerful
+on an analysis repository:
+
+```bash
+git bisect run Rscript -e 'stopifnot(abs(get_estimate() - 0.62) < 0.01)'
+```
+
+Git runs the script at each midpoint and uses the exit status
+to decide. The prerequisite is atomic commits (@sec-git-solo):
+bisect over a history of 'Tuesday's work' commits will
+correctly identify the day the result changed and tell you
+nothing useful about why.
+
+## Worked example: two statisticians, one compendium
+
+The scenario: you and a colleague are analysing the
+readmissions cohort. You take the primary model; she takes the
+missing-data sensitivity analysis. Both of you touch the
+cohort-construction script.
+
+```bash
+# Monday. Both of you start from the same main.
+git switch main && git pull
+
+# You branch for the primary model.
+git switch -c primary-model
+# (edit R/model.R; also tighten an exclusion in R/cohort.R)
+git add R/model.R R/cohort.R
+git commit -m "Fit primary logistic model; exclude SBP > 250 as implausible"
+git push -u origin primary-model
+gh pr create --fill --reviewer colleague
+```
+
+Meanwhile she has branched `mnar-sensitivity` from the same
+`main`, and has also edited `R/cohort.R`, adding a lower bound
+on blood pressure. Her pull request is reviewed and merged
+first. Yours is now out of date, and GitHub says so.
+
+```bash
+# Bring main into your branch and deal with the conflict.
+git switch primary-model
+git fetch origin
+git merge origin/main
+# CONFLICT (content): Merge conflict in R/cohort.R
+```
+
+You open `R/cohort.R`, find the conflict shown earlier in this
+chapter, and recognise that the two edits are complementary
+rather than competing. You keep both bounds, and you leave a
+comment on her merged pull request asking where 220 came from.
+
+```bash
+git add R/cohort.R
+git commit                    # concludes the merge
+git push
+```
+
+CI re-runs against the updated branch. It fails: the tighter
+cohort now has 1,847 rows, and a test in
+`inst/tinytest/test-cohort.R` asserted 1,912. The test is
+doing its job. You update the assertion, note the new
+denominator in the manuscript, and push again. The check goes
+green, your colleague reviews the diff, asks whether the
+exclusion is in the analysis plan (it is, as an amendment,
+tagged before unblinding), and merges.
+
+```bash
+gh pr merge --squash --delete-branch
+git switch main && git pull
+```
+
+The history of `main` now contains two squashed commits, each
+with a pull request behind it recording what changed, why, and
+what the reviewer asked. Six months later a reviewer asks why
+the denominator is 1,847 and not the 1,912 in the protocol.
+The answer takes ninety seconds to find.
+
+## Collaborating with an LLM on team Git
+
+LLMs are fluent in Git and are at their most dangerous in
+exactly this chapter's territory, because the commands that
+recover a shared repository and the commands that destroy one
+look similar.
+
+**Prompt 1: resolving a conflict.** Paste the conflicted
+region, with both sides and the markers, and ask the model to
+propose a resolution.
+
+*What to watch for.* The model will tend to choose a side,
+because that is what conflicts look like in the code it was
+trained on. In analysis code both sides usually encode an
+intent, and the correct resolution keeps both. Give the model
+the context ('the left side excludes implausibly high values;
+the right adds a lower bound') and it will do much better.
+
+*Verification.* Run the analysis after resolving and check the
+row count against both branches' expectations. If the
+resolution is right, the count will match neither exactly, and
+you should be able to say why.
+
+**Prompt 2: reviewing a diff.** Paste `git diff main...HEAD`
+and ask: 'what would a biostatistician object to in this
+change?'
+
+*What to watch for.* The model is good at the mechanical
+review (unused variables, style, a missing test) and weak at
+the statistical review. Prime it with the checklist from this
+chapter, and it becomes a useful first pass. It will not know
+whether the new covariate is in your analysis plan, because it
+has not read it; give it the plan and it can check.
+
+*Verification.* The model's findings are a candidate list, not
+a review. You still have to read the diff.
+
+**Prompt 3: recovering from a bad shared history.** Describe
+what happened and ask how to recover.
+
+*What to watch for.* If the suggestion contains
+`git push --force`, stop. On a shared branch, a force push
+discards commits that your colleagues may already have pulled,
+and it is the one operation in this chapter that can lose
+another person's work. `git push --force-with-lease` is the
+safer form, because it refuses when the remote has moved since
+you last fetched. Better still, prefer `git revert`, which
+undoes a commit by adding a new one and rewrites nothing.
+
+*Verification.* Before any history-altering command on a
+shared branch, ask a simpler question: has anyone else pulled
+this? If the answer is yes or unknown, revert rather than
+rewrite.
+
+## Principle in use
+
+Three habits define defensible team Git:
+
+1. **Nothing lands on `main` unreviewed.** Feature branch,
+   pull request, green CI check, human reader. Branch
+   protection makes the convention real.
+2. **Resolve conflicts by intent, not by side.** Two people
+   who touched the same line both meant something. Find out
+   what, keep both if both are right, and regenerate rather
+   than edit any conflict in a build product.
+3. **Review the analysis, not just the code.** Denominators,
+   join cardinality, seeds, pre-specification, and the numbers
+   in the prose. The test suite checks none of them.
+
+## Exercises
+
+1. With a partner (or with a second clone of your own
+   repository, playing both parts), manufacture a merge
+   conflict deliberately: both of you edit the same line of a
+   cleaning script in ways that are complementary rather than
+   competing. Resolve it so that both intents survive. Write
+   one paragraph on what the conflict revealed that a silent
+   last-push-wins would have hidden.
+2. Turn on branch protection for `main` in a repository of
+   your own: require a pull request, require a status check,
+   and forbid force pushes. Then try to push to `main` and
+   confirm that you cannot.
+3. Take a pull request from a colleague, or from any public R
+   analysis repository, and review it against the six-question
+   checklist in this chapter. Post at least one comment that a
+   software engineer reviewing the same diff would not have
+   made.
+4. Introduce a change three commits deep in a branch that
+   silently alters a reported estimate. Use `git bisect run`
+   with a one-line assertion to find it automatically.
+   Document how many steps it took.
+5. Audit the `.gitignore` of an existing project of yours.
+   List every file currently tracked that is a build product
+   rather than a source. Remove them from tracking
+   (`git rm --cached`) and confirm that the analysis still
+   rebuilds from what remains.
+
+## Further reading
+
+- [@bryan2019happygit], the standard reference for Git in R
+  workflows, whose chapters on collaboration cover the same
+  ground from a slightly different angle.
+- Pro Git by Chacon and Straub at `git-scm.com/book`,
+  chapters 3 and 5, the canonical treatment of branching and
+  distributed workflows.
+- [@wickham2023rpkgs], whose pull-request and code-review
+  material is written for package development but transfers
+  directly to compendia.
+- [@perez2020team] on team science, for the social half of
+  the problem this chapter treats mechanically.
+- @sec-ci, which runs on the pull requests this chapter
+  teaches you to open.
+
+## Prerequisites answers {#sec-quiz-answers-05b}
+
+1. `git pull` is `git fetch` followed by either `git merge` or
+   `git rebase`, depending on configuration. Fetching updates
+   your picture of the remote (`origin/main`) and changes
+   nothing else. The reconciliation then takes one of two
+   shapes: a merge creates a commit with two parents,
+   preserving the fact that the two lines of work were
+   parallel; a rebase replays your two commits on top of their
+   three, producing a linear history that reads as though you
+   had started from their latest state. Configure
+   `pull.rebase` explicitly so that `git pull` stops being
+   ambiguous, and never rebase commits that someone else has
+   already pulled.
+2. A merge conflict occurs when two commits change the same
+   region of the same file and Git cannot determine which
+   change to keep, so it writes both into the file between
+   `<<<<<<<`, `=======`, and `>>>>>>>` markers and stops. In
+   analysis code, 'take mine' or 'take theirs' is almost
+   always wrong because each side usually encodes a deliberate
+   analytic decision (one collaborator added a lower bound on
+   an exclusion criterion; the other tightened the upper
+   bound). The correct resolution preserves both intents, and
+   the conflict has done something valuable by surfacing a
+   substantive disagreement that a silent last-push-wins would
+   have buried. The exception is a conflict in a generated
+   file (`renv.lock`, a rendered document, a cache), which is
+   resolved by regenerating the file rather than editing it.
+3. Because the protection a pull request provides is not
+   against untrustworthiness, it is against the absence of a
+   second reader. It buys three things that trust does not: a
+   second pair of eyes on a statistical change before it
+   becomes the analysis of record, a CI run against the
+   proposed state rather than after the fact, and a durable
+   written record of the reasoning attached to the change
+   itself. It also catches the one failure mode no amount of
+   individual care can prevent: two changes that are each
+   correct in isolation and wrong in combination.
