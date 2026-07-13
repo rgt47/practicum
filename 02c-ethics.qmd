@@ -1,0 +1,550 @@
+# Ethics Beyond Compliance {#sec-ethics}
+
+::: {.bookepigraph}
+```{=latex}
+\begin{flushright}\small
+```
+*The first principle is that you must not fool yourself, and
+you are the easiest person to fool.*
+
+[Richard P. Feynman]{.smallcaps}, *Cargo Cult Science* (1974)
+```{=latex}
+\end{flushright}
+```
+:::
+
+::: {.callout-note}
+## Why this chapter exists
+
+The book's treatment of ethics has so far been entirely
+regulatory. @sec-federal covers what the funders require,
+@sec-deident covers what the HIPAA Privacy Rule requires, and
+@sec-cdisc covers what the FDA requires. All three are
+necessary and none is sufficient, because an analysis can
+satisfy every one of them and still mislead every reader it
+reaches. This chapter is about the failures that compliance
+does not prevent, and about which the statistician, not the
+institutional review board, is the last line of defence.
+:::
+
+## Prerequisites
+
+Answer the following questions to see if you can bypass this
+chapter. You can find the answers at the end of the chapter in
+@sec-quiz-answers-02c.
+
+1. A dataset is assembled entirely from information that
+   individuals published about themselves in public. Explain how
+   releasing it can nonetheless harm them.
+2. Two group means have 95% confidence intervals that overlap.
+   May you conclude that the groups do not differ significantly?
+3. Name three ways a figure can mislead a reader without
+   containing a single false number.
+
+## Learning objectives
+
+By the end of this chapter you should be able to:
+
+- Distinguish the harm of disclosure from the harm of
+  aggregation, and recognise that public data can carry the
+  second without the first.
+- Identify causal language attached to associational evidence,
+  in your own writing and in the manuscripts you review.
+- Recognise the standard visual distortions: the truncated axis,
+  the area-for-quantity encoding, and the dual axis.
+- Demonstrate why overlapping confidence intervals do not imply
+  a non-significant difference, and stop making the inference.
+- Locate where in the workflow each of these failures is
+  introduced, and where it can be caught.
+
+## Orientation
+
+The regulatory chapters of this book describe a floor. They
+tell you what you must not do: release identifiers, skip the
+data-management plan, submit a dataset that fails conformance.
+Clearing that floor is a necessary condition for defensible
+practice and it is nowhere near a sufficient one, because the
+floor is written in terms of *procedures* and the failures that
+matter most are failures of *inference*.
+
+Four such failures recur in biomedical work, and they have a
+common structure: at no point does anyone state a falsehood.
+The data are real, the computation is correct, the p-value is
+what the software returned, the figure plots the numbers it
+claims to plot. The misleading happens in the gap between what
+was computed and what the reader concludes, and it is precisely
+in that gap that the statistician's professional obligation
+lives, because the statistician is the only person on the team
+who can see the gap at all.
+
+## The statistician's contribution {#sec-ethics-human}
+
+This chapter is judgement from beginning to end.
+
+**You are the last person who can catch this.** The clinical
+collaborator cannot evaluate whether the confidence interval
+supports the sentence in the abstract; that is why they have
+you. The reviewer may or may not look. The reader certainly
+will not. When the press release says 'exercise prevents
+cancer' and your analysis found an association in an
+observational cohort of volunteers, you are not a bystander to
+that sentence. You are its last opportunity.
+
+**Public is not the same as consented, and available is not the
+same as ethical.** The question 'may I' has a legal answer and
+an ethical one, and they are different questions. A dataset
+that violates no rule can still hurt the people in it. Ask what
+happens to a person in your data if the analysis is right, and
+then ask what happens if it is wrong.
+
+**Distortion is usually accidental, which does not make it
+harmless.** Almost nobody sets out to deceive with a truncated
+axis. They set out to make the effect visible, and a truncated
+axis makes it visible, and the reader who glances at the figure
+carries away an impression the data do not support. Intent is
+not the standard. The standard is what a competent reader would
+conclude.
+
+**Refusing is part of the job.** There is a point at which the
+correct professional act is to decline: to refuse to sign the
+manuscript, to refuse to produce the figure as specified, to
+say that the analysis as requested is not one you will perform.
+@sec-team-science distinguishes preference from principle
+precisely so that you spend your credibility on the cases where
+this matters. This chapter is the catalogue of those cases.
+
+## Aggregation harm
+
+The first failure concerns data that were never private.
+
+In 2016 a group of researchers released a dataset of some
+70,000 profiles scraped from a dating website, including
+usernames alongside answers to intimate questions about
+sexuality, drug use, and political views. The defence offered
+was that the data 'are already publicly available', which was
+true and beside the point. Each user had disclosed a fact to an
+audience of their choosing, in a context they understood. The
+release did something none of them had chosen: it collected
+those disclosures into a single, searchable, permanent,
+downloadable artefact, and attached them to identifiers.
+
+This is **aggregation harm**, and it is the same phenomenon
+that @sec-deident treats formally under the heading of
+quasi-identifiers, arriving from the other direction. There,
+the point was that no single ordinary variable identifies
+anyone but their conjunction can. Here, the point is that no
+single disclosure harms anyone but their conjunction can. The
+mathematics is the mathematics of joint distributions; the
+ethics is the ethics of context. Information carries with it an
+implicit expectation about where it will travel, and moving it
+somewhere else is an act with consequences even when every
+individual datum was freely given.
+
+The practical tests, before you assemble a dataset from public
+sources:
+
+- **Would the people in it be surprised?** Not 'would they
+  object', which invites you to answer for them, but 'would
+  they be surprised to find themselves in it'. Surprise is a
+  reliable signal that a contextual expectation is being
+  violated.
+- **Does the aggregate reveal what the parts did not?** Someone
+  who posted in a support forum has disclosed a health
+  condition to that forum. A dataset linking forum posts to
+  employer names has disclosed it to their employer.
+- **Can it be de-identified without destroying the analysis?**
+  If yes, do that (@sec-deident). If no, that is informative:
+  it means the identifiers are load-bearing, and you should be
+  able to say why.
+
+## Causal overclaiming
+
+The second failure is the most common one in biomedical
+publishing, and it usually happens in the last paragraph.
+
+An observational cohort of self-selected volunteers reports
+that those who exercised more had lower cancer incidence,
+adjusting for age, sex, smoking, and body-mass index. The
+finding is an association. The discussion section says the
+finding 'suggests that exercise reduces cancer risk'. The press
+office says exercise prevents cancer. The newspaper says it
+cures it. At no step did anyone fabricate a number.
+
+The statistician's job is to insist that the verb match the
+design. The three registers, from @sec-team-science, are worth
+restating as a hierarchy of claims:
+
+| Design | What you may say |
+|---|---|
+| Randomised, adequately powered, pre-specified | 'X reduced Y by $\delta$' |
+| Observational, well adjusted, no unmeasured confounding assumed | 'X was associated with lower Y; the association is consistent with a causal effect but the design cannot establish one' |
+| Observational, self-selected sample, self-reported exposure | 'Among volunteers who reported X, Y was lower. Volunteers who exercise differ from those who do not in ways we did not measure.' |
+
+The third row is the one to keep in view. The problem with a
+volunteer cohort reporting its own exercise is not that the
+confounder adjustment was inadequate. It is that people who
+exercise and report it differ systematically from people who do
+not, along dimensions (conscientiousness, health-seeking
+behaviour, unmeasured comorbidity, the very early symptoms of
+undiagnosed disease) that no covariate list captures. The
+adjustment cannot fix this, and stating that you adjusted for
+age and smoking implies to a reader that it did.
+
+The specific place this fails is the transition from Results to
+Discussion, where the verb changes from 'was associated with'
+to 'reduces' without anyone noticing. Read your own discussion
+section as a hostile reviewer, and grep for causal verbs:
+reduces, prevents, protects, causes, leads to, improves. Each
+one is a claim your design must license.
+
+## Visual misrepresentation
+
+The third failure needs no numbers at all, only their encoding.
+The figure below plots the same two group means twice.
+
+```{r}
+#| label: fig-truncated
+#| fig-cap: "The same two means, encoded twice. Panel A begins the y-axis
+#|   at zero and the difference is what it is: small. Panel B begins the
+#|   axis at 71 and the same difference fills the panel. Neither panel
+#|   contains a false number, and a reader who glances at B carries away
+#|   a conclusion the data do not support."
+#| fig-width: 7
+#| fig-height: 3.5
+#| message: false
+library(tidyverse)
+library(patchwork)
+
+d <- tibble(
+  arm  = c("Control", "Treatment"),
+  mean = c(72.4, 74.1)
+)
+
+base <- ggplot(d, aes(arm, mean, fill = arm)) +
+  geom_col(width = 0.6, show.legend = FALSE) +
+  scale_fill_manual(values = c(Control = "#9d2235",
+                               Treatment = "#1f4e79")) +
+  labs(x = NULL, y = "Score") +
+  theme_minimal()
+
+p_honest    <- base +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(title = "A. Axis from zero")
+
+p_truncated <- base +
+  coord_cartesian(ylim = c(71, 75)) +
+  labs(title = "B. Axis from 71")
+
+p_honest + p_truncated
+```
+
+The difference is 1.7 points on a 100-point scale. Panel A
+tells you that. Panel B tells you that the treatment arm is
+roughly three times the control arm, which is false, and it
+tells you so without printing a single incorrect value.
+
+The three standard distortions:
+
+**The truncated axis.** As above. The rule is not 'always start
+at zero', because for many quantities zero is meaningless (body
+temperature, calendar year, pH) and forcing it wastes the panel.
+The rule is that *when the visual encoding is length or area*,
+as in a bar chart, the baseline must be zero, because the
+reader is comparing lengths and a truncated bar's length is not
+proportional to its value. For a point-and-interval plot, where
+the encoding is position rather than length, a truncated axis is
+legitimate and often necessary. The question is always: what is
+the reader's eye measuring?
+
+**Area for quantity.** A map coloured by which arm won each
+county encodes *land area*, and land does not vote. A bubble
+whose *radius* is proportional to a count exaggerates it, because
+the eye reads area, which goes as the square of the radius. In
+biomedicine the recurring case is a map of disease counts that
+is really a map of where people live, and the fix is a rate, a
+denominator, and a cartogram or a population-weighted encoding.
+
+**The dual axis.** Two series on two differently scaled y-axes
+can be made to cross, converge, or diverge at the analyst's
+choice, because the relative scaling is arbitrary. Any apparent
+relationship between them is an artefact of a decision you made.
+Avoid dual axes entirely; if two series must be compared, index
+them to a common baseline or use two panels.
+
+## The overlapping-interval fallacy
+
+The fourth failure is the one a biostatistician is most likely
+to commit personally, and it is a genuine technical error rather
+than a rhetorical one.
+
+The reasoning goes: the 95% confidence intervals for the two
+group means overlap, therefore the difference is not significant
+at the 5% level. This is wrong, and it is wrong in the direction
+of missing real effects. The interval for a *difference* depends
+on the standard error of the difference, which is smaller than
+the sum of the two individual standard errors, and intervals for
+the two means can overlap substantially while the interval for
+their difference excludes zero.
+
+A demonstration, on synthetic data constructed to make the point
+sharply:
+
+```{r}
+#| label: overlap-demo
+set.seed(11)
+
+a <- rnorm(60, mean = 100, sd = 12)
+b <- rnorm(60, mean = 106, sd = 12)
+
+ci <- function(x) {
+  m  <- mean(x)
+  se <- sd(x) / sqrt(length(x))
+  c(lower = m - 1.96 * se, mean = m, upper = m + 1.96 * se)
+}
+
+rbind(group_a = ci(a), group_b = ci(b)) |> round(1)
+
+t.test(b, a)
+```
+
+The two intervals overlap, plainly. The two-sample test rejects
+at the 5% level. Anyone reading the overlap off a figure and
+concluding 'no significant difference' has reached the opposite
+conclusion from the one the data support.
+
+@fig-overlap shows why. The correct object to look at is not
+the pair of intervals but the interval for their difference,
+which is a different quantity and answers the question actually
+being asked.
+
+```{r}
+#| label: fig-overlap
+#| fig-cap: "Left: the two group means with their 95% intervals, which
+#|   overlap. Right: the 95% interval for the difference, which excludes
+#|   zero. These are not in conflict; they are answers to different
+#|   questions. Reading significance off the overlap on the left is the
+#|   error."
+#| fig-width: 7
+#| fig-height: 3.2
+means <- bind_rows(
+  as_tibble_row(ci(a)) |> mutate(group = "A"),
+  as_tibble_row(ci(b)) |> mutate(group = "B")
+)
+
+tt <- t.test(b, a)
+diff <- tibble(
+  group = "B - A",
+  mean  = unname(diff(rev(tt$estimate))),
+  lower = tt$conf.int[1],
+  upper = tt$conf.int[2]
+)
+
+p_means <- ggplot(means, aes(mean, group)) +
+  geom_pointrange(aes(xmin = lower, xmax = upper)) +
+  labs(title = "A. Group means", x = "Score", y = NULL) +
+  theme_minimal()
+
+p_diff <- ggplot(diff, aes(mean, group)) +
+  geom_pointrange(aes(xmin = lower, xmax = upper)) +
+  geom_vline(xintercept = 0, linetype = "dashed",
+             colour = "#9d2235") +
+  labs(title = "B. Difference", x = "Difference in score",
+       y = NULL) +
+  theme_minimal()
+
+p_means + p_diff
+```
+
+The practical consequences are two. When you *report*, give the
+interval for the contrast, not merely intervals for the arms,
+because the contrast is the estimand. When you *review*, treat
+any sentence of the form 'the intervals overlapped, so the
+groups did not differ' as an error, and say so.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: the compliant misleading paper
+
+**Question.** A paper reports an observational study. The IRB
+approved it, the data are properly de-identified under Safe
+Harbor, the DMSP is in place, the code is on Zenodo with a DOI,
+and every number in the paper is correctly computed from the
+data. The abstract concludes that the intervention 'reduces
+30-day readmission'. Has anything gone wrong?
+
+**Answer.**
+
+Yes, and nothing in the compliance apparatus was built to catch
+it. Every requirement in @sec-federal and @sec-deident is
+satisfied, the analysis is reproducible in the sense of
+@sec-why, and the reported numbers are right. What is wrong is a
+verb: an observational design licenses 'was associated with
+lower readmission', not 'reduces'. The distinction is not
+pedantry. A reader, a guideline committee, or a health system
+deciding where to spend money will act on 'reduces', and the
+evidence does not support the action.
+
+Note what this implies about the rest of the book.
+Reproducibility, compliance, and correctness of computation are
+each necessary and they are jointly insufficient: a perfectly
+reproducible, fully compliant, numerically correct analysis can
+still mislead every reader it reaches. The tools cannot close
+that gap. Only the analyst can.
+
+:::
+
+## Where each failure is caught
+
+The four failures enter the workflow at different points, which
+means they are caught at different points.
+
+| Failure | Introduced at | Caught by |
+|---|---|---|
+| Aggregation harm | Data acquisition (@sec-acquisition) | Asking, before you assemble, whether the people in the data would be surprised |
+| Causal overclaiming | The Results-to-Discussion transition | Reading your own discussion for causal verbs; peer review (@sec-communicating) |
+| Visual misrepresentation | Figure construction (@sec-graphics) | Asking what the reader's eye is measuring |
+| Overlapping-interval fallacy | Interpretation, and often the figure | Reporting the contrast, not the arms |
+
+None of them is caught by a test suite, a lockfile, or a
+container. That is the point of the chapter, and it is worth
+stating plainly: the entire infrastructural apparatus of this
+book is orthogonal to whether the analysis misleads.
+Reproducibility guarantees that a wrong conclusion can be
+regenerated exactly.
+
+## Collaborating with an LLM on ethical review
+
+Models are useful here and dangerous in a specific way: they are
+agreeable, and every failure in this chapter is one an agreeable
+collaborator would let pass.
+
+**Prompt 1: auditing your own discussion section.** Paste it and
+ask: 'list every sentence whose verb implies causation, and for
+each, state what design would license it.'
+
+*What to watch for.* This works well, because it is a
+text-classification task rather than a judgement. Expect a few
+false positives. The sentences it flags are the sentences a
+sceptical reviewer will flag.
+
+*Verification.* For each flagged sentence, check the design
+against the table in this chapter. If the design is
+observational and the verb is causal, rewrite it.
+
+**Prompt 2: critiquing a figure.** Describe the encoding (bar
+chart, y-axis from 71 to 75, two groups) and ask what a reader
+would wrongly conclude.
+
+*What to watch for.* The model will identify the truncated
+baseline reliably. It is weaker on subtler distortions, such as
+an area encoding or an inappropriate denominator, because those
+require knowing what the quantity means.
+
+*Verification.* Render the figure both ways, as this chapter
+does, and look at them side by side. The comparison is more
+persuasive than any critique.
+
+**Prompt 3: the one it will get wrong.** Ask it whether you may
+release a dataset assembled from public profiles.
+
+*What to watch for.* The model is likely to reason from
+legality, because legality is what is written down, and to
+conclude that public data may be republished. Push it: ask what
+harm a person in the dataset could suffer, and ask whether they
+would be surprised. The considerations exist in its training
+data but it will not volunteer them, and this is exactly the
+territory where an agreeable collaborator is worse than none.
+
+*Verification.* Take the question to your IRB, and to a
+colleague who will tell you no.
+
+## Principle in use
+
+Three habits define defensible practice beyond compliance:
+
+1. **Match the verb to the design.** Observational studies
+   license association. If the discussion section says
+   'reduces', the design had better be randomised.
+2. **Ask what the reader's eye is measuring.** A bar encodes
+   length, so its baseline is zero. A map encodes area, and land
+   does not have a disease. A dual axis encodes an arbitrary
+   choice you made.
+3. **Compliance is a floor, not a ceiling.** Every regulatory
+   requirement in this book can be satisfied by an analysis that
+   misleads every reader it reaches. You are the only safeguard
+   against that, and it is the part of the job no tool performs.
+
+## Exercises
+
+1. Take the discussion section of a paper you have co-authored.
+   List every causal verb. For each, state the design that would
+   license it and the design you actually had. Rewrite any that
+   fail.
+2. Reproduce the truncated-axis figure in this chapter with data
+   of your own. Show it to a colleague without comment and ask
+   them to describe the effect size in words. Then show them the
+   zero-baseline version and ask again.
+3. Construct a dataset in which two group means have overlapping
+   95% intervals and a two-sample t-test rejects at the 5%
+   level. State the largest overlap you can achieve while
+   retaining significance, and explain the relationship between
+   the standard error of a mean and the standard error of a
+   difference.
+4. Find a published figure in your field that encodes a quantity
+   as area or uses a dual axis. Redraw it honestly. Write a
+   paragraph on what changes.
+5. Write a one-page policy, suitable for a research group, on
+   when data assembled from public sources may be released.
+   Include the questions you would require an analyst to answer
+   before assembling such a dataset.
+
+## Further reading
+
+- [@altman1995absence], on the specific inferential error that
+  the overlapping-interval fallacy is a cousin of.
+- [@wilke2019fundamentals], whose chapters on misleading axes
+  and on visualising uncertainty are the extended treatment of
+  this chapter's third and fourth sections.
+- [@elemam2013anonymizing], for the disclosure-control side of
+  the aggregation problem.
+- [@goodman2016what], for the reminder that reproducibility and
+  correctness are independent qualities.
+- @sec-deident, @sec-federal, and @sec-graphics, the chapters
+  this one sits between.
+
+## Prerequisites answers {#sec-quiz-answers-02c}
+
+1. Because the harm of aggregation differs from the harm of
+   disclosure. Each individual disclosed a fact to an audience of
+   their choosing, in a context they understood; assembling those
+   disclosures into a single searchable, permanent, downloadable
+   artefact and attaching identifiers to it does something none
+   of them chose. Information carries an implicit expectation
+   about where it will travel, and the aggregate can reveal what
+   no individual datum did, for example by linking a health
+   disclosure in one forum to an employer named in another. This
+   is the same joint-distribution phenomenon that makes
+   quasi-identifiers dangerous in @sec-deident, arriving from the
+   other direction. The test is not 'was each item public' but
+   'would the people in the dataset be surprised to find
+   themselves in it'.
+2. No. This is a common and consequential error. The confidence
+   interval for the *difference* depends on the standard error of
+   the difference, which is smaller than the sum of the two
+   individual standard errors, so two means can have substantially
+   overlapping intervals while the interval for their difference
+   excludes zero and the two-sample test rejects. The chapter
+   demonstrates exactly this case. The error runs in the direction
+   of missing real effects. Report and inspect the interval for
+   the contrast, which is the estimand, rather than reading
+   significance off the overlap of the arms.
+3. (Any three of:) a truncated axis on a length-encoded chart, so
+   that a 1.7-point difference on a 100-point scale fills the
+   panel; encoding a quantity as area, including a map coloured by
+   land rather than by population, or a bubble whose radius rather
+   than area is proportional to the count; a dual axis, whose
+   relative scaling is an arbitrary analyst choice that can be
+   tuned to make two series appear to converge or diverge;
+   omitting the uncertainty entirely, so that a point estimate
+   invites more confidence than it has earned; and choosing a
+   denominator that flatters the conclusion. None of these
+   requires printing a false number.

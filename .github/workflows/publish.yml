@@ -51,6 +51,10 @@ jobs:
             any::duckdb
             any::digest
             any::reticulate
+            any::jsonlite
+            any::rvest
+            any::httr2
+            any::haven
 
       # Committed _freeze/ results are reused when a chapter is unchanged, so
       # a full R/Python execution is not normally required in CI. Python is

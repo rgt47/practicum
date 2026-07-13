@@ -111,6 +111,17 @@ confidence band the same. The tools are simple
 (`geom_errorbar`, `se = TRUE` on `geom_smooth`); the
 discipline is the analyst's.
 
+**Ask what the reader's eye is measuring.** A bar
+encodes length, so a truncated baseline makes a small
+difference fill the panel; a map encodes area, and land
+does not have a disease; a bubble's radius is read as
+area, so a radius proportional to a count exaggerates
+it. None of these prints a false number, and all of
+them mislead. @sec-ethics treats the failure modes and
+their remedies at length; the habit to carry into every
+figure is to name the visual channel the reader is
+decoding before choosing it.
+
 These judgements are what make figures publishable.
 
 ## One plot per group with purrr

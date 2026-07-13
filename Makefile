@@ -29,10 +29,14 @@ check:
 	  test -f $$f || (echo "missing $$f" && exit 1); \
 	done
 	@echo 'ok: top-level files present'
-	@ls -1 [0-9][0-9]-*.qmd | grep -v '^00-' | wc -l | awk \
-	  '{ if ($$1 == 23) print "ok: 23 chapter files"; \
-	     else { print "error: expected 23 chapters, found " $$1; \
-	       exit 1 } }'
+	@missing=0; \
+	for f in *.qmd; do \
+	  grep -q "$$f" _quarto.yml || { \
+	    echo "error: $$f exists but is not listed in _quarto.yml"; \
+	    missing=1; }; \
+	done; \
+	test $$missing -eq 0 || exit 1; \
+	echo "ok: all $$(ls -1 *.qmd | wc -l | tr -d ' ') .qmd files registered in _quarto.yml"
 
 deps: deps-r deps-py
 
@@ -46,7 +50,8 @@ deps-r:
 	             'rrtools', 'renv', 'reticulate', 'broom', 'survival', \
 	             'survminer', 'patchwork', 'naniar', 'mice', 'gt', \
 	             'gtsummary', 'janitor', 'GGally', 'UpSetR', 'DBI', \
-	             'RSQLite', 'dbplyr', 'duckdb', 'digest'))"
+	             'RSQLite', 'dbplyr', 'duckdb', 'digest', 'jsonlite', \
+	             'rvest', 'httr2', 'haven'))"
 
 deps-py:
 	python3 -m pip install -r requirements.txt
