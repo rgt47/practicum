@@ -301,6 +301,55 @@ Skipping any step turns the LLM into a
 plausibility-generator rather than a correctness-
 generator.
 
+## Readable code is auditable code
+
+The first step of that workflow, reading the code
+end to end, is only possible if the code is readable,
+and this is where consistent style stops being a
+matter of taste and becomes a matter of correctness.
+A diff you cannot read is a diff you cannot audit, and
+in the age of generated code the volume of diff to
+audit has gone up. Style is the tool that keeps the
+reading tractable.
+
+Adopt one style and impose it mechanically rather than
+by hand. The `tidyverse` style guide [@wickham2023style]
+is the de facto standard in applied R; two tools apply
+and enforce it:
+
+```r
+# reformat a file or a project to the style guide
+styler::style_file("R/clean.R")
+styler::style_dir("R")
+
+# flag style and correctness lapses without changing the file
+lintr::lint("R/clean.R")
+lintr::lint_dir("R")
+```
+
+`styler` rewrites whitespace, indentation, and
+assignment to a canonical form; `lintr` is a static
+analyser that flags what `styler` cannot fix, including
+some genuine bugs: a variable used before assignment,
+an `=` where `<-` was meant, the `T`/`TRUE` hazard from
+the failure-modes catalogue above. Running `lintr` over
+LLM-generated code catches a useful fraction of the
+mechanical mistakes before you spend attention on the
+substantive ones.
+
+The reason this belongs in the AI chapter specifically:
+when you and a model produce code together, the model's
+output arrives in whatever style its training data
+averaged to, which is not necessarily yours. Passing it
+through `styler` on the way in normalises it to the
+surrounding code, so that the diff a reviewer (or
+future-you) reads reflects what *changed* rather than
+whose keyboard it came from. The code-review checklist
+of @sec-git-teams assumes a readable diff; `styler` and
+`lintr` are how you guarantee one. Wire them into the
+continuous-integration workflow of @sec-ci and the
+guarantee holds for every contributor, human or not.
+
 ## When not to reach for an LLM
 
 Tasks where the cognitive cost of evaluating the

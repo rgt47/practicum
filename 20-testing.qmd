@@ -579,6 +579,14 @@ analyses:
    your project's plots. Modify the plot's theme
    slightly; verify the test fails and you can
    accept or reject the change.
+6. Review a colleague's test suite rather than their
+   code. For each test, decide whether it checks
+   statistical content or only structure, and find
+   at least one test that would pass even if the
+   function under test were subtly wrong. Propose the
+   value-level assertion that would catch the bug,
+   and deliver the review in writing as a
+   pull-request comment (@sec-git-teams).
 
 ## Further reading
 

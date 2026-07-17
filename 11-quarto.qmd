@@ -443,6 +443,71 @@ Useful for: analysis reports per subgroup, sensitivity
 analyses with different inclusion criteria,
 reports per institution in multi-site studies.
 
+## Websites: many documents, one project
+
+A single `.qmd` renders to a document. A directory of them,
+governed by a `_quarto.yml`, renders to a website: a set of
+linked pages with shared navigation, a common theme, and a
+search box. This is the same project machinery that produces
+this book (a `type: book` project); a `type: website` project
+differs only in navigation, offering a top navbar and a sidebar
+rather than numbered chapters.
+
+The minimum is a `_quarto.yml` naming the pages and an
+`index.qmd` for the landing page:
+
+```yaml
+# _quarto.yml
+project:
+  type: website
+
+website:
+  title: "Readmissions analysis"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: methods.qmd
+        text: Methods
+      - href: results.qmd
+        text: Results
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+```
+
+```bash
+quarto render        # builds the whole site into _site/
+quarto preview       # live-reloading local preview
+```
+
+For a biostatistician the website is the natural form of an
+internal analysis portal: a living site that a research team
+reads rather than a PDF that is emailed and goes stale. Because
+it is a Quarto project, every page carries the reproducibility
+guarantees of the rest of this chapter, inline computation, a
+pinned environment, a `freeze` cache, and the whole site is
+rebuilt and redeployed by the continuous-integration workflow of
+@sec-ci on every push. The STA 199-style course site and the
+`workflowr` analysis website solve the same problem; Quarto is
+the option that composes with the compendium (@sec-rrtools) you
+are already building.
+
+Publishing is one command to any of several hosts:
+
+```bash
+quarto publish netlify      # or gh-pages, quarto-pub, connect
+```
+
+The distinction from a parameterised report (above) is worth
+keeping clear. Parameters render the *same* document against
+*different* data; a website renders *different* documents into
+*one* navigable whole. A multi-site trial might use both: one
+parameterised report per site, collected into a website with a
+page per site and an overview landing page.
+
 ## Worked example: a one-page report
 
 ````qmd

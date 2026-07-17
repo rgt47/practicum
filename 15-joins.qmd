@@ -484,6 +484,15 @@ Three habits define defensible joining:
    overlapping patients (some new, some updated).
    Verify the result has the expected number of
    rows.
+6. Review a colleague's multi-table script (or one
+   from a public analysis repository) for join
+   safety alone: for every join, determine the
+   intended cardinality, check whether a
+   `relationship` argument asserts it, and run an
+   `anti_join` audit on the keys. Report what you
+   find as you would in a pull-request comment
+   (@sec-git-teams), naming the specific line and
+   the specific risk.
 
 ## Further reading
 
