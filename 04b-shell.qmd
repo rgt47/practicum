@@ -232,7 +232,7 @@ fi
 
 Two habits make shell scripts safe. The `set -euo pipefail`
 line tells the shell to stop at the first error rather than
-plough on through a broken pipeline, which is the single
+plow on through a broken pipeline, which is the single
 most valuable line in any script. Quoting variables as
 `"$DATA_DIR"` protects against paths that contain spaces.
 Make the script executable with `chmod +x fetch-and-check.sh`

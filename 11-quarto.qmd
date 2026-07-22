@@ -54,7 +54,7 @@ By the end of this chapter you should be able to:
   output.
 - Use `bibliography` and `csl` to cite published work
   in journal-specific format.
-- Parameterise a report with YAML `params:` and
+- Parameterize a report with YAML `params:` and
   render multiple variants.
 - Cache computation with `freeze` to avoid re-running
   expensive code on every render.
@@ -375,7 +375,7 @@ are occasionally useful but `auto` is the default.
 `_freeze/` should be committed to git: it ensures
 collaborators and CI builds get the cached output
 without re-running expensive analyses. (For
-deterministic chunks; for randomised chunks, the cache
+deterministic chunks; for randomized chunks, the cache
 embeds the seed-aware result so this is fine if your
 chunks set seeds.)
 
@@ -402,11 +402,11 @@ years (SD &#96;{r} round(sd(d$age, na.rm = TRUE), 1)&#96;).
 Now the prose is computed from the data at render
 time. Re-rendering with corrected data updates the
 prose automatically. This is the literate-programming
-payoff: numbers and prose stay synchronised.
+payoff: numbers and prose stay synchronized.
 
 :::
 
-## Parameterised reports
+## Parameterized reports
 
 Run the same `.qmd` against different data:
 
@@ -501,11 +501,11 @@ Publishing is one command to any of several hosts:
 quarto publish netlify      # or gh-pages, quarto-pub, connect
 ```
 
-The distinction from a parameterised report (above) is worth
+The distinction from a parameterized report (above) is worth
 keeping clear. Parameters render the *same* document against
 *different* data; a website renders *different* documents into
 *one* navigable whole. A multi-site trial might use both: one
-parameterised report per site, collected into a website with a
+parameterized report per site, collected into a website with a
 page per site and an overview landing page.
 
 ## Worked example: a one-page report
@@ -600,8 +600,8 @@ duplicate labels.
 *Verification.* Render and check that every reference
 resolves; broken refs render as `?`.
 
-**Prompt 3: parameterisation.** Describe the report
-and the parameters and ask: 'parameterise this report
+**Prompt 3: parameterization.** Describe the report
+and the parameters and ask: 'parameterize this report
 so I can render it once per cohort.'
 
 *What to watch for.* The LLM should use Quarto's
@@ -630,7 +630,7 @@ Three habits define defensible Quarto use:
 2. Add `bibliography: references.bib` and cite at
    least one paper. Verify the reference appears in
    both HTML and PDF outputs.
-3. Parameterise the document to take a `data_file`
+3. Parameterize the document to take a `data_file`
    parameter from YAML; render three versions from
    three different CSV files using
    `quarto render --to html -P data_file=foo.csv`.

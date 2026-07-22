@@ -483,7 +483,7 @@ estimate the cost.'
 *What to watch for.* Verify against the current AWS
 pricing page (LLMs may quote out-of-date prices).
 Double-check the instance type matches the workload
-type (compute-optimised vs. memory-optimised).
+type (compute-optimized vs. memory-optimized).
 
 *Verification.* The AWS pricing calculator is the
 ground truth.

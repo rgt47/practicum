@@ -87,7 +87,7 @@ pointed at:
   research-compendium structure with `R/`,
   `analysis/`, and a `Dockerfile` is the unit of
   reproducibility.
-- **Every compendium is Dockerised before it
+- **Every compendium is Dockerized before it
   leaves your machine.** `renv` pins R packages;
   Docker pins everything else.
 - **Every chunk of analysis code is under version

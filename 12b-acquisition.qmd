@@ -4,7 +4,7 @@
 ```{=latex}
 \begin{flushright}\small
 ```
-*It is a capital mistake to theorise before one has data.*
+*It is a capital mistake to theorize before one has data.*
 
 [Arthur Conan Doyle]{.smallcaps}, *A Scandal in Bohemia*
 (1891)
@@ -227,7 +227,7 @@ a factor whose levels you have declared, which means that a
 fourth site appearing in next month's extract will arrive as `NA`
 and be visible rather than silently swelling the level set.
 
-That last property is the one to internalise. A full `col_types`
+That last property is the one to internalize. A full `col_types`
 specification is a contract with the file. When the file changes,
 the contract is violated, and `readr` tells you so through the
 problems it reports rather than by handing you a data frame that

@@ -70,7 +70,7 @@ The mechanics are mechanical. The judgements:
 
 **Commit boundaries are reasoning units.** Each commit
 should be one logical change. 'Refactor data cleaning to
-use vectorised assignment' is a commit; 'Tuesday's work'
+use vectorized assignment' is a commit; 'Tuesday's work'
 is not. Atomic commits make `git bisect` (binary search
 for the commit that introduced a bug) feasible; large
 commits make it useless.

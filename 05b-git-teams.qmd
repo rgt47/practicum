@@ -66,25 +66,30 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-The mechanics of Git do not change when a second person joins
-the project. The commit is still a snapshot, the branch is
-still a movable pointer, the tag is still fixed. What changes
-is that the repository is no longer the record of what you
-did; it is the record of what the team did, and the team is
-now the unit that has to be able to reconstruct it.
+We begin by noting what does not change. The mechanics of Git
+are largely indifferent to the number of people using them: the
+commit is still a snapshot, the branch is still a movable
+pointer, and the tag is still fixed. What changes when a second
+person joins the project is not the tooling but the object it
+maintains. The repository is no longer the record of what you
+did; it is the record of what the team did, and it is now the
+team, rather than the individual, that must be able to
+reconstruct the analysis.
 
-Three consequences follow, and this chapter is organized
-around them. First, two people editing one file at the same
-time will eventually collide, and Git can only resolve the
-collision when the edits do not overlap; the rest of the time
-it hands the problem to a human, and the human must know what
-the two edits meant. Second, the history is now something a
-colleague reads, which raises the cost of a bad commit message
-from mild self-harm to a shared tax. Third, and most
-consequentially for a statistician, a change to the analysis
-is now something that arrives from someone else, and somebody
-has to look at it before it becomes the analysis of record.
-That somebody is you, and the practice is code review.
+But what does that shift actually demand of the analyst? Three
+consequences follow, and we have organized the chapter around
+them. First, two people editing one file at the same time will
+eventually collide, and Git can resolve the collision only when
+the edits do not overlap; the rest of the time it hands the
+problem back to a human, who must then know what each of the two
+edits was trying to accomplish. Second, the history has become
+something a colleague reads, which raises the cost of a careless
+commit message from a private inconvenience to a shared tax.
+Third, and most consequentially for a statistician, a change to
+the analysis now arrives from someone else, and someone must
+look at it before it becomes the analysis of record. That
+someone is you, and the practice is code review, to which we
+shall return at some length below.
 
 ## The statistician's contribution {#sec-git-teams-human}
 
@@ -150,15 +155,18 @@ git log --oneline main..origin/main    # what they did
 git log --oneline origin/main..main    # what I did
 ```
 
-`git fetch` is the only network operation in Git that cannot
-surprise you: it updates your picture of the remote and leaves
-your work alone. Everything else is local. The habit worth
-forming is to fetch first and look, rather than to pull and
-find out.
+Of all the network operations in Git, `git fetch` is the one
+that cannot surprise you: it updates your picture of the remote
+and leaves your own work untouched. Everything else is local.
+The habit worth forming, then, is to fetch first and look,
+rather than to pull and find out.
 
-When you and a collaborator have both committed, the histories
-have diverged, and you must reconcile them. There are exactly
-two shapes the reconciliation can take.
+When you and a collaborator have both committed, the two
+histories have diverged, and they must be reconciled. But in
+how many ways can that reconciliation be done? There are, it
+turns out, exactly two, and the distinction between them is
+worth holding clearly in view, because `git pull` will silently
+choose one of them on your behalf.
 
 **Merge** creates a new commit with two parents, one from each
 line of development. The history is a true record: it shows
@@ -315,9 +323,12 @@ no individual can catch by being careful alone.
 
 ## Merge conflicts
 
-A conflict occurs when two commits change the same region of
-the same file and Git cannot decide which change to keep. It
-inserts markers into the file and stops:
+A conflict occurs when two commits change the same region of the
+same file and Git, unable to decide which of the two changes to
+keep, declines to guess. It writes markers into the file and
+stops. To make the situation concrete, suppose that you and a
+colleague have each edited the same filter in a
+cohort-construction script:
 
 ```r
 analytic <- visits |>
@@ -336,12 +347,14 @@ is what arrived. The marker `>>>>>>>` names its source. Your
 job is to edit the file so that it says what the analysis
 should say, and to delete all three marker lines.
 
-Read the two versions as statements about the analysis rather
-than as text. Yours drops implausibly high blood pressures.
-Theirs adds a lower bound and tightens the upper one. These
-are not alternatives; they are two halves of one decision that
-two people made independently, and the resolution that
-preserves both intents is:
+The temptation here is to read the conflict as a contest between
+two blocks of text and to pick a winner. We would urge the
+reader to read it instead as two statements about the analysis.
+Yours drops implausibly high blood pressures; theirs adds a
+lower bound and tightens the upper one. These are not
+alternatives at all. They are, rather, two halves of a single
+decision that the two of you reached independently, and the
+resolution that preserves both intents is the following:
 
 ```r
 analytic <- visits |>
@@ -660,7 +673,8 @@ rewrite.
 
 ## Principle in use
 
-Three habits define defensible team Git:
+In closing, three habits are to be emphasized, and together they
+define what we would regard as defensible team Git.
 
 1. **Nothing lands on `main` unreviewed.** Feature branch,
    pull request, green CI check, human reader. Branch
@@ -711,7 +725,7 @@ Three habits define defensible team Git:
 - [@wickham2023rpkgs], whose pull-request and code-review
   material is written for package development but transfers
   directly to compendia.
-- [@perez2020team] on team science, for the social half of
+- [@slade2023team] on team science, for the social half of
   the problem this chapter treats mechanically.
 - @sec-ci, which runs on the pull requests this chapter
   teaches you to open.

@@ -45,6 +45,9 @@ By the end of this chapter you should be able to:
   clinical collaborator.
 - Write a short scope-of-work document that pre-empts
   common misunderstandings.
+- Maintain a legible portfolio of simultaneous projects
+  and triage which one to advance when several compete
+  for the same day.
 - Communicate statistical results to non-statisticians
   without misrepresenting uncertainty or effect size.
 - Recognize common collaboration failure modes (scope
@@ -53,13 +56,13 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-Most biostatisticians spend the majority of their
-careers on teams with people who cannot read their code
-and do not share their vocabulary. Effective
-collaboration across this gap is a learned skill, not a
-personality trait. This chapter covers the norms,
-conversations, and documents that make
-interdisciplinary research teams work.
+Most biostatisticians spend the greater part of their
+careers on teams alongside people who cannot read their code
+and do not share their vocabulary. Effective collaboration
+across this gap is, we would insist, a learned skill and not a
+personality trait. This chapter takes up the norms, the
+conversations, and the documents that make interdisciplinary
+research teams work.
 
 The chapter is unusually narrative: the technical skills
 elsewhere in the book are only useful if you can
@@ -84,7 +87,7 @@ produces friction at the end.
 **Pick your battles.** Not every methodological choice
 is worth a confrontation. A non-default reference level
 in a logistic regression: matter of taste; let it go. A
-proposal to dichotomise a continuous outcome to make
+proposal to dichotomize a continuous outcome to make
 the analysis 'simpler': fight, because it loses
 information and biases inference. Distinguishing
 preference from principle is what makes you a useful
@@ -208,7 +211,7 @@ defensible attribution. The right time to clarify
 this was at the start: 'I'll do the t-test if you
 can include me on the manuscript' or 'this counts
 as a service contribution; please acknowledge'.
-The mid-stream realisation is harder to negotiate
+The mid-stream realization is harder to negotiate
 than the up-front agreement.
 
 :::
@@ -252,7 +255,7 @@ Vague answers about IRB or data-use agreements. Each
 warrants more questions before agreement.
 
 A standard intake document, one page, ten
-questions, formalises this conversation. Sending
+questions, formalizes this conversation. Sending
 it before the meeting often resolves half the
 issues without the meeting.
 
@@ -280,6 +283,132 @@ work (SOW) defines:
 The SOW is not a legal contract; it is a shared
 understanding. When the project drifts (as projects
 do), the SOW is the document everyone returns to.
+
+## Managing a portfolio of projects
+
+The intake conversation and the scope of work govern a
+single collaboration. The defining structural fact of
+a collaborative biostatistician's work is that there is
+never only one. You will carry five to fifteen active
+projects at once, at different stages, for different
+investigators, each of whom is convinced theirs is the
+one you are working on today. Survey evidence ranks
+managing multiple simultaneous projects among the most
+essential skills in the work, second only to coding for
+those in their first five years [@slade2023team]. It is
+also the skill this book has so far said least about,
+and the one no software installs for you.
+
+**The unit of work is the portfolio, not the project.**
+A junior statistician experiences the job as a queue:
+finish project A, then start project B. The job is not
+a queue. Projects arrive on the investigators'
+schedules, block on data and approvals you do not
+control, and then unblock several at once. The
+competence being asked of you is to hold many
+partially finished projects in a legible state and move
+each when it is movable, not to drive one to completion
+while the rest quietly decay.
+
+**Estimate, then double.** Statisticians are
+systematically optimistic about how long an analysis
+takes, because the estimate imagines the clean path and
+the work is mostly the mess: the merge that reveals
+duplicated IDs, the outcome coded three ways across
+sites, the model that will not converge. Quote
+timelines with the mess included. A serviceable
+discipline is to estimate the clean path, double it,
+and add the one review cycle you forgot. Promising
+month 2 and delivering in month 2 builds more standing
+than promising month 1 and delivering in month 3.
+
+**Make blocking visible, to yourself and to them.**
+Much of a statistician's calendar is spent not working
+but waiting: for the data extract, for the IRB
+amendment, for the collaborator to say which of two
+outcomes is primary. A project blocked on someone else
+is not one you have finished thinking about; it is a
+debt that comes due, usually at the worst moment. For
+every active project, track the single thing it is
+waiting on and who owns it. When a PI asks why their
+analysis has not moved, 'I am waiting on the corrected
+data file I requested on the 3rd' is an answer; silence
+is not.
+
+**Protect the cost of re-entry.** The expensive part of
+juggling projects is not the analysis; it is the
+reconstruction paid each time you return to a project
+you set down three weeks ago and must remember what you
+were doing and why. This book has, without naming it,
+spent several chapters lowering that cost. A project
+that rebuilds with one command (@sec-rrtools,
+@sec-zzcollab), whose analytic decisions are fixed in
+an analysis plan (@sec-analysis-plan), and whose
+history is legible in Git (@sec-git-solo) can be put
+down and picked up in minutes. A project held together
+in your head and one untracked script cannot.
+Reproducible infrastructure is usually justified as a
+courtesy to others, the reviewer and the future
+replicator; its quieter and more immediate payoff is
+that it is what lets you carry fifteen projects without
+dropping any.
+
+**Batch the switches you can; price the ones you
+cannot.** Context switching is not free, and the
+statistician who answers every email the instant it
+arrives pays the re-entry cost a hundred times a day.
+Where the work allows, batch it: a block for one
+project's analysis, a separate block for correspondence
+across all projects, rather than interleaving at the
+grain of the inbox. A few switches are forced by
+genuine urgency and earn their cost; most are not, and
+the skill is telling the two apart.
+
+**Capacity is finite, and saying so is part of the
+job.** The boundaries clause of the scope of work
+declines work within a project. The same discipline
+operates across projects: a statistician who never says
+'I can start this in three weeks, not this week' ends
+up doing everything late rather than some things on
+time. Deferring is not a failure of collaboration.
+Committing to a deadline you cannot meet is.
+
+None of this requires a particular tool. A single list
+of active projects, each with its current stage, its
+next action, and the thing it is blocked on, reviewed
+once a week, is enough. The tool is not the skill; the
+habit of keeping the portfolio legible is.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: which project moves today?
+
+**Question.** It is Monday, and four projects are
+active. A has a grant deadline Friday and is waiting on
+nothing. B is a manuscript revision due in three weeks;
+you are blocked on a corrected data file that has not
+arrived. C is an exploratory analysis with no deadline
+whose PI emailed this morning asking for an update. D
+is a reviewer response due tomorrow and is half
+drafted. In what order do you work, and what do you
+send before you start?
+
+**Answer.**
+
+Before starting anything, send two messages: a reminder
+to B's data owner that you remain blocked on the
+corrected file, and a one-line reply to C's PI with a
+realistic date, because an unanswered ask silently
+curdles into a grievance. Then work D first: it is due
+tomorrow, and its remaining cost is the best known
+because it is half done. Then A: due Friday, unblocked,
+and the larger unknown, so it wants the fresh part of
+the day. B cannot be advanced until the file arrives,
+so the reminder you already sent was your only move on
+it today. C waits until A and D are clear. The error
+the queue model produces here is working C, because its
+email happens to sit on top of the inbox.
+
+:::
 
 ## Communicating statistical results
 
@@ -331,7 +460,7 @@ Argue for the standard practice; if overruled,
 document the dissent in the methods.
 
 **Validity.** Inappropriate test, data dredging,
-post-hoc hypothesis selection, dichotomising
+post-hoc hypothesis selection, dichotomizing
 continuous outcomes. Push back firmly. If the
 disagreement persists and the analysis is
 methodologically wrong, withdraw.
@@ -461,16 +590,21 @@ Three habits define defensible team-science practice:
    relative to the evidence. Write a two-paragraph
    critique suitable for a peer review.
 4. Role-play a difficult conversation: a senior PI
-   asks you to dichotomise a continuous outcome to
+   asks you to dichotomize a continuous outcome to
    produce an OR for a press release. Draft your
    response.
 5. Audit your own most recent project: which of the
    ICMJE criteria did you meet? Was your authorship
    position appropriate?
+6. List every project you currently have active. For
+   each, write its stage, its single next action, and
+   the one thing it is blocked on together with who
+   owns that thing. Any project for which you cannot
+   name a next action is the one in trouble; say why.
 
 ## Further reading
 
-- [@perez2020team], essential team-science skills
+- [@slade2023team], essential team-science skills
   for biostatisticians.
 - [@icmje2024], the defining reference for authorship
   norms.

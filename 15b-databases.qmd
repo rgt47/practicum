@@ -252,7 +252,7 @@ analytic
 
 Everything up to `collect()` ran in the database; only the
 small summary crossed into memory. This is the pattern to
-internalise: filter and aggregate lazily against the
+internalize: filter and aggregate lazily against the
 table, then `collect()` the modest result. The
 verification habit still applies, so we check the row
 count is what a per-arm summary should give.

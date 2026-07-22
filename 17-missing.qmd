@@ -453,7 +453,7 @@ library(naniar)
 library(mice)
 library(broom.mixed)
 
-# 1. visualise pattern
+# 1. visualize pattern
 vis_miss(airquality)
 gg_miss_upset(airquality)
 
@@ -489,7 +489,7 @@ load-bearing and the paper should say so.
 
 ## Reporting missing data
 
-CONSORT 2010 (item 13b, randomised trials)
+CONSORT 2010 (item 13b, randomized trials)
 [@schulz2010consort] and STROBE (item 12c,
 observational studies) [@vonelm2007strobe] require:
 
@@ -647,7 +647,7 @@ practice:
 
 ## Exercises
 
-1. Load `airquality` (built-in). Visualise the
+1. Load `airquality` (built-in). Visualize the
    missingness pattern with `naniar`. Fit
    `lm(Ozone ~ Solar.R + Wind + Temp)` via
    complete-case analysis; then via multiple

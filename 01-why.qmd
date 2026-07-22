@@ -55,13 +55,15 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-Reproducibility is the lowest bar a scientific analysis
-must clear. It says nothing about whether the analysis is
-correct, important, or even sensible; it says only that a
-second analyst with the same inputs can obtain the same
-outputs. And yet a substantial minority of published
-biomedical analyses fail this bar when audited. Fixing that
-is cheap but only if you build in the habits up front.
+We begin with a claim that is easy to state and, it appears,
+surprisingly hard to satisfy. Reproducibility is the lowest bar
+a scientific analysis must clear. It says nothing about whether
+the analysis is correct, important, or even sensible; it says
+only that a second analyst, given the same inputs, can obtain
+the same outputs. And yet a substantial minority of published
+biomedical analyses fail even this bar when they are audited.
+The remedy is, in principle, inexpensive, but only if the habits
+are built in from the start rather than retrofitted at the end.
 
 The biostatistician is, in most teams, the person whose
 work product is the analysis itself. The reproducibility
@@ -206,7 +208,7 @@ Three concrete scenarios:
    With reproducible code and a pinned environment, this
    is half an hour. Without, it is a week of
    reconstructing what you did.
-2. **A bug appears.** You realise the unit conversion in
+2. **A bug appears.** You realize the unit conversion in
    step 7 was wrong. With reproducible code, you fix it,
    re-run, and report the corrected results. Without,
    you do not know whether the bug applies to other

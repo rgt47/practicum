@@ -463,11 +463,11 @@ for (i in seq_len(nrow(df))) {
   result[i] <- compute_something(df[i, ])
 }
 
-# good (vectorised)
+# good (vectorized)
 df |> mutate(result = compute_something_vectorised(...))
 ```
 
-R's vectorised operations are 10--100× faster than row
+R's vectorized operations are 10--100× faster than row
 loops, and are usually clearer.
 
 **Hardcoded column indices**:

@@ -101,7 +101,7 @@ neutral.
 These judgements are what make renv a useful tool
 rather than another source of friction.
 
-## Initialising renv
+## Initializing renv
 
 ```r
 # in a new or existing project
@@ -198,7 +198,7 @@ the recorded version (`renv::restore()`).
 ## Check your understanding: snapshot vs. restore
 
 **Question.** You install `dplyr` 1.1.4 in your project,
-work for a week, then realise the snapshot still records
+work for a week, then realize the snapshot still records
 1.1.0. What happens if you `restore()` instead of
 `snapshot()`?
 

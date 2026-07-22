@@ -176,7 +176,7 @@ restating as a hierarchy of claims:
 
 | Design | What you may say |
 |---|---|
-| Randomised, adequately powered, pre-specified | 'X reduced Y by $\delta$' |
+| Randomized, adequately powered, pre-specified | 'X reduced Y by $\delta$' |
 | Observational, well adjusted, no unmeasured confounding assumed | 'X was associated with lower Y; the association is consistent with a causal effect but the design cannot establish one' |
 | Observational, self-selected sample, self-reported exposure | 'Among volunteers who reported X, Y was lower. Volunteers who exercise differ from those who do not in ways we did not measure.' |
 
@@ -473,7 +473,7 @@ Three habits define defensible practice beyond compliance:
 
 1. **Match the verb to the design.** Observational studies
    license association. If the discussion section says
-   'reduces', the design had better be randomised.
+   'reduces', the design had better be randomized.
 2. **Ask what the reader's eye is measuring.** A bar encodes
    length, so its baseline is zero. A map encodes area, and land
    does not have a disease. A dual axis encodes an arbitrary
@@ -512,7 +512,7 @@ Three habits define defensible practice beyond compliance:
 - [@altman1995absence], on the specific inferential error that
   the overlapping-interval fallacy is a cousin of.
 - [@wilke2019fundamentals], whose chapters on misleading axes
-  and on visualising uncertainty are the extended treatment of
+  and on visualizing uncertainty are the extended treatment of
   this chapter's third and fourth sections.
 - [@elemam2013anonymizing], for the disclosure-control side of
   the aggregation problem.

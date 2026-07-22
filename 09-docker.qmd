@@ -417,7 +417,7 @@ docker buildx build --platform linux/amd64,linux/arm64 \
   -t username/readmissions:v1.0 --push .
 ```
 
-## Worked example: complete dockerised compendium
+## Worked example: complete dockerized compendium
 
 ```dockerfile
 # Dockerfile
@@ -528,7 +528,7 @@ Three habits define defensible Docker use:
 
 ## Exercises
 
-1. Dockerise a simple existing analysis of yours.
+1. Dockerize a simple existing analysis of yours.
    Build the image, run it, and verify it produces
    identical output.
 2. Run RStudio Server in a Docker container, connect
@@ -575,7 +575,7 @@ Three habits define defensible Docker use:
    anything with non-R dependencies, Docker is the
    prudent choice.
 3. `rocker/tidyverse:4.4.0` provides: Debian (the base
-   for `rocker/r-ver` since the 2022 reorganisation);
+   for `rocker/r-ver` since the 2022 reorganization);
    R 4.4.0; RStudio Server; and the tidyverse package
    suite pre-installed. A container starts immediately
    without package installation, useful for teaching

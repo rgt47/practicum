@@ -31,7 +31,7 @@ make you fluent, only literate.
 
 ## base R wrangling
 
-Before the tidyverse stabilised in 2016, essentially all R
+Before the tidyverse stabilized in 2016, essentially all R
 data manipulation was base R. It is still the lingua franca
 of package development, and a student who cannot read it is
 cut off from most of CRAN.
@@ -109,7 +109,7 @@ which speeds subsequent joins on that key. Third, the
 function across many columns at once, as in
 `dt[, lapply(.SD, mean), by = sex, .SDcols = is.numeric]`;
 it is the `data.table` analog of `across()`. Fourth, a
-gotcha worth internalising early: `data.table` returns a
+gotcha worth internalizing early: `data.table` returns a
 `data.table` when you subset with `[`, where a
 `data.frame` would sometimes drop to a vector. The
 `drop = TRUE` surprise that catches base-R users does not

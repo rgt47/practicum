@@ -165,7 +165,7 @@ A standard biostatistical SAP has these sections:
    this design.
 4. **Inclusion and exclusion criteria.** As a numbered
    list. Each criterion testable from data alone.
-5. **Primary outcome definition.** Operationalised:
+5. **Primary outcome definition.** Operationalized:
    the data fields, the time window, the value
    transformation. A second analyst should compute
    the same outcome variable.
@@ -376,7 +376,7 @@ authoritative pre-specification.
 >
 > ## 3. Design
 >
-> Parallel-group, individually randomised, open-
+> Parallel-group, individually randomized, open-
 > label RCT. 1:1 allocation. Stratified by site and
 > baseline ejection fraction.
 >
@@ -491,7 +491,7 @@ Three habits define defensible SAP practice:
 ## Exercises
 
 1. Draft a SAP (skeleton only) for a hypothetical
-   cluster randomised trial of a patient-education
+   cluster randomized trial of a patient-education
    intervention. Use the 243B template.
 2. Use `zzpower` to compute the required sample
    size for the primary analysis in exercise 1

@@ -85,7 +85,7 @@ quickly is the biostatistician who benefits from the
 LLM.
 
 **Domain knowledge is the moat.** An LLM cannot
-tell you whether to dichotomise a continuous
+tell you whether to dichotomize a continuous
 outcome, whether to control for a baseline
 covariate, or whether to use a one-sided or
 two-sided test. These judgements depend on
@@ -520,7 +520,7 @@ Three habits define defensible AI-assisted coding:
    multiple LLM backends (Anthropic, OpenAI,
    Google, etc.) with multi-turn history, streaming
    output, and tool-calling support. It lets you
-   invoke the model from scripts, parameterise
+   invoke the model from scripts, parameterize
    prompts with R values, and build a programmatic
    layer over what would otherwise be manual
    copy-paste. A browser chatbot is interactive
