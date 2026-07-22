@@ -16,7 +16,7 @@
 ::: {.callout-note}
 ## Why this chapter exists
 
-The survey of peer US biostatistics MS programmes
+The survey of peer US biostatistics MS programs
 (@sec-peer-survey) found missing-data handling
 taught as a core or near-core topic at a majority of
 them, including dedicated courses at Michigan
@@ -78,7 +78,7 @@ curriculum because its answers are rarely clean.
 Complete-case analysis is simple but throws
 information away and biases estimates under
 anything stronger than MCAR. Multiple imputation
-preserves information but adds a modelling layer
+preserves information but adds a modeling layer
 with its own assumptions. Sensitivity analysis is
 essential but open-ended.
 
@@ -105,7 +105,7 @@ could be MCAR (random administrative loss), MAR
 correct response is to argue from the clinical
 context, not from a hypothesis test.
 
-**Imputation is modelling.** When you impute, you
+**Imputation is modeling.** When you impute, you
 are fitting a model for the missing values. That
 model has assumptions. Bad imputation introduces
 bias more cleanly than complete-case analysis
@@ -246,7 +246,7 @@ equations).
 
 The simplest approach: drop rows with any
 missingness. R's default for `lm`, `glm`, and most
-modelling functions is `na.omit` (or
+modeling functions is `na.omit` (or
 `na.action = na.omit`).
 
 ```r
@@ -311,7 +311,7 @@ values per missing cell.
 
 Multiple imputation proceeds in three steps, shown
 in @fig-mi-steps: impute several completed datasets,
-analyse each one separately, then pool the results.
+analyze each one separately, then pool the results.
 The reason for the fan-out and recombination is the
 whole point of the method: the variation between the
 $M$ analyses is what carries the uncertainty due to
@@ -339,7 +339,7 @@ The three steps in detail:
 
 1. **Impute** $M$ complete datasets, each with a
    different draw of plausible values.
-2. **Analyse** each imputed dataset separately,
+2. **Analyze** each imputed dataset separately,
    using the planned analysis.
 3. **Pool** the $M$ results with Rubin's rules to
    produce a single pooled estimate and variance.
@@ -353,7 +353,7 @@ library(mice)
 imp <- mice(airquality, m = 25, method = "pmm", seed = 1,
             printFlag = FALSE)
 
-# step 2: analyse each
+# step 2: analyze each
 fits <- with(imp, lm(Ozone ~ Solar.R + Wind + Temp))
 
 # step 3: pool
@@ -468,7 +468,7 @@ imp <- mice(airquality, m = 25, method = "pmm", seed = 1,
 fits <- with(imp, lm(Ozone ~ Solar.R + Wind + Temp))
 pooled <- pool(fits)
 summary(pooled, conf.int = TRUE)
-nrow(airquality)                # 153 rows analysed via MI
+nrow(airquality)                # 153 rows analyzed via MI
 
 # 4. sensitivity: delta adjustment
 # (assume Ozone with missingness is systematically

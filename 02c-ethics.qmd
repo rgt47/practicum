@@ -24,7 +24,7 @@ necessary and none is sufficient, because an analysis can
 satisfy every one of them and still mislead every reader it
 reaches. This chapter is about the failures that compliance
 does not prevent, and about which the statistician, not the
-institutional review board, is the last line of defence.
+institutional review board, is the last line of defense.
 :::
 
 ## Prerequisites
@@ -46,11 +46,11 @@ chapter. You can find the answers at the end of the chapter in
 By the end of this chapter you should be able to:
 
 - Distinguish the harm of disclosure from the harm of
-  aggregation, and recognise that public data can carry the
+  aggregation, and recognize that public data can carry the
   second without the first.
 - Identify causal language attached to associational evidence,
   in your own writing and in the manuscripts you review.
-- Recognise the standard visual distortions: the truncated axis,
+- Recognize the standard visual distortions: the truncated axis,
   the area-for-quantity encoding, and the dual axis.
 - Demonstrate why overlapping confidence intervals do not imply
   a non-significant difference, and stop making the inference.
@@ -111,7 +111,7 @@ manuscript, to refuse to produce the figure as specified, to
 say that the analysis as requested is not one you will perform.
 @sec-team-science distinguishes preference from principle
 precisely so that you spend your credibility on the cases where
-this matters. This chapter is the catalogue of those cases.
+this matters. This chapter is the catalog of those cases.
 
 ## Aggregation harm
 
@@ -120,13 +120,13 @@ The first failure concerns data that were never private.
 In 2016 a group of researchers released a dataset of some
 70,000 profiles scraped from a dating website, including
 usernames alongside answers to intimate questions about
-sexuality, drug use, and political views. The defence offered
+sexuality, drug use, and political views. The defense offered
 was that the data 'are already publicly available', which was
 true and beside the point. Each user had disclosed a fact to an
 audience of their choosing, in a context they understood. The
 release did something none of them had chosen: it collected
 those disclosures into a single, searchable, permanent,
-downloadable artefact, and attached them to identifiers.
+downloadable artifact, and attached them to identifiers.
 
 This is **aggregation harm**, and it is the same phenomenon
 that @sec-deident treats formally under the heading of
@@ -185,7 +185,7 @@ volunteer cohort reporting its own exercise is not that the
 confounder adjustment was inadequate. It is that people who
 exercise and report it differ systematically from people who do
 not, along dimensions (conscientiousness, health-seeking
-behaviour, unmeasured comorbidity, the very early symptoms of
+behavior, unmeasured comorbidity, the very early symptoms of
 undiagnosed disease) that no covariate list captures. The
 adjustment cannot fix this, and stating that you adjusted for
 age and smoking implies to a reader that it did.
@@ -256,7 +256,7 @@ the encoding is position rather than length, a truncated axis is
 legitimate and often necessary. The question is always: what is
 the reader's eye measuring?
 
-**Area for quantity.** A map coloured by which arm won each
+**Area for quantity.** A map colored by which arm won each
 county encodes *land area*, and land does not vote. A bubble
 whose *radius* is proportional to a count exaggerates it, because
 the eye reads area, which goes as the square of the radius. In
@@ -267,7 +267,7 @@ denominator, and a cartogram or a population-weighted encoding.
 **The dual axis.** Two series on two differently scaled y-axes
 can be made to cross, converge, or diverge at the analyst's
 choice, because the relative scaling is arbitrary. Any apparent
-relationship between them is an artefact of a decision you made.
+relationship between them is an artifact of a decision you made.
 Avoid dual axes entirely; if two series must be compared, index
 them to a common baseline or use two panels.
 
@@ -357,7 +357,7 @@ p_means <- ggplot(means, aes(mean, group)) +
 p_diff <- ggplot(diff, aes(mean, group)) +
   geom_pointrange(aes(xmin = lower, xmax = upper)) +
   geom_vline(xintercept = 0, linetype = "dashed",
-             colour = "#9d2235") +
+             color = "#9d2235") +
   labs(title = "B. Difference", x = "Difference in score",
        y = NULL) +
   theme_minimal()
@@ -434,7 +434,7 @@ each, state what design would license it.'
 *What to watch for.* This works well, because it is a
 text-classification task rather than a judgement. Expect a few
 false positives. The sentences it flags are the sentences a
-sceptical reviewer will flag.
+skeptical reviewer will flag.
 
 *Verification.* For each flagged sentence, check the design
 against the table in this chapter. If the design is
@@ -527,7 +527,7 @@ Three habits define defensible practice beyond compliance:
    disclosure. Each individual disclosed a fact to an audience of
    their choosing, in a context they understood; assembling those
    disclosures into a single searchable, permanent, downloadable
-   artefact and attaching identifiers to it does something none
+   artifact and attaching identifiers to it does something none
    of them chose. Information carries an implicit expectation
    about where it will travel, and the aggregate can reveal what
    no individual datum did, for example by linking a health
@@ -549,7 +549,7 @@ Three habits define defensible practice beyond compliance:
    significance off the overlap of the arms.
 3. (Any three of:) a truncated axis on a length-encoded chart, so
    that a 1.7-point difference on a 100-point scale fills the
-   panel; encoding a quantity as area, including a map coloured by
+   panel; encoding a quantity as area, including a map colored by
    land rather than by population, or a bubble whose radius rather
    than area is proportional to the count; a dual axis, whose
    relative scaling is an arbitrary analyst choice that can be

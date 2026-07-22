@@ -43,7 +43,7 @@ By the end of this chapter you should be able to:
 
 - Select the appropriate `_join()` variant for a given
   question (inner, left, right, full, semi, anti).
-- Recognise and avoid the pitfalls of many-to-many
+- Recognize and avoid the pitfalls of many-to-many
   joins, including using `dplyr` 1.1.0+'s
   `relationship` argument.
 - Use `dplyr::rows_*` for upsert-style operations.
@@ -336,7 +336,7 @@ and `pivot_wider`. For joins, the typical pattern:
   column names.
 - Stack with `bind_rows` rather than join (when sources
   are alternative measurements of the same kind).
-- Pivot wide for the modelling step.
+- Pivot wide for the modeling step.
 
 For two CRF files from sites A and B with different
 column conventions:

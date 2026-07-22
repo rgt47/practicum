@@ -85,7 +85,7 @@ system. What it returns today is not what it returned last month,
 because rows have been added, corrected, and occasionally
 deleted. The reproducibility problem is therefore different in
 kind: the code is deterministic but the data source is not, and
-the only defence is to freeze what you received.
+the only defense is to freeze what you received.
 
 A **scrape** is what you resort to when the data exist but no
 interface does. It is the most fragile of the three, because the
@@ -96,7 +96,7 @@ whether you are entitled to the data at all.
 The three converge on a single discipline, which is the
 raw-data rule of @sec-wrangling stated one step earlier in the
 pipeline: whatever you acquire, write it down, date it, and never
-acquire it again in the same breath as analysing it.
+acquire it again in the same breath as analyzing it.
 
 ## The statistician's contribution {#sec-acquisition-human}
 
@@ -255,7 +255,7 @@ from Zürich arrives as `Z\xfcrich`, or may carry a byte-order
 mark that turns the first column's name into `ï»¿patient_id`, so
 that `select(patient_id)` fails on a column you can see with your
 own eyes. Declare the encoding (`locale = locale(encoding =
-"latin1")`) rather than repairing the strings afterwards.
+"latin1")`) rather than repairing the strings afterward.
 
 **Excel serial dates.** A date column arriving as five-digit
 numbers is Excel's internal representation, and parsing it as a
@@ -391,7 +391,7 @@ records
 Note what arrived. Every column is character, including the blood
 pressure, because the interface does not know or care about your
 types. The third record has no `sbp` field at all, and `fromJSON`
-has filled it with `NA`, which is the behaviour you want but
+has filled it with `NA`, which is the behavior you want but
 should verify rather than assume. The empty string in the second
 record is *not* `NA` yet; it is a zero-length string that will
 become `0` if you coerce it carelessly.
@@ -486,7 +486,7 @@ attendees of a support group is public in the sense that anyone
 can read it, and aggregating it into a dataset is a different act
 with different consequences. That the data are technically
 accessible does not make their aggregation ethical, and the fact
-that a website has published something is not a licence for you
+that a website has published something is not a license for you
 to redistribute it.
 
 When the answer to all of this is yes, the mechanics are these.
@@ -501,8 +501,8 @@ library(rvest)
 
 page <- minimal_html('
   <html><body>
-    <h1>Site enrolment</h1>
-    <table class="enrolment">
+    <h1>Site enrollment</h1>
+    <table class="enrollment">
       <tr><th>Site</th><th>Enrolled</th><th>Target</th></tr>
       <tr><td>Durham</td><td>142</td><td>150</td></tr>
       <tr><td>Chapel Hill</td><td>118</td><td>150</td></tr>
@@ -511,17 +511,17 @@ page <- minimal_html('
   </body></html>
 ')
 
-enrolment <- page |>
-  html_element("table.enrolment") |>
+enrollment <- page |>
+  html_element("table.enrollment") |>
   html_table() |>
   janitor::clean_names()
 
-enrolment
+enrollment
 ```
 
 `html_element()` takes the first match for a CSS selector and
 `html_elements()` takes all of them; `html_table()` turns an HTML
-table into a data frame. Selecting by a class (`table.enrolment`)
+table into a data frame. Selecting by a class (`table.enrollment`)
 rather than by position (`table` and hope) is what makes the
 scraper survive the addition of a second table to the page. It
 will not survive a redesign, and nothing will, which is why the
@@ -576,7 +576,7 @@ holds the acquisition script, the provenance note, and a
 synthetic file of the same shape so that a reviewer without
 access can still run the pipeline. This is exactly the
 arrangement @sec-adni describes for ADNI, and the reason it
-generalises is that the constraint is not about ADNI: it is about
+generalizes is that the constraint is not about ADNI: it is about
 any dataset you are not free to redistribute.
 
 ## Collaborating with an LLM on acquisition
@@ -636,7 +636,7 @@ Three habits define defensible acquisition:
    it. Better a loud parse failure than a silent coercion.
 2. **Freeze what you receive.** Acquire deliberately, to a dated
    raw file with a provenance note beside it. Never acquire and
-   analyse in the same breath, and never over the network at
+   analyze in the same breath, and never over the network at
    render time.
 3. **Keep credentials out of the repository, and ask whether you
    should scrape before asking how.** The token belongs in
@@ -701,7 +701,7 @@ Three habits define defensible acquisition:
    zeros survives depends on *which reader you call*. Modern
    `readr` guesses character and keeps `'007'`; base R's
    `read.csv()` and most spreadsheet exports coerce it to the
-   integer 7. Relying on your reader's good behaviour is
+   integer 7. Relying on your reader's good behavior is
    therefore relying on a fact about your tooling rather than
    about your data, and it will break the day a collaborator uses
    a different function.

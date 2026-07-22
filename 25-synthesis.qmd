@@ -36,7 +36,7 @@ This book took you through six arcs:
 1. **Reproducibility as a professional norm.** Why
    it matters (@sec-why), what federal funders
    require (@sec-federal), and what it means to
-   practise it in a research team
+   practice it in a research team
    (@sec-team-science).
 
 2. **A reproducible workstation.** Setting up R,
@@ -69,7 +69,7 @@ This book took you through six arcs:
 6. **Case studies.** Palmer Penguins
    (@sec-penguins) for an end-to-end small
    analysis, and ADNI MCI prediction
-   (@sec-adni) for a longitudinal modelling
+   (@sec-adni) for a longitudinal modeling
    exercise.
 
 The arcs are progressive: each builds on the
@@ -98,7 +98,7 @@ pointed at:
   confirmatory from exploratory work.
 - **Every non-trivial function has at least one
   unit test.** Tests catch regressions on
-  refactor and document expected behaviour.
+  refactor and document expected behavior.
 - **Every figure in a paper is regenerable by
   `make render` (or its equivalent).** Manual
   steps in figure generation are
@@ -172,7 +172,7 @@ material:
   Bayesian computation. Pick one based on
   preferred level.
 
-**Year two (specialisation).**
+**Year two (specialization).**
 
 - *Modeling Survival Data*
   [@therneau2000survival] for survival
@@ -194,11 +194,11 @@ material:
 
 The plan: in year one, consolidate the
 practicum's coverage into deeper proficiency. In
-year two, specialise toward your applied area.
+year two, specialize toward your applied area.
 
 ## A note on judgement
 
-The Practicum has emphasised tools and habits.
+The Practicum has emphasized tools and habits.
 What it could not teach directly is judgement,
 the small decisions about which test, which
 covariate, which transformation, which audience.
@@ -209,7 +209,7 @@ patterns of when each tool fits.
 The 'statistician's contribution' callouts in each
 chapter were an attempt to articulate the
 judgements explicitly. Re-read them after you have
-practised the tools for six months; they will
+practiced the tools for six months; they will
 read differently.
 
 ## Sign-off
@@ -230,7 +230,7 @@ The hardest part is the first three projects,
 where the new infrastructure feels like overhead.
 The reward is permanence: a research record that
 ages well, an analysis you can re-run a decade
-later, a paper a sceptical reviewer cannot break.
+later, a paper a skeptical reviewer cannot break.
 
 Good luck with the next analysis.
 

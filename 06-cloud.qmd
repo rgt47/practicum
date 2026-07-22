@@ -50,7 +50,7 @@ By the end of this chapter you should be able to:
 - Estimate the cost of a cloud job before launching it.
 - Transfer data to and from an instance with `scp` or
   `rsync`, and to S3 for archival storage.
-- Recognise when a university HPC cluster is a better fit
+- Recognize when a university HPC cluster is a better fit
   than a public cloud.
 
 ## Orientation
@@ -110,7 +110,7 @@ Three patterns where cloud helps:
 **Compute-bound, parallelisable.** A simulation with
 10,000 independent replicates. Run on 16 cores instead
 of 8: roughly 2× faster. Cost: linear in cores; usually
-favourable for a one-off job.
+favorable for a one-off job.
 
 **Memory-bound.** A genome-scale analysis that needs
 128 GB RAM. Your laptop has 16. Cloud instances scale

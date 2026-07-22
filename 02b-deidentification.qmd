@@ -56,10 +56,10 @@ By the end of this chapter you should be able to:
   Harbor method and apply them to a dataset.
 - Distinguish Safe Harbor from Expert Determination and
   choose appropriately.
-- Recognise quasi-identifiers and the re-identification
+- Recognize quasi-identifiers and the re-identification
   risk of their combination.
 - Apply basic disclosure-control transformations in R:
-  suppression, generalisation, date shifting, and hashing.
+  suppression, generalization, date shifting, and hashing.
 - State the ethical obligations that survive
   de-identification, including the terms of a data-use
   agreement.
@@ -100,9 +100,9 @@ distribution, not to tick off fields one at a time.
 **The safest data are the data you never collect.** If the
 analysis does not need date of birth, collect age; if it
 does not need full ZIP, collect the three-digit prefix.
-Minimising identifiers at collection is cheaper and safer
-than de-identifying them afterwards, and it is the
-disclosure-control analogue of the raw-data discipline in
+Minimizing identifiers at collection is cheaper and safer
+than de-identifying them afterward, and it is the
+disclosure-control analog of the raw-data discipline in
 chapter 13.
 
 **De-identification is irreversible by design, and that is
@@ -116,7 +116,7 @@ regulated thing.
 **Promises must match reality.** Do not tell a participant
 their data are anonymous if you retain the means to
 re-identify them. The consent form and the data-use
-agreement are commitments; honour them in the data you
+agreement are commitments; honor them in the data you
 build.
 
 These judgements are what distinguish genuine disclosure
@@ -124,7 +124,7 @@ control from a false sense of safety.
 
 ## The two HIPAA methods
 
-The Privacy Rule recognises exactly two ways to
+The Privacy Rule recognizes exactly two ways to
 de-identify protected health information, and the HHS
 guidance [@hhs2012deident] is the authoritative
 statement of both.
@@ -165,9 +165,9 @@ household members:
 8. Medical record numbers.
 9. Health-plan beneficiary numbers.
 10. Account numbers.
-11. Certificate or licence numbers.
+11. Certificate or license numbers.
 12. Vehicle identifiers and serial numbers, including
-    licence plates.
+    license plates.
 13. Device identifiers and serial numbers.
 14. Web URLs.
 15. IP addresses.
@@ -214,7 +214,7 @@ the medical record number with a salted hash so that
 within-dataset linkage survives without the number itself,
 shift each patient's dates by a fixed per-patient random
 offset (preserving intervals while destroying the actual
-calendar dates), generalise ages above 89, and truncate the
+calendar dates), generalize ages above 89, and truncate the
 ZIP to its first three digits, suppressing prefixes from
 sparsely populated regions.
 
@@ -297,7 +297,7 @@ simplest is *k-anonymity*: a dataset is k-anonymous on a
 set of quasi-identifiers if every combination of their
 values that appears is shared by at least $k$ records, so
 that no individual is distinguishable from at least $k-1$
-others. Achieving a target $k$ is a matter of generalising
+others. Achieving a target $k$ is a matter of generalizing
 (coarsening age into bands, ZIP into prefixes) and
 suppressing (removing the rare rows) until the condition
 holds. Refinements such as l-diversity and t-closeness
@@ -346,7 +346,7 @@ reveal.
 
 **Prompt 2: writing the transformation.** Describe the
 identifiers present and ask for R code to suppress,
-generalise, hash, and date-shift them.
+generalize, hash, and date-shift them.
 
 *What to watch for.* Whether the hash is salted and whether
 the salt is kept out of the repository; whether date
@@ -361,7 +361,7 @@ still works through the hash.
 
 Three habits define defensible de-identification:
 
-1. **Minimise at collection.** Collect age, not date of
+1. **Minimize at collection.** Collect age, not date of
    birth; the three-digit ZIP, not the full one. The safest
    identifier is the one you never held.
 2. **Reason about combinations.** Re-identification risk is
@@ -369,7 +369,7 @@ Three habits define defensible de-identification:
    not of any single field.
 3. **Match the claim to the method.** 'De-identified under
    Safe Harbor' is a defensible claim; 'anonymous' usually
-   is not. Honour the data-use agreement regardless.
+   is not. Honor the data-use agreement regardless.
 
 ## Exercises
 
@@ -384,7 +384,7 @@ Three habits define defensible de-identification:
 3. Construct a synthetic dataset of 200 patients with age,
    sex, and three-digit ZIP. Compute the largest $k$ for
    which the dataset is k-anonymous on those three
-   quasi-identifiers. Generalise age into decade bands and
+   quasi-identifiers. Generalize age into decade bands and
    recompute; by how much does $k$ improve?
 4. Implement date shifting that preserves within-patient
    intervals but uses a different random offset per patient.

@@ -259,7 +259,7 @@ formats:
 
 ````qmd
 See @fig-demographics for the cohort breakdown
-(@tbl-baseline summarises baseline characteristics).
+(@tbl-baseline summarizes baseline characteristics).
 
 ```r
 #| label: fig-demographics
@@ -301,7 +301,7 @@ See @sec-methods for details.
 ```
 
 The numeric value of the cross-reference is set by the
-order of the labelled object in the document; this is
+order of the labeled object in the document; this is
 why renumbering happens automatically when you
 reorder.
 
@@ -355,7 +355,7 @@ vectors, data frames, lists).
 For a typical biostatistical workflow, this is
 overkill: stick to R unless the project genuinely
 needs another language (deep learning in Python, a
-specialised Julia package). Multi-language is real
+specialized Julia package). Multi-language is real
 infrastructure cost.
 
 ## Common rendering failures
@@ -369,7 +369,7 @@ or pandoc. Update Quarto.
 
 **'undefined cross-reference'**: a `@fig-foo` reference
 to a label `fig-foo` that does not exist (typo, or
-the chunk producing the figure was not labelled).
+the chunk producing the figure was not labeled).
 Render with `--verbose` to find which reference is
 broken.
 
@@ -430,7 +430,7 @@ execute:
 
 # Methods
 
-We analysed &#96;{r} nrow(d)&#96; complete cases.
+We analyzed &#96;{r} nrow(d)&#96; complete cases.
 
 ```r
 #| label: fig-scatter
@@ -497,7 +497,7 @@ Three habits define defensible Rmd workflow:
    than the conversion cost.
 2. **Use Quarto cross-references universally.** They
    work across HTML, PDF, and Word; LaTeX-specific
-   labelling does not.
+   labeling does not.
 3. **Cache expensive computations.** `freeze: auto`
    on the Quarto side, `cache = TRUE` on the knitr
    side. Don't re-run a 5-minute chunk on every typo

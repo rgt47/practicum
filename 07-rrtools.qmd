@@ -65,7 +65,7 @@ Docker integration for the environment.
 The compendium is the unit of reproducibility. A paper
 without its compendium is a description of an analysis;
 a compendium without a paper is just code. Together,
-they constitute a study artefact that survives the loss
+they constitute a study artifact that survives the loss
 of any individual file or person.
 
 ## The statistician's contribution {#sec-rrtools-human}
@@ -185,7 +185,7 @@ readmissions/
 **`R/`** holds reusable functions. Anything you would
 extract from the analysis to call from multiple
 scripts: data cleaning helpers, plotting wrappers,
-modelling utilities. Document with roxygen.
+modeling utilities. Document with roxygen.
 
 **`analysis/data/raw_data/`** is for unmodified raw
 data. Often gitignored; included only if small and
@@ -233,7 +233,7 @@ bibliography: references.bib
 
 # Methods
 
-We analysed &#96;{r} nrow(d)&#96; patients from the institutional
+We analyzed &#96;{r} nrow(d)&#96; patients from the institutional
 EHR cohort. The primary outcome was 30-day all-cause
 readmission. We fit a multivariable logistic regression
 adjusting for age, sex, baseline ejection fraction, and
@@ -307,7 +307,7 @@ structure instead of inventing a new layout?
 **Answer.**
 
 Three practical reasons. First, the R package structure
-is the only widely-recognised layout in the R
+is the only widely-recognized layout in the R
 ecosystem; using it gives the compendium navigability
 for free. Second, the package gives dependency
 management: `DESCRIPTION:Imports` declares what is
@@ -356,7 +356,7 @@ git2r::tag(name = "v0.1-draft",
 ```
 
 The compendium is now: a self-contained directory, with
-package-style code organisation, a paper that uses the
+package-style code organization, a paper that uses the
 code, a Dockerfile that pins the environment, version-
 controlled, and tagged at a meaningful milestone. Total
 setup: about thirty minutes.
@@ -439,14 +439,14 @@ output for correctness.
 
 Three habits define defensible compendium use:
 
-1. **Use a recognised layout.** `rrtools` or a Quarto
+1. **Use a recognized layout.** `rrtools` or a Quarto
    book; not a bespoke directory.
 2. **Make 'rebuild' a single command.** Whether
    `docker run ...` or `make all`, a reader should be
    able to regenerate the paper without reading the
    code.
 3. **Tag the milestones.** Compendium plus git tag plus
-   Zenodo DOI gives a citable, durable artefact.
+   Zenodo DOI gives a citable, durable artifact.
 
 ## Exercises
 
@@ -480,7 +480,7 @@ Three habits define defensible compendium use:
 
 1. A research compendium is a directory tree that
    bundles a study's code, data, and narrative in one
-   place, with a standardised layout. The reader can
+   place, with a standardized layout. The reader can
    rerun the analyses and regenerate the paper with a
    single command. Marwick et al. (2018) argue the
    compendium is the appropriate unit of reproducible

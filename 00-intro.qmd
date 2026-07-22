@@ -20,7 +20,7 @@ study. This book is a practicum in the fullest
 sense: it teaches skills that cannot be acquired by
 reading, only by doing. Every chapter closes with
 exercises that require the reader to sit at a
-keyboard and produce an artefact, whether that is a
+keyboard and produce an artifact, whether that is a
 Git commit, a Docker container, or a finished
 analysis report.
 
@@ -73,20 +73,20 @@ biostatistical data analysis:
   bridging (@sec-sas), with Python shown alongside R
   where the comparison instructs.
 - **Case studies.** End-to-end small analysis
-  (@sec-penguins) and longitudinal modelling
+  (@sec-penguins) and longitudinal modeling
   (@sec-adni).
 
 ## What this book does not cover
 
 - The statistical theory underlying specific
-  models (linear, generalised linear, mixed,
+  models (linear, generalized linear, mixed,
   survival). For that, see the companion book
   *Statistical Computing in the Age of AI* or a
   standard reference.
 - Experimental design, sample-size calculation,
   or causal inference beyond what is needed to
   execute an analysis plan.
-- Specialised computing platforms (Bioconductor,
+- Specialized computing platforms (Bioconductor,
   Stan, deep-learning frameworks) beyond brief
   mention.
 - The algorithms of computational statistics:
@@ -113,14 +113,14 @@ early-career biostatistician who has working R
 fluency and is now learning to operate
 professionally: that is, working on teams,
 satisfying regulatory requirements, and producing
-reproducible artefacts that survive peer review.
+reproducible artifacts that survive peer review.
 
 We assume the following of the reader:
 
 - R proficiency at the level of *R for Data
   Science* (Wickham and Grolemund).
 - Familiarity with statistical methods at the
-  master's level (linear and generalised linear
+  master's level (linear and generalized linear
   models, basic survival, regression diagnostics).
 - Comfort with the command line and basic file-
   system operations.
@@ -160,7 +160,7 @@ following:
 The book is, we grant, somewhat dense. Reading two
 chapters per week is a sustainable pace, and
 covering it in a quarter or trimester is realistic.
-We would emphasise that the exercises are the work;
+We would emphasize that the exercises are the work;
 the chapters are merely the scaffolding.
 
 ## The chapter pattern

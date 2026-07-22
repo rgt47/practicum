@@ -38,7 +38,7 @@ chapter in @sec-quiz-answers-08.
 
 By the end of this chapter you should be able to:
 
-- Initialise `renv` in a new or existing project.
+- Initialize `renv` in a new or existing project.
 - Snapshot and restore a project's package state.
 - Diagnose lockfile issues with `renv::status()` and the
   in-house `zzrenvcheck` tool.
@@ -134,7 +134,7 @@ project has already installed is fast.
 
 ## Snapshotting and restoring
 
-The two verbs at the centre of `renv` are `snapshot` and
+The two verbs at the center of `renv` are `snapshot` and
 `restore`, and they move in opposite directions across the
 same boundary, as @fig-renv-cycle shows. `snapshot()`
 reads the state of your project library and writes it down
@@ -469,7 +469,7 @@ Three habits define defensible renv use:
 
 ## Exercises
 
-1. Initialise `renv` in an existing project of yours.
+1. Initialize `renv` in an existing project of yours.
    Commit the lockfile. Clone the project on a clean
    machine (or Docker container) and run
    `renv::restore()`. Verify that the scripts still

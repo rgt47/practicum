@@ -18,13 +18,13 @@ in any language.*
 ## Why this chapter exists
 
 A survey of the published curricula of peer US
-biostatistics MS programmes (@sec-peer-survey, which
+biostatistics MS programs (@sec-peer-survey, which
 lists every source) found that most require or
 strongly recommend SAS in their core or
 analysis-track coursework. Industry pharma, CRO,
 and regulatory-filing positions in the United
 States frequently filter screening on SAS
-experience. R-only graduates from this programme
+experience. R-only graduates from this program
 have reported being excluded at the screening
 stage.
 
@@ -57,7 +57,7 @@ By the end of this chapter you should be able to:
 - Register for a free SAS OnDemand for Academics
   account and log in to SAS Studio.
 - Write a short SAS program that reads a CSV,
-  summarises it, fits a simple model, and writes
+  summarizes it, fits a simple model, and writes
   output.
 - Map the common R statistical procedures (`lm`,
   `glm`, `lmer`, `survfit`, `coxph`) onto their
@@ -66,7 +66,7 @@ By the end of this chapter you should be able to:
   that broke the job.
 - Move data between SAS and R using transport
   files (`.xpt`) and the R `haven` package.
-- Recognise the points where SAS and R defaults
+- Recognize the points where SAS and R defaults
   differ (categorical reference coding, mixed-
   models covariance structure).
 
@@ -80,7 +80,7 @@ ecosystem. SAS dominates FDA submissions, CDISC
 pipelines, clinical trial statistical
 programming, and a substantial fraction of
 pharmaceutical sponsor and contract research
-organisation (CRO) workflows.
+organization (CRO) workflows.
 
 The question is not *which is better* but *which
 you will encounter on your first job*. For an MS
@@ -136,7 +136,7 @@ environment for educators, students, and
 independent learners. It runs entirely in a
 browser, requires no install, and is sufficient
 for everything in this chapter and for most
-coursework in peer MS programmes.
+coursework in peer MS programs.
 
 ### Step-by-step registration
 
@@ -148,7 +148,7 @@ coursework in peer MS programmes.
    skip to step 7.
 3. Fill in the registration form: email address,
    first name, last name, country, and
-   organisation (enter your university, e.g.,
+   organization (enter your university, e.g.,
    `UC San Diego`).
 4. Create a SAS profile password. Accept the SAS
    terms and conditions.
@@ -318,7 +318,7 @@ data work.demo2;
 run;
 ```
 
-The R analogue is a factor with explicit labels.
+The R analog is a factor with explicit labels.
 
 **Common procedures to know.** `PROC SORT`,
 `PROC PRINT`, `PROC CONTENTS`, `PROC FREQ`,
@@ -592,7 +592,7 @@ data |>
 ```
 
 ```sas
-* SAS: read, analyse, export results;
+* SAS: read, analyze, export results;
 libname x xport '/path/clean.xpt';
 proc copy in = x out = work;
 run;
@@ -689,7 +689,7 @@ model in a procedure that accepts reference coding
 (`PROC GENMOD` or `PROC GLMSELECT` with
 `class species (param = ref ref = 'Adelie')`). The
 inference is identical either way; only the
-labelling of the reference level differs.
+labeling of the reference level differs.
 
 ## Collaborating with an LLM on SAS
 
@@ -804,7 +804,7 @@ work:
    PROC step does not create new observations
    (with rare exceptions). The typical workflow
    alternates: DATA step to shape the data,
-   PROC step to analyse it.
+   PROC step to analyze it.
 2. In SAS, `PROC MEANS` or `PROC SUMMARY`
    produces analogous output (N, mean, SD, min,
    max, quantiles). In R, `summary(df)` gives a

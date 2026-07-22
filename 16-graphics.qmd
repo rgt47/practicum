@@ -51,7 +51,7 @@ By the end of this chapter you should be able to:
   journal and Word submissions.
 - Build a house theme via a `theme_*()` function and
   reuse it across all figures in a project.
-- Recognise when to reach for `zzlongplot` and
+- Recognize when to reach for `zzlongplot` and
   `zztable1` rather than rolling your own.
 
 ## Orientation
@@ -100,10 +100,10 @@ noise. Choose encoding for legibility, not
 faithfulness to the raw data.
 
 **Consistency across the project.** All figures in a
-paper should share fonts, colour palette, and theme
+paper should share fonts, color palette, and theme
 defaults. A house theme function applied via
 `theme_set()` makes consistency the default. Without
-it, ggplot2 produces nine variants of grey.
+it, ggplot2 produces nine variants of gray.
 
 **Display uncertainty.** A point estimate without a
 CI invites over-trust. A regression line without a
@@ -211,7 +211,7 @@ differ in everything.
 library(patchwork)
 
 p1 <- ggplot(penguins_clean,
-             aes(flipper_length_mm, body_mass_g, colour = species)) +
+             aes(flipper_length_mm, body_mass_g, color = species)) +
         geom_point() +
         labs(title = "A. Body mass vs flipper length")
 
@@ -222,7 +222,7 @@ p2 <- ggplot(penguins_clean,
         guides(fill = "none")     # hide redundant fill legend
 
 p3 <- ggplot(penguins_clean,
-             aes(bill_length_mm, bill_depth_mm, colour = species)) +
+             aes(bill_length_mm, bill_depth_mm, color = species)) +
         geom_point() +
         labs(title = "C. Bill morphology")
 
@@ -290,12 +290,12 @@ theme_practicum <- function(base_size = 11) {
   theme_minimal(base_size = base_size) +
     theme(
       plot.title         = element_text(face = "bold"),
-      plot.subtitle      = element_text(colour = "grey40"),
+      plot.subtitle      = element_text(color = "grey40"),
       axis.title         = element_text(face = "bold"),
-      axis.text          = element_text(colour = "grey20"),
+      axis.text          = element_text(color = "grey20"),
       panel.grid.minor   = element_blank(),
       legend.position    = "bottom",
-      strip.background   = element_rect(fill = "grey95", colour = NA),
+      strip.background   = element_rect(fill = "grey95", color = NA),
       strip.text         = element_text(face = "bold")
     )
 }
@@ -322,14 +322,14 @@ practicum_palette <- c(
   "Gentoo"    = "#2e8b57"
 )
 
-scale_colour_practicum <- function(...)
-  scale_colour_manual(values = practicum_palette, ...)
+scale_color_practicum <- function(...)
+  scale_color_manual(values = practicum_palette, ...)
 
 # in plots
-ggplot(...) + ... + scale_colour_practicum()
+ggplot(...) + ... + scale_color_practicum()
 ```
 
-For colour-blind safety, verify the palette with the
+For color-blind safety, verify the palette with the
 Coblis simulator
 (`colorbrewer2.org/learnmore/colorblind-simulator.html`)
 or `colorBlindness::cvdPlot()`.
@@ -422,21 +422,21 @@ diag <- augment(fit)
 p_resid <- ggplot(diag, aes(.fitted, .resid)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method = "loess", se = FALSE,
-              colour = "red", linewidth = 0.6) +
+              color = "red", linewidth = 0.6) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "A. Residuals vs. fitted",
        x = "Fitted (g)", y = "Residual")
 
 p_qq <- ggplot(diag, aes(sample = .std.resid)) +
   geom_qq(alpha = 0.5) +
-  geom_qq_line(colour = "red") +
+  geom_qq_line(color = "red") +
   labs(title = "B. Normal Q-Q",
-       x = "Theoretical", y = "Standardised residual")
+       x = "Theoretical", y = "Standardized residual")
 
 p_cook <- ggplot(diag, aes(seq_len(nrow(diag)), .cooksd)) +
   geom_col(width = 0.6) +
   geom_hline(yintercept = 4 / nrow(diag),
-             linetype = "dashed", colour = "red") +
+             linetype = "dashed", color = "red") +
   labs(title = "C. Cook's distance",
        x = "Observation", y = "Cook's distance")
 
@@ -494,23 +494,23 @@ sim <- expand_grid(id = seq_len(n_id), month = months) |>
 
 arm_means <- sim |>
   group_by(arm, month) |>
-  summarise(mean = mean(adas), se = sd(adas) / sqrt(n()),
+  summarize(mean = mean(adas), se = sd(adas) / sqrt(n()),
             .groups = "drop")
 
 pal <- c(Placebo = "#9d2235", Active = "#1f4e79")
 
-ggplot(sim, aes(month, adas, colour = arm)) +
+ggplot(sim, aes(month, adas, color = arm)) +
   geom_line(aes(group = id), alpha = 0.15) +
   geom_ribbon(data = arm_means,
               aes(month, ymin = mean - 1.96 * se,
                   ymax = mean + 1.96 * se, fill = arm),
-              alpha = 0.2, colour = NA, inherit.aes = FALSE) +
-  geom_line(data = arm_means, aes(month, mean, colour = arm),
+              alpha = 0.2, color = NA, inherit.aes = FALSE) +
+  geom_line(data = arm_means, aes(month, mean, color = arm),
             linewidth = 1.1, inherit.aes = FALSE) +
-  scale_colour_manual(values = pal) +
+  scale_color_manual(values = pal) +
   scale_fill_manual(values = pal) +
   labs(x = "Month", y = "ADAS-Cog (higher is worse)",
-       colour = "Arm", fill = "Arm",
+       color = "Arm", fill = "Arm",
        title = "Simulated cognitive decline by treatment arm")
 ```
 
@@ -545,13 +545,13 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 df = r.penguins_clean
-colours = {"Adelie": "#1f4e79", "Chinstrap": "#9d2235",
+colors = {"Adelie": "#1f4e79", "Chinstrap": "#9d2235",
            "Gentoo": "#2e8b57"}
 
 fig, ax = plt.subplots(figsize=(6, 4))
 for species, sub in df.groupby("species", observed=True):
     ax.scatter(sub["flipper_length_mm"], sub["body_mass_g"],
-               label=species, color=colours[species], alpha=0.7, s=18)
+               label=species, color=colors[species], alpha=0.7, s=18)
 ax.set_xlabel("Flipper length (mm)")
 ax.set_ylabel("Body mass (g)")
 ax.legend(title="Species")
@@ -566,7 +566,7 @@ almost verbatim (`from plotnine import ggplot, aes,
 geom_point`). The choice between them is a matter of
 taste and of what the rest of the analysis is written
 in. The judgement the figure requires, one message per
-plot, uncertainty shown, colour chosen for legibility,
+plot, uncertainty shown, color chosen for legibility,
 does not change with the language.
 
 ## Collaborating with an LLM on graphics
@@ -576,7 +576,7 @@ encode too much.
 
 **Prompt 1: drafting a plot.** Describe the data and
 the question, ask: 'write a ggplot that addresses
-the question. Use a colour-blind-safe palette and
+the question. Use a color-blind-safe palette and
 clear axis labels with units.'
 
 *What to watch for.* The default LLM plot tends to be
@@ -598,12 +598,12 @@ rather than `tag_levels`. The LLM may use either; both
 work.
 
 *Verification.* Render the combined plot. Are
-legends shared? Are panels labelled in the right
+legends shared? Are panels labeled in the right
 order?
 
 **Prompt 3: theme function.** Ask: 'write a
 `theme_practicum()` function with serif body text,
-sans-serif axis labels, and a colour-blind-safe
+sans-serif axis labels, and a color-blind-safe
 default palette.'
 
 *What to watch for.* The output is a starting point.
@@ -629,7 +629,7 @@ Three habits define defensible plotting:
 
 1. Using the `palmerpenguins` data, build a
    three-panel patchwork: (a) scatter of body mass
-   vs flipper length coloured by species; (b)
+   vs flipper length colored by species; (b)
    residuals from a linear fit of (a); (c) QQ plot
    of residuals. Share the species legend across
    all three.
@@ -645,7 +645,7 @@ Three habits define defensible plotting:
    biomedical paper using ggplot2. Compare your
    replication to the original; identify what is
    the same and what is different.
-5. Verify your colour palette with the Coblis
+5. Verify your color palette with the Coblis
    simulator. Adjust if any pair of categories
    become indistinguishable under deuteranopia.
 

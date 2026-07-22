@@ -33,7 +33,7 @@ chapter in @sec-quiz-answers-13.
    typical 'wide' clinical data layout?
 2. Write the `dplyr` pipeline that keeps only rows
    where `age >= 18`, selects `age`, `sex`, and
-   `outcome`, and summarises outcome by sex.
+   `outcome`, and summarizes outcome by sex.
 3. What does `tidyr::pivot_longer()` do, and when
    should you reach for it rather than `pivot_wider()`?
 
@@ -43,7 +43,7 @@ By the end of this chapter you should be able to:
 
 - Identify tidy and non-tidy data layouts.
 - Use the core `dplyr` verbs (`filter`, `select`,
-  `mutate`, `arrange`, `summarise`, `group_by`)
+  `mutate`, `arrange`, `summarize`, `group_by`)
   idiomatically with the native pipe `|>`.
 - Reshape data with `pivot_longer()` and
   `pivot_wider()`, including using `names_sep` and
@@ -51,7 +51,7 @@ By the end of this chapter you should be able to:
 - Pass dynamic column names to `dplyr` verbs using
   `{{ }}` and `.data[[ ]]`.
 - Clean column names with `janitor::clean_names()`.
-- Recognise common wrangling antipatterns and replace
+- Recognize common wrangling antipatterns and replace
   them with tidy equivalents.
 
 ## Orientation
@@ -74,8 +74,8 @@ The verbs are mechanical. The judgements:
 **Tidy first, model later.** Untidy data leads to
 joins that are subtly wrong, summaries that mean the
 wrong thing, and models that conflate observations.
-Reshaping into tidy form before modelling is not
-optional; it is the precondition for the modelling
+Reshaping into tidy form before modeling is not
+optional; it is the precondition for the modeling
 to be correct.
 
 **Keep raw data raw.** Never overwrite the input file
@@ -90,7 +90,7 @@ values' is not a documented rule. 'Removed BP > 250 or
 BP < 50 (n = 12 rows, 0.6% of data)' is. The cleaning
 script's comments are the audit trail.
 
-**Recognise the cost of pivoting.** Pivoting is
+**Recognize the cost of pivoting.** Pivoting is
 expensive on large data: a wide dataset of $10^6$ rows
 with 100 timepoints becomes a long dataset of $10^8$
 rows. Sometimes the analysis demands long; sometimes
@@ -141,7 +141,7 @@ patient_id  visit  measure  value
 ```
 
 The tidy form makes group operations natural: 'mean BP
-by visit' is `group_by(visit) |> summarise(mean(bp))`,
+by visit' is `group_by(visit) |> summarize(mean(bp))`,
 not a custom column-traversal.
 
 ## Core dplyr verbs
@@ -165,10 +165,10 @@ penguins |> mutate(mass_kg = body_mass_g / 1000)
 # sort
 penguins |> arrange(desc(body_mass_g))
 
-# group and summarise
+# group and summarize
 penguins |>
   group_by(species, island) |>
-  summarise(mean_mass = mean(body_mass_g, na.rm = TRUE),
+  summarize(mean_mass = mean(body_mass_g, na.rm = TRUE),
             n = n(),
             .groups = "drop")
 ```
@@ -177,7 +177,7 @@ The pipe `|>` (R 4.1+) chains operations
 left-to-right. Each verb takes a tibble and returns a
 tibble. The pipeline reads as a sequence of
 transformations: 'filter, then select, then group, then
-summarise'.
+summarize'.
 
 The `magrittr` `%>%` is the older alternative, still
 widely used. Functionally equivalent for most code;
@@ -197,7 +197,7 @@ makes the translation worth having in front of you.
 | Select columns | `select(species, body_mass_g)` | `df[["species", "body_mass_g"]]` |
 | New column | `mutate(kg = body_mass_g / 1000)` | `df.assign(kg = df["body_mass_g"] / 1000)` |
 | Sort | `arrange(desc(body_mass_g))` | `df.sort_values("body_mass_g", ascending=False)` |
-| Group and summarise | `group_by(species) \|> summarise(m = mean(body_mass_g))` | `df.groupby("species")["body_mass_g"].mean()` |
+| Group and summarize | `group_by(species) \|> summarize(m = mean(body_mass_g))` | `df.groupby("species")["body_mass_g"].mean()` |
 
 Quarto runs the Python through `reticulate`, and the
 `r` object carries the R data frame across without an
@@ -217,7 +217,7 @@ import pandas as pd
 
 df = r.penguins_df
 
-# group and summarise: mean body mass and count per species
+# group and summarize: mean body mass and count per species
 df.groupby("species", observed=True)["body_mass_g"].agg(["mean", "size"])
 ```
 
@@ -263,7 +263,7 @@ penguins |> mutate(
 **Across multiple columns**:
 
 ```r
-penguins |> summarise(
+penguins |> summarize(
   across(where(is.numeric), \(x) mean(x, na.rm = TRUE))
 )
 ```
@@ -357,12 +357,12 @@ mapped to the x-axis.
 #|   variable."
 #| fig-width: 6.5
 #| fig-height: 4
-ggplot(long, aes(visit, bp, colour = arm)) +
+ggplot(long, aes(visit, bp, color = arm)) +
   geom_line(aes(group = patient_id), alpha = 0.4) +
   stat_summary(aes(group = arm), fun = mean, geom = "line",
                linewidth = 1.3) +
-  scale_colour_manual(values = c(Placebo = "#9d2235", Active = "#1f4e79")) +
-  labs(x = "Visit", y = "Systolic BP (mmHg)", colour = "Arm") +
+  scale_color_manual(values = c(Placebo = "#9d2235", Active = "#1f4e79")) +
+  labs(x = "Visit", y = "Systolic BP (mmHg)", color = "Arm") +
   theme_minimal()
 ```
 
@@ -377,7 +377,7 @@ arm. Should you pivot to long format?
 **Answer.**
 
 Yes. `ggplot2`'s grammar maps variables to aesthetics
-(x = time, y = bp, colour = treatment). With the wide
+(x = time, y = bp, color = treatment). With the wide
 format, 'time' is implicit in the column names and
 cannot be a single x-axis variable. Pivoting to long
 makes time an explicit column:
@@ -407,7 +407,7 @@ operation.
 Clinical CRF exports come with column names like
 `Patient ID`, `Age (years)`, `SBP at baseline (mmHg)`.
 These are unworkable in R: spaces, parentheses, units
-in names. `janitor::clean_names()` standardises:
+in names. `janitor::clean_names()` standardizes:
 
 ```r
 library(janitor)
@@ -428,7 +428,7 @@ names as arguments, two idioms apply.
 
 ```r
 summarise_col <- function(df, col, fn = mean) {
-  df |> summarise(result = fn({{ col }}, na.rm = TRUE))
+  df |> summarize(result = fn({{ col }}, na.rm = TRUE))
 }
 
 summarise_col(penguins, body_mass_g, fn = median)
@@ -438,7 +438,7 @@ summarise_col(penguins, body_mass_g, fn = median)
 
 ```r
 summarise_col_str <- function(df, col_name, fn = mean) {
-  df |> summarise(result = fn(.data[[col_name]], na.rm = TRUE))
+  df |> summarize(result = fn(.data[[col_name]], na.rm = TRUE))
 }
 
 summarise_col_str(penguins, "body_mass_g", fn = median)
@@ -650,7 +650,7 @@ Three habits define defensible wrangling:
    variable, and one patient's row contains many
    observations. Tidying makes group operations
    natural and prevents whole categories of bugs.
-2. `df |> filter(age >= 18) |> select(age, sex, outcome) |> group_by(sex) |> summarise(mean_outcome = mean(outcome, na.rm = TRUE))`.
+2. `df |> filter(age >= 18) |> select(age, sex, outcome) |> group_by(sex) |> summarize(mean_outcome = mean(outcome, na.rm = TRUE))`.
    The pipe-chained verbs read as a sequence of
    transformations.
 3. `pivot_longer()` reshapes from wide to long:

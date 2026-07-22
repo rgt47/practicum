@@ -49,15 +49,15 @@ By the end of this chapter you should be able to:
   and variables relate.
 - Derive a minimal `ADSL` and `ADTTE` from synthetic SDTM
   domains using R.
-- Recognise the common ADaM variable names (`USUBJID`,
+- Recognize the common ADaM variable names (`USUBJID`,
   `PARAMCD`, `AVAL`, `CNSR`, and the population flags).
 - Explain the purpose of Define-XML, the annotated CRF (aCRF),
   and the reviewer guides (SDRG, ADRG).
 
 ## Orientation
 
-Alumni of this programme working in pharmaceutical companies
-and contract research organisations (CROs) have reported that
+Alumni of this program working in pharmaceutical companies
+and contract research organizations (CROs) have reported that
 their first weeks on the job involved encountering data
 structures, variable names, and regulatory conventions that the
 statistics curriculum had not prepared them for. This chapter
@@ -72,7 +72,7 @@ trial data in CDISC formats to support new drug applications
 formats a statistician will touch are SDTM (Study Data
 Tabulation Model) and ADaM (Analysis Data Model).
 
-The organising insight for the chapter is this: SDTM is how
+The organizing insight for the chapter is this: SDTM is how
 the data arrives at the statistician's desk; ADaM is what the
 statistician builds, documents, and analyses. Your deliverables
 as an industry biostatistician will, with high probability, be
@@ -121,7 +121,7 @@ CDISC programming from boilerplate-following.
 ## The regulatory pipeline
 
 The flow of clinical trial data from collection to submission
-follows a standardised pipeline:
+follows a standardized pipeline:
 
 1. **Protocol** defines the trial design, endpoints, and
    statistical analysis plan (SAP).
@@ -156,7 +156,7 @@ flowchart TD
   A -.->|"traceable to SDTM"| S
 ```
 
-Two rules organise this pipeline:
+Two rules organize this pipeline:
 
 - **Immutability of source.** Once SDTM is locked, it is not
   edited to accommodate new analyses. A new analytic need
@@ -167,7 +167,7 @@ Two rules organise this pipeline:
 
 ## SDTM: the FDA's view of the raw data
 
-SDTM organises a trial's observations into **domains**, each a
+SDTM organizes a trial's observations into **domains**, each a
 dataset covering one topic area. Core domains you will see
 include:
 
@@ -357,7 +357,7 @@ stopifnot(all(adtte$AVAL >= 0),
 head(adtte)
 ```
 
-### Analyse from ADTTE
+### Analyze from ADTTE
 
 Note the `1L - CNSR` inversion from the CDISC convention to
 `survival::Surv()`.
@@ -414,7 +414,7 @@ are the doctrinal minimum.
 ## The submission package
 
 A complete submission to the FDA is not only SDTM and ADaM
-datasets. It includes several supporting artefacts:
+datasets. It includes several supporting artifacts:
 
 - **Define-XML**: machine-readable metadata describing every
   variable in every dataset, with controlled terminology
@@ -557,7 +557,7 @@ Three habits define defensible CDISC work:
 ## Prerequisites answers {#sec-quiz-answers-19}
 
 1. SDTM (Study Data Tabulation Model) holds the regulatory
-   view of the raw, collected clinical data, organised into
+   view of the raw, collected clinical data, organized into
    domains such as `DM`, `AE`, `LB`, and `EX`. ADaM (Analysis
    Data Model) holds analysis-ready datasets derived from
    SDTM. A biostatistician typically builds ADaM; SDTM is

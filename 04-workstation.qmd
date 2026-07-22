@@ -77,7 +77,7 @@ silently. `rig` (on macOS) and Docker (chapter 9) make
 multiple R versions easy to maintain side by side.
 
 **Keep `.Rprofile` minimal.** Anything you put in
-`.Rprofile` runs at startup and changes the behaviour of
+`.Rprofile` runs at startup and changes the behavior of
 every session. A heavy `.Rprofile` (loading `tidyverse`,
 setting global options, defining helpers) makes your
 sessions different from a colleague's, and breaks any
@@ -187,7 +187,7 @@ languages; you do most of your work over SSH; keyboard
 fluency matters more than visual polish.
 
 **Positron** (Posit's newer IDE, stable releases through
-2026 with some components still labelled experimental).
+2026 with some components still labeled experimental).
 Aimed at being VS Code's R-and-Python competitor; produced
 by the same team that makes RStudio. Worth watching but
 not yet ubiquitous.

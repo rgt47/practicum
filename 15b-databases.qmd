@@ -19,7 +19,7 @@ Clinical data rarely arrive as a tidy CSV. They live in a
 REDCap project, an institutional data warehouse, or an
 electronic health record extract, and the biostatistician
 reaches them through a query rather than a file. The
-survey of peer programmes (@sec-peer-survey) found
+survey of peer programs (@sec-peer-survey) found
 relational databases and SQL taught as a core skill in
 several of the comparison courses, among them Berkeley
 STAT 243 [@berkeley-stat243-2024], UNC BIOS 735
@@ -199,7 +199,7 @@ dbGetQuery(con, "
 The clauses read in the order the database applies them:
 `FROM` and `JOIN` assemble the rows, `WHERE` (absent here)
 filters them, `GROUP BY` partitions them, the aggregate
-functions summarise each partition, and `SELECT` names
+functions summarize each partition, and `SELECT` names
 what comes back. `dbGetQuery()` returns the result as an
 ordinary data frame, which is what you want for a small
 summary. For a large intermediate result you would not use
@@ -222,7 +222,7 @@ demo_tbl   <- tbl(con, "demographics")
 summary_q <- visits_tbl |>
   inner_join(demo_tbl, by = "patient_id") |>
   group_by(arm) |>
-  summarise(n_visits = n(),
+  summarize(n_visits = n(),
             mean_sbp = mean(sbp, na.rm = TRUE))
 
 summary_q
@@ -241,7 +241,7 @@ summary_q |> show_query()
 The generated SQL is the same query we wrote by hand,
 which is the point: `dbplyr` lets you think in `dplyr` and
 still push the work to the database. When you are ready to
-bring the result into R, for plotting, modelling, or
+bring the result into R, for plotting, modeling, or
 anything the database cannot do, call `collect()`.
 
 ```{r}
@@ -272,7 +272,7 @@ dbDisconnect(con)
 ## Check your understanding: where does the work happen?
 
 **Question.** You write
-`tbl(con, "labs") |> filter(test == "HbA1c") |> summarise(m = mean(value))`
+`tbl(con, "labs") |> filter(test == "HbA1c") |> summarize(m = mean(value))`
 against a table of fifty million laboratory results, then
 call `collect()`. How much data crosses from the database
 into R, and what would have happened had you called
@@ -280,7 +280,7 @@ into R, and what would have happened had you called
 
 **Answer.**
 
-With `collect()` at the end, only the single summarised
+With `collect()` at the end, only the single summarized
 value crosses into R: the database does the filtering and
 the averaging, and returns one number. Had you called
 `collect()` first, all fifty million rows would have been
@@ -295,7 +295,7 @@ reduced the data to the size you actually need.
 
 The database is good at set operations on large data:
 filtering, joining, grouping, aggregating. R is good at
-everything else: modelling, plotting, iteration, anything
+everything else: modeling, plotting, iteration, anything
 statistical. The dividing line is `collect()`. Push the
 data-reduction work to the database; pull the reduced
 result into R for the analysis. A useful test: if a step

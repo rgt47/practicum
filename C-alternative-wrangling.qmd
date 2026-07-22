@@ -13,7 +13,7 @@ Python interop), and, more recently, `polars` for R.
 
 The goal here is **reading-level fluency**, not conversion.
 A finishing biostatistics student should be able to open an
-R script written by someone else and recognise whatever
+R script written by someone else and recognize whatever
 paradigm the author chose. Writing idiomatic `data.table`
 is a separate investment; this appendix does not claim to
 make you fluent, only literate.
@@ -49,7 +49,7 @@ ages   <- df$age
 # Add or modify: assign into a column
 df$bmi <- df$weight / (df$height / 100)^2
 
-# Group and summarise: aggregate() or split()+sapply()
+# Group and summarize: aggregate() or split()+sapply()
 aggregate(bmi ~ sex, data = df, FUN = mean)
 ```
 
@@ -72,7 +72,7 @@ The three mental pieces:
 
 - `i` selects rows (like `filter`).
 - `j` computes columns or does assignment (like `select`
-  plus `mutate` plus `summarise`).
+  plus `mutate` plus `summarize`).
 - `by` groups (like `group_by`).
 
 ```r
@@ -88,7 +88,7 @@ dt[, .(age, bmi = weight / (height / 100)^2)]
 # Assign in place (the := operator)
 dt[, bmi := weight / (height / 100)^2]
 
-# Group and summarise
+# Group and summarize
 dt[, .(mean_bmi = mean(bmi, na.rm = TRUE)), by = sex]
 
 # Chaining
@@ -108,7 +108,7 @@ which speeds subsequent joins on that key. Third, the
 `.SD` idiom ('Subset of Data') is how one applies a
 function across many columns at once, as in
 `dt[, lapply(.SD, mean), by = sex, .SDcols = is.numeric]`;
-it is the `data.table` analogue of `across()`. Fourth, a
+it is the `data.table` analog of `across()`. Fourth, a
 gotcha worth internalising early: `data.table` returns a
 `data.table` when you subset with `[`, where a
 `data.frame` would sometimes drop to a vector. The
@@ -123,7 +123,7 @@ will need adjusting.
 | Filter rows                    | `df \|> filter(age >= 18)`                        | `dt[age >= 18]`                           | `df[df$age >= 18, ]`                        |
 | Select columns                 | `df \|> select(age, sex)`                         | `dt[, .(age, sex)]`                       | `df[, c('age', 'sex')]`                     |
 | Add a column                   | `df \|> mutate(bmi = wt / ht^2)`                  | `dt[, bmi := wt / ht^2]`                  | `df$bmi <- df$wt / df$ht^2`                 |
-| Group and summarise            | `df \|> group_by(sex) \|> summarise(m = mean(x))` | `dt[, .(m = mean(x)), by = sex]`          | `aggregate(x ~ sex, df, mean)`              |
+| Group and summarize            | `df \|> group_by(sex) \|> summarize(m = mean(x))` | `dt[, .(m = mean(x)), by = sex]`          | `aggregate(x ~ sex, df, mean)`              |
 | Sort                           | `df \|> arrange(age)`                             | `dt[order(age)]`                          | `df[order(df$age), ]`                       |
 | Rename                         | `df \|> rename(new = old)`                        | `setnames(dt, 'old', 'new')`              | `names(df)[names(df) == 'old'] <- 'new'`    |
 | Inner join                     | `inner_join(x, y, by = 'id')`                     | `x[y, on = 'id', nomatch = NULL]`         | `merge(x, y, by = 'id')`                    |
@@ -151,7 +151,7 @@ ds <- open_dataset('big-trial/')
 summary <- ds |>
   filter(site == 'SITE01', visit == 'Baseline') |>
   group_by(arm) |>
-  summarise(mean_age = mean(age), n = n()) |>
+  summarize(mean_age = mean(age), n = n()) |>
   collect()
 ```
 
@@ -187,7 +187,7 @@ For now, prefer `data.table` if you need speed or
   this book's default, and what most collaborators will
   send you.
 - **base R**, for package development, for reading older
-  code, and when minimising dependencies matters (e.g., a
+  code, and when minimizing dependencies matters (e.g., a
   Shiny app served from a container you want to keep
   small).
 - **`data.table`**, when a dataset is millions of rows or
@@ -214,4 +214,4 @@ For now, prefer `data.table` if you need speed or
    as Parquet. Read it back with `open_dataset()` and run
    a `dplyr`-style aggregation. Compare wall-clock time
    to the equivalent `readr::read_csv()` +
-   `dplyr::group_by() |> summarise()` path.
+   `dplyr::group_by() |> summarize()` path.

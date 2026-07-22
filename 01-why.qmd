@@ -33,7 +33,7 @@ chapter in @sec-quiz-answers-01.
 1. What does 'reproducible' mean in the context of a
    statistical analysis, and how is it different from
    'replicable'?
-2. What three artefacts must you share to make an analysis
+2. What three artifacts must you share to make an analysis
    fully reproducible?
 3. Why is a reproducible analysis not necessarily a correct
    analysis? Give an example where the two diverge.
@@ -46,7 +46,7 @@ By the end of this chapter you should be able to:
   correctness.
 - List the ingredients of a minimum reproducible
   compendium: code, data, environment.
-- Argue the case for reproducibility to a sceptical
+- Argue the case for reproducibility to a skeptical
   principal investigator on grounds of self-interest, not
   morality.
 - Diagnose the common threats to reproducibility: missing
@@ -159,7 +159,7 @@ Missing any one of the three breaks reproducibility:
 The minimum reproducible compendium (Marwick, Boettiger,
 Mullen 2018) is exactly this: a directory containing
 code, data, and a declared environment, structured as an
-R package or similar artefact.
+R package or similar artifact.
 
 ## Common failure modes
 
@@ -173,7 +173,7 @@ common.
 
 **Unpinned package versions.** The analysis was written
 when `dplyr` was 1.0.0; you re-run it three years later
-with `dplyr` 1.1.4 and the behaviour of one function has
+with `dplyr` 1.1.4 and the behavior of one function has
 changed silently. `renv.lock` records the exact version
 of every package and lets you restore them.
 
@@ -244,7 +244,7 @@ threshold is not reproducible.
 
 **When to break the chain deliberately.** Some steps are
 irreducibly manual: you got results from a web tool, you
-manually labelled images, you transcribed a paper
+manually labeled images, you transcribed a paper
 table. Document them in the README and treat their
 output as input to the reproducible chain. Do not
 pretend they were automated.
@@ -285,7 +285,7 @@ They are less suited to deciding whether the gaps matter.
 obvious gaps (no seed, hardcoded paths, undeclared
 package dependencies). It is weaker on subtle issues
 like floating-point determinism, non-deterministic
-parallel reductions, or platform-specific behaviour.
+parallel reductions, or platform-specific behavior.
 
 *Verification.* Run the script on a different machine
 (or in a fresh Docker container). The LLM-flagged
@@ -308,7 +308,7 @@ the project deserves.
 (chapter 7). Differences may be improvements or
 regressions; evaluate each one.
 
-**Prompt 3: explaining the value to a sceptic.**
+**Prompt 3: explaining the value to a skeptic.**
 Describe the project context and ask: 'what's the
 selfish-rather-than-virtuous case for reproducibility on
 this project?'
@@ -319,7 +319,7 @@ persuasive than abstract appeals. The LLM tends toward
 the abstract; push for specific examples relevant to the
 PI's situation.
 
-*Verification.* Test the argument on a real sceptical
+*Verification.* Test the argument on a real skeptical
 PI; iterate.
 
 ## Principle in use
@@ -352,7 +352,7 @@ Three habits make reproducibility automatic:
 4. Audit a colleague's recent analysis script for
    reproducibility gaps. Use the failure-modes list from
    this chapter as your checklist.
-5. Draft an email to a sceptical PI explaining why
+5. Draft an email to a skeptical PI explaining why
    reproducibility is in their interest, with two
    concrete scenarios from their own group.
 

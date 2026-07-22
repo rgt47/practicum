@@ -93,8 +93,8 @@ the second.
 analysis is a commitment. The Type-I error rate of
 that test is the rate the reader is told. Adding
 sensitivity analyses, exploratory analyses, and
-'data-prompted' analyses afterwards is fine,
-provided they are labelled as such. Mixing them with
+'data-prompted' analyses afterward is fine,
+provided they are labeled as such. Mixing them with
 the primary changes what the primary actually means.
 
 **Be honest about uncertainty in the plan.** When
@@ -171,14 +171,14 @@ A standard biostatistical SAP has these sections:
    the same outcome variable.
 6. **Secondary outcomes.** Same level of detail.
 7. **Covariates.** Each one named, with its
-   transformation if any (continuous? categorised?
+   transformation if any (continuous? categorized?
    reference level?). Effects of interest specified.
 8. **Primary analysis.** Specific test or model.
    Expected output (point estimate, CI, p-value).
    Type-I error rate.
 9. **Secondary analyses.** Each one its own subsection
    with the same level of detail.
-10. **Sensitivity analyses.** Each labelled as
+10. **Sensitivity analyses.** Each labeled as
     sensitivity (e.g., 'sensitivity to missing-data
     assumption'); pre-specified, not data-driven.
 11. **Missing-data handling.** Specific strategy:
@@ -207,7 +207,7 @@ library(zzpower)
 
 # parallel-group RCT, continuous outcome
 power_t_two_sample(
-  delta = 0.5,        # standardised effect
+  delta = 0.5,        # standardized effect
   alpha = 0.05,
   power = 0.80,
   ratio = 1           # 1:1 allocation
@@ -235,9 +235,9 @@ power_simulate(
 In the SAP, report the sample size with the
 underlying assumptions:
 
-> The study will enrol 64 participants per arm
+> The study will enroll 64 participants per arm
 > (total $n = 128$), to achieve 80% power to detect
-> a standardised effect of 0.5 at a two-sided
+> a standardized effect of 0.5 at a two-sided
 > $\alpha = 0.05$, assuming an attrition rate of
 > 10%.
 
@@ -253,7 +253,7 @@ A pre-specified analysis is one that:
 - Was written down in the SAP before data access.
 - Has its statistical properties (Type-I error rate,
   CI coverage) calibrated to the SAP's specification,
-  not to the analyst's choices afterwards.
+  not to the analyst's choices afterward.
 - Carries the full inferential authority of the
   study.
 
@@ -300,7 +300,7 @@ not pre-specified. Even though the data showed a
 significant interaction, the test's Type-I error
 rate is not 5% in any meaningful sense: the test
 was selected after the data were seen. Report the
-result clearly labelled as exploratory and
+result clearly labeled as exploratory and
 hypothesis-generating, not as a confirmatory
 finding. The interaction is a candidate for a
 future pre-registered study; in the current paper,
@@ -361,7 +361,7 @@ authoritative pre-specification.
 >
 > ## 1. Background
 >
-> Patients hospitalised with heart failure have a
+> Patients hospitalized with heart failure have a
 > 25% 30-day readmission rate. Home-health visits
 > within 7 days of discharge have been associated
 > with reduced readmission in observational studies
@@ -386,7 +386,7 @@ authoritative pre-specification.
 > heart failure (ICD-10 I50.x); (b) age $\geq 18$;
 > (c) discharged alive.
 > Exclusion: (a) hospice; (b) inability to consent;
-> (c) prior enrolment in this trial.
+> (c) prior enrollment in this trial.
 >
 > ## 5. Primary outcome
 >

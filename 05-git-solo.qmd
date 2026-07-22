@@ -37,7 +37,7 @@ chapter in @sec-quiz-answers-05.
 
 By the end of this chapter you should be able to:
 
-- Initialise a Git repository, make commits, and push to
+- Initialize a Git repository, make commits, and push to
   GitHub from the command line.
 - Use branches to experiment without risking your main
   line of work, and merge them cleanly.
@@ -96,7 +96,7 @@ a glorified backup tool.
 
 ## Why Git for solo work
 
-The standard arguments for Git emphasise collaboration.
+The standard arguments for Git emphasize collaboration.
 For solo work, the value is different but real:
 
 **Time-travel.** When something breaks, `git log` and
@@ -124,14 +124,14 @@ adding it later when you are scrambling to share code.
 
 The cost: a few hours of upfront learning. The benefit
 compounds across every project for the rest of your
-career. The math is favourable.
+career. The math is favorable.
 
 ## Minimum viable Git
 
 The day-to-day workflow:
 
 ```bash
-# initialise (once per project)
+# initialize (once per project)
 cd ~/research/my-project
 git init
 git add .
@@ -399,7 +399,7 @@ git push -u origin main
 
 # week 2: data exploration
 # (write R/01_explore.R, edit several times)
-git add R/01_explore.R && git commit -m "Initial EDA, summarising 30-day rates"
+git add R/01_explore.R && git commit -m "Initial EDA, summarizing 30-day rates"
 
 # week 4: try a sensitivity analysis on a branch
 git switch -c sensitivity-mnar
@@ -433,7 +433,7 @@ LLMs handle Git well; the misuses tend to be in destructive
 commands.
 
 **Prompt 1: explaining state.** Paste `git log --oneline -10`
-and `git status` and ask: 'summarise the state of this
+and `git status` and ask: 'summarize the state of this
 repository and what I should do next.'
 
 *What to watch for.* The LLM should describe the state

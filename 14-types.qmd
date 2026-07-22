@@ -47,9 +47,9 @@ By the end of this chapter you should be able to:
 - Parse dates robustly with `lubridate`, including
   mixed formats and time zones.
 - Diagnose and fix the common 'character vs. factor
-  vs. ordered factor' decision that causes modelling
+  vs. ordered factor' decision that causes modeling
   errors downstream.
-- Recognise locale, time-zone, and Excel-date pitfalls.
+- Recognize locale, time-zone, and Excel-date pitfalls.
 
 ## Orientation
 
@@ -81,7 +81,7 @@ correct: the model needs to know the reference level
 and the level set. For data cleaning and joining,
 characters are usually safer (no surprises when a
 new value arrives). Convert to factor late, near the
-modelling step.
+modeling step.
 
 **Reference levels matter.** A logistic regression with
 factor `treatment` and reference 'high-dose' produces
@@ -145,7 +145,7 @@ fct_recode(f, "L" = "low", "M" = "medium", "H" = "high")
 
 When to convert character to factor:
 
-- Just before modelling: ensures the model knows the
+- Just before modeling: ensures the model knows the
   level set and the reference.
 - Just before plotting: enables `fct_reorder` for
   ordered axis labels.
@@ -491,7 +491,7 @@ clean <- raw |>
                          excel_numeric_to_date(visit_date_excel),
                          visit_date),
 
-    # standardise treatment text
+    # standardize treatment text
     treatment = str_to_title(treatment),
     treatment = str_replace(treatment, "Placebo|Pbo", "Placebo"),
 
@@ -509,7 +509,7 @@ clean <- raw |>
 ```
 
 The cleaned data has dates parsed from mixed formats,
-treatment standardised and explicitly factored,
+treatment standardized and explicitly factored,
 small sites collapsed, missing sex coded explicitly.
 The script documents every transformation as code.
 
@@ -542,7 +542,7 @@ the margins.
 test set; count mismatches.
 
 **Prompt 3: factor reference level.** Paste a
-modelling formula and ask: 'is the default reference
+modeling formula and ask: 'is the default reference
 level for `treatment` clinically sensible? If not,
 how should it be set?'
 
@@ -560,7 +560,7 @@ interpretation.
 Three habits define defensible type handling:
 
 1. **Convert to factor late.** Cleaning in
-   character; modelling in factor. Specify reference
+   character; modeling in factor. Specify reference
    levels deliberately.
 2. **Parse dates with named formats.**
    `parse_date_time` with explicit orders, not

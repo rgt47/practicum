@@ -88,7 +88,7 @@ The tool is mechanical. The judgements:
 only as clear as its decomposition. Steps should be
 meaningful units, read, clean, model, report, each a
 function with explicit inputs and outputs, not one
-thousand-line script. The decomposition is a modelling
+thousand-line script. The decomposition is a modeling
 decision about the analysis, and it is yours to make.
 
 **Stale results are worse than slow ones.** The reason to
@@ -108,7 +108,7 @@ promise.
 **The plan is documentation.** The `_targets.R` file is a
 readable statement of the analysis's structure: what
 depends on what, in what order. It is often the most useful
-single artefact for a new collaborator trying to
+single artifact for a new collaborator trying to
 understand the project.
 
 These judgements are what make a pipeline trustworthy
@@ -116,7 +116,7 @@ rather than merely automated.
 
 ## The dependency graph
 
-The organising idea is the directed acyclic graph, or DAG.
+The organizing idea is the directed acyclic graph, or DAG.
 Each step is a node; an arrow from step A to step B means B
 uses A's output. 'Directed' because dependencies have a
 direction; 'acyclic' because a step cannot, even

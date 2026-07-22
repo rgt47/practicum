@@ -113,7 +113,7 @@ citations. Use it from the start; backfilling
 citations for an existing paper is tedious.
 
 These judgements are what make a Quarto document a
-research artefact rather than a glorified Word
+research artifact rather than a glorified Word
 document.
 
 ## Literate programming
@@ -130,7 +130,7 @@ interleaved in a `.qmd` file:
 ````qmd
 # Methods
 
-We analysed the readmissions cohort using a multivariable
+We analyzed the readmissions cohort using a multivariable
 logistic regression.
 
 ```r
@@ -265,7 +265,7 @@ formatted reference in PDF. Prefixes:
 - `tbl-` for tables.
 - `eq-` for equations.
 - `sec-` for sections (when section headers are
-  labelled, e.g., `# Methods {#sec-methods}`).
+  labeled, e.g., `# Methods {#sec-methods}`).
 
 Cross-references work across formats: HTML produces
 hyperlinks, PDF produces 'Figure 3' references, Word
@@ -564,7 +564,7 @@ broom::tidy(fit, exponentiate = TRUE, conf.int = TRUE) |>
 ````
 
 This produces an HTML report and a PDF, with numbers
-computed from the data, a labelled table and figure,
+computed from the data, a labeled table and figure,
 and proper bibliography. Re-running with new data
 updates everything automatically.
 
@@ -661,7 +661,7 @@ Three habits define defensible Quarto use:
    `.qmd` file embodies this by letting you write
    narrative Markdown and executable R (or Python,
    Julia) code chunks in one document. The render
-   process produces a human-readable artefact (HTML,
+   process produces a human-readable artifact (HTML,
    PDF, Word) with code, output, and prose
    interleaved.
 2. `quarto render file.qmd` produces the default

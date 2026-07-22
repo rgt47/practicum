@@ -20,7 +20,7 @@ The book has taught the reader to produce a defensible
 analysis and has stopped there. @sec-team-science covers the
 register in which a statistician should speak to a clinician,
 and @sec-graphics covers the figure, but neither addresses the
-artefact the reader will actually be judged on. A working
+artifact the reader will actually be judged on. A working
 biostatistician delivers findings in three forms, and writes
 some of them weekly: the talk, the memo, and the response to
 reviewers. A book that devotes a chapter to SAS on grounds of
@@ -51,7 +51,7 @@ By the end of this chapter you should be able to:
 - Structure a set of findings as an argument rather than as a
   chronology, using the and/but/therefore skeleton.
 - Give a twenty-minute talk to a clinical audience that leads
-  with the conclusion and defends it afterwards.
+  with the conclusion and defends it afterward.
 - Write a one-page memo to a principal investigator that a
   busy reader can act on in four minutes.
 - Write a point-by-point response to reviewers that concedes
@@ -64,7 +64,7 @@ By the end of this chapter you should be able to:
 ## Orientation
 
 An analysis is a chronology: you obtained the data, cleaned
-it, described it, modelled it, checked the model, and arrived
+it, described it, modeled it, checked the model, and arrived
 at an estimate. That chronology is the right order for doing
 the work, for the compendium, and for the methods section. It
 is the wrong order for almost every act of communication,
@@ -88,7 +88,7 @@ Everything in this chapter is judgement; there is no tool.
 **Lead with the answer.** The clinical collaborator has one
 question, and it is the one they asked you three months ago.
 Answer it in the first sentence, then defend the answer.
-Statisticians resist this, because the defence is where the
+Statisticians resist this, because the defense is where the
 work was and the answer feels unearned without it. The
 audience does not share that feeling. They experience a
 withheld conclusion as evasion, and their attention is spent
@@ -132,7 +132,7 @@ three parts, and it is easier to remember as a skeleton of
 conjunctions than as a diagram.
 
 **And.** The stable state of the world, which the audience
-already accepts. 'Patients hospitalised with heart failure
+already accepts. 'Patients hospitalized with heart failure
 have a thirty-day readmission rate of about twenty-five per
 cent, and post-discharge home-health visits are widely
 believed to reduce it.'
@@ -158,7 +158,7 @@ structure with the chronology it replaces.
 %%|   which the work was done and the order the methods section follows.
 %%|   The argument, on the right, is the order in which it should be
 %%|   presented. The estimate moves from last to first, and the
-%%|   chronology becomes the defence rather than the narrative."
+%%|   chronology becomes the defense rather than the narrative."
 flowchart LR
   subgraph CHRON["Chronology (how you worked)"]
     direction TB
@@ -172,14 +172,14 @@ flowchart LR
     direction TB
     A1["AND<br/><i>what is accepted</i>"] --> A2["BUT<br/><i>why the work exists</i>"]
     A2 --> A3["THEREFORE<br/><i>the estimate</i>"]
-    A3 --> A4["the defence<br/><i>design, model, diagnostics</i>"]
+    A3 --> A4["the defense<br/><i>design, model, diagnostics</i>"]
     A4 --> A5["what would<br/>change my mind"]
   end
   C6 -.->|"becomes the<br/>opening, not<br/>the ending"| A3
 ```
 
 The final element of the argument is the one statisticians
-most often omit and the one that most raises a sceptical
+most often omit and the one that most raises a skeptical
 audience's trust: state what would have changed your mind. 'If
 the sensitivity analysis under a plausible MNAR mechanism had
 moved the estimate below one percentage point, I would not be
@@ -411,7 +411,7 @@ imply that the reviewer has failed to read the paper, even
 when they plainly have not.
 
 **Do not let a request change the inferential status of an
-analysis.** This is the statistical judgement at the centre of
+analysis.** This is the statistical judgement at the center of
 the genre. When a reviewer asks for a subgroup analysis, they
 are asking for an analysis that was not pre-specified. Perform
 it, report it, and label it exploratory. The temptation, and
@@ -505,7 +505,7 @@ asking, roughly in the order that catches the most:
 - Does the reported estimate come with an interval, and is the
   interval interpreted rather than merely printed?
 - Is the primary analysis the one that was pre-specified, and
-  can I verify that from the artefact rather than the prose?
+  can I verify that from the artifact rather than the prose?
 - What is the denominator, and does it match the flow diagram?
 - Which single assumption, if wrong, would most change the
   conclusion, and does the paper name it?
@@ -553,7 +553,7 @@ the model supplies the prose.
 
 *Verification.* For every conceded point, ask whether you
 actually agree. For every defended point, check that the
-defence is technical rather than rhetorical.
+defense is technical rather than rhetorical.
 
 **Prompt 3: adversarial review of your own draft.** Paste the
 results section and ask the model to review it as a hostile
@@ -638,7 +638,7 @@ Three habits define defensible communication:
    verification rather than comprehension. For a talk or a
    memo, structure the material as an argument: the accepted
    state of the world, the disruption that motivated the work,
-   the finding, the defence, and the conditions under which
+   the finding, the defense, and the conditions under which
    you would have concluded otherwise.
 2. 'No evidence of an effect' says that the study could not
    distinguish the effect from zero, which is a statement

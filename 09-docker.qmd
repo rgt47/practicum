@@ -316,7 +316,7 @@ gzip readmissions-v1.0.tar
 # upload readmissions-v1.0.tar.gz to Zenodo for a DOI
 ```
 
-This produces a self-contained, citable artefact that
+This produces a self-contained, citable artifact that
 will outlive Docker Hub or GitHub.
 
 ::: {.callout-note icon=false collapse=true}
@@ -523,7 +523,7 @@ Three habits define defensible Docker use:
    fast-changing last. The package-install layer
    should not invalidate on every code change.
 3. **Push to a registry, archive to Zenodo.** The
-   image is the artefact; persist it where it can
+   image is the artifact; persist it where it can
    outlive your laptop and your Docker Hub account.
 
 ## Exercises
@@ -563,7 +563,7 @@ Three habits define defensible Docker use:
    of an image, with its own writable filesystem
    layer. Many containers can be run from one image;
    terminating a container does not modify the image.
-   The image is the artefact; the container is the
+   The image is the artifact; the container is the
    process.
 2. `renv` captures R packages only. Docker captures the
    operating system, system libraries (BLAS,

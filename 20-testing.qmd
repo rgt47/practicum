@@ -138,7 +138,7 @@ warehouse changes a column from days to seconds.
 The script runs without error. A test that asserts
 typical values for the column flags the change.
 
-**Document expected behaviour.** The test 'with
+**Document expected behavior.** The test 'with
 input X, the function returns Y' is executable
 documentation. Future-you reads the test to
 understand what the function is supposed to do.
@@ -601,11 +601,11 @@ analyses:
 1. Even a one-off analysis benefits from tests:
    they catch regressions when you refactor
    mid-analysis, they serve as executable
-   documentation of expected behaviour, and they
+   documentation of expected behavior, and they
    detect silent failures when upstream data
    changes format. The cost of writing a handful of
    tests is small; the cost of silently
-   mis-analysing data is much larger.
+   mis-analyzing data is much larger.
 2. A unit test exercises a single function with
    known inputs and checks the output. An
    integration test runs a pipeline segment

@@ -39,16 +39,16 @@ chapter in @sec-quiz-answers-02.
 
 By the end of this chapter you should be able to:
 
-- Summarise the main federal (US) policies governing
+- Summarize the main federal (US) policies governing
   access to publications, data, and code for federally
   funded research.
 - Draft a Data Management and Sharing Plan section that
   meets NIH expectations.
 - Choose an appropriate public repository (Zenodo, OSF,
-  Dryad, GitHub) for a given artefact and obtain a DOI.
+  Dryad, GitHub) for a given artifact and obtain a DOI.
 - Identify when `renv` alone suffices and when Docker is
   additionally required for environment preservation.
-- Recognise FDA CDISC submission requirements as a
+- Recognize FDA CDISC submission requirements as a
   domain-specific reproducibility regime.
 
 ## Orientation
@@ -95,7 +95,7 @@ data-use agreement gating the underlying data.
 that points to a `renv.lock` and a Dockerfile is
 verifiable. The difference takes ten minutes.
 
-These judgements determine whether the published artefact
+These judgements determine whether the published artifact
 actually reproduces the published numbers, or merely
 satisfies the form.
 
@@ -182,7 +182,7 @@ requirements:
 - **NSF** requires a Data Management Plan (DMP) of up
   to two pages with each proposal; data sharing is
   expected unless legally restricted.
-- **DOE** has a public-access plan emphasising
+- **DOE** has a public-access plan emphasizing
   publication access and high-performance computing
   data.
 - **CDC** requires public-data sharing for surveillance
@@ -282,8 +282,8 @@ environment at the cost of more complex tooling.
 **Question.** Your DESCRIPTION lists
 `Imports: dplyr (>= 1.0.0)`. You ran the analysis with
 dplyr 1.0.3, which produced your published Table 2. Six
-months later, dplyr 1.1.0 is released with a behaviour
-change in `summarise()`. A reviewer asks you to re-run
+months later, dplyr 1.1.0 is released with a behavior
+change in `summarize()`. A reviewer asks you to re-run
 the analysis. Without an `renv.lock`, what happens?
 
 **Answer.**
@@ -294,7 +294,7 @@ new Table 2 that may differ from the published one in
 some cells. The DESCRIPTION's `>= 1.0.0` is satisfied;
 the actual computation is different. You cannot tell
 from the discrepancy whether the difference is a bug in
-your code, a difference in dplyr's behaviour, or a real
+your code, a difference in dplyr's behavior, or a real
 data issue, you have lost the version-pinned baseline
 that would let you investigate. With an `renv.lock`,
 the reviewer (or you) restores the exact environment
@@ -330,14 +330,14 @@ infection rates:
 > deposited in dbGaP under controlled access (DUA via
 > the institutional IRB). De-identified summary data
 > (Table 1, primary outcomes) deposited in Zenodo with
-> CC-BY 4.0 licence. Imaging deposited in TCIA under
+> CC-BY 4.0 license. Imaging deposited in TCIA under
 > controlled access.
 >
 > **Access, distribution, reuse.** PHI data: requestor
 > must complete DUA and IRB approval at their
 > institution. De-identified data: open access at
 > publication. Code: GitHub, mirrored to Zenodo for
-> DOI, MIT licence.
+> DOI, MIT license.
 >
 > **Oversight.** PI is responsible for plan
 > implementation. Co-investigators sign data-sharing
@@ -345,7 +345,7 @@ infection rates:
 > program officer.
 
 This level of specificity passes review and produces a
-reproducible artefact. Vague language ('data will be
+reproducible artifact. Vague language ('data will be
 shared appropriately') gets flagged.
 
 ## Collaborating with an LLM on policy compliance
@@ -376,7 +376,7 @@ six NIH categories.'
 
 *What to watch for.* The standard elements are easy to
 audit; LLMs do this well. Subtle issues (e.g., a
-licence that conflicts with a third-party data source's
+license that conflicts with a third-party data source's
 terms) are harder; flag for human review.
 
 *Verification.* Submit the audited plan to a colleague
@@ -466,6 +466,6 @@ Three habits make federal compliance painless:
    the R version itself. `Depends:`/`Imports:` in a
    `DESCRIPTION` only list minimum acceptable versions;
    the actual installed versions drift as packages are
-   updated, silently changing behaviour. For DMSP
+   updated, silently changing behavior. For DMSP
    compliance, `renv.lock` is concrete and verifiable;
    `DESCRIPTION` declarations are not.

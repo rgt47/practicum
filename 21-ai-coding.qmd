@@ -52,7 +52,7 @@ By the end of this chapter you should be able to:
   defaults).
 - Adopt the 'verify, then trust' workflow for every
   piece of AI-generated code.
-- Recognise when LLM assistance is net-helpful and
+- Recognize when LLM assistance is net-helpful and
   when it is net-harmful.
 
 ## Orientation
@@ -187,7 +187,7 @@ safety mechanism.
 
 ## LLM failure modes in R
 
-A non-exhaustive catalogue of bugs that appear in
+A non-exhaustive catalog of bugs that appear in
 LLM-generated R code:
 
 **Hallucinated functions.** The LLM produces
@@ -257,14 +257,14 @@ You run it; R errors with 'could not find function
 **Answer.**
 
 The function does not exist. The LLM hallucinated
-it from `summarise` and `group_by`. The correct
+it from `summarize` and `group_by`. The correct
 modern dplyr is:
 
 ```r
-data |> dplyr::group_by(grp) |> dplyr::summarise(mean = mean(x))
+data |> dplyr::group_by(grp) |> dplyr::summarize(mean = mean(x))
 ```
 
-The LLM may also have meant `summarise(.by = grp, ...)`
+The LLM may also have meant `summarize(.by = grp, ...)`
 in newer dplyr. Verify against the package
 documentation rather than against another LLM
 suggestion. The general lesson: when an LLM-
@@ -292,7 +292,7 @@ Before committing any LLM-generated code:
 4. **Compare to a reference.** A known-good
    implementation, a closed-form solution, a
    simpler version you wrote yourself.
-5. **Write a test.** Lock the behaviour in
+5. **Write a test.** Lock the behavior in
    testthat. Future regressions are caught
    automatically.
 6. **Only then commit.**
@@ -329,10 +329,10 @@ lintr::lint_dir("R")
 
 `styler` rewrites whitespace, indentation, and
 assignment to a canonical form; `lintr` is a static
-analyser that flags what `styler` cannot fix, including
+analyzer that flags what `styler` cannot fix, including
 some genuine bugs: a variable used before assignment,
 an `=` where `<-` was meant, the `T`/`TRUE` hazard from
-the failure-modes catalogue above. Running `lintr` over
+the failure-modes catalog above. Running `lintr` over
 LLM-generated code catches a useful fraction of the
 mechanical mistakes before you spend attention on the
 substantive ones.
@@ -341,7 +341,7 @@ The reason this belongs in the AI chapter specifically:
 when you and a model produce code together, the model's
 output arrives in whatever style its training data
 averaged to, which is not necessarily yours. Passing it
-through `styler` on the way in normalises it to the
+through `styler` on the way in normalizes it to the
 surrounding code, so that the diff a reviewer (or
 future-you) reads reflects what *changed* rather than
 whose keyboard it came from. The code-review checklist
@@ -432,7 +432,7 @@ explain_function <- function(fn) {
 
 # use it
 explain_function(function(x) {
-  x |> filter(!is.na(value)) |> summarise(mean = mean(value))
+  x |> filter(!is.na(value)) |> summarize(mean = mean(value))
 })
 ```
 
@@ -455,7 +455,7 @@ drafted with LLM assistance, all of it reviewed and
 edited. Roughly 30% of the code examples were
 generated; the rest were written by hand. Bugs
 caught: a steady stream, mostly variants of the
-failure modes catalogued above.
+failure modes cataloged above.
 
 The book exists because the LLM amplified the
 author's writing throughput. The book is correct
@@ -481,7 +481,7 @@ Three habits define defensible AI-assisted coding:
 ## Exercises
 
 1. Install `ellmer`. Write a short R function that
-   uses `chat_claude()` to summarise a block of
+   uses `chat_claude()` to summarize a block of
    code you paste in. Keep the function under 20
    lines.
 2. Pick a function from an earlier chapter and ask
@@ -524,7 +524,7 @@ Three habits define defensible AI-assisted coding:
    prompts with R values, and build a programmatic
    layer over what would otherwise be manual
    copy-paste. A browser chatbot is interactive
-   only and produces no reproducible artefact.
+   only and produces no reproducible artifact.
 2. (Any three of:) hallucinated APIs (calling
    functions or arguments that do not exist),
    silent type coercions that change results

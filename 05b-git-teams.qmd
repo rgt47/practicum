@@ -73,7 +73,7 @@ is that the repository is no longer the record of what you
 did; it is the record of what the team did, and the team is
 now the unit that has to be able to reconstruct it.
 
-Three consequences follow, and this chapter is organised
+Three consequences follow, and this chapter is organized
 around them. First, two people editing one file at the same
 time will eventually collide, and Git can only resolve the
 collision when the edits do not overlap; the rest of the time
@@ -395,7 +395,7 @@ renv::snapshot()                  # regenerate the lockfile
 ```
 
 Then commit the regenerated lockfile. The principle
-generalises: a conflict in a generated file is resolved by
+generalizes: a conflict in a generated file is resolved by
 regenerating the file, never by editing it.
 
 ### The conflicts that should never happen
@@ -542,7 +542,7 @@ nothing useful about why.
 
 ## Worked example: two statisticians, one compendium
 
-The scenario: you and a colleague are analysing the
+The scenario: you and a colleague are analyzing the
 readmissions cohort. You take the primary model; she takes the
 missing-data sensitivity analysis. Both of you touch the
 cohort-construction script.
@@ -574,7 +574,7 @@ git merge origin/main
 ```
 
 You open `R/cohort.R`, find the conflict shown earlier in this
-chapter, and recognise that the two edits are complementary
+chapter, and recognize that the two edits are complementary
 rather than competing. You keep both bounds, and you leave a
 comment on her merged pull request asking where 220 came from.
 

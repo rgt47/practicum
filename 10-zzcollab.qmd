@@ -59,7 +59,7 @@ By the end of this chapter you should be able to:
 - Extend `zzcollab` with a custom bundle that
   encodes your research group's conventions in
   `templates/bundles.yaml`.
-- Recognise when `zzcollab` is overkill and when
+- Recognize when `zzcollab` is overkill and when
   it is exactly the right level of infrastructure.
 
 ## Orientation
@@ -89,7 +89,7 @@ analysis, plain `rrtools` (chapter 7) suffices.
 `zzcollab` automates mechanical setup. The
 judgements:
 
-**Choose the right profile.** A modelling project
+**Choose the right profile.** A modeling project
 that uses `lme4` will fail in an `analysis` profile
 container that lacks `libgsl-dev`. A simple
 descriptive analysis in a `modeling` profile waits
@@ -115,7 +115,7 @@ consistent. Skipping the audit before deposition
 or paper submission is the kind of small omission
 that breaks reproducibility years later.
 
-**Recognise the limits.** `zzcollab` is not the
+**Recognize the limits.** `zzcollab` is not the
 answer to every project. For interactive
 exploration, RStudio alone is faster. For a
 one-off script, scaffolding a compendium is
@@ -152,7 +152,7 @@ profile-specific apt packages.
 every R package version, including transitive
 dependencies. Without it, package updates between
 the analysis run and the reproduction silently
-change behaviour.
+change behavior.
 
 **Pillar 3: `.Rprofile`.** A project-local R
 startup file that activates `renv`'s project
@@ -206,7 +206,7 @@ Choosing among them:
   fastest container build that still has the
   common tools.
 - **`modeling`.** When you will fit non-trivial
-  statistical models (GLMMs, survival, penalised
+  statistical models (GLMMs, survival, penalized
   regression). The compiled-package dependencies
   (`libgsl-dev`, `libssh2-dev`) are the slow
   part; baking them in saves later trouble.
@@ -272,7 +272,7 @@ contains a `Dockerfile` (rocker/r-ver:4.4.0 base
 referencing tidyverse and palmerpenguins, an
 `.Rprofile` that activates renv, an `analysis/`
 and `R/` directory tree, and a `Makefile`. Git is
-initialised; the first commit captures the
+initialized; the first commit captures the
 scaffolding.
 
 **`make r`** builds the Docker image (slow on
@@ -341,7 +341,7 @@ penguin_research:
   description: "Palmer Penguins analysis with house style"
   inherits: analysis
   apt_packages:
-    - libgsl-dev               # for any modelling extras
+    - libgsl-dev               # for any modeling extras
   r_packages:
     - palmerpenguins
     - lme4
@@ -442,7 +442,7 @@ project type and ask the LLM to compare
 
 *What to watch for.* Each framework has a niche.
 `zzcollab` is opinionated and fast; `rrtools` is
-flexible; `workflowr` emphasises the analysis
+flexible; `workflowr` emphasizes the analysis
 website. The LLM should not declare a winner; it
 should match each to a use case.
 

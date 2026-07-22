@@ -20,7 +20,7 @@ library(dplyr)
 penguins |>                                       # <1>
   filter(!is.na(body_mass_g)) |>                  # <2>
   group_by(species) |>                            # <3>
-  summarise(mean_mass = mean(body_mass_g))
+  summarize(mean_mass = mean(body_mass_g))
 ```
 1. Start the pipeline with the `penguins` data frame.
 2. Drop rows with missing body-mass values.
