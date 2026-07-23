@@ -62,11 +62,12 @@ turns an R package into a compendium by adding an
 `analysis/` directory for narrative and data, plus
 Docker integration for the environment.
 
-The compendium is the unit of reproducibility. A paper
-without its compendium is a description of an analysis;
-a compendium without a paper is just code. Together,
-they constitute a study artifact that survives the loss
-of any individual file or person.
+The compendium is, in our view, the unit of reproducibility. A
+paper without its compendium is merely a description of an
+analysis; a compendium without a paper is merely code. Taken
+together, they constitute a study artifact that survives the
+loss of any individual file, and indeed of any individual
+person.
 
 ## The statistician's contribution {#sec-rrtools-human}
 
@@ -437,7 +438,7 @@ output for correctness.
 
 ## Principle in use
 
-Three habits define defensible compendium use:
+In closing, three habits define what we would regard as defensible compendium use:
 
 1. **Use a recognized layout.** `rrtools` or a Quarto
    book; not a bespoke directory.

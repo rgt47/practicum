@@ -56,13 +56,12 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-A figure that survives peer review is a figure whose
-data, encoding, and aesthetic choices all serve the
-single claim the figure exists to make. This chapter
-covers the mechanical skills; the principles of
-effective visualization are covered in the companion
-textbook (chapters 15--16 of *Statistical Computing in
-the Age of AI*).
+A figure that survives peer review is one whose data, encoding,
+and aesthetic choices all serve the single claim the figure
+exists to make. We confine ourselves in this chapter to the
+mechanical skills; the principles of effective visualization
+are taken up in the companion textbook (chapters 15--16 of
+*Statistical Computing in the Age of AI*).
 
 The combination `ggplot2` + `purrr` + `patchwork` is
 the modern stack for going from a single exploratory
@@ -615,7 +614,7 @@ consistency. Verify palette via Coblis or
 
 ## Principle in use
 
-Three habits define defensible plotting:
+In closing, three habits define what we would regard as defensible plotting:
 
 1. **One plot, one message.** Resist combining
    relationships into one figure.

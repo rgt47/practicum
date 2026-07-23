@@ -54,12 +54,12 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-`renv` pins R packages but not the operating system,
-the system libraries, or the R build itself. Docker
-captures all three. For analyses that must reproduce
-exactly years later, or that depend on tricky system
-libraries (geospatial, GDAL, BLAS variants, JAGS, Stan),
-Docker is the right tool.
+`renv` pins the R packages, but it pins neither the operating
+system, nor the system libraries, nor the R build itself.
+Docker captures all three. For an analysis that must reproduce
+exactly years later, or that depends on tricky system libraries
+(geospatial, GDAL, BLAS variants, JAGS, Stan), Docker is, we
+would maintain, the right tool.
 
 The `rocker` project [@boettiger2017rocker] provides
 curated Docker images for R: minimal R, R with
@@ -514,7 +514,7 @@ candidate and time it. Build size matters less than
 
 ## Principle in use
 
-Three habits define defensible Docker use:
+In closing, three habits define what we would regard as defensible Docker use:
 
 1. **Pin everything.** Specific R version, specific
    rocker tag, specific package versions via

@@ -360,7 +360,7 @@ full one.
 
 ## Principle in use
 
-Three habits define defensible database work:
+In closing, three habits define what we would regard as defensible database work:
 
 1. **Query at the source; `collect()` late.** Push
    filtering and aggregation to the database; pull only the

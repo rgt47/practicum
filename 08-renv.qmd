@@ -51,14 +51,14 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-Package versions drift. A project that worked in
-January may fail in July because a dependency
-introduced a breaking change. `renv` pins the exact
-versions your project uses and writes them to a
-lockfile, so `renv::restore()` reproduces the
-environment on any machine. This chapter covers the
-common workflow and the in-house `zzrenvcheck` tool
-that audits it.
+Package versions drift, and therein lies the difficulty. A
+project that worked in January may fail in July because a
+dependency has introduced, somewhere along the way, a breaking
+change. `renv` pins the exact versions a project uses and
+writes them to a lockfile, so that `renv::restore()` reproduces
+the environment on any machine. We take up in this chapter the
+common workflow and the in-house `zzrenvcheck` tool that audits
+it.
 
 `renv` [@ushey2026renv] succeeded `packrat` (which is
 now deprecated) and is itself maintained by Posit. It
@@ -454,7 +454,7 @@ current available versions; compare.
 
 ## Principle in use
 
-Three habits define defensible renv use:
+In closing, three habits define what we would regard as defensible renv use:
 
 1. **Snapshot at meaningful moments.** Project start,
    each major dependency change, before each

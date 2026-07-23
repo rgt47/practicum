@@ -54,6 +54,8 @@ By the end of this chapter you should be able to:
   the area-for-quantity encoding, and the dual axis.
 - Demonstrate why overlapping confidence intervals do not imply
   a non-significant difference, and stop making the inference.
+- Distinguish a sample from the target population, and state the
+  groups to which an estimate does and does not transport.
 - Locate where in the workflow each of these failures is
   introduced, and where it can be caught.
 
@@ -67,7 +69,7 @@ practice and it is nowhere near a sufficient one, because the
 floor is written in terms of *procedures* and the failures that
 matter most are failures of *inference*.
 
-Four such failures recur in biomedical work, and they have a
+Five such failures recur in biomedical work, and they have a
 common structure: at no point does anyone state a falsehood.
 The data are real, the computation is correct, the p-value is
 what the software returned, the figure plots the numbers it
@@ -371,6 +373,101 @@ because the contrast is the estimand. When you *review*, treat
 any sentence of the form 'the intervals overlapped, so the
 groups did not differ' as an error, and say so.
 
+## Unrepresentative samples
+
+The fifth failure is the one whose costs fall on people who
+are not in the room, and often not in the data. It is the
+failure of **fair representation**, and it is the reason a
+competent statistician asks who a sample contains before,
+not after, generalizing from it.
+
+The structure is by now familiar. A cohort is assembled, an
+estimate is computed, and the estimate is valid for the
+population that was actually sampled. The falsehood, once
+again, is in no number; it is in the silent step from 'this
+holds in the sample' to 'this holds', taken when the sample
+and the target are not the same population and no one has
+said so. This book's own source material shows the
+mechanism: the survey behind this chapter's team-science
+reading drew respondents who were 82.8% White, and its
+authors state plainly that their conclusions may not
+transport to a more diverse workforce [@slade2023team]. The
+honesty is the model; the skew is the hazard.
+
+**A sample is evidence about the population it was drawn
+from, and no other.** A drug trial that enrolls
+overwhelmingly at academic medical centers, among patients
+who can attend fortnightly visits, skews toward the younger,
+the insured, the urban, and the un-comorbid. The estimate it
+produces is an estimate for those patients. Applied to the
+elderly, rural, multiply-morbid patient to whom the drug
+will actually be prescribed, it is an extrapolation, and an
+extrapolation is a claim the data do not contain. Adjusting
+for age does not repair this, for the same reason it did not
+repair the volunteer cohort earlier in this chapter: the
+groups differ along dimensions no covariate list enumerates.
+
+**Under-representation is not a diversity checkbox; it is a
+bias-and-variance problem with a face.** When a subgroup is
+a small fraction of the sample, two things hold at once. The
+estimate for that subgroup is imprecise, because its $n$ is
+small, so a real effect specific to them is the effect you
+are least able to detect. And if the effect genuinely
+differs there, the pooled estimate, dominated by the
+majority, is biased for them in particular. A result
+reported as though it applied to everyone therefore fails
+exactly the people the sample underweighted, and fails them
+silently, because the interval on the pooled estimate looks
+reassuringly tight.
+
+**A model learns the sample's inequities and returns them as
+findings.** Where an analysis feeds a decision rule, a risk
+score, an eligibility threshold, a resource-allocation
+model, an unrepresentative or biased training sample is no
+longer merely imprecise; it is a mechanism for propagating
+the bias at scale. The canonical case is a health-system
+algorithm that used prior health-care spending as a proxy
+for health need and, because less had historically been
+spent on Black patients at equal levels of illness,
+systematically understated their need
+[@obermeyer2019dissecting]. Every number was correctly
+computed. The proxy was the error, and only someone asking
+what the variable *stood for* could have caught it.
+
+The practical discipline is threefold and cheap:
+
+- **Report who is in the sample beside who the result is
+  for.** A Table 1 giving the demographic composition is the
+  minimum, and the Discussion should name the populations to
+  which the estimate does and does not transport. 'Our cohort
+  was 91% White and privately insured; generalization to
+  other populations is unestablished' is one sentence, and it
+  is the honest one.
+- **Pre-specify the subgroups you are powered to examine, and
+  label the rest exploratory.** This is the discipline of
+  @sec-analysis-plan applied to representation: a subgroup you
+  were not powered for yields an imprecise estimate, not an
+  absence of effect, and the report must say which it is.
+- **When a variable feeds a decision, ask what it is a proxy
+  for.** Before a predictor enters a model that will act on
+  people, ask whether it encodes a protected characteristic
+  and whether the model's errors are borne equally. This is
+  the fairness audit, and it is cheap relative to the harm it
+  averts.
+
+Fair representation has a second face, downstream of the
+analysis: whether every reader can in fact read the result.
+A figure that carries its only distinction in red versus
+green is illegible to the roughly eight per cent of men with
+a red-green color-vision deficiency, and the fix, a
+color-blind-safe palette verified before publication, is
+treated concretely in @sec-graphics. Accessibility of the
+artifact is the same principle as representativeness of the
+sample, arriving at the far end of the pipeline: a result
+that reaches only some of its readers, or speaks for only
+some of its subjects, is not the finished product it appears
+to be.
+
 ::: {.callout-note icon=false collapse=true}
 ## Check your understanding: the compliant misleading paper
 
@@ -404,7 +501,7 @@ that gap. Only the analyst can.
 
 ## Where each failure is caught
 
-The four failures enter the workflow at different points, which
+The five failures enter the workflow at different points, which
 means they are caught at different points.
 
 | Failure | Introduced at | Caught by |
@@ -413,6 +510,7 @@ means they are caught at different points.
 | Causal overclaiming | The Results-to-Discussion transition | Reading your own discussion for causal verbs; peer review (@sec-communicating) |
 | Visual misrepresentation | Figure construction (@sec-graphics) | Asking what the reader's eye is measuring |
 | Overlapping-interval fallacy | Interpretation, and often the figure | Reporting the contrast, not the arms |
+| Unrepresentative sample | Study design and recruitment; sometimes acquisition | Reporting who was sampled beside who the result is for; a proxy audit before a model acts |
 
 None of them is caught by a test suite, a lockfile, or a
 container. That is the point of the chapter, and it is worth
@@ -469,7 +567,7 @@ colleague who will tell you no.
 
 ## Principle in use
 
-Three habits define defensible practice beyond compliance:
+In closing, three habits define what we would regard as defensible practice beyond compliance:
 
 1. **Match the verb to the design.** Observational studies
    license association. If the discussion section says
@@ -506,6 +604,11 @@ Three habits define defensible practice beyond compliance:
    when data assembled from public sources may be released.
    Include the questions you would require an analyst to answer
    before assembling such a dataset.
+6. Take a published clinical study in your field and find its
+   Table 1. Identify the demographic groups under-represented
+   relative to the population the intervention is meant to
+   serve. Write the single sentence the Discussion should
+   contain about generalization, and check whether it does.
 
 ## Further reading
 
@@ -518,6 +621,10 @@ Three habits define defensible practice beyond compliance:
   the aggregation problem.
 - [@goodman2016what], for the reminder that reproducibility and
   correctness are independent qualities.
+- [@obermeyer2019dissecting], the health-system algorithm whose
+  proxy variable encoded and propagated racial bias at scale.
+- [@rothwell2005external], on external validity and the question
+  a trial silently answers: to whom do its results apply?
 - @sec-deident, @sec-federal, and @sec-graphics, the chapters
   this one sits between.
 

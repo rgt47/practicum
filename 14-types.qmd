@@ -53,11 +53,11 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-After the numeric columns, the next most common source
-of analysis bugs is the handling of text, categories,
-and dates. This chapter covers the three packages that
-make each category tractable. Master them and roughly
-one-third of biomedical data cleaning becomes routine.
+After the numeric columns, the next most common source of
+analysis bugs is, in our experience, the handling of text,
+categories, and dates. We take up in this chapter the three
+packages that make each of these tractable. Master them, and
+roughly one-third of biomedical data cleaning becomes routine.
 
 The packages are:
 
@@ -557,7 +557,7 @@ interpretation.
 
 ## Principle in use
 
-Three habits define defensible type handling:
+In closing, three habits define what we would regard as defensible type handling:
 
 1. **Convert to factor late.** Cleaning in
    character; modeling in factor. Specify reference

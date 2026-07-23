@@ -57,13 +57,13 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-Large language models are now capable of producing
-working R code for the majority of exercises in this
-book. This is a new fact, and it deserves an explicit
-response. The position taken here is: **use LLMs as
-an amplifier, not a replacement**. Treat every line
-of generated code as a hypothesis to be tested, not
-a result to be trusted.
+Large language models are now capable of producing working R
+code for the majority of the exercises in this book. This is a
+new fact, and one that deserves an explicit response. The
+position we take here is a simple one: **use LLMs as an
+amplifier, not a replacement**. Every line of generated code is
+to be treated as a hypothesis to be tested, and not as a result
+to be trusted.
 
 This chapter is the meta-chapter on the
 'Collaborating with an LLM' callouts that appear
@@ -465,7 +465,7 @@ alone would have been worse.
 
 ## Principle in use
 
-Three habits define defensible AI-assisted coding:
+In closing, three habits define what we would regard as defensible AI-assisted coding:
 
 1. **Verify before trusting.** Read end-to-end, run
    on edge cases, compare to a reference, test.

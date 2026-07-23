@@ -53,10 +53,11 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-A poorly configured workstation silently adds friction to
-every analysis. Paths get hardcoded, package versions
-drift, and context-switching between projects becomes
-expensive. This chapter builds the minimum viable
+A poorly configured workstation adds friction to every
+analysis, and it does so silently, which is what makes it
+insidious. Paths get hardcoded, package versions drift, and
+context-switching between projects becomes expensive. We shall
+build in this chapter what we would call the minimum viable
 workstation of a professional biostatistician in 2026.
 
 The goal is a workstation where: (1) the analysis you run

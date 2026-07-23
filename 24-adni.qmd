@@ -55,16 +55,15 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-This chapter works through a single end-to-end case
-study: predicting conversion from Mild Cognitive
-Impairment (MCI) to Alzheimer's disease (AD)
-dementia within a three-year horizon, using
-baseline sociodemographic, clinical, and
-neuropsychological measures. The goal is not to
-solve the prediction problem (that is a book-length
-exercise) but to demonstrate the Practicum
-workflow end-to-end: scaffolding, planning,
-wrangling, figuring, reporting, and depositing.
+We work through in this chapter a single end-to-end case
+study: predicting conversion from Mild Cognitive Impairment
+(MCI) to Alzheimer's disease (AD) dementia within a three-year
+horizon, using baseline sociodemographic, clinical, and
+neuropsychological measures. Our goal is not to solve the
+prediction problem, which would be a book-length exercise in
+its own right, but to demonstrate the Practicum workflow
+end-to-end: scaffolding, planning, wrangling, figuring,
+reporting, and depositing.
 
 The statistical modeling details are deliberately
 light; for those, consult the companion book
@@ -657,7 +656,7 @@ worked examples for similar fractions.
 
 ## Principle in use
 
-Three habits define defensible ADNI work:
+In closing, three habits define what we would regard as defensible ADNI work:
 
 1. **Pre-register the analysis.** The cohort
    is large and well-studied enough that

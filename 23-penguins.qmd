@@ -57,15 +57,13 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-The Palmer Penguins dataset
-[@horst2022palmerpenguins] is the successor to
-`iris`: it has enough structure to illustrate the
-full arc of an analysis (wrangling, descriptives,
-inference, reporting) without the colonial
-baggage that accompanies Fisher's dataset. This
-chapter works the dataset end-to-end as a
-template for every subsequent analysis you will
-do.
+The Palmer Penguins dataset [@horst2022palmerpenguins] is the
+successor to `iris`: it has enough structure to illustrate the
+full arc of an analysis, from wrangling through descriptives
+and inference to reporting, without the colonial baggage that
+accompanies Fisher's irises. We shall work the dataset
+end-to-end here, as a template for every subsequent analysis
+you will do.
 
 The dataset is small enough that the analysis
 runs in seconds, but rich enough to exercise
@@ -505,7 +503,7 @@ flag in peer review.
 
 ## Principle in use
 
-Three habits define defensible case-study
+In closing, three habits define what we would regard as defensible case-study
 practice:
 
 1. **Scaffold first, code second.** `zzc

@@ -56,16 +56,16 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-Real biomedical data arrive wide, irregular, and full
-of inconsistent coding. Most of a biostatistician's
-time is spent reshaping, joining, cleaning, and
-type-converting before a single model is fit. The
-tidyverse stack is the dominant toolkit for this
-work; fluency with it pays back on every project.
+Real biomedical data arrive wide, irregular, and full of
+inconsistent coding. Most of a biostatistician's time is spent,
+it must be admitted, reshaping, joining, cleaning, and
+type-converting long before a single model is fit. The
+tidyverse stack is the dominant toolkit for this work, and
+fluency with it pays back on every project.
 
-This chapter is not exhaustive, the tidyverse is too
-large for that. It covers the verbs and patterns that
-recur in clinical and epidemiological work.
+We do not attempt to be exhaustive here, the tidyverse being
+far too large for that. We cover instead the verbs and the
+patterns that recur in clinical and epidemiological work.
 
 ## The statistician's contribution {#sec-wrangling-human}
 
@@ -591,7 +591,7 @@ files.
 
 ## Principle in use
 
-Three habits define defensible wrangling:
+In closing, three habits define what we would regard as defensible wrangling:
 
 1. **Tidy data first.** Wide-to-long when the analysis
    needs long; long-to-wide when it needs wide. Tidy

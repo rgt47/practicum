@@ -61,10 +61,10 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-An analysis is not finished when the code runs. It is
-finished when a collaborator can reproduce the plots,
-tables, and paragraphs of your paper from your source
-files with one command. Quarto is the current standard
+An analysis is not finished when the code runs. It is finished,
+rather, when a collaborator can reproduce the plots, the
+tables, and the very paragraphs of your paper from your source
+files with a single command. Quarto is the current standard
 tool for doing that in R.
 
 Quarto is the successor to R Markdown, sharing most of
@@ -612,7 +612,7 @@ sets; verify the outputs differ as expected.
 
 ## Principle in use
 
-Three habits define defensible Quarto use:
+In closing, three habits define what we would regard as defensible Quarto use:
 
 1. **Inline computation, not hardcoded numbers.**
    Every number in the prose comes from the analysis.

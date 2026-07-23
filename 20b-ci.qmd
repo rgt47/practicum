@@ -233,7 +233,7 @@ chunk is caught before it reaches the published site.
 
 ## Principle in use
 
-Three habits define defensible continuous integration:
+In closing, three habits define what we would regard as defensible continuous integration:
 
 1. **Let CI prove reproducibility.** A clean-machine
    restore-and-render is the closest thing to a guarantee

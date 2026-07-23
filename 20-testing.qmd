@@ -56,12 +56,11 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-Tests are how you convince a reader (including
-future-you) that your code actually does what you
-think it does. Analysis code rarely gets tests, and
-the lack of them is a major source of
-reproducibility failures. This chapter brings the
-habits of software engineering to bear on the
+Tests are how you convince a reader, future-you included, that
+your code actually does what you think it does. Analysis code
+rarely gets tested, and the lack of tests is, we would argue, a
+major source of reproducibility failures. We shall bring in
+this chapter the habits of software engineering to bear on the
 practice of data analysis.
 
 The framework used in this chapter is `testthat`
@@ -546,7 +545,7 @@ multiple times. If it stops being flaky, fixed.
 
 ## Principle in use
 
-Three habits define defensible testing for
+In closing, three habits define what we would regard as defensible testing for
 analyses:
 
 1. **Test the math, not just the shape.**

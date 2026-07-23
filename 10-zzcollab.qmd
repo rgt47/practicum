@@ -64,17 +64,15 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-`zzcollab` is an opinionated research-compendium
-framework. It packages the ideas of `rrtools`,
-`renv`, and Docker into a single command-line
-workflow, trading flexibility for speed of setup
-and consistency across a research group's
-projects. You get less control over the directory
-layout than with bare `rrtools`; in exchange,
-every project in your group looks the same,
-collaborators know where things live, and you can
-go from `mkdir` to a reproducible container in
-under five minutes.
+`zzcollab` is an opinionated research-compendium framework. It
+packages the ideas of `rrtools`, `renv`, and Docker into a
+single command-line workflow, trading flexibility for speed of
+setup and for consistency across a research group's projects.
+On the plus side, every project in the group looks the same,
+collaborators know where things live, and you can go from
+`mkdir` to a reproducible container in under five minutes. On
+the minus side, you get rather less control over the directory
+layout than bare `rrtools` would give you.
 
 The framework exists because the manual setup
 (Dockerfile, renv, rrtools layout, Makefile
@@ -470,7 +468,7 @@ dependencies (which you then add).
 
 ## Principle in use
 
-Three habits define defensible `zzcollab` use:
+In closing, three habits define what we would regard as defensible `zzcollab` use:
 
 1. **Pick the right profile up front.** Profile
    mismatches are recoverable but slow. Match

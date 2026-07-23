@@ -73,14 +73,14 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-Missing data is the least-loved topic in an MS
-curriculum because its answers are rarely clean.
-Complete-case analysis is simple but throws
-information away and biases estimates under
-anything stronger than MCAR. Multiple imputation
-preserves information but adds a modeling layer
-with its own assumptions. Sensitivity analysis is
-essential but open-ended.
+Missing data is, perhaps, the least-loved topic in an MS
+curriculum, and the reason is that its answers are rarely
+clean. Complete-case analysis is simple, but it throws
+information away and biases estimates under anything stronger
+than MCAR. Multiple imputation preserves the information, but
+it adds a modeling layer with assumptions of its own.
+Sensitivity analysis is essential, but it is open-ended. There
+is, in short, no method here that is free of difficulty.
 
 The pragmatic stance is: document the missingness,
 be honest about the mechanism, implement one
@@ -632,7 +632,7 @@ recalibrates.
 
 ## Principle in use
 
-Three habits define defensible missing-data
+In closing, three habits define what we would regard as defensible missing-data
 practice:
 
 1. **Mechanism is an assumption, defended by

@@ -55,14 +55,13 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-Almost every real biostatistical project involves
-joining tables: demographics joined to outcomes, labs
-joined to medications, clinical data joined to imaging
-indices. The wrong join silently drops or duplicates
-rows, and the error may not surface until the final
-count is off by three or three hundred. This chapter
-teaches how to pick the right join and how to verify
-it.
+Almost every real biostatistical project involves joining
+tables: demographics joined to outcomes, labs joined to
+medications, clinical data joined to imaging indices. The wrong
+join silently drops or duplicates rows, and, unfortunately, the
+error may not surface until the final count is off by three, or
+by three hundred. We shall see in this chapter how to pick the
+right join and, no less important, how to verify it.
 
 ## The statistician's contribution {#sec-joins-human}
 
@@ -449,7 +448,7 @@ assertions.
 
 ## Principle in use
 
-Three habits define defensible joining:
+In closing, three habits define what we would regard as defensible joining:
 
 1. **Pick the join that matches the question.**
    Inner for matched-only; left for left-preserving;

@@ -51,11 +51,11 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-Git is the time machine you wish you had the last time
-you overwrote a working analysis. For a solo developer it
-is still worth the learning investment: the branching
-workflow lets you try risky refactors without fear, and
-the history lets you answer 'when did this break?' in
+Git is, in effect, the time machine you wished you had the last
+time you overwrote a working analysis. For a solo developer it
+is still, we would argue, worth the learning investment: the
+branching workflow lets you attempt a risky refactor without
+fear, and the history lets you answer 'when did this break?' in
 seconds rather than hours.
 
 The companion textbook (chapter 2 of *Statistical
@@ -469,7 +469,7 @@ uncommitted before any destructive recovery operation.
 
 ## Principle in use
 
-Three habits define defensible solo-developer Git use:
+In closing, three habits define what we would regard as defensible solo-developer Git use:
 
 1. **Commit small, commit often, commit with messages
    that explain why.** Atomic commits with informative
