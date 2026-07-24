@@ -65,15 +65,14 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-A database is a store that lets many users query
-structured data efficiently and safely. For the
-biostatistician, the practical point is that the data are
-usually too large, too sensitive, or too frequently
-updated to hand around as flat files. Querying at the
-source has three advantages: you pull only the rows and
-columns you need, you leave the authoritative copy
-untouched, and you record, in the query itself, exactly
-how your analytic dataset was derived.
+A database is a store that lets many users query structured
+data efficiently and safely. For the biostatistician, the
+practical point is that the data are usually too large, too
+sensitive, or too frequently updated to be handed around as
+flat files. Querying at the source has, we would note, three
+advantages: you pull only the rows and columns you need, you
+leave the authoritative copy untouched, and you record, in the
+query itself, exactly how your analytic dataset was derived.
 
 This chapter is not a database course. It teaches the
 subset of SQL and the `DBI`/`dbplyr` tooling that covers

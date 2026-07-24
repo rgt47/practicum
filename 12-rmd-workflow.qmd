@@ -56,12 +56,12 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-A mature Rmd workflow is the difference between an
-analysis that can be quickly iterated on and one that is
-a maze of manual edits. This chapter collects the
-practical tricks that pay off on the fifth rendered
-version of a document, when the small frictions of the
-first render compound into hours of manual cleanup.
+A mature Rmd workflow is the difference between an analysis
+that can be iterated on quickly and one that is a maze of
+manual edits. We collect in this chapter the practical tricks
+that pay off on the fifth rendered version of a document, when
+the small frictions of the first render have compounded into
+hours of manual cleanup.
 
 The chapter applies to both R Markdown (`.Rmd`) and
 Quarto (`.qmd`); Quarto is the modern default but R

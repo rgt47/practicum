@@ -60,15 +60,15 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-The shell is a text interface to the operating system. You
-type a command, the shell runs a program, and the program
-prints its output. Its power comes from a design decision
-made in the early 1970s: build many small programs, each
-doing one thing well, and let the output of one become the
-input of the next. A modern data scientist can go far
-without the shell, but not without friction, because the
-tools the field depends on, Docker, Git, `ssh`, cluster
-schedulers, are all operated from it.
+The shell is a text interface to the operating system. You type
+a command, the shell runs a program, and the program prints its
+output. Its power derives from a design decision made in the
+early 1970s: build many small programs, each doing one thing
+well, and let the output of one become the input of the next. A
+modern data scientist can go far without the shell, but not, we
+would suggest, without friction, because the tools the field
+depends on, Docker, Git, `ssh`, and the cluster schedulers, are
+all operated from it.
 
 This chapter teaches the subset that recurs in applied
 biostatistics: moving around the filesystem, inspecting

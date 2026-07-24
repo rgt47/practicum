@@ -56,11 +56,11 @@ By the end of this chapter you should be able to:
 ## Orientation
 
 Some analyses outgrow a laptop: multi-core simulations,
-genome-scale pipelines, multi-hour deep learning fits.
-Cloud compute is the pragmatic answer, but it adds its
-own complications: costs, security, data transfer, and
-process management. This chapter covers the minimum you
-need to use cloud compute safely.
+genome-scale pipelines, multi-hour deep learning fits. Cloud
+compute is the pragmatic answer, but it brings complications of
+its own, among them cost, security, data transfer, and process
+management. We cover in this chapter the minimum one needs to
+use cloud compute safely.
 
 The dominant providers (AWS, Google Cloud, Azure)
 overlap heavily; this chapter uses AWS for concreteness.

@@ -62,14 +62,14 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-An analysis is a chain of steps: read the raw data, clean
-it, derive variables, fit a model, produce a figure. When
-you change one step, everything downstream of it is stale
-and everything upstream is fine. Doing this bookkeeping by
-hand, remembering which steps to re-run after a change, is
-tedious and error-prone, and the errors are the silent
-kind: a figure built from a stale intermediate that you
-forgot to rebuild.
+An analysis is a chain of steps: read the raw data, clean it,
+derive variables, fit a model, produce a figure. When you
+change one step, everything downstream of it is rendered stale
+while everything upstream remains sound. Doing this bookkeeping
+by hand, that is, remembering which steps to re-run after a
+change, is tedious and error-prone, and the errors are, we
+would stress, of the silent kind: a figure built from a stale
+intermediate that you forgot to rebuild.
 
 The `targets` package automates the bookkeeping. You
 declare the steps and their dependencies; `targets` works
