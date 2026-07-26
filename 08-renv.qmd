@@ -144,6 +144,7 @@ that travels in Git; the library is the disposable build
 product it regenerates.
 
 ```{mermaid}
+%%| echo: false
 %%| label: fig-renv-cycle
 %%| fig-cap: "The renv cycle. snapshot() records the project library
 %%|   into the lockfile; restore() rebuilds the library from the

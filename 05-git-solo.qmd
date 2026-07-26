@@ -176,6 +176,7 @@ are merged back if they work out and abandoned if they do
 not.
 
 ```{mermaid}
+%%| echo: false
 %%| label: fig-git-branch
 %%| fig-cap: "A solo analyst's branch history. The main line carries
 %%|   the analysis of record and is tagged at submission; a

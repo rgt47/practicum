@@ -219,17 +219,18 @@ proposed merge. A human reviews. Only then does it join the
 analysis of record.
 
 ```{mermaid}
+%%| echo: false
 %%| label: fig-git-pr
 %%| fig-cap: "The feature-branch workflow. Work never lands on `main`
 %%|   directly: it arrives through a pull request that CI has checked
 %%|   and a colleague has read. The branch is short-lived and is
 %%|   deleted once merged."
-flowchart LR
-  A["git switch -c<br/>sensitivity-mnar"] --> B["commit,<br/>push branch"]
-  B --> C["open pull<br/>request"]
-  C --> D["CI runs<br/><i>renv restore,<br/>tests, render</i>"]
-  C --> E["colleague<br/>reviews diff"]
-  D --> F{"both<br/>pass?"}
+flowchart TD
+  A["git switch -c sensitivity-mnar"] --> B["commit, push branch"]
+  B --> C["open pull request"]
+  C --> D["CI runs<br/><i>renv restore, tests, render</i>"]
+  C --> E["colleague reviews diff"]
+  D --> F{"both pass?"}
   E --> F
   F -->|"no"| B
   F -->|"yes"| G["merge to main<br/><i>analysis of record</i>"]

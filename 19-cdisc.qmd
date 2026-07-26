@@ -142,6 +142,7 @@ row granularity at each stage, which is the quantity a
 statistician must track across every join.
 
 ```{mermaid}
+%%| echo: false
 %%| label: fig-cdisc-pipeline
 %%| fig-cap: "The regulatory data pipeline from protocol to FDA
 %%|   submission. SDTM is the immutable source the statistician reads;

@@ -318,6 +318,7 @@ $M$ analyses is what carries the uncertainty due to
 missingness that single imputation discards.
 
 ```{mermaid}
+%%| echo: false
 %%| label: fig-mi-steps
 %%| fig-cap: "The three steps of multiple imputation. The between-dataset
 %%|   variation recovered at the pooling step is the uncertainty that

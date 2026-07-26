@@ -170,19 +170,17 @@ exclusion is a number the manuscript must state, because
 a reader cannot judge selection bias without it.
 
 ```{mermaid}
+%%| echo: false
 %%| label: fig-adni-cohort
 %%| fig-cap: "Cohort-derivation flow for the ADNI analysis, in the
 %%|   CONSORT style. Every arrow is an exclusion with a count the
 %%|   manuscript must report; the analytic cohort is smaller than the
 %%|   enrolled cohort, and by how much is itself a finding."
 flowchart TD
-  A["ADNIMERGE baseline roster<br/><i>all participants</i>"] --> B{"Baseline DX in<br/>EMCI or LMCI?"}
-  B -->|"No: CN, SMC, AD"| BX["Excluded"]
-  B -->|"Yes"| C{"Followed at least<br/>3 years, or converted<br/>before then?"}
-  C -->|"No: insufficient<br/>follow-up"| CX["Excluded"]
-  C -->|"Yes"| D{"Key predictors<br/>observed?"}
-  D -->|"No: missing<br/>APOE4 / ADAS13 / educ"| DX["Excluded or imputed<br/>per SAP"]
-  D -->|"Yes"| E["Analytic cohort"]
+  A["ADNIMERGE roster<br/><i>all participants</i>"] --> B["Baseline EMCI or LMCI<br/><i>exclude CN, SMC, AD</i>"]
+  B --> C["3-year follow-up or conversion<br/><i>exclude insufficient follow-up</i>"]
+  C --> D["Key predictors observed<br/><i>exclude, or impute per SAP</i>"]
+  D --> E["Analytic cohort"]
 ```
 
 ## The ADNI dataset

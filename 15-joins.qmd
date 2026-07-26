@@ -118,6 +118,7 @@ in @fig-join-choice: do you want to keep rows that
 fail to match, and if so, from which side.
 
 ```{mermaid}
+%%| echo: false
 %%| label: fig-join-choice
 %%| fig-cap: "Choosing a join. The first question is whether unmatched
 %%|   rows should survive; the second is from which table. The

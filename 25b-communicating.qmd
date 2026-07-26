@@ -153,6 +153,7 @@ support for the third sentence. @fig-arc contrasts the
 structure with the chronology it replaces.
 
 ```{mermaid}
+%%| echo: false
 %%| label: fig-arc
 %%| fig-cap: "The chronology of an analysis, on the left, is the order in
 %%|   which the work was done and the order the methods section follows.
@@ -160,7 +161,7 @@ structure with the chronology it replaces.
 %%|   presented. The estimate moves from last to first, and the
 %%|   chronology becomes the defense rather than the narrative."
 flowchart LR
-  subgraph CHRON["Chronology (how you worked)"]
+  subgraph CHRON["Chronology (worked)"]
     direction TB
     C1["obtain data"] --> C2["clean"]
     C2 --> C3["describe"]
@@ -168,14 +169,13 @@ flowchart LR
     C4 --> C5["diagnose"]
     C5 --> C6["estimate"]
   end
-  subgraph ARG["Argument (how you present)"]
+  subgraph ARG["Argument (presented)"]
     direction TB
     A1["AND<br/><i>what is accepted</i>"] --> A2["BUT<br/><i>why the work exists</i>"]
     A2 --> A3["THEREFORE<br/><i>the estimate</i>"]
-    A3 --> A4["the defense<br/><i>design, model, diagnostics</i>"]
+    A3 --> A4["the defense<br/><i>design, diagnostics</i>"]
     A4 --> A5["what would<br/>change my mind"]
   end
-  C6 -.->|"becomes the<br/>opening, not<br/>the ending"| A3
 ```
 
 The final element of the argument is the one statisticians

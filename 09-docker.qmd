@@ -226,6 +226,7 @@ writing invalidates only the fast final `COPY`, leaving
 the slow package-restore layer untouched.
 
 ```{mermaid}
+%%| echo: false
 %%| label: fig-docker-layers
 %%| fig-cap: "Docker layer caching. Slow, slow-changing layers go early;
 %%|   the fast, frequently-edited source goes last. Editing the

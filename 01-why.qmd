@@ -120,6 +120,7 @@ the whole edifice falls in the manner of a stool missing a
 leg.
 
 ```{mermaid}
+%%| echo: false
 %%| label: fig-repro-legs
 %%| fig-cap: "The three ingredients of a methods-reproducible analysis.
 %%|   Each is necessary, and each has a characteristic failure mode: code
