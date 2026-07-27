@@ -71,7 +71,7 @@ syntax transfer between them.
 ## The statistician's contribution {#sec-rmd-workflow-human}
 
 Most Rmd workflow questions are mechanical. The
-judgements:
+judgments:
 
 **Decide on a primary format and stick to it.** A
 project that mixes `.R` files, `.Rmd` reports, and
@@ -100,7 +100,7 @@ right answer.
 100-line one. If you suspect the document will grow,
 convert early.
 
-These judgements are what separate a workflow that
+These judgments are what separate a workflow that
 saves time from one that creates new categories of
 problem.
 
@@ -489,7 +489,7 @@ inspect the cross-references in each.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible Rmd workflow:
+Three habits keep the fifth render as cheap as the first:
 
 1. **Convert to a single primary format.** `.qmd` for
    new work; convert legacy `.Rmd` if active. A

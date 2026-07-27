@@ -80,7 +80,7 @@ systems.
 
 ## The statistician's contribution {#sec-ci-human}
 
-The configuration is mechanical. The judgements:
+The configuration is mechanical. The judgments:
 
 **CI proves reproducibility, not just correctness.** A
 passing test suite says the code does what its tests check.
@@ -110,7 +110,7 @@ version-controlled and often public. The de-identification
 discipline of @sec-deident applies to the pipeline as much
 as to the data.
 
-These judgements are what make CI a reproducibility
+These judgments are what make CI a reproducibility
 instrument rather than a decorative badge.
 
 ## Anatomy of a workflow
@@ -119,7 +119,29 @@ A GitHub Actions workflow is a YAML file in
 `.github/workflows/`. It names the events that trigger it,
 one or more jobs, and the steps within each job. The steps
 run in order on a fresh virtual machine that GitHub
-provisions for the run.
+provisions for the run. @fig-ci-anatomy is the shape
+before the syntax.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-ci-anatomy
+%%| fig-cap: "The anatomy of a workflow run. The machine is fresh
+%%|   every time, which is what makes the result meaningful: the
+%%|   analysis is rebuilt from what is in the repository rather than
+%%|   from the state of anyone's laptop. Any step that exits
+%%|   non-zero fails the run."
+flowchart TD
+  E["<b>Trigger</b><br/><i>push to main, or<br/>a pull request</i>"]
+  E --> M["<b>Fresh virtual machine</b><br/><i>nothing of yours on it</i>"]
+  M --> S1["checkout the repository"]
+  S1 --> S2["install R"]
+  S2 --> S3["renv::restore()<br/><i>proves the lockfile is complete</i>"]
+  S3 --> S4["run the tests<br/><i>proves the numbers are right</i>"]
+  S4 --> S5["quarto render<br/><i>proves the report builds</i>"]
+  S5 --> P{"all steps<br/>exit zero?"}
+  P -->|"yes"| G["green check"]
+  P -->|"no"| R["red cross,<br/>log names the failing step"]
+```
 
 ```yaml
 name: Check analysis
@@ -233,7 +255,7 @@ chunk is caught before it reaches the published site.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible continuous integration:
+Three habits decide what a green check is worth:
 
 1. **Let CI prove reproducibility.** A clean-machine
    restore-and-render is the closest thing to a guarantee

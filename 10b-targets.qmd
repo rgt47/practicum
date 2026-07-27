@@ -82,7 +82,7 @@ nothing downstream of a change is ever left stale.
 
 ## The statistician's contribution {#sec-targets-human}
 
-The tool is mechanical. The judgements:
+The tool is mechanical. The judgments:
 
 **Decompose the analysis into honest steps.** A pipeline is
 only as clear as its decomposition. Steps should be
@@ -111,7 +111,7 @@ depends on what, in what order. It is often the most useful
 single artifact for a new collaborator trying to
 understand the project.
 
-These judgements are what make a pipeline trustworthy
+These judgments are what make a pipeline trustworthy
 rather than merely automated.
 
 ## The dependency graph
@@ -233,7 +233,7 @@ compendium alone only promises.
 
 ## Collaborating with an LLM on pipelines
 
-LLMs write `targets` plans competently; the judgement they
+LLMs write `targets` plans competently; the judgment they
 cannot supply is the decomposition.
 
 **Prompt 1: drafting a plan.** Describe the analysis steps
@@ -263,7 +263,7 @@ date and reason about why before accepting the explanation.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible pipeline work:
+Three habits make the pipeline's guarantee real:
 
 1. **Decompose into honest, functional steps.** Each target
    is a function with explicit inputs and outputs, not a

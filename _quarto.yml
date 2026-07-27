@@ -1,4 +1,6 @@
 project:
+  pre-render:
+    - tools/us-spelling
   type: book
   output-dir: _book
 
@@ -120,6 +122,7 @@ format:
     smooth-scroll: true
 
   pdf:
+    pdf-engine: xelatex
     documentclass: scrbook
     classoption: [11pt]
     toc: false

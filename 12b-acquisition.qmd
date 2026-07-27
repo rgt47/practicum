@@ -143,6 +143,29 @@ the person who has them. The answer is surprisingly often yes.
 These judgments determine whether the data your analysis rests
 on are the data you think they are.
 
+The three routes differ in almost everything except
+their ending. @fig-acquisition-routes puts them side by
+side, because the checking step they converge on is the
+same regardless of how the data arrived, and it is the
+step most often skipped.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-acquisition-routes
+%%| fig-cap: "The three ways data arrive and the one step they
+%%|   share. A file, an interface, and a web page raise different
+%%|   problems on the way in, but all three produce an object that
+%%|   must be checked before anything downstream can be trusted."
+flowchart TD
+  F["<b>A file</b><br/><i>delimiter, encoding,<br/>column types</i>"]
+  A["<b>An interface</b><br/><i>authentication, pagination,<br/>rate limits, JSON shape</i>"]
+  W["<b>A web page</b><br/><i>terms of use, selectors,<br/>silent structure changes</i>"]
+  F --> C["<b>Checked analysis file</b><br/><i>types asserted, levels counted,<br/>missingness described</i>"]
+  A --> C
+  W --> C
+  C --> D["Everything downstream<br/><i>wrangling, joining, modeling</i>"]
+```
+
 ## Reading files, deliberately
 
 The whole tidyverse import story is one function per format:
@@ -674,7 +697,7 @@ what came back before you point it at anything larger.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible acquisition:
+Three habits govern the step where most silent errors enter:
 
 1. **Specify every column.** The type specification is an
    assertion about the file, and the file will eventually violate

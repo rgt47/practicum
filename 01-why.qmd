@@ -149,8 +149,8 @@ code requires: R version, every package version, the
 operating system, system dependencies (LaTeX, GDAL,
 specific BLAS implementations). Without this, the same
 code on the same data on a different machine can produce
-different results. `renv.lock` (chapter 8) and Docker
-(chapter 9) are the standard tools.
+different results. `renv.lock` (@sec-renv) and Docker
+(@sec-docker) are the standard tools.
 
 Missing any one of the three breaks reproducibility:
 
@@ -230,7 +230,7 @@ Reproducibility is a workflow problem disguised as a
 software problem. Tools (`renv`, Docker, Quarto) make the
 software part easy. The workflow part, which steps to
 script, which to skip, what counts as a 'data file', when
-to commit, is where judgement matters.
+to commit, is where judgment matters.
 
 **What goes in the analysis script, and what stays in the
 README.** A `library(dplyr)` belongs in the script.
@@ -252,7 +252,7 @@ table. Document them in the README and treat their
 output as input to the reproducible chain. Do not
 pretend they were automated.
 
-These judgements are what distinguish a research
+These judgments are what distinguish a research
 compendium from a directory of scripts.
 
 ## Reproducibility is not correctness
@@ -308,7 +308,7 @@ analysis; push back when the structure is heavier than
 the project deserves.
 
 *Verification.* Compare against the `rrtools` template
-(chapter 7). Differences may be improvements or
+(@sec-rrtools). Differences may be improvements or
 regressions; evaluate each one.
 
 **Prompt 3: explaining the value to a skeptic.**

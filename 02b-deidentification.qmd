@@ -88,7 +88,7 @@ regimes, though the specific rules differ.
 ## The statistician's contribution {#sec-deident-human}
 
 De-identification is not a checklist to be run and
-forgotten. The judgements:
+forgotten. The judgments:
 
 **Re-identification risk lives in combinations.** No single
 quasi-identifier identifies anyone, but their conjunction
@@ -104,7 +104,7 @@ does not need full ZIP, collect the three-digit prefix.
 Minimizing identifiers at collection is cheaper and safer
 than de-identifying them afterward, and it is the
 disclosure-control analog of the raw-data discipline in
-chapter 13.
+@sec-wrangling.
 
 **De-identification is irreversible by design, and that is
 a feature.** A per-patient hash of the medical record
@@ -120,7 +120,7 @@ re-identify them. The consent form and the data-use
 agreement are commitments; honor them in the data you
 build.
 
-These judgements are what distinguish genuine disclosure
+These judgments are what distinguish genuine disclosure
 control from a false sense of safety.
 
 ## The two HIPAA methods
@@ -141,7 +141,7 @@ categories are gone.
 to certify, using accepted methods, that the risk of
 re-identification is very small. It is more flexible, and
 can retain more analytic detail, but it requires
-documented statistical judgement and is correspondingly
+documented statistical judgment and is correspondingly
 more involved. This is a role a biostatistician may
 themselves be asked to fill.
 
@@ -183,6 +183,33 @@ The third item is the one that most often surprises
 analysts: dates are identifiers. A date of admission,
 combined with a hospital and a diagnosis, can single out a
 patient. Safe Harbor permits the year but not the day.
+
+Four transformations do nearly all the work, and each
+one trades a different thing away. @fig-deident-pipeline
+sets them beside what they cost, because the cost is
+what determines whether the de-identified dataset can
+still answer the question you had.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-deident-pipeline
+%%| fig-cap: "The four Safe Harbor transformations and what each
+%%|   gives up. Suppression loses the variable; generalization loses
+%%|   resolution; hashing keeps linkage but destroys the key; date
+%%|   shifting keeps within-patient intervals but destroys calendar
+%%|   time. What survives is not anonymous, only de-identified."
+flowchart LR
+  P["PHI table<br/><i>name, MRN, DOB,<br/>admit date, ZIP</i>"]
+  P --> S["<b>Suppress</b><br/>name, phone, email<br/><i>cost: variable gone</i>"]
+  P --> G["<b>Generalize</b><br/>ZIP to 3 digits,<br/>age 90+ collapsed<br/><i>cost: resolution</i>"]
+  P --> H["<b>Hash</b><br/>MRN to salted digest<br/><i>cost: key unrecoverable,<br/>linkage preserved</i>"]
+  P --> D["<b>Shift dates</b><br/>per-patient offset<br/><i>cost: calendar time,<br/>intervals preserved</i>"]
+  S --> R["De-identified table"]
+  G --> R
+  H --> R
+  D --> R
+  R --> Q["<b>Residual risk</b><br/><i>quasi-identifiers still<br/>combine; not anonymous</i>"]
+```
 
 ## Applying Safe Harbor in R
 
@@ -360,7 +387,7 @@ still works through the hash.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible de-identification:
+Three habits keep the claim matched to the method:
 
 1. **Minimize at collection.** Collect age, not date of
    birth; the three-digit ZIP, not the full one. The safest
@@ -416,7 +443,7 @@ In closing, three habits define what we would regard as defensible de-identifica
    by accepted methods, that the re-identification risk is
    very small; it is more flexible and can retain more
    analytic detail but requires documented statistical
-   judgement.
+   judgment.
 2. Names and medical record numbers are direct identifiers,
    but the ordinary variables that remain, age, ZIP,
    admission date, sex, so-called quasi-identifiers, can

@@ -81,13 +81,13 @@ here.
 
 ## The statistician's contribution {#sec-shell-human}
 
-The commands are mechanical. The judgements:
+The commands are mechanical. The judgments:
 
 **Prefer a script to a sequence of clicks.** A pipeline you
 run by hand is a pipeline you will run differently next
 time. A shell script records the steps, runs them
 identically every time, and is version-controlled. The
-reproducibility argument of chapter 1 applies to the shell
+reproducibility argument of @sec-why applies to the shell
 as much as to R.
 
 **Destructive commands deserve respect.** `rm` does not
@@ -105,10 +105,10 @@ it.
 **Keep the shell out of the analysis proper.** The shell is
 excellent glue: fetching files, orchestrating steps,
 inspecting inputs. It is a poor place to do statistics.
-Draw the line where chapter 13 draws it, and do the
+Draw the line where @sec-wrangling draws it, and do the
 analysis in R.
 
-These judgements are what make the shell an asset rather
+These judgments are what make the shell an asset rather
 than a hazard.
 
 ## Navigating the filesystem
@@ -162,6 +162,27 @@ The pipe `|` connects the output of one command to the
 input of the next, exactly as R's `|>` connects functions.
 Redirection sends output to a file with `>` (overwrite) or
 `>>` (append).
+
+@fig-shell-pipe traces one line of text through a four-stage
+pipeline. Each stage does one thing, and the data narrows at
+every step, which is the whole design.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-shell-pipe
+%%| fig-cap: "A shell pipeline as a sequence of narrowing
+%%|   transformations. Each tool reads standard input and writes
+%%|   standard output, so composition needs no shared file format
+%%|   beyond lines of text. This is the same compositional idea as
+%%|   a dplyr pipeline, in a different notation."
+flowchart LR
+  F["labs.csv<br/><i>50,000 lines</i>"]
+  F --> A["cut -d',' -f5<br/><i>keep one field</i>"]
+  A --> B["sort<br/><i>make duplicates adjacent</i>"]
+  B --> C["uniq -c<br/><i>count runs</i>"]
+  C --> D["sort -rn | head<br/><i>rank, truncate</i>"]
+  D --> G["10 lines<br/><i>the answer</i>"]
+```
 
 ```bash
 # how many unique treatment arms appear in column 3?
@@ -288,7 +309,7 @@ expanded value.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible shell use:
+The shell rewards three habits and punishes their absence:
 
 1. **Script it, do not click it.** A repeated pipeline
    belongs in a version-controlled script, not in your
@@ -346,4 +367,4 @@ In closing, three habits define what we would regard as defensible shell use:
    shell script runs the steps identically every time, can
    be version-controlled and reviewed, and documents the
    pipeline, which is the reproducibility argument of
-   chapter 1 applied to orchestration.
+   @sec-why applied to orchestration.

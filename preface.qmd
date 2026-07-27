@@ -10,6 +10,17 @@ how to set up a project directory, commit changes with `git`,
 parameterize a report, or write a defensible statistical
 analysis plan.
 
+The omission is not an oversight by any individual program. It
+is structural. A curriculum committee allocates credit hours to
+what can be examined, and the craft of analysis has resisted
+examination: there is no closed-form answer to 'how should this
+project be organized', and no problem set that distinguishes a
+compendium a stranger can rebuild from a directory of scripts
+that happens to have produced the right numbers once. The
+result is that the skills a biostatistician uses every working
+day are the ones the degree least prepared them for, and they
+are acquired, if at all, by apprenticeship and accident.
+
 This book aims to close that gap. It teaches the practical
 skills needed to do reproducible biostatistical work in 2026:
 the tools, the workflows, and the professional norms. We assume
@@ -17,12 +28,139 @@ throughout that the reader will also be studying a theory-heavy
 statistical computing course alongside this one, and we treat
 modeling as that course's territory rather than our own.
 
+## Why now
+
+A book of this kind would have been useful in 2015. It is
+necessary in 2026, because three developments have converged
+that together change what a competent biostatistician is
+expected to be able to do.
+
+**Reproducibility stopped being a virtue and became a
+requirement.** For two decades the case for reproducible
+analysis was made on scientific grounds and heard as
+exhortation [@peng2011reproducible; @goodman2016what]. That
+changed when the funders wrote it down. The 2022 memorandum
+from the White House Office of Science and Technology Policy
+[@usshi2022ostp] directs every federal research funder to
+require immediate public access to publications and to the
+data underlying them, with agency implementation due by the
+end of 2025. Since January 2023 every NIH application has
+carried a Data Management and Sharing Plan that becomes a term
+of the award. The FDA has required CDISC-conformant submissions
+since 2016. A graduate entering the field now will be asked, in
+their first year, to name a repository, produce a persistent
+identifier, and state how the computational environment will be
+preserved. These are not questions a theory sequence answers,
+and the person on the team most likely to be asked them is the
+statistician. @sec-federal treats the policy landscape directly;
+the rest of the book is, in effect, the technical answer to it.
+
+**Large language models moved the scarce skill.** By 2026 a
+competent model will produce working R for most of the
+exercises in this book, and for a substantial share of the
+analysis code a junior statistician is asked to write. The
+bottleneck has moved from producing code to auditing it. This
+is a genuine change in what expertise consists of, and it cuts
+in a specific direction: the parts of the work a model does
+well are the mechanical parts this book teaches quickly, and
+the parts it does badly are the judgments this book spends
+most of its pages on. A model will not tell you that the
+verb in your discussion section outruns your design, that the
+join you just wrote inflated the denominator, or that the
+subgroup you are about to report was not one you were powered
+for. It will, however, write the join. Pretending the tools do
+not exist would leave students to discover their failure modes
+in production; teaching them without teaching verification
+would be worse. @sec-ai-coding takes the question head on, and
+every chapter closes with prompts paired with an explicit
+verification step.
+
+**The tooling finally settled.** The infrastructure this book
+teaches was, until recently, a moving target. Quarto reached
+maturity and absorbed R Markdown's role; `renv`
+[@ushey2026renv] displaced `packrat` and became the default for
+project-level dependency pinning; the `rocker` images
+[@boettiger2017rocker] made containerized R routine rather than
+exotic; `targets` [@landau2021targets] gave R a dependency-aware
+build tool that fits how analysts actually work. A book written
+in 2018 would have taught tools that are now deprecated. The
+stack described here is stable enough to be worth learning and
+recent enough that most working biostatisticians have not been
+taught it.
+
+## What the peer curricula do and do not cover
+
+Several chapters of this book justify their existence by
+reference to a survey of the published graduate curricula of
+peer United States biostatistics programs. The sources are
+recorded in @sec-peer-survey so that a reader can check the
+claim rather than take it.
+
+The survey's finding is not that peer programs are deficient.
+It is that the published curricula concentrate, reasonably, on
+statistical computing in the algorithmic sense: optimization,
+simulation design, the bootstrap, Bayesian computation. What
+recurs in the gaps is the operational layer that sits between a
+method and a result a reader can trust. The command line, SQL
+and database extraction, principled missing-data practice,
+dependency-aware pipelines, continuous integration, and
+de-identification each appear in a minority of published
+curricula, and each is something a biostatistician will be
+asked to do within months of starting work. Where a chapter
+here exists because of such a gap, it says so at its opening
+and cites the evidence.
+
+Two topics deserve particular mention because their absence has
+a cost that alumni report directly. The first is CDISC
+(@sec-cdisc): graduates entering pharmaceutical and
+contract-research positions encounter SDTM and ADaM on their
+first week and find that no course prepared them. The second is
+SAS (@sec-sas), which remains the screening filter for a large
+share of United States industry positions regardless of what one
+thinks of the language. Neither chapter argues that these
+standards are good. Both argue that a graduate who cannot read
+them is excluded from work they are otherwise qualified for.
+
+## Craft is not separable from correctness
+
+It would be possible to read the preceding sections as an
+argument about professional convenience: learn the tools, get
+the job, satisfy the funder. That reading understates the case.
+
+The infrastructure in this book exists because analysis is
+error-prone in ways that infrastructure catches and vigilance
+does not. A join that silently multiplies rows, a package
+update that changes a function's behavior between the analysis
+and the revision, a figure built from an intermediate that was
+never rebuilt after the cleaning script changed: none of these
+announces itself, and none is caught by being careful. They are
+caught by an assertion, a lockfile, and a dependency graph.
+The claim that reproducible infrastructure is a courtesy to
+future readers is true and incomplete. Its more immediate
+payoff is that it is what lets a statistician carry the ten or
+fifteen simultaneous projects that the work actually consists
+of [@slade2023team] without any of them quietly rotting.
+
+At the same time, this book is careful not to claim more for
+its tools than they deliver. A perfectly reproducible,
+fully compliant, numerically correct analysis can still mislead
+every reader it reaches, and no lockfile or container will
+notice. @sec-ethics is the chapter that says so, and it is
+placed early rather than late because the rest of the book is
+easier to keep in proportion once the reader knows what the
+infrastructure cannot do.
+
 ## What is different here
 
 - **Reproducibility is the organizing principle.** Each chapter
   is framed around producing analyses that a collaborator can
   rerun and extend. This is the animating concern of modern
   biostatistics.
+- **The judgment is taught explicitly.** Every chapter contains
+  a section on what the tool cannot decide for you. These are
+  the decisions that distinguish defensible practice from
+  competent tool use, and they are the part of the work that
+  neither a package nor a model performs.
 - **AI-assisted workflows are taught explicitly.** Students in
   2026 will use large language models in their daily work.
   Rather than pretend otherwise, the book dedicates a chapter
@@ -35,6 +173,11 @@ modeling as that course's territory rather than our own.
   funded research must meet NIH/NSF reproducibility
   requirements. A dedicated chapter covers what those
   requirements are and how to satisfy them.
+- **The collaborative reality.** The biostatistician's work is
+  done on teams, across several projects at once, with
+  colleagues who cannot read the code. @sec-team-science treats
+  this as a skill to be learned rather than a temperament to be
+  possessed.
 
 ## Prerequisites
 
@@ -54,12 +197,14 @@ No prior Docker, `renv`, or Quarto experience is assumed.
 See the [Conventions](conventions.qmd) page for the visual
 cues used throughout the book.
 
-## Acknowledgements
+## Acknowledgments
 
 This book draws heavily on Jenny Bryan's STAT 545
 [@bryan2019stat545] and *Happy Git with R*
 [@bryan2019happygit], Ben Marwick and colleagues' `rrtools`
-[@marwick2018rrtools; @marwick2018packaging], and Hadley
+[@marwick2018rrtools; @marwick2018packaging], Karl Broman's
+*Tools for Reproducible Research* [@broman2019tools4rr], Frank
+Harrell's *R Workflow* [@harrell2025rworkflow], and Hadley
 Wickham's book family [@wickham2023r4ds; @wickham2023rpkgs].
 
 I thank the graduate students whose questions shaped the
@@ -67,4 +212,4 @@ material substantially.
 
 Ronald "Ryy" G. Thomas\
 La Jolla, California\
-Spring 2026
+Summer 2026

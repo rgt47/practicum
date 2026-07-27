@@ -76,7 +76,7 @@ for most biostatistical workflows.
 
 ## The statistician's contribution {#sec-docker-human}
 
-Docker mechanics are mechanical. The judgements:
+Docker mechanics are mechanical. The judgments:
 
 **Pick the right base image.** `rocker/r-ver:4.4.0` is
 minimal: a few hundred MB. `rocker/tidyverse:4.4.0`
@@ -105,7 +105,7 @@ Mounting data via a volume keeps the image small but
 breaks the 'one image, full reproduction' promise. For
 small data, embed; for large or sensitive data, mount.
 
-These judgements are what make Docker a reproducibility
+These judgments are what make Docker a reproducibility
 tool rather than a slow build system.
 
 ## Images, containers, and layers
@@ -515,7 +515,7 @@ candidate and time it. Build size matters less than
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible Docker use:
+Docker earns its build time through three habits:
 
 1. **Pin everything.** Specific R version, specific
    rocker tag, specific package versions via

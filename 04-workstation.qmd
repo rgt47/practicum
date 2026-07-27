@@ -69,12 +69,12 @@ all of it is foundational.
 
 ## The statistician's contribution {#sec-workstation-human}
 
-Workstation setup is mostly mechanical. The judgements:
+Workstation setup is mostly mechanical. The judgments:
 
 **Pin the foundational toolchain.** A specific version of
 R, Quarto, and the rendering engine; documented and
 restorable. Casual updates are how reproducibility breaks
-silently. `rig` (on macOS) and Docker (chapter 9) make
+silently. `rig` (on macOS) and Docker (@sec-docker) make
 multiple R versions easy to maintain side by side.
 
 **Keep `.Rprofile` minimal.** Anything you put in
@@ -246,6 +246,32 @@ For most local biostatistics work, you do not need tmux;
 RStudio's session management suffices.
 
 ## R package libraries
+
+Almost every 'it works on my machine' report about a
+missing or wrong-version package resolves to one
+question: which library did R actually look in?
+@fig-libpaths is the search order, and the thing to
+notice is that `renv` works by prepending to it rather
+than by replacing anything.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-libpaths
+%%| fig-cap: "The library search path. R takes the first match it
+%%|   finds, and installs into the first entry. Activating `renv`
+%%|   prepends the project library, which is why the same
+%%|   `install.packages()` call lands in different places depending
+%%|   on where you ran it."
+flowchart TD
+  Q["library(dplyr)"] --> A{"project renv library<br/><i>present and active?</i>"}
+  A -->|"yes"| B["renv/library/...<br/><i>project-pinned version</i>"]
+  A -->|"no"| C{"user library"}
+  C -->|"found"| D["~/Library/R/...<br/><i>whatever you last installed</i>"]
+  C -->|"not found"| E["site and system libraries<br/><i>whatever the admin installed</i>"]
+  B --> F["first match wins"]
+  D --> F
+  E --> F
+```
 
 R looks for packages in the directories returned by
 `.libPaths()`:

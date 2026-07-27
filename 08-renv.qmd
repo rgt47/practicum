@@ -68,7 +68,7 @@ management.
 ## The statistician's contribution {#sec-renv-human}
 
 `renv` mechanics are simple: init, snapshot, restore.
-The judgements:
+The judgments:
 
 **Snapshot at meaningful moments, not constantly.** A
 snapshot after every `install.packages()` is overkill
@@ -98,7 +98,7 @@ default `renv::snapshot(type = "implicit")` records
 sources rather than binaries, which is platform-
 neutral.
 
-These judgements are what make renv a useful tool
+These judgments are what make renv a useful tool
 rather than another source of friction.
 
 ## Initializing renv
@@ -293,8 +293,9 @@ deliberately.
 
 ## Auditing with `zzrenvcheck`
 
-The in-house `zzrenvcheck` package (chapter 7) runs a
-suite of audits on the project's renv state:
+The in-house `zzrenvcheck` package, which `zzcollab`
+projects invoke through `make check-renv` (@sec-zzcollab),
+runs a suite of audits on the project's renv state:
 
 - Are all packages used in the code present in the
   lockfile?
@@ -417,7 +418,7 @@ later reproduction.
 ## Collaborating with an LLM on renv
 
 LLMs handle renv basics; the migration and audit cases
-need human judgement.
+need human judgment.
 
 **Prompt 1: diagnosing a `status()` warning.** Paste
 the output of `renv::status()` and ask: 'what is going
@@ -455,7 +456,7 @@ current available versions; compare.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible renv use:
+Three habits keep the lockfile honest:
 
 1. **Snapshot at meaningful moments.** Project start,
    each major dependency change, before each

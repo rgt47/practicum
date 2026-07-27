@@ -612,7 +612,7 @@ files.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible wrangling:
+Three habits keep a cleaning script auditable:
 
 1. **Tidy data first.** Wide-to-long when the analysis
    needs long; long-to-wide when it needs wide. Tidy

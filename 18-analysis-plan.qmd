@@ -340,6 +340,31 @@ research.
 
 ## Version control and tagging
 
+A SAP that can be edited after the data arrive is not a
+pre-specification, whatever it says on its front page.
+What makes the claim checkable is a timestamped tag in a
+history nobody can quietly rewrite. @fig-sap-timeline is
+the sequence that has to hold.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-sap-timeline
+%%| fig-cap: "The SAP against the data timeline. Everything to the
+%%|   left of the lock is pre-specified and carries the study's
+%%|   inferential authority. Anything written after it is
+%%|   exploratory, and an amendment made after data access must be
+%%|   tagged as its own version so that the order of events stays
+%%|   auditable."
+flowchart LR
+  D["Draft SAP<br/><i>no data access</i>"]
+  D --> T1["<b>git tag sap-v1.0</b><br/><i>pushed, immutable</i>"]
+  T1 --> L["Data lock<br/>and unblinding"]
+  L --> A["Analysis<br/><i>executes the plan</i>"]
+  A --> R["Report<br/><i>labels pre-specified<br/>vs exploratory</i>"]
+  L -.->|"amendment after<br/>data access"| T2["<b>git tag sap-v1.1</b><br/><i>exploratory unless<br/>justified and dated</i>"]
+  T2 -.-> A
+```
+
 The SAP lives in the project's Git repository:
 
 ```
@@ -501,7 +526,7 @@ verify the LLM and `zzpower` agree.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible SAP practice:
+Three habits make a plan binding rather than decorative:
 
 1. **Specify with enough detail that a second
    analyst would produce the same result.** Vague

@@ -88,7 +88,7 @@ LLM.
 tell you whether to dichotomize a continuous
 outcome, whether to control for a baseline
 covariate, or whether to use a one-sided or
-two-sided test. These judgements depend on
+two-sided test. These judgments depend on
 substantive understanding the LLM does not have.
 
 **Skepticism by default.** When the LLM produces a
@@ -106,7 +106,7 @@ revise the code, the prompt is the context. The
 are exemplars: prompt, what to watch for, how to
 verify.
 
-These judgements are what distinguish AI assistance
+These judgments are what distinguish AI assistance
 that produces correct, defensible code from AI
 assistance that produces working-looking but wrong
 code.
@@ -180,7 +180,7 @@ When not:
 - Tasks where you want full control of every edit
   (the agent is more autonomous than you may want).
 
-The CLI agent is more powerful and more dangerous
+The CLI agent is more capable and more dangerous
 than a chat window. The verification step
 (reviewing every change before commit) is the
 safety mechanism.
@@ -252,7 +252,7 @@ data |> dplyr::summarise_groups(mean(x))
 ```
 
 You run it; R errors with 'could not find function
-"summarise_groups"'. What is the right fix?
+"summarize_groups"'. What is the right fix?
 
 **Answer.**
 
@@ -278,6 +278,32 @@ different from what the LLM thinks.
 :::
 
 ## The verify-first workflow
+
+The workflow has one structural property worth naming
+before the steps: there is a gate, and generated code
+does not pass it by looking plausible. @fig-verify-loop
+is the loop, with the failure edge drawn in, because the
+failure edge is the part that gets skipped under
+deadline.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-verify-loop
+%%| fig-cap: "The verify-first loop. Plausibility is what the model
+%%|   optimizes for and is not what you are checking. Every arrow
+%%|   back to the prompt is a case the model got wrong in a way that
+%%|   running the happy path alone would not have revealed."
+flowchart TD
+  P["Prompt"] --> C["Generated code"]
+  C --> R["Read end to end<br/><i>can you say what it does?</i>"]
+  R --> H["Run the happy path"]
+  H --> E["Run the edge cases<br/><i>NA, empty, single row,<br/>wrong type, zero variance</i>"]
+  E --> B["Compare to a reference<br/><i>closed form, or your own version</i>"]
+  B --> G{"correct?"}
+  G -->|"no"| P
+  G -->|"yes"| T["Write a test<br/><i>lock the behavior</i>"]
+  T --> M["Commit"]
+```
 
 Before committing any LLM-generated code:
 
@@ -365,11 +391,11 @@ complex regex on text you do not have full
 examples of. The LLM's output may be plausible but
 wrong on inputs you have not seen yet.
 
-**Domain-specific judgements.** Should you use
+**Domain-specific judgments.** Should you use
 multiple imputation or complete-case? Is this
 covariate a confounder? These depend on knowledge
 the LLM lacks. Solicit suggestions, but do not
-delegate the judgement.
+delegate the judgment.
 
 **Code you cannot afford to ship without
 understanding.** A function in your statistical
@@ -465,12 +491,12 @@ alone would have been worse.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible AI-assisted coding:
+Three habits keep the model an amplifier:
 
 1. **Verify before trusting.** Read end-to-end, run
    on edge cases, compare to a reference, test.
 2. **Use the LLM as an amplifier.** Domain
-   knowledge and substantive judgement remain the
+   knowledge and substantive judgment remain the
    analyst's. The LLM accelerates routine work.
 3. **Document the prompt.** A working prompt is a
    reusable specification. Save it in comments

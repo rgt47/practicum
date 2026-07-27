@@ -65,7 +65,7 @@ right join and, no less important, how to verify it.
 
 ## The statistician's contribution {#sec-joins-human}
 
-Join mechanics are mechanical. The judgements:
+Join mechanics are mechanical. The judgments:
 
 **Verify after every join.** A join that says it
 returned the right number of rows usually did. A join
@@ -94,7 +94,7 @@ representation (string '001' is not the same as
 numeric 1). Document the canonical ID format; check
 it on every read.
 
-These judgements determine whether the joined data
+These judgments determine whether the joined data
 mean what you think they mean.
 
 ## The `_join` family
@@ -329,7 +329,7 @@ without overwriting existing.
 ## Reshaping for joining
 
 Some joins need wide-format data; others need long.
-The wrangling chapter (chapter 13) covers `pivot_longer`
+The wrangling chapter (@sec-wrangling) covers `pivot_longer`
 and `pivot_wider`. For joins, the typical pattern:
 
 - Convert each source to long format with consistent
@@ -449,7 +449,7 @@ assertions.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible joining:
+Three habits stand between a join and a silent bug:
 
 1. **Pick the join that matches the question.**
    Inner for matched-only; left for left-preserving;

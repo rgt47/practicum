@@ -77,7 +77,7 @@ conversion path is straightforward.
 
 ## The statistician's contribution {#sec-quarto-human}
 
-Quarto mechanics are mechanical. The judgements:
+Quarto mechanics are mechanical. The judgments:
 
 **Authorial decisions about what to compute inline.** A
 manuscript with `\(p < 0.05\)` hardcoded is fragile. A
@@ -112,7 +112,7 @@ infrastructure for tracking and reformatting
 citations. Use it from the start; backfilling
 citations for an existing paper is tedious.
 
-These judgements are what make a Quarto document a
+These judgments are what make a Quarto document a
 research artifact rather than a glorified Word
 document.
 
@@ -570,7 +570,7 @@ updates everything automatically.
 
 ## Collaborating with an LLM on Quarto
 
-LLMs handle Quarto well; the judgement about what to
+LLMs handle Quarto well; the judgment about what to
 compute inline is human.
 
 **Prompt 1: drafting a methods section.** Describe
@@ -612,7 +612,7 @@ sets; verify the outputs differ as expected.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible Quarto use:
+Three habits keep the prose and the numbers in step:
 
 1. **Inline computation, not hardcoded numbers.**
    Every number in the prose comes from the analysis.

@@ -81,7 +81,7 @@ derived from them.
 
 ## The statistician's contribution {#sec-cdisc-human}
 
-CDISC mechanics are mechanical. The judgements:
+CDISC mechanics are mechanical. The judgments:
 
 **Traceability is non-negotiable.** Every ADaM
 variable must point back to its SDTM source. The
@@ -115,7 +115,7 @@ and writing the spec from the result is a
 common antipattern; the spec is the contract that
 gets reviewed.
 
-These judgements are what distinguish defensible
+These judgments are what distinguish defensible
 CDISC programming from boilerplate-following.
 
 ## The regulatory pipeline
@@ -488,7 +488,7 @@ academic survival to CDISC ADTTE.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible CDISC work:
+Three habits carry a submission through review:
 
 1. **Specs before code.** Write the ADaM
    specification first; implement against it. The

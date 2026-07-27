@@ -73,7 +73,7 @@ focus is on everything *around* the modeling.
 ## The statistician's contribution {#sec-adni-human}
 
 ADNI is a substantive case study, and the
-substantive judgements are what matter.
+substantive judgments are what matter.
 
 **Define the cohort with care.** EMCI and LMCI
 participants who drop out before the three-year
@@ -119,7 +119,7 @@ at the `RID` level. Forgetting this produces
 optimistic AUCs that the model cannot achieve in
 true held-out evaluation.
 
-These judgements are what distinguish a
+These judgments are what distinguish a
 defensible ADNI analysis from one that
 over-claims.
 
@@ -598,7 +598,7 @@ the alternative is a sensitivity analysis.
 
 LLMs can help with the substantial
 boilerplate; the substantive cohort decisions
-need clinical judgement.
+need clinical judgment.
 
 **Prompt 1: drafting the inclusion/exclusion.**
 Paste the 243B ADNI analysis-plan template and
@@ -648,13 +648,14 @@ predictor: complete-case is bad; multiple
 imputation is the default; sensitivity to
 MNAR is essential.
 
-*Verification.* Compare to chapter 17's
+*Verification.* Compare to @sec-missing's
 recommendations and to van Buuren (2018)
 worked examples for similar fractions.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible ADNI work:
+Three habits hold the analysis to what the cohort
+supports:
 
 1. **Pre-register the analysis.** The cohort
    is large and well-studied enough that

@@ -93,7 +93,7 @@ shall return at some length below.
 
 ## The statistician's contribution {#sec-git-teams-human}
 
-The commands are mechanical. The judgements:
+The commands are mechanical. The judgments:
 
 **A merge conflict is a disagreement about the analysis, not
 about the text.** Git presents a conflict as two versions of a
@@ -114,7 +114,7 @@ matter more: has the join cardinality changed, is the seed
 still set, has a filter silently altered the denominator, does
 this new covariate appear in the analysis plan. A green test
 suite does not answer any of them. The review is where the
-statistical judgement of @sec-team-science meets the
+statistical judgment of @sec-team-science meets the
 infrastructure of this chapter, and it is the highest-value
 thing a second pair of eyes does on a research compendium.
 
@@ -137,7 +137,7 @@ conflicts to prevent and which to resolve is the difference
 between a repository that is pleasant to share and one that
 everybody dreads pulling.
 
-These judgements are what make a shared repository an asset
+These judgments are what make a shared repository an asset
 rather than a source of friction.
 
 ## Remotes, fetch, and the two shapes of history
@@ -541,7 +541,7 @@ git bisect reset
 ```
 
 Over a hundred commits this converges in about seven steps. It
-can be automated, which is where it becomes genuinely powerful
+can be automated, which is where it becomes genuinely useful
 on an analysis repository:
 
 ```bash
@@ -674,8 +674,7 @@ rewrite.
 
 ## Principle in use
 
-In closing, three habits are to be emphasized, and together they
-define what we would regard as defensible team Git.
+Three habits keep `main` worth defending:
 
 1. **Nothing lands on `main` unreviewed.** Feature branch,
    pull request, green CI check, human reader. Branch

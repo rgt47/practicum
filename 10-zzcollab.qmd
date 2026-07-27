@@ -80,12 +80,12 @@ targets, check scripts) is roughly 30--60 minutes
 of error-prone work per project. For a research
 group that produces many projects, automating
 that setup pays back quickly. For a one-off
-analysis, plain `rrtools` (chapter 7) suffices.
+analysis, plain `rrtools` (@sec-rrtools) suffices.
 
 ## The statistician's contribution {#sec-zzcollab-human}
 
 `zzcollab` automates mechanical setup. The
-judgements:
+judgments:
 
 **Choose the right profile.** A modeling project
 that uses `lme4` will fail in an `analysis` profile
@@ -137,6 +137,27 @@ missing any one is incomplete.
 | Source code      | Analysis scripts and functions                 |
 | Data             | Raw and processed data (or DOI pointers)       |
 
+The pillars are easier to remember as a stack than as a
+list, because each one captures a layer the one above it
+takes for granted. @fig-five-pillars is that stack.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-five-pillars
+%%| fig-cap: "The Five Pillars as a layered stack. Each layer
+%%|   assumes the one beneath it. Remove the Dockerfile and the R
+%%|   packages have no operating system to install onto; remove the
+%%|   lockfile and the source code has no packages; remove the data
+%%|   and there is nothing to analyze."
+flowchart TD
+  D["<b>5. Data</b><br/><i>raw and derived, or a documented path to them</i>"]
+  S["<b>4. Source code</b><br/><i>the analysis, in R/ and analysis/</i>"]
+  P["<b>3. .Rprofile</b><br/><i>activates the project library</i>"]
+  L["<b>2. renv.lock</b><br/><i>every R package version</i>"]
+  F["<b>1. Dockerfile</b><br/><i>operating system, system libraries, R build</i>"]
+  F --> L --> P --> S --> D
+```
+
 **Pillar 1: Dockerfile.** Captures the OS and
 system libraries below R. Without it, an analysis
 that depends on `libgdal` or a specific BLAS
@@ -167,7 +188,7 @@ one.
 documented procedure for obtaining them.
 Sensitive data often cannot live in the compendium
 directly; in that case, the compendium contains a
-README documenting the access path (chapter 2 has
+README documenting the access path (@sec-federal has
 the workflow).
 
 The five pillars are a checklist. Every project
@@ -402,10 +423,10 @@ that will be passed between team members,
 analyses that must survive for months or years
 after the lead analyst has moved on, and any
 analysis subject to federal reproducibility
-requirements (chapter 2).
+requirements (@sec-federal).
 
 The 'right level of infrastructure' is itself a
-judgement. Excessive infrastructure on a small
+judgment. Excessive infrastructure on a small
 project is busywork; insufficient infrastructure
 on a large one is technical debt. `zzcollab`
 makes the high-infrastructure path cheap, which
@@ -468,7 +489,8 @@ dependencies (which you then add).
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible `zzcollab` use:
+Three habits keep the framework proportionate to the
+project:
 
 1. **Pick the right profile up front.** Profile
    mismatches are recoverable but slow. Match

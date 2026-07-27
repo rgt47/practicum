@@ -71,7 +71,7 @@ naming and pipe-friendly interfaces.
 
 ## The statistician's contribution {#sec-types-human}
 
-Mechanics are mechanical. The judgements:
+Mechanics are mechanical. The judgments:
 
 **Factor or character?** A character vector is
 flexible: any value, any order, any new level later. A
@@ -106,9 +106,31 @@ is `janitor::excel_numeric_to_date()` or careful
 import. Verify any column whose name suggests dates
 but whose values are numeric.
 
-These judgements are what distinguish a working data
+These judgments are what distinguish a working data
 cleaning script from one that silently mishandles a
 common type.
+
+The factor-or-character decision is not a matter of
+taste, and it is not a decision made once. It is a
+decision about *when* in the pipeline the conversion
+happens, and @fig-factor-timing is the answer this
+chapter argues for.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-factor-timing
+%%| fig-cap: "Where to convert. Character is the safe type through
+%%|   reading, cleaning, and joining, because a new or misspelled
+%%|   value is merely a new string rather than an invalid level.
+%%|   Factor is the correct type at modeling and plotting, because
+%%|   the model needs a fixed level set and a declared reference."
+flowchart LR
+  R["Read<br/><i>character</i>"] --> C["Clean and recode<br/><i>character</i>"]
+  C --> J["Join<br/><i>character</i>"]
+  J --> X["<b>Convert here</b><br/><i>factor, reference level<br/>set deliberately</i>"]
+  X --> M["Model<br/><i>factor</i>"]
+  X --> P["Plot<br/><i>factor, ordered<br/>by fct_reorder</i>"]
+```
 
 ## Factors with `forcats`
 
@@ -557,7 +579,8 @@ interpretation.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible type handling:
+Three habits keep text, categories, and dates from
+becoming the project's bug list:
 
 1. **Convert to factor late.** Cleaning in
    character; modeling in factor. Specify reference

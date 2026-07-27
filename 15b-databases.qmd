@@ -84,7 +84,7 @@ colleagues.
 
 ## The statistician's contribution {#sec-databases-human}
 
-The query mechanics are mechanical. The judgements:
+The query mechanics are mechanical. The judgments:
 
 **Query at the source, extract deliberately.** The
 temptation is to pull the whole table into R and work
@@ -99,12 +99,12 @@ analytic dataset.
 was made. The SQL that produced it records everything.
 Keep the query in the compendium, under version control,
 and treat the extracted file as a build product in the
-manner of chapter 13's raw-data rule.
+manner of @sec-wrangling's raw-data rule.
 
 **Beware the silent row multiplication.** A join in SQL
 inflates rows exactly as a join in `dplyr` does, and the
 database will not warn you. The verification habit from
-chapter 15, count the rows and check against
+@sec-joins, count the rows and check against
 expectation, applies with equal force here.
 
 **Respect the boundary between analyst and warehouse.**
@@ -113,7 +113,7 @@ warehouse, and that is correct. You are a consumer of the
 data, not its custodian. Do not write back; extract, and
 do your derivations in your own space.
 
-These judgements are what make database-backed analysis
+These judgments are what make database-backed analysis
 reproducible and safe.
 
 ## Connecting with DBI
@@ -292,6 +292,34 @@ reduced the data to the size you actually need.
 
 ## When to push, when to pull
 
+@fig-collect-boundary is the whole idea of this chapter
+in one picture: `collect()` is a boundary, everything to
+its left runs in the database on the full data, and
+everything to its right runs in R on whatever crossed.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-collect-boundary
+%%| fig-cap: "The collect() boundary. Operations that make the data
+%%|   smaller belong on the database side; operations that need R's
+%%|   statistical machinery belong on the R side. Moving collect()
+%%|   earlier does not change the answer, only the amount of data
+%%|   that has to cross and the memory it takes to hold it."
+flowchart LR
+  subgraph DB["In the database, on all rows"]
+    T["table<br/><i>50 million rows</i>"] --> FI["filter"] --> JO["join"] --> AG["group and<br/>aggregate"]
+  end
+  AG --> CO(["<b>collect()</b>"])
+  subgraph RR["In R, on the reduced result"]
+    MO["model"]
+    PL["plot"]
+    IT["iterate"]
+  end
+  CO --> MO
+  CO --> PL
+  CO --> IT
+```
+
 The database is good at set operations on large data:
 filtering, joining, grouping, aggregating. R is good at
 everything else: modeling, plotting, iteration, anything
@@ -322,7 +350,7 @@ extraction and, where the warehouse supports it, the data
 snapshot or freeze identifier, because a warehouse is a
 living system and today's query may return different rows
 next month. The pattern mirrors the raw-data discipline of
-chapter 13: the query and its output date are the audit
+@sec-wrangling: the query and its output date are the audit
 trail that lets a reviewer reconstruct exactly which rows
 your analysis rested on.
 
@@ -359,7 +387,7 @@ full one.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible database work:
+Three habits keep the extraction defensible:
 
 1. **Query at the source; `collect()` late.** Push
    filtering and aggregation to the database; pull only the

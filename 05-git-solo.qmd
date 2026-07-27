@@ -66,7 +66,7 @@ off when you are the only contributor.
 
 ## The statistician's contribution {#sec-git-solo-human}
 
-The mechanics are mechanical. The judgements:
+The mechanics are mechanical. The judgments:
 
 **Commit boundaries are reasoning units.** Each commit
 should be one logical change. 'Refactor data cleaning to
@@ -470,7 +470,7 @@ uncommitted before any destructive recovery operation.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible solo-developer Git use:
+Three habits turn the history into something you can read:
 
 1. **Commit small, commit often, commit with messages
    that explain why.** Atomic commits with informative

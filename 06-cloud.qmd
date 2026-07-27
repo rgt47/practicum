@@ -71,7 +71,7 @@ cluster is the first choice when one is available.
 
 ## The statistician's contribution {#sec-cloud-human}
 
-Cloud compute is mostly mechanical. The judgements:
+Cloud compute is mostly mechanical. The judgments:
 
 **Pick the right instance.** A simulation that uses 4
 cores does not benefit from a 32-core instance. A model
@@ -96,18 +96,43 @@ as a red flag.
 
 **Reproducibility off the laptop.** A cloud instance
 needs the same environment specification as the laptop
-that ran the analysis. Docker (chapter 9) is the
+that ran the analysis. Docker (@sec-docker) is the
 standard answer; a `Dockerfile` plus an `renv.lock`
 makes the cloud instance setup automatable.
 
-These judgements determine whether cloud compute is a
+These judgments determine whether cloud compute is a
 multiplier or a money pit.
 
 ## When to use cloud compute
 
+The decision is driven by the bottleneck, not by the
+size of the dataset, and the right first question is
+which resource you have run out of. @fig-compute-tier
+puts the tiers in the order a working academic
+biostatistician should try them.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-compute-tier
+%%| fig-cap: "Choosing a compute tier. The laptop is the default and
+%%|   the right place for anything interactive. A university cluster
+%%|   is usually free and should be tried before a paid cloud. The
+%%|   public cloud earns its cost when the cluster is unavailable,
+%%|   the queue is too slow, or the job needs hardware the cluster
+%%|   does not have."
+flowchart TD
+  A{"What have you<br/>run out of?"}
+  A -->|"nothing, it is<br/>interactive work"| L["Laptop<br/><i>always the default</i>"]
+  A -->|"wall-clock time,<br/>job is parallel"| Q{"University HPC<br/>available?"}
+  A -->|"memory"| Q
+  A -->|"specialized hardware<br/>GPU, very large RAM"| C["Public cloud<br/><i>spot for fault-tolerant work</i>"]
+  Q -->|"yes"| H["SLURM plus Apptainer<br/><i>free, queued, no Docker</i>"]
+  Q -->|"no, or queue<br/>too slow"| C
+```
+
 Three patterns where cloud helps:
 
-**Compute-bound, parallelisable.** A simulation with
+**Compute-bound, parallelizable.** A simulation with
 10,000 independent replicates. Run on 16 cores instead
 of 8: roughly 2× faster. Cost: linear in cores; usually
 favorable for a one-off job.
@@ -222,7 +247,7 @@ Rscript -e 'install.packages("renv"); renv::restore()'
 ```
 
 Or, more reproducibly, run a Docker container with the
-environment baked in (chapter 9):
+environment baked in (@sec-docker):
 
 ```bash
 docker run -v $(pwd):/work my-analysis-image:v1.0 \
@@ -467,7 +492,7 @@ at $0.68/hour is about $2.72. EBS storage another
 $0.50. S3 egress for the results, pennies.
 
 For a simulation that took 32 hours on a laptop, this is
-a 8× speedup at $3 in costs. The judgement is whether
+a 8× speedup at $3 in costs. The judgment is whether
 the time saved is worth $3.
 
 ## Collaborating with an LLM on cloud setup
@@ -515,7 +540,7 @@ right.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible cloud use:
+Three habits keep the bill and the science both under control:
 
 1. **Provision deliberately, shut down promptly.** The
    instance is billed every hour it runs, including

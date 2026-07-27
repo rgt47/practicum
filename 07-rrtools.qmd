@@ -123,6 +123,28 @@ satisfy criterion 1 (`R/`, `data/`, `vignettes/`). The
 gap is criterion 2: a CRAN R package is a library of
 functions, not a study with data and a paper.
 
+@fig-compendium-anatomy shows what `rrtools` adds and
+why, with the package backbone on the left and the
+study on the right.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-compendium-anatomy
+%%| fig-cap: "What a compendium is made of. The package backbone
+%%|   supplies convention and dependency declaration; the analysis
+%%|   directory supplies the study; the Dockerfile supplies the
+%%|   environment. Remove any of the three and the reader loses
+%%|   navigability, content, or the ability to run it."
+flowchart TD
+  C["Research compendium"]
+  C --> P["<b>Package backbone</b><br/>DESCRIPTION, R/, man/<br/><i>convention and dependencies</i>"]
+  C --> A["<b>analysis/</b><br/>data/, paper/, figures/<br/><i>the study itself</i>"]
+  C --> D["<b>Dockerfile + renv.lock</b><br/><i>the environment</i>"]
+  P --> N["<i>self-describing</i><br/>a stranger can navigate it"]
+  A --> S["<i>single directory</i><br/>code, data, narrative together"]
+  D --> R["<i>computable</i><br/>another user can re-run it"]
+```
+
 `rrtools` extends an R package with what it lacks:
 
 - An `analysis/` directory for data, paper, and
@@ -294,7 +316,7 @@ libraries, and the package versions. A reader with
 Docker can rebuild exactly the environment that
 produced the paper.
 
-For deposition, follow the chapter 2 workflow: GitHub
+For deposition, follow the @sec-federal workflow: GitHub
 for the working repository, Zenodo for a DOI'd archive
 at submission, dbGaP/TCIA/etc. for any restricted-access
 primary data.
@@ -312,7 +334,7 @@ is the only widely-recognized layout in the R
 ecosystem; using it gives the compendium navigability
 for free. Second, the package gives dependency
 management: `DESCRIPTION:Imports` declares what is
-needed; `renv` (chapter 8) pins versions. Third, the
+needed; `renv` (@sec-renv) pins versions. Third, the
 package gives function management: helpers in `R/` are
 documented, tested, and importable into the analysis.
 A bespoke layout would have to reinvent all of this.
@@ -438,7 +460,7 @@ output for correctness.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible compendium use:
+Three habits make the compendium navigable to a stranger:
 
 1. **Use a recognized layout.** `rrtools` or a Quarto
    book; not a bespoke directory.

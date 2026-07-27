@@ -72,7 +72,7 @@ PDF in PMC' will find the 2023 NIH DMSP policy and the
 ## The statistician's contribution {#sec-federal-human}
 
 Compliance is paperwork; making compliance produce a
-genuinely reproducible analysis is judgement.
+genuinely reproducible analysis is judgment.
 
 **Treat the DMSP as a workflow document, not a form.** A
 plan that says 'data will be deposited at Zenodo at
@@ -95,7 +95,7 @@ data-use agreement gating the underlying data.
 that points to a `renv.lock` and a Dockerfile is
 verifiable. The difference takes ten minutes.
 
-These judgements determine whether the published artifact
+These judgments determine whether the published artifact
 actually reproduces the published numbers, or merely
 satisfies the form.
 
@@ -170,7 +170,7 @@ A DMSP for a typical clinical study includes:
 - Analysis code in a public GitHub repository, mirrored
   to Zenodo for a DOI.
 - Standards: CDISC SDTM for the underlying data
-  structure (chapter 19), Quarto reports for the
+  structure (@sec-cdisc), Quarto reports for the
   analysis pipeline.
 
 ## NSF and other agencies
@@ -188,7 +188,7 @@ requirements:
 - **CDC** requires public-data sharing for surveillance
   and epidemiologic data.
 - **FDA**, for industry-sponsored clinical trials, has
-  a separate CDISC-based regime (chapter 19) for
+  a separate CDISC-based regime (@sec-cdisc) for
   regulatory submissions, which is more structured than
   the open-data policies but serves a similar
   reproducibility role within the regulatory context.
@@ -197,6 +197,32 @@ For a project funded by multiple agencies, the most
 restrictive policy applies. Plan accordingly.
 
 ## Choosing a repository
+
+The choice is less open than the list of candidates
+suggests, because the data type and the access
+restriction between them determine it. @fig-repo-choice
+is the decision as it actually runs.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-repo-choice
+%%| fig-cap: "Choosing a deposition target. The first question is
+%%|   whether the artifact carries protected information; the second
+%%|   is whether a repository specific to the data type exists. A
+%%|   general-purpose repository is the right answer for code and
+%%|   supplementary tables and the wrong answer for primary
+%%|   genomic or imaging data."
+flowchart TD
+  A{"Does it contain<br/>PHI or restricted data?"}
+  A -->|"Yes"| B{"Domain repository<br/>for this data type?"}
+  A -->|"No"| C{"Code, or data?"}
+  B -->|"Yes"| D["dbGaP, TCIA, GEO<br/><i>controlled access, DUA</i>"]
+  B -->|"No"| E["Institutional controlled<br/>access, plus a synthetic<br/>public surrogate"]
+  C -->|"Code"| F["GitHub for work,<br/>Zenodo release for the DOI"]
+  C -->|"Data"| G{"Domain repository<br/>for this data type?"}
+  G -->|"Yes"| H["GEO, SRA, NeuroVault,<br/>ICPSR"]
+  G -->|"No"| I["Zenodo, OSF, or Dryad"]
+```
 
 For deposition, the repository should provide:
 
@@ -258,7 +284,7 @@ a different column ordering. The DESCRIPTION says 'broom
 1.0.0 or later'; the actual run used 1.0.3, which
 produced the published results.
 
-`renv.lock` (chapter 8) records the exact version of
+`renv.lock` (@sec-renv) records the exact version of
 every package, including transitive dependencies, that
 was active at the moment the analysis was run. Restoring
 the lock file on a new machine reproduces the exact
@@ -272,7 +298,7 @@ uses standard R packages' is neither.
 For projects with non-R dependencies (a particular LaTeX
 distribution, a system library, an external command-line
 tool), `renv.lock` is necessary but not sufficient.
-Docker (chapter 9) extends the environment specification
+Docker (@sec-docker) extends the environment specification
 to system level, giving a fully bit-for-bit reproducible
 environment at the cost of more complex tooling.
 

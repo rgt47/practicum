@@ -70,12 +70,12 @@ runs in seconds, but rich enough to exercise
 every component of the workflow this Practicum
 has built. By the end of this chapter you should
 have a complete, deposited, citable compendium
-that demonstrates the practices in chapters 1
-through 22.
+that demonstrates the practices of Parts I through
+VI.
 
 ## The statistician's contribution {#sec-penguins-human}
 
-Even on a small clean dataset, judgement applies.
+Even on a small clean dataset, judgment applies.
 
 **Document the cleaning decisions.** Eleven rows
 have at least one missing value. Dropping them
@@ -107,7 +107,7 @@ is what every project should follow. Practicing
 on penguins is practicing for every future
 project.
 
-These judgements scale to substantive analyses;
+These judgments scale to substantive analyses;
 penguins is the small example where they are
 easy to articulate.
 
@@ -281,36 +281,79 @@ predictor.
 
 ## Linear regression: flipper length predicts mass
 
-```r
+```{r}
+#| label: penguins-fit
 fit <- lm(body_mass_g ~ flipper_length_mm + species,
           data = penguins_clean)
 broom::tidy(fit, conf.int = TRUE)
-broom::glance(fit)
 ```
 
-Coefficients (rough numbers, may differ in
-practice):
+```{r}
+#| label: penguins-glance
+broom::glance(fit) |>
+  dplyr::select(r.squared, adj.r.squared, sigma, df, nobs)
+```
 
-- `(Intercept)`: $-3500$ g, the species-Adelie
-  prediction at flipper length 0 (extrapolation;
-  not interpretable).
-- `flipper_length_mm`: about 40 g per mm, the
-  within-species relationship.
-- `speciesChinstrap`: about $-90$ g, the
-  difference vs. Adelie at the same flipper
-  length.
-- `speciesGentoo`: about $1000$ g, the
-  difference vs. Adelie at the same flipper
-  length.
+Every number in the paragraph that follows is computed
+by the chunk above rather than typed in, which is the
+discipline of @sec-quarto applied to the book's own
+case study.
 
-$R^2 \approx 0.86$: a strong fit. The species
-effects are meaningful even after adjusting for
-flipper length; the species are different on
-body mass beyond what flipper length explains.
+The intercept is the predicted body mass of an Adelie
+penguin at a flipper length of zero. It is an
+extrapolation far outside the data and is not
+interpretable as anything; it exists to anchor the
+line. The `flipper_length_mm` coefficient is the
+within-species slope: the expected difference in body
+mass between two penguins of the same species whose
+flipper lengths differ by one millimeter.
+
+The species coefficients deserve more care, because
+they are the place a reader is most likely to
+misread the table. They are differences from Adelie
+*at the same flipper length*, and that is not the
+same quantity as the difference in average mass
+between the species. Gentoos average roughly 1,390 g
+heavier than Adelies in this dataset. The
+`speciesGentoo` coefficient is a small fraction of
+that, because Gentoos also have much longer flippers,
+and the model has already credited the flipper-length
+term with most of the difference. The adjusted
+coefficient answers 'how much heavier is a Gentoo
+than an Adelie with the same flippers', which is a
+narrower and more surprising question than the one a
+reader assumes it answers. Reporting the adjusted
+coefficient as though it were the species difference
+is the single easiest error to make with this table.
+
+```{r}
+#| label: penguins-marginal
+penguins_clean |>
+  dplyr::group_by(species) |>
+  dplyr::summarize(mean_mass = mean(body_mass_g),
+                   mean_flipper = mean(flipper_length_mm),
+                   .groups = "drop")
+```
+
+The $R^2$ from `glance()` is respectable but not
+overwhelming, and it is worth saying plainly that a
+respectable $R^2$ on a clean morphometric dataset is
+not evidence that the model is well specified. It
+says the predictors and the outcome are related, and
+nothing about whether the functional form is right.
+That is what the diagnostics are for.
 
 ## Diagnostic plots
 
-```r
+```{r}
+#| label: fig-penguins-diagnostics
+#| fig-cap: "The four standard `lm` diagnostic plots for the fitted
+#|   model. Residuals versus fitted and scale-location test the
+#|   mean and variance structure; the Q-Q plot tests the residual
+#|   distribution; residuals versus leverage identifies influential
+#|   observations."
+#| fig-width: 7
+#| fig-height: 6
 par(mfrow = c(2, 2))
 plot(fit)
 par(mfrow = c(1, 1))
@@ -341,16 +384,18 @@ remedy.
 
 **Question.** You compare the main-effects model
 to an interaction model
-`body_mass_g ~ flipper_length_mm * species`. The
-AIC drops by 4 with the interaction. Should you
-report the interaction model?
+`body_mass_g ~ flipper_length_mm * species`. On
+this dataset the AIC drops by about 6.7 with the
+interaction. Should you report the interaction
+model?
 
 **Answer.**
 
-It depends. AIC drop of 4 is meaningful but not
-huge (a difference of 4 corresponds to a
-likelihood ratio of $e^{-2} \approx 0.14$, weak
-evidence for the larger model). The decision
+It depends. A drop of 6.7 is meaningful but not
+decisive (a difference of $\Delta$ corresponds to a
+likelihood ratio of $e^{-\Delta/2}$, here about
+0.035, which favors the larger model without
+settling the matter). The decision
 involves: (1) does the interaction make
 biological sense? Different species *do* have
 different body shapes, so a different
@@ -503,8 +548,8 @@ flag in peer review.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible case-study
-practice:
+The case study is a template, and three habits are
+what it is a template for:
 
 1. **Scaffold first, code second.** `zzc
    analysis` before any analysis code. The

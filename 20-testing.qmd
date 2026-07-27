@@ -92,7 +92,7 @@ under either framework.
 
 ## The statistician's contribution {#sec-testing-human}
 
-Tests are mechanical to write. The judgements:
+Tests are mechanical to write. The judgments:
 
 **Test the statistical content, not just the
 plumbing.** A test that 'returns a tibble of the
@@ -118,7 +118,7 @@ function call inside a test of that function makes
 the test tautological. The test passes because you
 made it pass, not because the code is correct.
 
-These judgements are what make tests useful rather
+These judgments are what make tests useful rather
 than performative.
 
 ## Why test analyses?
@@ -145,6 +145,29 @@ understand what the function is supposed to do.
 The cost is small (5 minutes per test). The cost of
 silent miscalculation in a published paper is much
 larger.
+
+Tests come in layers, and the layers catch different
+failures. @fig-test-layers is the shape, with the
+important qualification that the pyramid familiar from
+software engineering is somewhat flatter for analysis
+code: the integration layer, a small synthetic dataset
+run through the whole pipeline, does more work here than
+it does in most applications.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-test-layers
+%%| fig-cap: "The three test layers and what each one catches.
+%%|   Unit tests are fast and narrow; end-to-end tests are slow and
+%%|   broad; the integration layer, where a synthetic dataset is run
+%%|   through the whole cleaning pipeline, has the best cost-benefit
+%%|   ratio for analysis code and is the layer most often missing."
+flowchart TD
+  U["<b>Unit</b><br/><i>one function, known input</i><br/>catches: helper bugs<br/>cost: seconds"]
+  I["<b>Integration</b><br/><i>whole pipeline, 20-line<br/>synthetic dataset</i><br/>catches: composition bugs,<br/>silent filter and join errors<br/>cost: seconds"]
+  E["<b>End to end</b><br/><i>raw data to final figures</i><br/>catches: everything left<br/>cost: minutes to hours"]
+  U --> I --> E
+```
 
 ## Unit tests with testthat
 
@@ -500,7 +523,7 @@ the cleaning logic.
 
 ## Collaborating with an LLM on tests
 
-LLMs draft tests well; the judgement about what to
+LLMs draft tests well; the judgment about what to
 test needs human input.
 
 **Prompt 1: drafting tests.** Paste the function and
@@ -545,8 +568,8 @@ multiple times. If it stops being flaky, fixed.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible testing for
-analyses:
+Three habits separate a suite that catches bugs from one
+that reports green:
 
 1. **Test the math, not just the shape.**
    Structural checks alone produce false confidence.

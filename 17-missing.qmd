@@ -121,7 +121,7 @@ always demands imputation. The two cases warrant
 different strategies.
 
 **Pre-specify the missing-data plan.** The SAP
-(chapter 18) should specify the primary
+(@sec-analysis-plan) should specify the primary
 missing-data approach before data access.
 Choosing the strategy after seeing the data --
 'we tried complete case, then MI, and report MI
@@ -576,7 +576,7 @@ analysis is more thorough.
 
 ## Pre-specifying the missing-data plan
 
-The SAP (chapter 18) should specify the primary
+The SAP (@sec-analysis-plan) should specify the primary
 missing-data strategy *before* data access. A
 typical pre-specification:
 
@@ -652,8 +652,8 @@ recalibrates.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible missing-data
-practice:
+Three habits keep missing data a stated assumption rather
+than a silent one:
 
 1. **Mechanism is an assumption, defended by
    substance.** No test produces it; clinical

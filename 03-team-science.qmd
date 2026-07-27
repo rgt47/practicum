@@ -72,7 +72,7 @@ by software.
 
 ## The statistician's contribution {#sec-team-science-human}
 
-Team science is judgement work end to end.
+Team science is judgment work end to end.
 
 **Recognize the role you are being asked to play.** A
 clinical PI who says 'we need a statistician' may be
@@ -115,7 +115,30 @@ re-engaged for the next project from those who are not.
 
 A useful mental model: biostatistician involvement varies
 along a spectrum from consulting (transactional) to
-co-investigation (long-term). Common positions:
+co-investigation (long-term). @fig-collab-spectrum sets
+the four common positions against the three things that
+vary with them, because it is the mismatch between where
+you sit and where the investigator thinks you sit that
+produces most collaboration friction.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-collab-spectrum
+%%| fig-cap: "The collaboration spectrum. Authority, time
+%%|   commitment, and credit all rise together along it. Trouble
+%%|   arises when the statistician and the investigator place the
+%%|   engagement at different points, which is why the position is
+%%|   worth naming out loud at intake."
+flowchart LR
+  A["<b>Consultant</b><br/><i>transactional</i><br/>acknowledgment"]
+  B["<b>Collaborator</b><br/><i>sustained</i><br/>authorship"]
+  C["<b>Co-investigator</b><br/><i>named on the grant</i><br/>authorship, effort"]
+  D["<b>Principal investigator</b><br/><i>leads the science</i><br/>first or last author"]
+  A --> B --> C --> D
+  E["authority, time, credit all increase"] -.-> D
+```
+
+Common positions:
 
 **Consultant.** A clinical investigator brings a question
 or a dataset; the statistician provides analysis or
@@ -191,7 +214,7 @@ Discussing authorship at the start of the project,
 in writing, prevents the confrontation at submission.
 
 ::: {.callout-note icon=false collapse=true}
-## Check your understanding: authorship vs. acknowledgement
+## Check your understanding: authorship vs. acknowledgment
 
 **Question.** A clinical collaborator brings you a
 dataset and asks for 'a quick t-test for an
@@ -206,7 +229,7 @@ criterion 1 (acquisition / analysis / interpretation
 of data) but criterion 2 (drafting or critically
 revising) and criterion 3 (final approval) are
 unmet, you did not see the abstract before
-submission. Acknowledgement would be the more
+submission. Acknowledgment would be the more
 defensible attribution. The right time to clarify
 this was at the start: 'I'll do the t-test if you
 can include me on the manuscript' or 'this counts
@@ -237,7 +260,7 @@ projects' fate is decided.
 different from an exploratory question with no deadline.
 The deadline shapes what is feasible.
 
-**The authorship and acknowledgement expectation.**
+**The authorship and acknowledgment expectation.**
 Will the statistician be a co-author? An
 acknowledgee? Hired help? Establishing this at
 intake avoids the confrontation later.
@@ -274,7 +297,7 @@ work (SOW) defines:
 - **Revisions.** How many rounds of revision are
   included; what counts as a 'major' change requiring
   renegotiation.
-- **Authorship and acknowledgement.** As discussed at
+- **Authorship and acknowledgment.** As discussed at
   intake.
 - **Boundaries.** What the statistician will *not* do
   (e.g., implement methods outside their expertise,
@@ -466,7 +489,7 @@ disagreement persists and the analysis is
 methodologically wrong, withdraw.
 
 The middle category is where most disagreements live
-and where judgement is most consequential. Picking too
+and where judgment is most consequential. Picking too
 many fights makes you a difficult collaborator;
 picking none makes you complicit in bad analyses.
 
@@ -522,7 +545,7 @@ to be messier than expected.
 
 LLMs can help with the writing parts (drafting intake
 documents, proofreading methods, role-playing
-skeptical PIs). They cannot replace the judgement.
+skeptical PIs). They cannot replace the judgment.
 
 **Prompt 1: drafting an intake document.** Describe
 the project briefly and ask: 'draft a one-page intake
@@ -565,7 +588,7 @@ description is accurate before submission.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible team-science practice:
+Three habits keep expectations from diverging:
 
 1. **Document agreements at the time, not at the
    end.** Email summaries after every meeting;

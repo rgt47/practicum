@@ -75,7 +75,7 @@ By the end of this chapter you should be able to:
 R and SAS each dominate a different sector. R
 dominates academic biostatistics, much of the
 clinical-epidemiology literature, and any work
-that benefits from a vibrant open-source
+that benefits from an active open-source
 ecosystem. SAS dominates FDA submissions, CDISC
 pipelines, clinical trial statistical
 programming, and a substantial fraction of
@@ -90,7 +90,7 @@ reading and writing competence in SAS, and not at fluency.
 
 ## The statistician's contribution {#sec-sas-human}
 
-The languages are mechanical. The judgements:
+The languages are mechanical. The judgments:
 
 **Match the tool to the audience.** A regulatory
 submission to FDA requires SAS-formatted
@@ -124,7 +124,7 @@ encoding. The discipline is the same as for
 single-language workflows but with one extra
 boundary.
 
-These judgements are what distinguish a useful
+These judgments are what distinguish a useful
 SAS competence from a fragile one.
 
 ## Getting access: SAS OnDemand for Academics
@@ -545,6 +545,29 @@ quit;
 
 ## Moving data between SAS and R
 
+A mixed-language project has one place where things go
+wrong, and it is the boundary. @fig-sas-boundary marks
+it, together with the three properties that have to be
+checked every time something crosses.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-sas-boundary
+%%| fig-cap: "The R and SAS boundary. Transport version 5 is the
+%%|   durable interchange format and the one the FDA requires. Each
+%%|   crossing is a place where variable names can be truncated,
+%%|   types can change, and labels can be lost, so each crossing
+%%|   deserves an explicit check rather than an assumption."
+flowchart LR
+  R1["<b>R</b><br/><i>clean, derive</i>"]
+  R1 -->|"haven::write_xpt<br/>version = 5"| X1[".xpt"]
+  X1 -->|"libname xport<br/>proc copy"| S["<b>SAS</b><br/><i>analyze, ODS output</i>"]
+  S -->|"libname out xport"| X2[".xpt"]
+  X2 -->|"haven::read_xpt"| R2["<b>R</b><br/><i>tabulate, plot</i>"]
+  C["<b>Check at every crossing</b><br/><i>row count, variable names,<br/>types and labels</i>"] -.-> X1
+  C -.-> X2
+```
+
 **R to SAS** via SAS transport (`.xpt`):
 
 ```r
@@ -742,8 +765,8 @@ cross-reference against domain conventions.
 
 ## Principle in use
 
-In closing, three habits define what we would regard as defensible cross-language
-work:
+Working across two languages rests on three
+habits:
 
 1. **Verify equivalence.** When translating
    between R and SAS, confirm the outputs match

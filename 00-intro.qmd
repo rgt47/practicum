@@ -38,43 +38,98 @@ made to survive scrutiny.
 
 We begin with an account of the territory the book
 covers, which is the practical craft of
-biostatistical data analysis:
+biostatistical data analysis. The book is organized
+into seven parts, and every chapter belongs to one of
+them.
 
-- **Reproducible research infrastructure.** Git
-  (@sec-git-solo), `renv` (@sec-renv), Docker
-  (@sec-docker), research compendia
-  (@sec-rrtools), the `zzcollab` framework
-  (@sec-zzcollab), and dependency-aware pipelines
-  (@sec-targets).
-- **Federal compliance and data protection.** OSTP,
-  NIH DMSP, NSF, FDA expectations (@sec-federal), and
-  HIPAA de-identification (@sec-deident).
-- **Workstation and shell.** R, Quarto, Git,
-  dotfiles, editor choice (@sec-workstation), and the
-  Unix command line (@sec-shell).
-- **Cloud compute.** AWS, GCP, university HPC
-  (@sec-cloud).
-- **Data wrangling.** The tidyverse stack
-  (@sec-wrangling, @sec-types, @sec-joins) and
-  querying databases with SQL (@sec-databases).
-- **Reporting.** Quarto and R Markdown
-  (@sec-quarto, @sec-rmd-workflow).
-- **Communication.** Publication-quality figures
-  (@sec-graphics).
-- **Analysis practice.** Statistical analysis
-  plans (@sec-analysis-plan), missing data
-  handling (@sec-missing), CDISC standards
-  (@sec-cdisc), testing data analysis workflows
-  (@sec-testing), and continuous integration
-  (@sec-ci).
-- **AI-assisted coding.** LLMs as amplifier, not
-  replacement (@sec-ai-coding).
-- **Cross-language fluency.** SAS for regulatory
-  bridging (@sec-sas), with Python shown alongside R
-  where the comparison instructs.
-- **Case studies.** End-to-end small analysis
-  (@sec-penguins) and longitudinal modeling
-  (@sec-adni).
+**Part I, the reproducibility mindset,** establishes
+why the rest matters: the case for reproducible
+analysis and what the word actually means
+(@sec-why), the federal policies that now require it
+(@sec-federal), the HIPAA obligations that constrain
+what may be shared (@sec-deident), the failures of
+inference that compliance does not prevent
+(@sec-ethics), and the team norms within which all of
+this is practiced (@sec-team-science).
+
+**Part II, the workstation,** builds the environment
+the work happens in: R, Quarto, Git, dotfiles, and
+editor choice (@sec-workstation), the Unix command
+line beneath them (@sec-shell), version control for
+one analyst (@sec-git-solo) and for a team
+(@sec-git-teams), and remote compute when the laptop
+is not enough (@sec-cloud).
+
+**Part III, reproducible infrastructure,** is the
+machinery that makes an analysis rebuildable:
+research compendia (@sec-rrtools), package pinning
+with `renv` (@sec-renv), environment pinning with
+Docker (@sec-docker), the `zzcollab` framework that
+composes them (@sec-zzcollab), and dependency-aware
+pipelines (@sec-targets).
+
+**Part IV, reproducible reporting,** covers the
+literate document that ties code to prose: Quarto
+(@sec-quarto) and the R Markdown workflow it
+succeeds (@sec-rmd-workflow).
+
+**Part V, data wrangling and graphics,** is the daily
+work: getting data in from files, interfaces, and web
+pages (@sec-acquisition), the tidyverse stack
+(@sec-wrangling, @sec-types, @sec-joins), querying
+databases with SQL (@sec-databases),
+publication-quality figures (@sec-graphics), and
+missing data (@sec-missing).
+
+**Part VI, analysis practice,** is the professional
+apparatus around the analysis: statistical analysis
+plans (@sec-analysis-plan), CDISC standards
+(@sec-cdisc), testing analytic workflows
+(@sec-testing), continuous integration (@sec-ci),
+AI-assisted coding (@sec-ai-coding), and SAS for
+regulatory bridging (@sec-sas), with Python shown
+alongside R where the comparison instructs.
+
+**Part VII, case studies and synthesis,** carries two
+analyses end to end, a small clean one
+(@sec-penguins) and a longitudinal clinical one
+(@sec-adni), then treats the communication of a
+finished result (@sec-communicating) before the
+closing review (@sec-synthesis).
+
+Two appendices follow: alternative wrangling
+paradigms for reading code that is not tidyverse
+(@sec-alternative-wrangling), and the peer-program
+survey on which several chapters rest their case for
+existing (@sec-peer-survey).
+
+@fig-book-map is the shape of the whole, and it is
+worth a moment before starting: the parts are not
+independent modules but a dependency chain, and a
+reader who skips ahead will find the later parts
+assuming the earlier ones.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-book-map
+%%| fig-cap: "The seven parts of the book and what each depends on.
+%%|   Infrastructure is what makes the mindset operational; reporting
+%%|   is what the infrastructure produces; the analysis practice and
+%%|   the case studies rest on everything above them."
+flowchart TD
+  P1["<b>I. Reproducibility mindset</b><br/><i>why, policy, privacy,<br/>ethics, teams</i>"]
+  P2["<b>II. Workstation</b><br/><i>R, shell, Git, cloud</i>"]
+  P3["<b>III. Infrastructure</b><br/><i>compendia, renv,<br/>Docker, pipelines</i>"]
+  P4["<b>IV. Reporting</b><br/><i>Quarto</i>"]
+  P5["<b>V. Wrangling and graphics</b><br/><i>acquire, tidy, join,<br/>query, plot, impute</i>"]
+  P6["<b>VI. Analysis practice</b><br/><i>SAP, CDISC, tests,<br/>CI, AI, SAS</i>"]
+  P7["<b>VII. Case studies</b><br/><i>end to end, then<br/>communicate</i>"]
+  P1 --> P2 --> P3 --> P4
+  P3 --> P5
+  P4 --> P6
+  P5 --> P6
+  P6 --> P7
+```
 
 ## What this book does not cover
 
@@ -179,7 +234,7 @@ structure:
 - **Orientation.** A short prose framing of the
   topic.
 - **The statistician's contribution.** What no
-  tool can automate. The judgements that
+  tool can automate. The judgments that
   distinguish defensible practice from rote use.
 - **Technical sections.** The how-to.
 - **Worked examples.** Code that demonstrates
@@ -205,13 +260,13 @@ for its content (Biostatistics Practicum) rather
 than the AI framing, but the framing is present
 throughout: every chapter has a 'Collaborating with
 an LLM' section showing how to use AI assistance for
-the chapter's tools, and chapter 21 is the
+the chapter's tools, and @sec-ai-coding is the
 meta-chapter on AI-assisted coding more generally.
 
 The position the books take is consistent: large
 language models are an amplifier of analyst
 productivity, not a replacement for analyst
-judgement. We argue this position by demonstration
+judgment. We argue this position by demonstration
 rather than by assertion. The reader is encouraged
 to use the AI assistance the book describes, to
 verify it the way the book describes, and to form
@@ -220,9 +275,11 @@ his or her own view.
 ## What this book is, in three sentences
 
 This is a graduate practicum in the daily craft of
-biostatistical data analysis. It comprises six
-arcs: reproducibility, workstation, infrastructure,
-reporting, analysis practice, and case studies. The
+biostatistical data analysis. It comprises seven
+parts: the reproducibility mindset, the workstation,
+reproducible infrastructure, reproducible reporting,
+data wrangling and graphics, analysis practice, and
+case studies with synthesis. The
 test of the book, in our view, is whether, after
 working through it, the reader can produce a
 reproducible, defensible analysis on a real
