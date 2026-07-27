@@ -56,12 +56,21 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-A mature Rmd workflow is the difference between an analysis
-that can be iterated on quickly and one that is a maze of
-manual edits. We collect in this chapter the practical tricks
-that pay off on the fifth rendered version of a document, when
-the small frictions of the first render have compounded into
-hours of manual cleanup.
+The preceding chapter argued for the literate document. This
+one is about living in it, which is a different problem and a
+less elevated one. A document is rendered once when it is
+written and perhaps forty times before it is submitted, and the
+frictions that are negligible on the first render are the
+dominant cost by the fortieth: the figure that lands three
+pages from its citation, the cross-reference that works in HTML
+and breaks in PDF, the expensive chunk that re-runs every time
+you fix a typo.
+
+None of this is intellectually interesting, and all of it is
+worth knowing, because the alternative to knowing it is doing
+the cleanup by hand every time. We collect here the practical
+measures that pay off on the fifth render rather than the
+first.
 
 The chapter applies to both R Markdown (`.Rmd`) and
 Quarto (`.qmd`); Quarto is the modern default but R
@@ -70,8 +79,9 @@ syntax transfer between them.
 
 ## The statistician's contribution {#sec-rmd-workflow-human}
 
-Most Rmd workflow questions are mechanical. The
-judgments:
+Conversions and float placement are lookups. The
+judgments that save time on the fifth render rather than
+the first are about consistency:
 
 **Decide on a primary format and stick to it.** A
 project that mixes `.R` files, `.Rmd` reports, and

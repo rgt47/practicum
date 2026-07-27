@@ -51,12 +51,26 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-Git is, in effect, the time machine you wished you had the last
-time you overwrote a working analysis. For a solo developer it
-is still, we would argue, worth the learning investment: the
-branching workflow lets you attempt a risky refactor without
-fear, and the history lets you answer 'when did this break?' in
-seconds rather than hours.
+Nearly every argument for version control is an argument about
+collaboration: merging other people's work, reviewing their
+changes, avoiding the overwrite of a file two people edited at
+once. None of that applies to an analyst working alone, which
+is why solo Git is a harder sell than it looks and why so many
+statisticians postpone learning it until a project forces the
+issue.
+
+The case has to be made differently, and it rests on a single
+observation: you are not one person over the life of a project.
+The analyst who wrote the cleaning script in March and the
+analyst asked in November why the denominator is what it is
+share a name and very little else. Everything Git offers a team
+it offers to that pair. The history answers 'when did this
+break' without anyone remembering. The tag answers 'what
+exactly did we submit' without anyone having kept a copy. The
+branch lets March attempt something risky without endangering
+what November will need to defend. The collaboration Git is
+supporting is real; it is simply asynchronous, and it is with
+yourself.
 
 The companion textbook (chapter 2 of *Statistical
 Computing in the Age of AI*) covers Git's mechanics in
@@ -66,7 +80,10 @@ off when you are the only contributor.
 
 ## The statistician's contribution {#sec-git-solo-human}
 
-The mechanics are mechanical. The judgments:
+Git's commands can be memorized in a week. What
+distinguishes a repository that answers questions from
+one that merely stores files is a set of habits the
+commands do not enforce:
 
 **Commit boundaries are reasoning units.** Each commit
 should be one logical change. 'Refactor data cleaning to

@@ -93,7 +93,9 @@ shall return at some length below.
 
 ## The statistician's contribution {#sec-git-teams-human}
 
-The commands are mechanical. The judgments:
+Nothing above is difficult to type. The difficulty is
+that a shared repository turns each of these operations
+into an act with consequences for somebody else:
 
 **A merge conflict is a disagreement about the analysis, not
 about the text.** Git presents a conflict as two versions of a

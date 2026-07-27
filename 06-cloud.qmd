@@ -56,11 +56,24 @@ By the end of this chapter you should be able to:
 ## Orientation
 
 Some analyses outgrow a laptop: multi-core simulations,
-genome-scale pipelines, multi-hour deep learning fits. Cloud
-compute is the pragmatic answer, but it brings complications of
-its own, among them cost, security, data transfer, and process
-management. We cover in this chapter the minimum one needs to
-use cloud compute safely.
+genome-scale pipelines, multi-hour model fits. The useful
+question is never whether to 'move to the cloud', which is a
+procurement decision rather than an analytic one, but which
+specific resource you have run out of. Wall-clock time, memory,
+and specialized hardware are three different shortages with
+three different answers, and an analyst who has diagnosed the
+shortage correctly will usually find that the cheapest adequate
+remedy is not the public cloud at all.
+
+That matters because renting a machine introduces problems a
+laptop does not have. The instance bills by the hour whether or
+not it is doing anything. The data have to travel, and if they
+are protected health information they may not be permitted to
+travel to an account you opened yourself. The job dies when the
+connection does, unless you took a step nobody told you about.
+This chapter covers the minimum needed to use remote compute
+safely, and it argues throughout for trying an institutional
+cluster before a credit card.
 
 The dominant providers (AWS, Google Cloud, Azure)
 overlap heavily; this chapter uses AWS for concreteness.
@@ -71,7 +84,10 @@ cluster is the first choice when one is available.
 
 ## The statistician's contribution {#sec-cloud-human}
 
-Cloud compute is mostly mechanical. The judgments:
+Provisioning a machine is a form to fill in. Deciding
+which machine, for how long, and with what data on it is
+where the money and the compliance exposure actually
+live:
 
 **Pick the right instance.** A simulation that uses 4
 cores does not benefit from a 32-core instance. A model

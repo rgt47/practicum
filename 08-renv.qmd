@@ -51,14 +51,24 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-Package versions drift, and therein lies the difficulty. A
-project that worked in January may fail in July because a
-dependency has introduced, somewhere along the way, a breaking
-change. `renv` pins the exact versions a project uses and
-writes them to a lockfile, so that `renv::restore()` reproduces
-the environment on any machine. We take up in this chapter the
-common workflow and the in-house `zzrenvcheck` tool that audits
-it.
+A project that worked in January may fail in July because a
+dependency changed underneath it. That much is familiar and is
+not, on its own, the interesting problem, because a failure is
+loud and gets fixed. The dangerous case is the one where
+nothing fails: the code still runs, the report still renders,
+and one of the numbers is different, because a default changed
+or a tie is now broken the other way. Nothing in the output
+says so. The analyst who re-runs an old analysis and gets a
+slightly different table has no way, without a record of what
+was installed the first time, to tell a genuine correction from
+a silent regression.
+
+`renv` supplies that record. It pins the exact versions a
+project uses and writes them to a lockfile, so that
+`renv::restore()` reconstructs the environment on any machine
+and any discrepancy becomes attributable rather than mysterious.
+We take up in this chapter the common workflow and the in-house
+`zzrenvcheck` tool that audits it.
 
 `renv` [@ushey2026renv] succeeded `packrat` (which is
 now deprecated) and is itself maintained by Posit. It
@@ -67,8 +77,10 @@ management.
 
 ## The statistician's contribution {#sec-renv-human}
 
-`renv` mechanics are simple: init, snapshot, restore.
-The judgments:
+There are only three verbs to learn, and they behave
+exactly as documented. What `renv` cannot decide is when
+to use them, and a lockfile that is snapshotted at the
+wrong moments records a history nobody can read:
 
 **Snapshot at meaningful moments, not constantly.** A
 snapshot after every `install.packages()` is overkill

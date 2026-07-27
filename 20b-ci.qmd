@@ -80,7 +80,9 @@ systems.
 
 ## The statistician's contribution {#sec-ci-human}
 
-The configuration is mechanical. The judgments:
+The YAML is boilerplate and can be copied. What the
+workflow checks, and therefore what a green check
+entitles you to claim, is a decision:
 
 **CI proves reproducibility, not just correctness.** A
 passing test suite says the code does what its tests check.

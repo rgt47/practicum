@@ -100,7 +100,9 @@ acquire it again in the same breath as analyzing it.
 
 ## The statistician's contribution {#sec-acquisition-human}
 
-Reading a file is mechanical. The judgments:
+Reading a file takes one line. Knowing what that line
+assumed, and what it will do when the assumption fails
+next quarter, is this chapter's actual subject:
 
 **The column specification is an assertion, not a convenience.**
 Every reader guesses your column types, and the guess is right

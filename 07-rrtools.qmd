@@ -55,12 +55,25 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-A research compendium is a single directory that bundles
-everything a reader needs to reproduce a study: code,
-data, text, and environment. The `rrtools` package
-turns an R package into a compendium by adding an
-`analysis/` directory for narrative and data, plus
-Docker integration for the environment.
+The preceding chapters argued that an analysis needs its code,
+its data, and its environment to travel together. This chapter
+is about the container they travel in, and about why that
+container should follow a convention somebody else invented
+rather than one that made sense to you at the time.
+
+The argument for convention is not aesthetic. A directory
+organized to your own logic is navigable by you and by nobody
+else, and 'nobody else' includes the version of you that
+returns after eighteen months. A compendium that follows a
+recognized layout can be opened by a stranger who has seen one
+before, and they will know where the paper is, where the raw
+data is, and which directory holds things that were derived
+rather than given. That is the whole benefit, and it is
+substantial enough that the specific convention matters much
+less than having one. The `rrtools` package supplies a
+convention by turning an R package into a compendium: it adds
+an `analysis/` directory for narrative and data, and Docker
+integration for the environment.
 
 The compendium is, in our view, the unit of reproducibility. A
 paper without its compendium is merely a description of an
@@ -71,7 +84,10 @@ person.
 
 ## The statistician's contribution {#sec-rrtools-human}
 
-Compendium tools handle the layout. The judgments:
+The scaffolding tools place the directories. What they
+cannot do is decide what belongs in them, and a
+compendium is navigable or not according to those
+decisions:
 
 **Pick the right scaffolding.** `rrtools` is one
 choice; a plain Quarto book is another; a project

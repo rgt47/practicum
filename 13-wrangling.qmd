@@ -57,19 +57,41 @@ By the end of this chapter you should be able to:
 ## Orientation
 
 Real biomedical data arrive wide, irregular, and full of
-inconsistent coding. Most of a biostatistician's time is spent,
-it must be admitted, reshaping, joining, cleaning, and
-type-converting long before a single model is fit. The
-tidyverse stack is the dominant toolkit for this work, and
-fluency with it pays back on every project.
+inconsistent coding, and the gap between how they arrive
+and the shape a model requires is where most of a
+biostatistician's time actually goes. This is usually
+described apologetically, as though wrangling were a tax
+paid before the real work. It is worth resisting that
+framing. Every decision made during cleaning, which rows
+are excluded, which values are implausible, what a
+missing code means, what unit a column is in, is a
+decision about what the analysis is of. Those decisions
+are as consequential as the choice of model, they are
+made earlier, and they are much less likely to be
+questioned by anyone downstream, because by the time the
+data reach a collaborator the decisions have become
+invisible facts about the dataset.
 
-We do not attempt to be exhaustive here, the tidyverse being
-far too large for that. We cover instead the verbs and the
-patterns that recur in clinical and epidemiological work.
+That is the argument for doing this work in code rather
+than in a spreadsheet, and for doing it in an idiom that
+a reader can follow. A cleaning script is a claim about
+provenance: it says that this analytic dataset came from
+that raw file by exactly these steps and no others. The
+tidyverse stack is the dominant toolkit for making such
+a claim legible, which is the reason this book teaches
+it rather than any of the faster alternatives in
+@sec-alternative-wrangling.
+
+We do not attempt to be exhaustive here, the tidyverse
+being far too large for that. We cover instead the verbs
+and the patterns that recur in clinical and
+epidemiological work.
 
 ## The statistician's contribution {#sec-wrangling-human}
 
-The verbs are mechanical. The judgments:
+The verbs take an afternoon to learn. What takes longer
+is knowing which shape the data should be in, and what
+each transformation costs to undo:
 
 **Tidy first, model later.** Untidy data leads to
 joins that are subtly wrong, summaries that mean the

@@ -56,12 +56,22 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
+A figure is the only part of a paper that most readers will
+examine closely, and it is the part over which the analyst has
+the most control and exercises the least deliberation. The
+default output of a plotting call is a decision, made by
+somebody who had never seen your data, about what the reader's
+eye should be drawn to. Accepting it is also a decision.
+
 A figure that survives peer review is one whose data, encoding,
 and aesthetic choices all serve the single claim the figure
-exists to make. We confine ourselves in this chapter to the
-mechanical skills; the principles of effective visualization
-are taken up in the companion textbook (chapters 15--16 of
-*Statistical Computing in the Age of AI*).
+exists to make. This chapter is mostly about the mechanics of
+getting there, since the mechanics are what can be taught in a
+chapter; the fuller principles of effective visualization are
+taken up in the companion textbook (chapters 15--16 of
+*Statistical Computing in the Age of AI*), and the ways a
+figure can mislead without printing a false number are treated
+in @sec-ethics.
 
 The combination `ggplot2` + `purrr` + `patchwork` is
 the modern stack for going from a single exploratory
@@ -83,7 +93,9 @@ penguins_clean <- na.omit(penguins)
 
 ## The statistician's contribution {#sec-graphics-human}
 
-Software handles the mechanics. The judgments:
+Software handles the mechanics; `ggplot2` will draw
+whatever you specify. Whether what you specify
+communicates or misleads is not something it can check:
 
 **One plot, one message.** A figure trying to convey
 three relationships succeeds at none. Three figures

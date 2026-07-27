@@ -56,12 +56,28 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-Tests are how you convince a reader, future-you included, that
-your code actually does what you think it does. Analysis code
-rarely gets tested, and the lack of tests is, we would argue, a
-major source of reproducibility failures. We shall bring in
-this chapter the habits of software engineering to bear on the
-practice of data analysis.
+Analysis code rarely gets tested, and the reason is a
+respectable one. Software is written to run on inputs its
+author has never seen; an analysis script is written to run on
+one dataset, once, and then to be thrown away. Testing
+something that runs once against known data can look like
+ceremony.
+
+The reasoning has two holes. The first is that the script does
+not run once. It runs every time a data extract is refreshed,
+an exclusion is revised, or a reviewer asks for a sensitivity
+analysis, and by then its author has forgotten which of its
+branches were ever exercised. The second is more serious: the
+claim 'it runs on one known dataset' is doing no work, because
+the failures that matter in analysis code do not stop it
+running. A filter that removes the wrong rows, a join that
+duplicates a patient, a unit conversion applied twice, all
+produce output. The question a test answers is not 'did it
+run' but 'would I have noticed if it were wrong', and for most
+analysis scripts the honest answer is no.
+
+We bring in this chapter the habits of software engineering to
+bear on that question.
 
 The framework used in this chapter is `testthat`
 (3rd edition), because it is the framework the reader
@@ -92,7 +108,9 @@ under either framework.
 
 ## The statistician's contribution {#sec-testing-human}
 
-Tests are mechanical to write. The judgments:
+Writing a test is five minutes of work. Writing a test
+that would actually fail if the code were wrong is the
+part that requires thought:
 
 **Test the statistical content, not just the
 plumbing.** A test that 'returns a tibble of the

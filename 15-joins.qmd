@@ -57,15 +57,39 @@ By the end of this chapter you should be able to:
 
 Almost every real biostatistical project involves joining
 tables: demographics joined to outcomes, labs joined to
-medications, clinical data joined to imaging indices. The wrong
-join silently drops or duplicates rows, and, unfortunately, the
-error may not surface until the final count is off by three, or
-by three hundred. We shall see in this chapter how to pick the
-right join and, no less important, how to verify it.
+medications, clinical data joined to imaging indices. The
+operation is one function call, and it is nonetheless
+among the most reliable sources of error in applied work.
+
+The reason is worth stating precisely, because it
+explains what this chapter is defending against. A join
+has two failure modes and neither of them raises an
+error. It can drop rows, when a key present on one side
+is absent on the other, in which case the analysis
+silently proceeds on a smaller and possibly different
+cohort than the one described in the methods section. Or
+it can multiply rows, when a key that should be unique
+is not, in which case a patient contributes several
+times to an estimate that assumed they contributed once.
+The first shrinks the denominator; the second corrupts
+the standard errors. Both produce a data frame that
+looks exactly like the one you wanted, and both survive
+every check that a person makes by glancing at the
+output.
+
+What catches them is not care but arithmetic: a stated
+expectation about how many rows the result should have,
+checked against how many it does. That is the habit this
+chapter is built around, and the `relationship` argument
+introduced in `dplyr` 1.1.0 is the tooling that makes
+stating the expectation cheap enough to do every time.
 
 ## The statistician's contribution {#sec-joins-human}
 
-Join mechanics are mechanical. The judgments:
+Every join in this chapter is one function call. The
+reason joins are among the most common sources of silent
+error in applied work is that the function call is not
+where the difficulty lives:
 
 **Verify after every join.** A join that says it
 returned the right number of rows usually did. A join

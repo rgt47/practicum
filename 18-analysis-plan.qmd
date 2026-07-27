@@ -59,12 +59,25 @@ By the end of this chapter you should be able to:
 ## Orientation
 
 The SAP is, we would contend, the professional
-biostatistician's most important non-code document. It locks in
-the analysis before the data are seen, so that the published
-results reflect hypotheses formed in advance rather than
-post-hoc choices. Federally funded trials require it; so do
-most journals for confirmatory analyses; and so, for your own
-integrity, should you.
+biostatistician's most important non-code document, and the
+argument for it is narrower and stronger than the one usually
+made. It is not primarily a defense against dishonesty. Very
+few analysts set out to select the analysis that gives the
+answer they wanted. What they do, having looked at the data, is
+make a long series of small and individually defensible
+choices, each of which they would have made differently had the
+data looked otherwise, and none of which they experience as a
+choice at all. The p-value that emerges at the end has a
+nominal Type-I error rate that assumes none of this happened.
+
+A plan written before the data are seen is the only instrument
+that distinguishes the two situations after the fact, because
+by then the analyst's memory of what they would have done is
+not evidence. Federally funded trials require one, most
+journals require one for confirmatory analyses, and the reason
+to want one has less to do with either than with being able to
+say, truthfully, which of your findings the study was designed
+to test.
 
 The SAP exists to constrain analyst degrees of
 freedom. Without it, the analysis plan is whatever

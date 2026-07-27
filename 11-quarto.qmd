@@ -64,8 +64,18 @@ By the end of this chapter you should be able to:
 An analysis is not finished when the code runs. It is finished,
 rather, when a collaborator can reproduce the plots, the
 tables, and the very paragraphs of your paper from your source
-files with a single command. Quarto is the current standard
-tool for doing that in R.
+files with a single command.
+
+The gap between those two states is usually occupied by a
+manual step that nobody thinks of as a step: a number read off
+the console and typed into a sentence. It is the most
+reasonable thing in the world to do, it takes four seconds, and
+it severs the connection between the analysis and the claim. On
+the day the data are corrected and the analysis is re-run, the
+figures update and the sentence does not, and there is nothing
+anywhere that will tell you. Literate programming exists to
+close that particular gap, and Quarto is the current standard
+tool for closing it in R.
 
 Quarto is the successor to R Markdown, sharing most of
 its syntax but with broader language support
@@ -77,7 +87,10 @@ conversion path is straightforward.
 
 ## The statistician's contribution {#sec-quarto-human}
 
-Quarto mechanics are mechanical. The judgments:
+Quarto's syntax is small and its documentation is good.
+The decisions that determine whether a document is a
+research artifact or merely a formatted report are not
+in the syntax:
 
 **Authorial decisions about what to compute inline.** A
 manuscript with `\(p < 0.05\)` hardcoded is fragile. A

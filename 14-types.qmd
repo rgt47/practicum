@@ -53,11 +53,21 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-After the numeric columns, the next most common source of
-analysis bugs is, in our experience, the handling of text,
-categories, and dates. We take up in this chapter the three
-packages that make each of these tractable. Master them, and
-roughly one-third of biomedical data cleaning becomes routine.
+Numeric columns misbehave loudly. A value that should be a
+number and is not will stop the analysis, and you will fix it
+within the minute. Text, categories, and dates are the opposite
+case, and that is why they deserve a chapter. A date parsed
+under the wrong convention is still a date. A factor with an
+unintended reference level still fits. A string with trailing
+whitespace still joins, to nothing. Each of these produces a
+result rather than an error, and the result is wrong in a way
+that no amount of staring at the output will reveal, because
+the output looks exactly as it should.
+
+We take up here the three packages that make these types
+tractable. Master them, and a large share of biomedical data
+cleaning becomes routine; more to the point, the failures that
+remain become the loud kind.
 
 The packages are:
 
@@ -71,7 +81,9 @@ naming and pipe-friendly interfaces.
 
 ## The statistician's contribution {#sec-types-human}
 
-Mechanics are mechanical. The judgments:
+The three packages are well documented and pleasant to
+use. The bugs they exist to prevent are not bugs of
+syntax but of timing and assumption:
 
 **Factor or character?** A character vector is
 flexible: any value, any order, any new level later. A

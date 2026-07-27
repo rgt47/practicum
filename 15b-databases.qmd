@@ -84,7 +84,9 @@ colleagues.
 
 ## The statistician's contribution {#sec-databases-human}
 
-The query mechanics are mechanical. The judgments:
+The core of SQL is small enough to learn in a day. What
+matters more is where you draw the line between the
+database's work and R's:
 
 **Query at the source, extract deliberately.** The
 temptation is to pull the whole table into R and work

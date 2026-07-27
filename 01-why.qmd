@@ -62,8 +62,23 @@ the analysis is correct, important, or even sensible; it says
 only that a second analyst, given the same inputs, can obtain
 the same outputs. And yet a substantial minority of published
 biomedical analyses fail even this bar when they are audited.
-The remedy is, in principle, inexpensive, but only if the habits
-are built in from the start rather than retrofitted at the end.
+
+It is worth being clear about why, because the honest answer
+changes what the remedy looks like. The failures are almost
+never fraud, and they are rarely even carelessness in any sense
+the analyst would recognize at the time. They are entropy. A
+package was updated between the analysis and the revision. A
+file was renamed. A step was done by hand on a Thursday
+afternoon and never written down, because on that Thursday it
+was obvious. Each of these is individually trivial and
+individually invisible, and their accumulation is what makes an
+analysis irreproducible six months later, usually to the
+surprise of the person who wrote it. The remedy is therefore
+not vigilance, which does not scale and cannot be audited, but
+a small number of structural habits that make the entropy
+impossible rather than merely discouraged. That is what the
+rest of this book is: the habits, and the tools that enforce
+them.
 
 The biostatistician is, in most teams, the person whose
 work product is the analysis itself. The reproducibility

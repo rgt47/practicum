@@ -82,7 +82,9 @@ nothing downstream of a change is ever left stale.
 
 ## The statistician's contribution {#sec-targets-human}
 
-The tool is mechanical. The judgments:
+Declaring targets is straightforward. The hard part, and
+the part that determines whether the pipeline is worth
+having at all, is the decomposition it encodes:
 
 **Decompose the analysis into honest steps.** A pipeline is
 only as clear as its decomposition. Steps should be

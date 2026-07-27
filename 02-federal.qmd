@@ -53,13 +53,24 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-Federal agencies now require public access to the
-publications, data, and, increasingly, the code produced
-with federal funds. Meeting these requirements is not, it
-should be said plainly, optional, and the biostatistician is
-frequently the team member best placed to implement them. We
-shall take up in this chapter the current policy landscape and
-the technical practices that satisfy it.
+Public-access compliance used to be somebody else's job. A
+paper was accepted, an administrator deposited the manuscript
+in PubMed Central, and the statistician heard nothing about it.
+That arrangement no longer holds, and the reason is that the
+scope of what must be shared has moved from the paper to the
+things the statistician owns: the data, the code, and the
+specification of the environment that produced the results.
+Nobody else on the team can supply those, which is why
+compliance has quietly become a biostatistical responsibility
+without anyone announcing the transfer.
+
+This chapter takes up the current policy landscape and the
+technical practices that satisfy it. The practices are, with
+one exception, ones the book teaches anyway for other reasons:
+a lockfile, a container, a compendium, a deposition with a
+persistent identifier. The exception is the plan itself, which
+is a document rather than an artifact, and which is graded
+before any of the work it describes has been done.
 
 The policy direction in the United States is unambiguous:
 public access for publicly funded research, with

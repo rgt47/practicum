@@ -64,15 +64,25 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-`zzcollab` is an opinionated research-compendium framework. It
-packages the ideas of `rrtools`, `renv`, and Docker into a
+The three preceding chapters each solved one layer of the
+reproducibility problem and each left the wiring to the reader.
+A compendium does not come with a lockfile; a lockfile does not
+come with a container; a container does not know where your
+paper lives. Assembling the three by hand is about half an hour
+of work per project and is exactly the kind of work that gets
+done slightly differently every time, which defeats the
+consistency it was supposed to produce.
+
+`zzcollab` is an opinionated framework that does the assembly.
+It packages the ideas of `rrtools`, `renv`, and Docker into a
 single command-line workflow, trading flexibility for speed of
-setup and for consistency across a research group's projects.
-On the plus side, every project in the group looks the same,
-collaborators know where things live, and you can go from
-`mkdir` to a reproducible container in under five minutes. On
-the minus side, you get rather less control over the directory
-layout than bare `rrtools` would give you.
+setup and for uniformity across a group's projects. The trade
+is real in both directions and worth stating plainly: every
+project in the group looks the same and a collaborator knows
+where things live without asking, at the price of rather less
+control over the layout than bare `rrtools` would give you. A
+reader who wants that control should use `rrtools` directly and
+will lose nothing this book teaches.
 
 The framework exists because the manual setup
 (Dockerfile, renv, rrtools layout, Makefile
@@ -84,8 +94,9 @@ analysis, plain `rrtools` (@sec-rrtools) suffices.
 
 ## The statistician's contribution {#sec-zzcollab-human}
 
-`zzcollab` automates mechanical setup. The
-judgments:
+The framework's whole purpose is to make the mechanical
+parts disappear. What it cannot decide for you is
+whether it should be used at all, and at what weight:
 
 **Choose the right profile.** A modeling project
 that uses `lme4` will fail in an `analysis` profile

@@ -54,12 +54,24 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-`renv` pins the R packages, but it pins neither the operating
-system, nor the system libraries, nor the R build itself.
-Docker captures all three. For an analysis that must reproduce
-exactly years later, or that depends on tricky system libraries
-(geospatial, GDAL, BLAS variants, JAGS, Stan), Docker is, we
-would maintain, the right tool.
+The previous chapter left a gap and did not dwell on it.
+`renv` pins the R packages, and R packages are not the whole
+environment. Beneath them sit the system libraries they compile
+against, the R build itself, and the operating system beneath
+that, none of which the lockfile records. Most of the time this
+does not matter, which is precisely why it is easy to overlook:
+the gap is invisible until an analysis depends on a linear
+algebra library that computes eigenvalues in a marginally
+different order, or on a geospatial stack that is not installed
+on the reviewer's machine at all.
+
+Docker closes the gap by specifying the whole stack rather than
+the top of it. The cost is a second technology to learn and a
+build step to wait for, and this chapter takes the position
+that the cost is worth paying for work that must reproduce
+years later or that depends on system libraries at all, and is
+not worth paying for a self-contained analysis that will be
+finished this quarter.
 
 The `rocker` project [@boettiger2017rocker] provides
 curated Docker images for R: minimal R, R with
@@ -76,7 +88,10 @@ for most biostatistical workflows.
 
 ## The statistician's contribution {#sec-docker-human}
 
-Docker mechanics are mechanical. The judgments:
+Building an image is a matter of following a recipe.
+Whether the image is a reproducibility instrument or an
+expensive way to run R depends on choices the Dockerfile
+makes silently:
 
 **Pick the right base image.** `rocker/r-ver:4.4.0` is
 minimal: a few hundred MB. `rocker/tidyverse:4.4.0`
