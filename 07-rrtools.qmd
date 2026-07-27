@@ -71,7 +71,7 @@ person.
 
 ## The statistician's contribution {#sec-rrtools-human}
 
-Compendium tools handle the layout. The judgements:
+Compendium tools handle the layout. The judgments:
 
 **Pick the right scaffolding.** `rrtools` is one
 choice; a plain Quarto book is another; a project
@@ -392,7 +392,7 @@ template.
 ## Collaborating with an LLM on compendium setup
 
 LLMs handle the scaffolding well; the file-placement
-judgement is harder.
+judgment is harder.
 
 **Prompt 1: converting a messy directory.** Paste a
 `tree` listing of your existing project directory and
@@ -476,6 +476,19 @@ In closing, three habits define what we would regard as defensible compendium us
   specific templates.
 - Quarto's manuscript template at
   `quarto.org/docs/manuscripts/`.
+- [@harrell2025rworkflow], the closest peer treatment
+  of the analysis-side workflow this chapter houses:
+  what goes in the compendium's `analysis/` directory
+  once the directory exists.
+- [@harrell2025bbr] Chapter 21, 'Reproducible
+  Research', which is the case for the compendium
+  made inside a biostatistics course rather than a
+  software-engineering one.
+- [@vanderbilt-rereport-2024], the Vanderbilt
+  Biostatistics department's public page on
+  reproducible reporting, for what these practices
+  look like as a collaborating unit's standing policy
+  rather than an individual's discipline.
 
 ## Prerequisites answers {#sec-quiz-answers-07}
 

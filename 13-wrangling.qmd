@@ -69,7 +69,7 @@ patterns that recur in clinical and epidemiological work.
 
 ## The statistician's contribution {#sec-wrangling-human}
 
-The verbs are mechanical. The judgements:
+The verbs are mechanical. The judgments:
 
 **Tidy first, model later.** Untidy data leads to
 joins that are subtly wrong, summaries that mean the
@@ -97,7 +97,7 @@ rows. Sometimes the analysis demands long; sometimes
 keeping it wide is appropriate. Pivot when the
 operation requires it, not as ritual.
 
-These judgements determine whether the wrangling
+These judgments determine whether the wrangling
 script produces correct, audit-able data.
 
 ## Tidy data: three rules
@@ -544,6 +544,27 @@ variables computed and named, output written to a
 non-raw location. A reviewer can read the script and
 recover exactly what cleaning happened.
 
+One line in that script deserves a caveat, because
+`cut()` is the easiest thing in the chapter to write
+and the easiest to regret. Binning `age` into three
+groups is a legitimate *display* choice: a table of
+baseline characteristics is more readable by decade
+than by year. It is rarely a legitimate *modeling*
+choice. Categorizing a continuous predictor discards
+the within-category variation, assumes a step
+function where the biology is smooth, and makes the
+estimated effect depend on cutpoints that were
+chosen rather than measured. Harrell's treatment of
+information loss [@harrell2025bbr, ch. 18] and the
+modeling argument in *Regression Modeling Strategies*
+[@harrell2015rms] are the standard statements of the
+cost. Keep the continuous variable in the data frame,
+derive the grouped version alongside it under its own
+name, as the script above does, and let the analysis
+chapter decide which one the model sees. Deriving
+`age_group` is cheap; recovering `age` after you have
+overwritten it is not.
+
 ## Collaborating with an LLM on wrangling
 
 LLMs handle dplyr/tidyr well; the trap is producing
@@ -635,6 +656,13 @@ In closing, three habits define what we would regard as defensible wrangling:
   paper; essential for the three rules.
 - [@bryan2019stat545] Chapters 5--9, slower-paced
   alternative.
+- [@harrell2025rworkflow] Chapters 10--13, the same
+  operations (manipulation, aggregation, merging,
+  longitudinal reshaping) in the `data.table` idiom,
+  read alongside @sec-alternative-wrangling.
+- [@harrell2025bbr] Chapter 18, 'Information Loss',
+  on why the `cut()` in the worked example belongs to
+  the table and not to the model.
 - The `dplyr` and `tidyr` cheat sheets at
   `posit.co/resources/cheatsheets`.
 

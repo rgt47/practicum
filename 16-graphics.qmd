@@ -83,7 +83,7 @@ penguins_clean <- na.omit(penguins)
 
 ## The statistician's contribution {#sec-graphics-human}
 
-Software handles the mechanics. The judgements:
+Software handles the mechanics. The judgments:
 
 **One plot, one message.** A figure trying to convey
 three relationships succeeds at none. Three figures
@@ -97,6 +97,28 @@ relationship as a hex-binned plot or a 2D density
 contour shows the structure without the visual
 noise. Choose encoding for legibility, not
 faithfulness to the raw data.
+
+**Show the distribution, not a summary of it.** A bar
+chart of group means with error bars is the default
+figure in the clinical literature and one of the least
+informative. It reports two numbers per group, hides
+skewness, bimodality, and outliers, and devotes most
+of its ink to a rectangle whose height is measured
+from an arbitrary zero. Harrell's chapter on
+descriptive statistics and graphics [@harrell2025bbr,
+ch. 4] makes the case at length: a bar has a high
+ink-to-information ratio, its width carries no
+information at all, and graphing the raw data is
+usually essential rather than optional. With a
+modest number of observations per group, plot the
+points: `geom_jitter()` or `ggbeeswarm::geom_quasirandom()`,
+with the summary overlaid rather than substituted for
+the data. With many observations, `geom_boxplot()` or
+`geom_violin()` still shows a shape where a bar shows
+none. This is not in tension with the previous
+judgment: encoding the claim means choosing the
+display that makes the claim legible, and 'the groups
+differ' is a claim about distributions.
 
 **Consistency across the project.** All figures in a
 paper should share fonts, color palette, and theme
@@ -121,7 +143,7 @@ their remedies at length; the habit to carry into every
 figure is to name the visual channel the reader is
 decoding before choosing it.
 
-These judgements are what make figures publishable.
+These judgments are what make figures publishable.
 
 ## One plot per group with purrr
 
@@ -564,7 +586,7 @@ the `plotnine` package reproduces the `ggplot2` API
 almost verbatim (`from plotnine import ggplot, aes,
 geom_point`). The choice between them is a matter of
 taste and of what the rest of the analysis is written
-in. The judgement the figure requires, one message per
+in. The judgment the figure requires, one message per
 plot, uncertainty shown, color chosen for legibility,
 does not change with the language.
 
@@ -657,6 +679,13 @@ In closing, three habits define what we would regard as defensible plotting:
   visualization principles.
 - The `patchwork`, `cowplot`, and `gganimate`
   package vignettes.
+- [@harrell2025bbr] Chapter 4, on descriptive
+  statistics and graphics, and [@harrell2024checklist],
+  whose reporting items include displaying raw data
+  and avoiding bar charts of means.
+- [@harrell2025rworkflow] Chapter 14, a `ggplot2`
+  graphics chapter written for biomedical reporting,
+  including interactive figures in Quarto output.
 
 ## Prerequisites answers {#sec-quiz-answers-16}
 

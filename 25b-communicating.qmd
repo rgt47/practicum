@@ -83,7 +83,7 @@ evidence and the least latitude.
 
 ## The statistician's contribution {#sec-communicating-human}
 
-Everything in this chapter is judgement; there is no tool.
+Everything in this chapter is judgment; there is no tool.
 
 **Lead with the answer.** The clinical collaborator has one
 question, and it is the one they asked you three months ago.
@@ -122,7 +122,7 @@ confirmatory frame because a reviewer requested it. The
 request does not launder the inference, and the response
 letter is where you say so, politely and once.
 
-These judgements are what distinguish a statistician who is
+These judgments are what distinguish a statistician who is
 consulted again from one who is merely correct.
 
 ## The narrative arc
@@ -289,7 +289,7 @@ the compendium, and the memo says where.
 >    rests on and the manuscript must say so.
 > 2. Open-label design. Readmission is a hard endpoint and
 >    unlikely to be influenced by knowledge of arm, but the
->    decision to admit is a clinician's judgement and is not
+>    decision to admit is a clinician's judgment and is not
 >    fully hard.
 > 3. Single health system. External validity is unaddressed.
 >
@@ -411,7 +411,7 @@ imply that the reviewer has failed to read the paper, even
 when they plainly have not.
 
 **Do not let a request change the inferential status of an
-analysis.** This is the statistical judgement at the center of
+analysis.** This is the statistical judgment at the center of
 the genre. When a reviewer asks for a subgroup analysis, they
 are asking for an analysis that was not pre-specified. Perform
 it, report it, and label it exploratory. The temptation, and
@@ -510,6 +510,23 @@ asking, roughly in the order that catches the most:
 - Which single assumption, if wrong, would most change the
   conclusion, and does the paper name it?
 - Would I be able to re-run this?
+
+That list is short by design, and it is the list of a
+generalist reader. For the statistical content specifically,
+the most compact published instrument is Harrell's author
+checklist [@harrell2024checklist], which enumerates the errors
+a biomedical manuscript makes often enough to be worth checking
+mechanically: exact p-values rather than 'NS' or 'p < 0.05',
+intervals reported alongside tests, continuous variables not
+categorized, no stepwise selection, missingness documented
+rather than silently dropped, deviations from the analysis plan
+stated as deviations, and figures that show the data rather
+than a bar whose height is a mean. Run it against your own
+draft before you send it out, which is cheaper than having a
+reviewer run it for you, and against a colleague's draft when
+you are the reviewer. The overlap with @sec-analysis-plan is
+not accidental: most of the checklist's items are failures of
+pre-specification arriving late enough to be expensive.
 
 When receiving review, the discipline is to separate the
 comment from its tone. A reviewer who is rude and right has
@@ -619,6 +636,8 @@ In closing, three habits define what we would regard as defensible communication
   null-results section restates at greater length.
 - [@icmje2024], for the conventions governing what a
   manuscript and its correspondence must contain.
+- [@harrell2024checklist], the author checklist used
+  in the peer-review section above.
 - [@schulz2010consort] and [@vonelm2007strobe], the
   reporting standards that determine what your results
   section is obliged to state.

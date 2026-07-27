@@ -76,7 +76,7 @@ public record.
 
 ## The statistician's contribution {#sec-analysis-plan-human}
 
-The SAP is judgement work, not boilerplate.
+The SAP is judgment work, not boilerplate.
 
 **Specify enough to constrain.** A SAP that says 'we
 will fit a regression model' has not specified
@@ -113,7 +113,7 @@ specification. Later amendments are dated tags
 (`sap-v1.1-amendment-1`); their relationship to the
 data-access timeline is auditable.
 
-These judgements are what make a SAP a serious
+These judgments are what make a SAP a serious
 document rather than a regulatory chore.
 
 ## Why pre-register?
@@ -196,6 +196,31 @@ The template is a checklist; not every section is
 needed for every study. For an observational
 secondary analysis, sections 3 and 4 are simpler;
 sections 8--12 are the same.
+
+The template says what a SAP must contain. It does
+not say whether the analysis it specifies is a good
+one, and a SAP can be complete, version-controlled,
+tagged before data access, and still pre-specify a
+weak analysis. For that second question there is a
+useful external cross-check: Harrell's author
+checklist [@harrell2024checklist], maintained for
+years as the Vanderbilt Biostatistics manuscript
+checklist and now hosted on datamethods.org. It is
+written for the reviewer of a finished manuscript,
+which makes it the right instrument to run against a
+draft SAP, because every item on it is a way a paper
+gets rejected that a plan could have prevented. Its
+recurring targets are decisions this template invites
+you to make in section 7 and section 8: categorizing
+a continuous covariate rather than modeling it with a
+spline, selecting variables by stepwise procedures,
+reporting a p-value without the interval that gives
+it magnitude, and choosing a sample size from an
+effect size observed in a previous study rather than
+from the effect worth detecting. *Regression Modeling
+Strategies* [@harrell2015rms] is the book-length
+argument behind those items. Read the checklist once
+before you draft section 8, and again after.
 
 ## Sample size with `zzpower`
 
@@ -428,7 +453,7 @@ freedom.
 ## Collaborating with an LLM on SAPs
 
 LLMs draft SAP boilerplate well; the substantive
-choices need human judgement.
+choices need human judgment.
 
 **Prompt 1: drafting boilerplate sections.** Paste
 the project description and ask: 'draft sections
@@ -525,6 +550,16 @@ In closing, three habits define what we would regard as defensible SAP practice:
   of researcher degrees of freedom.
 - [@gelman2013garden], on why the problem persists
   even without conscious p-hacking.
+- [@harrell2024checklist], the author checklist
+  described above; the shortest useful audit of a
+  draft SAP's analysis sections.
+- [@harrell2015rms], for the modeling decisions the
+  checklist presumes, in particular splines instead
+  of categorization and why stepwise selection
+  invalidates the inference that follows it.
+- [@harrell2025bbr] Chapter 22, on controlling the
+  error rate of a decision rather than of a test,
+  which reframes section 12 of the template.
 
 ## Prerequisites answers {#sec-quiz-answers-18}
 

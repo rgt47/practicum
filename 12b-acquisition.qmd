@@ -100,7 +100,7 @@ acquire it again in the same breath as analyzing it.
 
 ## The statistician's contribution {#sec-acquisition-human}
 
-Reading a file is mechanical. The judgements:
+Reading a file is mechanical. The judgments:
 
 **The column specification is an assertion, not a convenience.**
 Every reader guesses your column types, and the guess is right
@@ -140,7 +140,7 @@ a scraper, ask whether an API exists, whether the data are
 published as a file somewhere, and whether you could simply ask
 the person who has them. The answer is surprisingly often yes.
 
-These judgements determine whether the data your analysis rests
+These judgments determine whether the data your analysis rests
 on are the data you think they are.
 
 ## Reading files, deliberately
@@ -269,6 +269,51 @@ are numbers is a bug until proven otherwise.
 `janitor::clean_names()` of @sec-wrangling handles the column
 names; the values need `str_squish()` and a deliberate decision
 about case.
+
+### Checking as an artifact, not an activity
+
+Every analyst checks data. The question is whether anyone can
+see that they did. A check run at the console leaves nothing
+behind: it is not re-run when the extract is refreshed, and a
+reviewer has no way to know which pathologies were looked for
+and which were not.
+
+Harrell's *R Workflow* [@harrell2025rworkflow] treats this as a
+structural matter rather than a habit. Data checking and data
+overview are numbered chapters of the workflow, not preliminaries
+to it, and their output is a section of the rendered report. The
+argument generalizes past the packages that book happens to use:
+what makes a check trustworthy is that it lives in the document,
+so it executes on every render and fails loudly when the next
+extract violates an assumption the first one satisfied.
+
+In the tidyverse idiom this book uses, the artifact is a chunk:
+
+```r
+raw <- read_csv("data/raw/visits.csv",
+                col_types = cols(patient_id = col_character()))
+
+# distributions, missingness, and type of every column
+skimr::skim(raw)
+
+# categorical levels, including the ones you did not expect
+raw |> count(site, sort = TRUE)
+raw |> count(sex)
+
+# the assumptions you are willing to state
+stopifnot(
+  !any(duplicated(raw$patient_id)),
+  all(raw$age >= 18 & raw$age <= 120, na.rm = TRUE)
+)
+```
+
+`skim()` reports what the column looks like; `count()` exposes the
+level that the codebook did not mention; `stopifnot()` states the
+assumption you would want to be told about the day it stops
+holding. The first two are for the reader, the third is for the
+build. @sec-testing develops the assertion side of this into a
+test suite; the point here is only that the checking happens
+where the reader can see it.
 
 ::: {.callout-note icon=false collapse=true}
 ## Check your understanding: the silent identifier
@@ -618,7 +663,7 @@ have asked.
 
 *What to watch for.* It will not raise `robots.txt`, the terms of
 service, rate limiting, or whether the data are personal, because
-you did not ask and it is agreeable. The judgement is yours and
+you did not ask and it is agreeable. The judgment is yours and
 the model will not prompt you for it. Ask it explicitly to argue
 the case *against* scraping the page, which is a prompt it
 handles well and which surfaces the considerations you should
@@ -674,6 +719,10 @@ In closing, three habits define what we would regard as defensible acquisition:
 
 - [@wickham2023r4ds], the data-import and web-scraping chapters,
   the canonical applied treatment of `readr` and `rvest`.
+- [@harrell2025rworkflow], Chapters 7 and 8, on data checking and
+  data overview as reported steps of the workflow. The code is
+  `data.table` and `Hmisc` rather than tidyverse (@sec-alternative-wrangling
+  covers the dialect), but the structural argument transfers intact.
 - The `httr2` documentation at `httr2.r-lib.org`, in particular
   its articles on authentication and on wrapping an API.
 - The `polite` package, which encodes the scraping etiquette this

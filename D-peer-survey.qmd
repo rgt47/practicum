@@ -80,6 +80,37 @@ Practicum's approach, and Karl Broman's *Tools for Reproducible
 Research* [@broman2019tools4rr], which is the closest peer
 treatment of the reproducibility material in Part I. Frank
 Harrell's *R Workflow for Reproducible Data Analysis and
-Reporting* [@harrell2024rworkflow] covers adjacent ground from
+Reporting* [@harrell2025rworkflow] covers adjacent ground from
 a different angle and is the work a reader of this book should
 consult next on analysis workflow specifically.
+
+## The Vanderbilt materials
+
+One entry in the program-level table warrants a note, because
+counting it as a curriculum understates it. The Vanderbilt
+University Department of Biostatistics publishes, without
+charge or registration, the largest body of biomedical
+statistical-computing teaching material that this survey
+encountered anywhere: *R Workflow* [@harrell2025rworkflow],
+the *Biostatistics for Biomedical Research* course notes
+[@harrell2025bbr], the *Regression Modeling Strategies* course
+and its accompanying book [@harrell2015rms], the author
+checklist [@harrell2024checklist], and the department's page on
+reproducible reporting [@vanderbilt-rereport-2024]. These were
+assessed against this book's chapters and are cited where they
+bear on one: @sec-rrtools and @sec-acquisition on workflow and
+data checking, @sec-wrangling and @sec-graphics on information
+loss and on displaying distributions, @sec-missing on
+missing-data reporting, and @sec-analysis-plan and
+@sec-communicating on the author checklist.
+
+Two differences bound how far that material can be adopted
+here rather than merely cited. The first is dialect: *R
+Workflow* is built on `data.table` and `Hmisc`, and this book
+is tidyverse-first, so its arguments are borrowed and its code
+is not. @sec-alternative-wrangling exists partly so that a
+reader who follows the citation is not stranded. The second is
+altitude: BBR and RMS teach statistical methods, which this
+book deliberately does not, and they are therefore cited as the
+place to go for the reasoning behind a computing practice
+rather than as sources for the practice itself.

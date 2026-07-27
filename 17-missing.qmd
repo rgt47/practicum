@@ -90,7 +90,7 @@ conclusions to alternative approaches.
 
 ## The statistician's contribution {#sec-missing-human}
 
-Missing data is the chapter where judgement
+Missing data is the chapter where judgment
 matters most.
 
 **The mechanism is an assumption, not a fact.**
@@ -128,7 +128,7 @@ Choosing the strategy after seeing the data --
 because it gave a smaller p-value' -- is
 indistinguishable from p-hacking.
 
-These judgements are what make missing-data
+These judgments are what make missing-data
 handling defensible rather than mechanical.
 
 ## The three mechanisms
@@ -293,7 +293,11 @@ analysis. It assumes patients who drop out
 remain at their last observed value, which is
 biologically implausible for most diseases. The
 ICH E9(R1) addendum [@ich2019e9r1] explicitly
-cautions against it.
+cautions against it, and Harrell's author checklist
+[@harrell2024checklist] rules it out without the
+sensitivity-analysis exemption, on the grounds that
+an assumption no one believes is not made
+believable by being labeled.
 
 **Single regression imputation without noise**
 produces coefficients that are too tight: the
@@ -523,6 +527,21 @@ A sample reporting paragraph:
 The level of detail demonstrates that you have
 thought about the issue, not papered over it.
 
+CONSORT and STROBE set the floor. Harrell's author
+checklist [@harrell2024checklist], written from the
+reviewer's side of the exchange, adds an item the
+reporting standards leave implicit: an incomplete
+record is not a disposable one. Dropping every
+patient with any missing covariate is a decision
+with consequences for both power and bias, and it
+requires the same justification in the methods
+section as an imputation model would. If the
+complete-case sample differs from the enrolled
+sample in ways the reader can check, show the
+comparison; if it does not differ on anything you
+measured, say so, and say what you could not
+measure.
+
 ## Sensitivity analyses
 
 Three standard sensitivity approaches:
@@ -690,6 +709,12 @@ practice:
   in clinical trials.
 - [@rubin1976inference], the paper that defined the
   MCAR/MAR/MNAR taxonomy this chapter rests on.
+- [@harrell2024checklist], the reporting items a
+  statistically literate reviewer will apply to the
+  missing-data section of your manuscript.
+- [@harrell2025rworkflow] Chapter 6, on describing
+  the extent and pattern of missingness before any
+  imputation model is chosen.
 
 ## Prerequisites answers {#sec-quiz-answers-17}
 
