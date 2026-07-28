@@ -129,7 +129,6 @@ format:
     documentclass: scrbook
     classoption: [11pt]
     toc: false
-    lof: true
     code-annotations: below
     highlight-style: arrow
     geometry:
