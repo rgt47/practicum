@@ -211,6 +211,7 @@ The figure below plots the same two group means twice.
 #|   axis at 71 and the same difference fills the panel. Neither panel
 #|   contains a false number, and a reader who glances at B carries away
 #|   a conclusion the data do not support."
+#| fig-scap: "The same two means, encoded twice"
 #| fig-width: 7
 #| fig-height: 3.5
 #| message: false
@@ -336,6 +337,7 @@ being asked.
 #|   zero. These are not in conflict; they are answers to different
 #|   questions. Reading significance off the overlap on the left is the
 #|   error."
+#| fig-scap: "Overlapping intervals versus the interval for the difference"
 #| fig-width: 7
 #| fig-height: 3.2
 means <- bind_rows(

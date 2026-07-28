@@ -191,6 +191,7 @@ in particular rows.
 #| fig-cap: "Missingness heatmap for the Palmer Penguins data. Each
 #|   row is an observation, each column a variable; missing cells are
 #|   marked. The `sex` variable carries most of the missingness."
+#| fig-scap: "Missingness heatmap for the penguin data"
 #| fig-width: 7
 #| fig-height: 4
 #| message: false
@@ -208,6 +209,7 @@ suggests:
 #| fig-cap: "Count of missing values per variable. Two body
 #|   measurements and `sex` account for essentially all the
 #|   missingness in the penguin data."
+#| fig-scap: "Count of missing values per variable"
 #| fig-width: 6
 #| fig-height: 3.5
 gg_miss_var(penguins)            # bar chart of missing per variable

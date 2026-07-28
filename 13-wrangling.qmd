@@ -377,6 +377,7 @@ mapped to the x-axis.
 #|   trial. Thin lines are individual patients; heavy lines are arm
 #|   means. Reshaping to long format is what makes visit an x-axis
 #|   variable."
+#| fig-scap: "Blood-pressure trajectories from the simulated trial"
 #| fig-width: 6.5
 #| fig-height: 4
 ggplot(long, aes(visit, bp, color = arm)) +

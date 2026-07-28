@@ -168,6 +168,7 @@ named list.
 #| fig-cap: "One plot per species, produced by mapping a plotting
 #|   function over a split data frame. Only the Adelie panel is shown;
 #|   `plots` holds all three."
+#| fig-scap: "One plot per species, via purrr"
 #| fig-width: 6
 #| fig-height: 4
 library(tidyverse)
@@ -239,6 +240,7 @@ differ in everything.
 #| fig-cap: "Three distinct views of the penguin data composed into one
 #|   figure with patchwork. The species legend is collected once and
 #|   placed at the bottom."
+#| fig-scap: "Three views of the penguin data, composed with patchwork"
 #| fig-width: 7.5
 #| fig-height: 6
 library(patchwork)
@@ -444,6 +446,7 @@ generation; covered in the analysis-plan chapter
 #| fig-cap: "A composed regression-diagnostic figure: residuals versus
 #|   fitted, a normal Q-Q plot, and Cook's distance, all sharing the
 #|   house theme."
+#| fig-scap: "A composed regression-diagnostic figure"
 #| fig-width: 7
 #| fig-height: 6
 theme_set(theme_practicum())
@@ -509,6 +512,7 @@ slowly on the active arm than on placebo.
 #|   trial. Thin lines are individual patients; heavy lines are arm
 #|   means with a 95% confidence ribbon. This is the figure the
 #|   in-house `zzlongplot` package produces by default."
+#| fig-scap: "A longitudinal trajectory figure"
 #| fig-width: 7
 #| fig-height: 4.5
 set.seed(1)
@@ -571,6 +575,7 @@ body-mass-versus-flipper-length scatter in `pandas` and
 #| fig-cap: "The penguin scatter reproduced in Python. The cleaned R
 #|   data frame crosses into Python through reticulate's `r` object,
 #|   so no intermediate file is written."
+#| fig-scap: "The penguin scatter reproduced in Python"
 #| fig-width: 6
 #| fig-height: 4
 import matplotlib

@@ -186,6 +186,7 @@ project, the output should be clean.
 #| fig-cap: "Missingness map for the raw penguin data. Missingness is
 #|   concentrated in `sex`, with two rows missing all four morphology
 #|   measurements."
+#| fig-scap: "Missingness map for the raw penguin data"
 #| fig-width: 7
 #| fig-height: 4
 #| message: false
@@ -257,6 +258,7 @@ order rather than alphabetical.
 #| fig-cap: "Body mass against flipper length, colored by species and
 #|   faceted by island. Three clear clusters emerge, and the within-cluster
 #|   association motivates the model that follows."
+#| fig-scap: "Body mass against flipper length, by species"
 #| fig-width: 7.5
 #| fig-height: 4
 library(ggplot2)
@@ -365,6 +367,7 @@ That is what the diagnostics are for.
 #|   mean and variance structure; the Q-Q plot tests the residual
 #|   distribution; residuals versus leverage identifies influential
 #|   observations."
+#| fig-scap: "Diagnostic plots for the fitted penguin model"
 #| fig-width: 7
 #| fig-height: 6
 par(mfrow = c(2, 2))
