@@ -129,6 +129,7 @@ format:
     documentclass: scrbook
     classoption: [11pt]
     toc: false
+    lof: true
     code-annotations: below
     highlight-style: arrow
     geometry:
@@ -142,6 +143,17 @@ format:
       text: |
         \usepackage{fontspec}
         \setmonofont{DejaVu Sans Mono}[Scale=0.9]
+        % Quarto emits mermaid diagrams with an explicit natural size,
+        % e.g. width=12.73in on a 4.9in text block, which runs off the
+        % page. Explicit keys beat \setkeys{Gin} defaults, so the clamp
+        % has to be appended after them: adjustbox's max width and max
+        % height shrink an oversized figure to fit and leave a small
+        % one untouched.
+        \usepackage[export]{adjustbox}
+        \let\origincludegraphics\includegraphics
+        \renewcommand{\includegraphics}[2][]{%
+          \origincludegraphics[#1,max width=\linewidth,%
+            max height=0.75\textheight,keepaspectratio]{#2}}
     include-before-body:
       text: |
         \begin{titlepage}
