@@ -70,8 +70,8 @@ getting there, since the mechanics are what can be taught in a
 chapter; the fuller principles of effective visualization are
 taken up in the companion textbook (chapters 15--16 of
 *Statistical Computing in the Age of AI*), and the ways a
-figure can mislead without printing a false number are treated
-in @sec-ethics.
+figure can mislead without printing a false number are taken
+up later, in @sec-ethics.
 
 The combination `ggplot2` + `purrr` + `patchwork` is
 the modern stack for going from a single exploratory
@@ -150,8 +150,8 @@ difference fill the panel; a map encodes area, and land
 does not have a disease; a bubble's radius is read as
 area, so a radius proportional to a count exaggerates
 it. None of these prints a false number, and all of
-them mislead. @sec-ethics treats the failure modes and
-their remedies at length; the habit to carry into every
+them mislead. @sec-ethics returns to these failure modes
+and their remedies at length; the habit to carry into every
 figure is to name the visual channel the reader is
 decoding before choosing it.
 

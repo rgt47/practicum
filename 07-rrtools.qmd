@@ -332,7 +332,10 @@ libraries, and the package versions. A reader with
 Docker can rebuild exactly the environment that
 produced the paper.
 
-For deposition, follow the @sec-federal workflow: GitHub
+Deposition is treated in full in @sec-federal, once you
+have a finished compendium to deposit. The shape of it is
+worth knowing now, because it affects how you organize
+the directory: GitHub
 for the working repository, Zenodo for a DOI'd archive
 at submission, dbGaP/TCIA/etc. for any restricted-access
 primary data.

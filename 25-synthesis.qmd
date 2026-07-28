@@ -32,16 +32,13 @@ you have taken away from the book. See
 ## What the Practicum covered
 
 We have taken the reader, over the course of this book, through
-seven parts:
+eight parts:
 
 1. **The reproducibility mindset.** Why
    reproducibility matters and what the word means
-   (@sec-why), what federal funders now require
-   (@sec-federal), what the HIPAA Privacy Rule
-   permits you to share (@sec-deident), the failures
-   of inference that no amount of compliance
-   prevents (@sec-ethics), and the team norms within
-   which all of it is practiced
+   (@sec-why), what the HIPAA Privacy Rule permits
+   you to share (@sec-deident), and the team norms
+   within which all of it is practiced
    (@sec-team-science).
 
 2. **The workstation.** Setting up R, the editor,
@@ -79,11 +76,19 @@ seven parts:
    and the SAS bridge (@sec-sas) for cross-language
    regulatory work.
 
-7. **Case studies and synthesis.** Palmer Penguins
+7. **Case studies.** Palmer Penguins
    (@sec-penguins) for an end-to-end small
    analysis, ADNI MCI prediction (@sec-adni) for a
    longitudinal exercise, and the communication of a
    finished result (@sec-communicating).
+
+8. **Obligations.** What you owe once the analysis
+   exists: the federal requirements and the mechanics
+   of deposition (@sec-federal), and the failures of
+   inference that no amount of compliance prevents
+   (@sec-ethics). Both were held to the end because
+   both presuppose a finished artifact, one to hand
+   over and one to be skeptical about.
 
 Two appendices sit outside the sequence:
 @sec-alternative-wrangling, for reading the base R,

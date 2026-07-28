@@ -199,8 +199,8 @@ one.
 documented procedure for obtaining them.
 Sensitive data often cannot live in the compendium
 directly; in that case, the compendium contains a
-README documenting the access path (@sec-federal has
-the workflow).
+README documenting the access path, in the form
+@sec-federal will set out.
 
 The five pillars are a checklist. Every project
 should satisfy each; `make check-renv` and a quick
@@ -433,8 +433,8 @@ It is the right tool for: collaborative analyses
 that will be passed between team members,
 analyses that must survive for months or years
 after the lead analyst has moved on, and any
-analysis subject to federal reproducibility
-requirements (@sec-federal).
+analysis subject to the federal requirements taken
+up in @sec-federal.
 
 The 'right level of infrastructure' is itself a
 judgment. Excessive infrastructure on a small

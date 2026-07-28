@@ -239,6 +239,49 @@ The investment in reproducibility pays back, repeatedly,
 over the project's life. The cost is highest at the
 start; the savings compound.
 
+## The argument you no longer have to make
+
+The two preceding sections argue that reproducibility is
+worth the effort, once on scientific grounds and once on
+selfish ones. Both remain worth knowing, because you will
+need them when persuading a collaborator who is not
+persuaded. Neither is any longer the reason you will
+actually do the work.
+
+Since January 2023, every application to the National
+Institutes of Health has carried a Data Management and
+Sharing Plan that becomes a term of the resulting award.
+Since December 2016, the Food and Drug Administration has
+required CDISC-conformant datasets in support of new drug
+applications. And the 2022 memorandum from the White
+House Office of Science and Technology Policy
+[@usshi2022ostp] directs every federal research funder to
+require immediate public access to publications and to
+the data underlying them, with agency implementation due
+by the end of 2025. The direction is consistent across
+all of them: shrinking embargoes, scope expanding from
+papers to data and then to code, and increasing audit.
+
+What this changes is not whether reproducibility is a
+good idea but who is responsible for producing it.
+Depositing a manuscript was an administrator's task and
+required nothing of the analyst. Producing a dataset a
+stranger can use, code that runs, and a specification of
+the environment that generated the results is a different
+kind of obligation, and there is nobody else on a
+research team positioned to meet it. The transfer
+happened without being announced.
+
+The practical consequence for a reader of this book is
+that the habits taught in the chapters that follow are
+not professional polish. They are the mechanism by which
+a funded project satisfies terms it has already agreed
+to. @sec-federal takes up the specific policies and the
+practices that satisfy them. It is placed near the end of
+the book on purpose, because its instructions concern
+depositing an artifact you will not have built until
+then.
+
 ## The statistician's contribution
 
 Reproducibility is a workflow problem disguised as a

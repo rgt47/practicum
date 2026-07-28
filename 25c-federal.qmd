@@ -1,4 +1,4 @@
-# Federal Reproducibility Requirements {#sec-federal}
+# Federal Requirements and Deposition {#sec-federal}
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -53,24 +53,28 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-Public-access compliance used to be somebody else's job. A
-paper was accepted, an administrator deposited the manuscript
-in PubMed Central, and the statistician heard nothing about it.
-That arrangement no longer holds, and the reason is that the
-scope of what must be shared has moved from the paper to the
-things the statistician owns: the data, the code, and the
-specification of the environment that produced the results.
-Nobody else on the team can supply those, which is why
-compliance has quietly become a biostatistical responsibility
-without anyone announcing the transfer.
+@sec-why argued that public-access compliance has become a
+biostatistical responsibility rather than an administrator's,
+because the scope of what must be shared moved from the paper
+to the things the statistician owns. This chapter is the
+operational half of that argument: what the policies actually
+require, and how to hand over an artifact that satisfies them.
 
-This chapter takes up the current policy landscape and the
-technical practices that satisfy it. The practices are, with
-one exception, ones the book teaches anyway for other reasons:
-a lockfile, a container, a compendium, a deposition with a
-persistent identifier. The exception is the plan itself, which
-is a document rather than an artifact, and which is graded
-before any of the work it describes has been done.
+It sits here, near the end, because almost everything it asks
+for now exists. You have a compendium (@sec-rrtools), a
+lockfile (@sec-renv), a container (@sec-docker), a pipeline
+that rebuilds the analysis (@sec-targets), and, from the two
+case studies, a worked example of each. Deposition is largely a
+matter of pointing at those and choosing where they go. Read
+at the front of the book, this chapter would have been a list
+of obligations against nothing; read here, it is a checklist
+against work already done.
+
+One requirement is the exception, and it is worth flagging
+because its timing runs opposite to everything else here. The
+Data Management and Sharing Plan is a document rather than an
+artifact, and it is written and graded before any of the work
+it describes has begun.
 
 The policy direction in the United States is unambiguous:
 public access for publicly funded research, with

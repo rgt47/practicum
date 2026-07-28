@@ -39,18 +39,16 @@ made to survive scrutiny.
 We begin with an account of the territory the book
 covers, which is the practical craft of
 biostatistical data analysis. The book is organized
-into seven parts, and every chapter belongs to one of
+into eight parts, and every chapter belongs to one of
 them.
 
 **Part I, the reproducibility mindset,** establishes
 why the rest matters: the case for reproducible
 analysis and what the word actually means
-(@sec-why), the federal policies that now require it
-(@sec-federal), the HIPAA obligations that constrain
-what may be shared (@sec-deident), the failures of
-inference that compliance does not prevent
-(@sec-ethics), and the team norms within which all of
-this is practiced (@sec-team-science).
+(@sec-why), the HIPAA obligations that constrain what
+may be shared and that bind you from the moment data
+arrive (@sec-deident), and the team norms within
+which all of this is practiced (@sec-team-science).
 
 **Part II, the workstation,** builds the environment
 the work happens in: R, Quarto, Git, dotfiles, and
@@ -90,12 +88,24 @@ AI-assisted coding (@sec-ai-coding), and SAS for
 regulatory bridging (@sec-sas), with Python shown
 alongside R where the comparison instructs.
 
-**Part VII, case studies and synthesis,** carries two
-analyses end to end, a small clean one
-(@sec-penguins) and a longitudinal clinical one
-(@sec-adni), then treats the communication of a
-finished result (@sec-communicating) before the
-closing review (@sec-synthesis).
+**Part VII, case studies,** carries two analyses end to
+end, a small clean one (@sec-penguins) and a
+longitudinal clinical one (@sec-adni), then treats the
+communication of a finished result
+(@sec-communicating).
+
+**Part VIII, obligations and synthesis,** returns to
+what you owe once the work exists: the federal
+requirements and the mechanics of depositing the
+artifact (@sec-federal), the failures of inference that
+no amount of compliance prevents (@sec-ethics), and the
+closing review (@sec-synthesis). These come last
+deliberately. Deposition is instruction about handing
+over something you have not built until now, and the
+ethics chapter's argument, that the entire
+infrastructural apparatus of this book is orthogonal to
+whether an analysis misleads, can only land once that
+apparatus has been built.
 
 Two appendices follow: alternative wrangling
 paradigms for reading code that is not tidyverse
@@ -112,23 +122,26 @@ assuming the earlier ones.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-book-map
-%%| fig-cap: "The seven parts of the book and what each depends on.
+%%| fig-cap: "The eight parts of the book and what each depends on.
 %%|   Infrastructure is what makes the mindset operational; reporting
 %%|   is what the infrastructure produces; the analysis practice and
-%%|   the case studies rest on everything above them."
+%%|   the case studies rest on everything above them. The obligations
+%%|   come last because both depositing an artifact and judging
+%%|   whether it misleads presuppose that the artifact exists."
 flowchart TD
-  P1["<b>I. Reproducibility mindset</b><br/><i>why, policy, privacy,<br/>ethics, teams</i>"]
+  P1["<b>I. Reproducibility mindset</b><br/><i>why, privacy, teams</i>"]
   P2["<b>II. Workstation</b><br/><i>R, shell, Git, cloud</i>"]
   P3["<b>III. Infrastructure</b><br/><i>compendia, renv,<br/>Docker, pipelines</i>"]
   P4["<b>IV. Reporting</b><br/><i>Quarto</i>"]
   P5["<b>V. Wrangling and graphics</b><br/><i>acquire, tidy, join,<br/>query, plot, impute</i>"]
   P6["<b>VI. Analysis practice</b><br/><i>SAP, CDISC, tests,<br/>CI, AI, SAS</i>"]
   P7["<b>VII. Case studies</b><br/><i>end to end, then<br/>communicate</i>"]
+  P8["<b>VIII. Obligations</b><br/><i>deposit it, then ask<br/>whether it misleads</i>"]
   P1 --> P2 --> P3 --> P4
   P3 --> P5
   P4 --> P6
   P5 --> P6
-  P6 --> P7
+  P6 --> P7 --> P8
 ```
 
 ## What this book does not cover
@@ -275,11 +288,12 @@ his or her own view.
 ## What this book is, in three sentences
 
 This is a graduate practicum in the daily craft of
-biostatistical data analysis. It comprises seven
+biostatistical data analysis. It comprises eight
 parts: the reproducibility mindset, the workstation,
 reproducible infrastructure, reproducible reporting,
-data wrangling and graphics, analysis practice, and
-case studies with synthesis. The
+data wrangling and graphics, analysis practice, case
+studies, and the obligations that attach to a finished
+analysis. The
 test of the book, in our view, is whether, after
 working through it, the reader can produce a
 reproducible, defensible analysis on a real

@@ -37,9 +37,7 @@ book:
     - part: 'Reproducibility Mindset'
       chapters:
         - 01-why.qmd
-        - 02-federal.qmd
         - 02b-deidentification.qmd
-        - 02c-ethics.qmd
         - 03-team-science.qmd
 
     - part: 'Data Science Workstation'
@@ -82,11 +80,16 @@ book:
         - 21-ai-coding.qmd
         - 22-sas.qmd
 
-    - part: 'Case Studies and Synthesis'
+    - part: 'Case Studies'
       chapters:
         - 23-penguins.qmd
         - 24-adni.qmd
         - 25b-communicating.qmd
+
+    - part: 'Obligations and Synthesis'
+      chapters:
+        - 25c-federal.qmd
+        - 25d-ethics.qmd
         - 25-synthesis.qmd
 
     - references.qmd
