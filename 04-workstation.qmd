@@ -179,6 +179,22 @@ git config --global init.defaultBranch main
 
 ## Choosing an editor
 
+Take the conclusion first, because it is the opposite of
+what the length of this section implies: the choice
+matters much less than the fluency, and the productivity
+gained by knowing one editor thoroughly exceeds anything
+available by switching to a better one. All four options
+below are used professionally in biostatistics, all four
+are adequate, and a year spent shallowly in three of
+them is worse than a year spent deeply in any one.
+
+What the choice does turn on is not quality but fit
+along two axes: whether your work is R-only or spans
+several languages, and whether it happens on your own
+machine or on a server you reach over SSH. The
+descriptions below are organized around those two
+questions rather than around features.
+
 **RStudio** is the standard for R-only work. Integrated
 IDE: editor, console, environment, plots, help, Git pane
 in one window. Maintained by Posit; bullet-proof for the

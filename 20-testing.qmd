@@ -141,28 +141,43 @@ than performative.
 
 ## Why test analyses?
 
-Three concrete benefits:
+The Orientation argued the general case. Three specific
+occasions make it concrete, and each is a moment that
+arrives in ordinary projects rather than unusual ones.
 
-**Catch regressions on refactor.** You restructure
-the cleaning script to use `dplyr` instead of
-`base::merge`. The output should be identical. A
-test that compares the output to a saved baseline
-catches any regression.
+The first is **refactoring**. You restructure a cleaning
+script to use `dplyr` where it previously used
+`base::merge`, and the output should be identical. Note
+what is peculiar about this situation: you have a
+precise expectation, you have no way to check it by
+looking, and the consequence of being wrong is a
+silently different cohort. A test that compares the
+output against a saved baseline settles the question in
+a second, and without one the honest position after a
+refactor is that you do not know whether it changed
+anything.
 
-**Catch upstream data changes.** Your script reads
-a CSV from an institutional data warehouse. The
-warehouse changes a column from days to seconds.
-The script runs without error. A test that asserts
-typical values for the column flags the change.
+The second is **upstream drift**, and it is the case
+tests catch that nothing else does. Your script reads an
+extract from an institutional warehouse, and one quarter
+the warehouse begins reporting a duration in seconds
+where it previously reported days. Nothing errors. The
+column is still numeric, the join still succeeds, the
+model still fits, and every downstream number is wrong
+by a factor of 86,400. A test asserting that the column
+falls in a plausible range catches this on the first run
+after the change; no amount of reading your own code
+ever will, because your code is not what changed.
 
-**Document expected behavior.** The test 'with
-input X, the function returns Y' is executable
-documentation. Future-you reads the test to
-understand what the function is supposed to do.
+The third is **documentation**. A test of the form
+'given input X, this function returns Y' is a statement
+about intent that cannot rot, because it is executed.
+Comments drift away from the code they describe;
+assertions cannot, since a false one fails the build.
 
-The cost is small (5 minutes per test). The cost of
-silent miscalculation in a published paper is much
-larger.
+Against these the cost is a few minutes per test,
+weighed against a silent miscalculation in something you
+have published under your name.
 
 Tests come in layers, and the layers catch different
 failures. @fig-test-layers is the shape, with the

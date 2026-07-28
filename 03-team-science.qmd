@@ -250,9 +250,20 @@ than the up-front agreement.
 
 ## The intake conversation
 
-The first meeting with a new clinical collaborator
-sets the trajectory of the collaboration. A
-structured intake covers, at minimum:
+The first meeting with a new clinical collaborator sets
+the trajectory of the collaboration, and it does so
+mostly through what is not asked. An investigator
+arrives with a dataset and a question, the statistician
+takes the work, and the terms nobody raised, what the
+deliverable is, when it is due, whether there will be
+authorship, become assumptions that each party holds
+privately and differently. They surface months later,
+during the only week in which everyone is busy.
+
+The remedy is a structured intake, which is less
+formal than it sounds: a fixed set of questions asked
+in the first conversation and written down afterward.
+At minimum it covers:
 
 **The scientific question.** What are they trying to
 find out? What would the answer enable? Push past 'is
@@ -444,8 +455,13 @@ email happens to sit on top of the inbox.
 
 ## Communicating statistical results
 
-Three principles for translating statistical output
-to non-statisticians:
+Translating statistical output for a clinical audience
+is not a matter of simplifying it. It is a matter of
+reporting the quantity the listener is actually going to
+act on, which is rarely the quantity the software puts
+at the top of its output. Four principles follow from
+that, and they are ordered from the one that changes the
+most to the one that changes the least:
 
 **Effect size first, p-value last.** 'The treatment
 reduced HbA1c by 0.6 percentage points (95% CI 0.3 to

@@ -228,15 +228,12 @@ analysis of record.
 %%|   and a colleague has read. The branch is short-lived and is
 %%|   deleted once merged."
 flowchart TD
-  A["git switch -c sensitivity-mnar"] --> B["commit, push branch"]
+  A["create feature branch"] --> B["commit, push"]
   B --> C["open pull request"]
-  C --> D["CI runs<br/><i>renv restore, tests, render</i>"]
-  C --> E["colleague reviews diff"]
-  D --> F{"both pass?"}
-  E --> F
-  F -->|"no"| B
-  F -->|"yes"| G["merge to main<br/><i>analysis of record</i>"]
-  G --> H["delete branch"]
+  C --> D["CI checks and colleague review"]
+  D --> E{"both pass?"}
+  E -->|"no"| B
+  E -->|"yes"| F["merge to main"]
 ```
 
 In commands:

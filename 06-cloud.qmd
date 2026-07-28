@@ -146,34 +146,53 @@ flowchart TD
   Q -->|"no, or queue<br/>too slow"| C
 ```
 
-Three patterns where cloud helps:
+The three cases where remote compute helps are three
+different shortages, and it repays being precise about
+which one you have, because they are relieved by
+different machines.
 
-**Compute-bound, parallelizable.** A simulation with
-10,000 independent replicates. Run on 16 cores instead
-of 8: roughly 2× faster. Cost: linear in cores; usually
-favorable for a one-off job.
+The first is **compute-bound, parallelizable** work: a
+simulation with ten thousand independent replicates, a
+bootstrap, a permutation test. The shortage is
+wall-clock time and the remedy is cores. Be careful with
+the arithmetic here, because the naive version of it
+oversells the result: doubling the cores does not halve
+the time, since the serial portion of the job does not
+speed up at all and the coordination overhead grows with
+the core count. The gain is nonetheless real, and for a
+one-off job the cost is usually trivial against the
+hours it returns.
 
-**Memory-bound.** A genome-scale analysis that needs
-128 GB RAM. Your laptop has 16. Cloud instances scale
-to 24 TB. The wall-clock time may be similar to a
-laptop; you just can't run the analysis at all on the
-laptop.
+The second is **memory-bound** work, and it differs from
+the first in kind rather than in degree. A genome-scale
+analysis that needs 128 GB on a laptop with 16 does not
+run slowly. It does not run. Cloud instances reach into
+the terabytes, and the wall-clock time on one of them
+may be no better than the laptop would have managed had
+the laptop been able to manage it at all. What you are
+buying is feasibility, not speed, and the distinction
+matters when you are justifying the cost.
 
-**Long-running, robust.** A 24-hour MCMC. You don't want
-your laptop tethered to the analysis for a day. A cloud
-instance runs it; you check in periodically.
+The third is **long-running but robust** work: a
+twenty-four-hour MCMC, a fit that must not be
+interrupted. The shortage is neither cores nor memory
+but the availability of your own machine, which you
+would like to close, carry home, and use for something
+else.
 
-Patterns where cloud does not help:
-
-**Interactive exploration.** Running R interactively over
-SSH on a cloud instance is laggy and unpleasant. Use a
-laptop for exploration; move to cloud when the analysis
-is final and you want to scale.
-
-**Latency-sensitive.** Anything with a tight feedback
-loop (a Shiny app you are debugging) is faster locally.
-
-**Tiny.** A 30-second analysis is not worth provisioning.
+Set against these are three cases where remote compute
+is the wrong answer, and they share a single cause: the
+cost of a round trip to a machine that is not in front
+of you. **Interactive exploration** over SSH is laggy
+and unpleasant, and exploration is precisely the phase
+in which you issue many small commands and look at each
+result before deciding the next one. Anything
+**latency-sensitive**, a Shiny app under active
+debugging above all, is worse for the same reason. And a
+**short analysis** is not worth provisioning at any
+speed, because thirty seconds of computation is dwarfed
+by the several minutes of setup, transfer, and teardown
+wrapped around it.
 
 ## AWS in two pages
 
@@ -272,11 +291,19 @@ docker run -v $(pwd):/work my-analysis-image:v1.0 \
 
 ## Long-running jobs
 
-The challenge: you SSH in, start a job, and your laptop
-goes to sleep or your hotel WiFi drops. Without
-intervention, the job dies with your shell.
+You SSH in, start a job, and your laptop goes to sleep
+or the hotel WiFi drops. The job dies with your shell,
+and whatever it had computed dies with it.
 
-Three solutions:
+The mechanism is worth knowing, because it explains why
+each of the three remedies works and why they are not
+interchangeable. When the connection closes, the shell
+receives a hangup signal, `SIGHUP`, and relays it to the
+processes it started; the default response to `SIGHUP`
+is to terminate. Each solution below either stops the
+process from receiving that signal or arranges for its
+parent to be something other than the shell you are
+about to lose.
 
 **`nohup`** (no hangup): runs the command immune to
 hangup signals.
@@ -379,7 +406,16 @@ Plan large transfers accordingly.
 
 ## Cost control
 
-Three habits prevent surprise bills:
+Cloud billing surprises share a structure. The meter
+runs on elapsed time rather than on work done, so an
+idle instance costs exactly what a busy one costs, and
+nothing in the system produces an event when your
+analysis finishes. A laptop that has completed its job
+sits there quietly; a rented machine that has completed
+its job sits there quietly and bills you for the
+privilege, over a weekend, in a browser tab you closed
+on Friday. Every habit below is a way of supplying the
+stopping event that the platform does not.
 
 **Set budget alerts.** AWS Budgets → set a monthly
 threshold; get an email when spend exceeds it.

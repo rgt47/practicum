@@ -149,34 +149,19 @@ confidence interval from 1.1 to 7.3.'
 
 Three sentences, and the audience now knows what you did, why,
 and what you found. Everything else in the talk or the memo is
-support for the third sentence. @fig-arc contrasts the
+support for the third sentence. @tbl-arc contrasts the
 structure with the chronology it replaces.
 
-```{mermaid}
-%%| echo: false
-%%| label: fig-arc
-%%| fig-cap: "The chronology of an analysis, on the left, is the order in
-%%|   which the work was done and the order the methods section follows.
-%%|   The argument, on the right, is the order in which it should be
-%%|   presented. The estimate moves from last to first, and the
-%%|   chronology becomes the defense rather than the narrative."
-flowchart LR
-  subgraph CHRON["Chronology (worked)"]
-    direction TB
-    C1["obtain data"] --> C2["clean"]
-    C2 --> C3["describe"]
-    C3 --> C4["model"]
-    C4 --> C5["diagnose"]
-    C5 --> C6["estimate"]
-  end
-  subgraph ARG["Argument (presented)"]
-    direction TB
-    A1["AND<br/><i>what is accepted</i>"] --> A2["BUT<br/><i>why the work exists</i>"]
-    A2 --> A3["THEREFORE<br/><i>the estimate</i>"]
-    A3 --> A4["the defense<br/><i>design, diagnostics</i>"]
-    A4 --> A5["what would<br/>change my mind"]
-  end
-```
+| Chronology (the order you worked) | Argument (the order you present) |
+|---|---|
+| obtain data | **And**: the accepted background |
+| clean | **But**: why the work exists |
+| describe | **Therefore**: the estimate, stated first |
+| model | the defense: design, model, diagnostics |
+| diagnose | what would change my mind |
+| estimate | |
+
+: The chronology is the order in which the work was done, and the order the methods section follows. The argument is the order in which it should be presented. The estimate is the last thing computed and the first thing said; the chronology becomes the defense rather than the narrative. {#tbl-arc}
 
 The final element of the argument is the one statisticians
 most often omit and the one that most raises a skeptical

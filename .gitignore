@@ -14,3 +14,12 @@
 .Renviron
 .env
 **/*.quarto_ipynb
+
+# Stray render output. Rendering a single chapter (quarto render
+# 13-wrangling.qmd) writes beside the source rather than into
+# _book/, which is how these end up at the repo root. nav-toggle.html
+# is a real source file and is exempted.
+/*.html
+!/nav-toggle.html
+/*_files/
+/site_libs/

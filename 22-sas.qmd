@@ -247,14 +247,37 @@ For this chapter and course, ODA is the default.
 
 ## SAS basics for R users
 
-The DATA step and PROC steps are the two
-fundamental constructs.
+SAS has two fundamental constructs, the DATA step and
+the PROC step, and an R programmer who internalizes the
+difference between them has learned most of what makes
+the language feel foreign.
 
-**DATA step.** Reads, creates, or transforms a
-SAS dataset, processing one row at a time with
-an implicit loop. Conceptually similar to a
-`dplyr::mutate` plus `dplyr::filter` chain, but
-with imperative row-at-a-time semantics:
+The difference is not syntactic. It is a difference in
+what the unit of computation is. R is vectorized: you
+write an expression over a whole column and the language
+applies it elementwise, and you are rarely aware of the
+individual rows at all. A SAS DATA step is the opposite.
+It reads one observation, executes every statement in
+the step against that single observation, writes it out,
+and loops back for the next one. The loop is implicit,
+which is why the code looks vectorized when it is not.
+This is the source of nearly every surprise an R
+programmer meets in SAS: variables persist across
+statements within a row but reset between rows, a
+subsetting `if` silently discards the observation rather
+than returning a filtered copy, and constructs such as
+`retain` and `lag` exist precisely because the
+row-at-a-time model gives you no other way to see a
+neighboring observation.
+
+The PROC step then works the other way, consuming a
+whole dataset at once and producing listings, tables,
+graphs, or statistical output. The idiomatic SAS program
+alternates between the two: a DATA step to shape the
+data one row at a time, then a PROC step to analyze all
+of them.
+
+A DATA step, with an R equivalent for comparison:
 
 ```sas
 data work.adults;
@@ -274,11 +297,13 @@ adults <- demo |>
          log_bmi   = log(bmi))
 ```
 
-**PROC steps.** Consume an existing dataset and
-produce listings, tables, graphs, or statistical
-output. Each PROC has its own syntax but most
-share an `OUT =` for results and a `BY` /
-`CLASS` / `MODEL` clause structure:
+And a PROC step on the result. Each procedure has its
+own syntax, but they share enough structure that the
+third one you meet is much easier than the first: an
+`OUT =` option to capture results as a dataset, and some
+combination of `BY`, `CLASS`, and `MODEL` clauses to say
+which variables partition the data and which enter the
+analysis.
 
 ```sas
 proc means data = work.adults n mean std median q1 q3 maxdec = 2;
@@ -643,28 +668,43 @@ names and types at each boundary.
 
 ## When SAS is required and when it is not
 
-**Required.** FDA submissions (CDISC SDTM +
-ADaM; @sec-cdisc), most sponsor-driven clinical
-trials, many CRO positions, legacy pharma
-analytics teams.
+The division is not arbitrary, and understanding why it
+falls where it does will serve you better than
+memorizing which sector uses what.
 
-**Not required.** Academic biostatistics, most
-NIH-funded investigator-initiated trials, data
-science, biotechs founded in the last decade,
-most epidemiological cohort studies.
+SAS persists wherever the deliverable is a regulatory
+artifact rather than a scientific claim. In that setting
+the cost of changing tools is not the cost of learning a
+new language; it is the cost of revalidating a pipeline
+that a regulator has already accepted, and of retraining
+a department that will be audited on its adherence to
+documented procedure. That calculation keeps SAS
+entrenched in FDA submissions and the CDISC pipelines
+that feed them (@sec-cdisc), in most sponsor-driven
+trials, in a large share of CRO work, and in government
+agencies, where it is used heavily. None of this
+reflects a judgment that SAS is the better language. It
+reflects that validated infrastructure is expensive to
+replace and that nobody is rewarded for replacing it.
 
-**Either acceptable.** Collaborative research
-teams that let the statistician choose, most
-epidemiology and health-services research,
-academic clinical trials units that have
-adopted R.
+Where the deliverable is a paper, the calculation
+inverts, and the ecosystem, the cost, and the
+availability of collaborators all favor R. Academic
+biostatistics, investigator-initiated NIH trials,
+epidemiological cohort work, and biotechs founded in the
+last decade are R-first, with SAS an occasional
+requirement imposed from outside. Between the two sit
+the settings where either is acceptable and the
+statistician chooses: health-services research, much
+epidemiology, and academic trials units that have
+already made the move.
 
-For an MS biostatistician, the practical
-question is: what does the first job require?
-Industry pharma and CRO: SAS, often with R as
-secondary. Academic biostatistics: R, with SAS
-nice-to-have. Government (FDA, CMS, BARDA): SAS,
-heavily.
+For an MS biostatistician the practical question is
+narrower than any of this. It is what the first job
+requires, and the honest answer is that industry pharma
+and CRO positions will expect SAS with R as a secondary
+skill, academic positions will expect the reverse, and a
+graduate who can read both is eligible for all of them.
 
 ## A side-by-side example
 
