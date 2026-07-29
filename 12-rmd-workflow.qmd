@@ -44,6 +44,11 @@ By the end of this chapter you should be able to:
 
 - Convert between `.R`, `.Rmd`, and `.qmd` quickly and
   losslessly.
+- Decide whether an existing R Markdown project should be
+  migrated at all, and carry out the migration of a
+  `bookdown` project when it should.
+- Detect the cross-reference breakage that a conversion
+  introduces without raising an error.
 - Control LaTeX float placement with `fig.pos`/`tbl-pos`
   and inline anchoring (`[H]`).
 - Produce cross-referenced figures and tables that
@@ -181,6 +186,126 @@ quarto convert notebook.qmd -o notebook.ipynb
 For collaborators who prefer Jupyter, this conversion
 is lossless: text becomes Markdown, code becomes
 chunks, and metadata round-trips.
+
+## Migrating an R Markdown project
+
+The conversion above is a file operation. Migrating a
+*project* is a different exercise, and the first question
+is whether to do it at all.
+
+### Whether to convert
+
+The reflex is to say yes, on the grounds that Quarto is
+the successor and current tools are better than superseded
+ones. That reflex is wrong often enough to be worth
+resisting, because it mistakes currency for value. A
+finished analysis that renders correctly under a pinned
+environment already does everything this book asks of it.
+Migrating it produces the same output from newer
+machinery, and in exchange you accept a window in which
+the document does not render and the numbers have not yet
+been checked against the old ones. There is no
+reproducibility argument for the change, and there is a
+small reproducibility argument against it.
+
+@fig-rmd-migrate is the decision.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-rmd-migrate
+%%| fig-cap: "Whether to migrate an R Markdown project. Currency is
+%%|   not a reason on its own. The cases that justify the work are a
+%%|   document that is still growing, a Quarto-only capability you
+%%|   actually need, or a handover to someone who will maintain it
+%%|   after you."
+flowchart TD
+  A{"Is the document<br/>finished and published?"}
+  A -->|"Yes"| B["Leave it<br/><i>it renders; migration<br/>buys nothing</i>"]
+  A -->|"No"| C{"Do you need a<br/>Quarto-only capability?"}
+  C -->|"Yes"| D["Convert<br/><i>multi-language, freeze,<br/>cross-format fidelity</i>"]
+  C -->|"No"| E{"Will it grow, or<br/>change hands?"}
+  E -->|"Yes"| D
+  E -->|"No"| B
+```
+
+Anything tagged at submission (@sec-git-solo) belongs in
+the left branch without further thought. The tagged commit
+is the record of what was reported, and it should render
+with the toolchain that produced it.
+
+### What `quarto convert` leaves for you
+
+The command handles chunk headers and the obvious YAML
+keys. It does not touch cross-references, does not know
+that a project is a `bookdown` project, and does not audit
+what your packages assumed about knitr. Budget for those
+three by hand.
+
+**Cross-references fail silently, which makes them the
+dangerous item.** A `\@ref(fig:scatter)` left unconverted
+does not stop the render. It emits a broken reference into
+the output, and a document with thirty figures can acquire
+a dozen of them without a single warning. Two habits
+contain this. After converting, grep the source for
+`\@ref(` and confirm the count is zero. Then grep the
+*rendered* output for `?fig-` and `?tbl-`, which is what
+Quarto emits where a reference does not resolve, and
+confirm that count is zero as well. The second check
+matters because it catches the converse error, a reference
+whose syntax you updated but whose target label you did
+not.
+
+Quarto is also stricter about labels than `bookdown` was.
+A figure is only referenceable if its label carries the
+`fig-` prefix, a table if it carries `tbl-`. A chunk named
+`scatter` that was addressable as `fig:scatter` under
+`bookdown` becomes addressable as nothing at all until it
+is renamed `fig-scatter`.
+
+**Package assumptions are the quiet cost.** Code that
+reached around `knitr` rather than through it does not
+convert, because there is nothing to convert: it simply
+behaves differently. The recurring cases are
+`kableExtra`'s LaTeX-specific options, any output format
+in the `bookdown::` namespace, and custom `knit_hooks`.
+Each has to be replaced rather than translated.
+
+### `bookdown` projects
+
+A single `.Rmd` is a file. A `bookdown` project is a
+build system, and it is the case most readers who want to
+migrate actually have.
+
+The mapping is mostly mechanical. `_bookdown.yml` and
+`_output.yml` collapse into the single `_quarto.yml` of
+@sec-quarto, chapter files are listed under `chapters:`
+rather than inferred from filenames, and `index.Rmd`
+becomes an ordinary `index.qmd` whose YAML carries the
+book metadata. Part divisions, which `bookdown` expressed
+as a specially formatted heading, become `part:` entries.
+
+What is not mechanical is the numbering. Cross-file
+references, chapter numbers appearing in prose, and any
+figure numbered by hand will all move, and they will move
+silently for the same reason described above. The
+discipline that makes this tractable is to convert one
+chapter at a time and keep the `bookdown` build working
+until the Quarto build matches it. Render both, and
+compare the outputs rather than trusting that a clean
+render means a correct one. A clean render means the
+document compiled.
+
+### The boundary you may not control
+
+Migration is rarely unilateral. A co-author may still be
+editing `.Rmd` in RStudio, a journal template you depend
+on may exist only as an `rticles` output format, and a
+continuous-integration workflow (@sec-ci) may invoke
+`rmarkdown::render` on a path that no longer exists. Each
+of these is a reason the sensible unit of migration is a
+project rather than a file: converting half of something
+leaves two toolchains to maintain, which is worse than
+either one alone.
 
 ## Float placement in PDF
 
@@ -533,6 +658,16 @@ Three habits keep the fifth render as cheap as the first:
    compute one number used in the prose. Render and
    verify the Python output is faithful to the R
    value.
+6. Take a `bookdown` project, your own or any public
+   one, and convert a single chapter of it to Quarto
+   while leaving the `bookdown` build working. Render
+   both and diff the chapter's output. Report how many
+   cross-references broke, and how many of those breaks
+   produced no message during either render.
+7. Find an R Markdown analysis of yours that is
+   finished and published. Write a short argument for
+   *not* migrating it, in terms of what migration would
+   and would not change about its reproducibility.
 
 ## Further reading
 

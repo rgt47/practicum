@@ -81,9 +81,10 @@ Quarto is the successor to R Markdown, sharing most of
 its syntax but with broader language support
 (R, Python, Julia, Observable JS), better cross-format
 fidelity, and a more polished publishing pipeline. For
-new projects, Quarto is the default; for legacy
-projects, R Markdown still works fine and the
-conversion path is straightforward.
+new projects, Quarto is the default. For legacy
+projects, R Markdown still works, and the decision to
+migrate an existing one deserves more care than it
+usually gets; @sec-rmd-workflow takes it up.
 
 ## The statistician's contribution {#sec-quarto-human}
 
