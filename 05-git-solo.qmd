@@ -167,6 +167,29 @@ For most days, that is the entire workflow: status, diff,
 add, commit, repeat. Five commands cover 90% of solo Git
 use.
 
+One of those five deserves a warning it rarely gets.
+`git add .` stages whatever happens to be in the
+directory, which on an analysis project is routinely more
+than you meant: a rendered PDF, a cache directory, a data
+extract you are not licensed to redistribute, an
+`.Renviron` holding a database password. Git has no
+opinion about any of it. The habit that prevents the
+worst outcome is to look before staging, because
+`git status` is cheap and a credential in a public
+repository's history is not: it must be treated as
+compromised and rotated even after the file is deleted,
+since the object remains reachable in the history.
+
+The in-house `zzgit` exists to make the safe path the
+easy one. It replaces the `git add . && git commit -am`
+reflex with an interactive stage-and-commit that scans
+the staged diff for secrets with `gitleaks`, guards
+against committing directly to a protected branch, and
+walks you through a Conventional Commits subject line
+rather than accepting whatever you type at two in the
+morning. It is a zsh plugin and entirely optional; the
+discipline it enforces is not.
+
 `git diff` shows unstaged changes; `git diff --staged`
 shows staged changes. The distinction is between 'I have
 edited this' and 'I have marked this for the next

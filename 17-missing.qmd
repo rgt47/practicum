@@ -177,6 +177,32 @@ analyses are for. The data cannot distinguish
 MAR from MNAR, so the choice rests on substantive
 reasoning.
 
+One case that recurs in biomarker work does not fit this
+taxonomy comfortably, and it is worth naming because the
+reflex it invites is wrong. An assay reports a
+concentration only above its limit of detection; below
+that, the instrument returns not a value but the
+information that the value is small. This is
+*left censoring* rather than missingness. The
+distinction matters because the data are not absent:
+knowing a concentration lies below a known threshold is
+considerably more than knowing nothing, and an analysis
+that discards those observations, or that substitutes a
+constant such as the limit divided by the square root of
+two, throws away information and distorts the variance
+in ways multiple imputation under MAR will not repair.
+The methods that suit this case are its own family:
+regression on order statistics, censored maximum
+likelihood, and multiple imputation adapted for a
+censoring threshold. The in-house `zzmesoimpute` package
+provides a common interface across them for multiplexed
+immunoassay data, which is the setting where the problem
+is most often met. The general lesson generalizes past
+the package: before choosing a missing-data method,
+establish whether the values are missing or merely
+unobserved below a bound, because those are different
+problems with different remedies.
+
 ## Diagnosing missingness
 
 Before any imputation, look at the pattern. The

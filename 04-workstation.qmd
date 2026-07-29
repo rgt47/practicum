@@ -212,9 +212,16 @@ When to choose: You work in multiple languages; you edit
 on a remote server; you appreciate Microsoft's ecosystem
 (Copilot, GitHub integration).
 
-**Neovim** with R-Nvim or similar. The keyboard-driven
-modal editor. Highly customizable, fast, works over SSH
-without modification. Steep learning curve.
+**Neovim** with an R plugin. The keyboard-driven modal
+editor. Highly customizable, fast, works over SSH without
+modification. Steep learning curve. The capability that
+makes it viable for analysis rather than merely for
+editing is a link to a live R session: `R-Nvim` is the
+established choice, and the in-house `zzvim-R` is the
+lighter one used in this book's own development, sending
+the current line, a visual selection, or a whole Quarto
+chunk to an embedded terminal and rendering the document
+without leaving the editor.
 
 When to choose: You already use vi/Neovim for other
 languages; you do most of your work over SSH; keyboard
