@@ -396,11 +396,14 @@ geom swap).
 
 ## Continuous integration
 
-`usethis::use_github_action_check_standard()` sets
+`usethis::use_github_action("check-standard")` sets
 up GitHub Actions to run `R CMD check` on every
 push and pull request, on multiple OS / R-version
-combinations. For a non-package analysis project,
-the equivalent is a workflow that runs tests:
+combinations. (Older material calls this
+`use_github_action_check_standard()`, a function
+`usethis` has since removed in favor of naming the
+workflow as an argument.) For a non-package analysis
+project, the equivalent is a workflow that runs tests:
 
 ```yaml
 # .github/workflows/test.yaml

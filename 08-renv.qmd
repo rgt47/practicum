@@ -319,7 +319,7 @@ runs a suite of audits on the project's renv state:
   to current CRAN?
 
 ```r
-zzrenvcheck::check()
+zzrenvcheck::check_packages()
 ```
 
 The audit catches common drift: a forgotten
@@ -328,7 +328,7 @@ update, a colleague's machine that has run
 `update.packages()` outside of renv.
 
 For a project being submitted for publication or
-deposited to Zenodo, run `zzrenvcheck::check()` and
+deposited to Zenodo, run `zzrenvcheck::check_packages()` and
 resolve all warnings before tagging the release.
 
 ## `renv` plus Docker
@@ -473,7 +473,7 @@ Three habits keep the lockfile honest:
 1. **Snapshot at meaningful moments.** Project start,
    each major dependency change, before each
    submission. Not after every install.
-2. **Audit before submission.** `zzrenvcheck::check()`
+2. **Audit before submission.** `zzrenvcheck::check_packages()`
    catches drift before it becomes a reproducibility
    bug.
 3. **Pair with Docker for environment-level
@@ -491,7 +491,7 @@ Three habits keep the lockfile honest:
 2. Add a GitHub-sourced package to your project
    (`renv::install('user/repo')`), snapshot, and check
    that the lockfile captures the commit SHA.
-3. Run `zzrenvcheck::check()` on your project. Fix any
+3. Run `zzrenvcheck::check_packages()` on your project. Fix any
    issues it reports.
 4. Write a Dockerfile that restores your project's
    renv.lock. Build it; verify `sessionInfo()` from

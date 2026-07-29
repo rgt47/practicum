@@ -376,24 +376,28 @@ The SAP pre-specifies which.
 ```r
 library(zztable1)
 
-table1(
-  data     = analytic_cohort,
-  vars     = c('AGE', 'PTGENDER', 'PTEDUCAT', 'APOE4',
-               'ADAS13', 'MMSE'),
-  strata   = 'converted_3y',
-  overall  = TRUE,
-  output   = 'latex'
+zztable1::table1(
+  AGE + PTGENDER + PTEDUCAT + APOE4 + ADAS13 + MMSE ~
+    converted_3y,
+  data    = analytic_cohort,
+  totals  = TRUE,
+  layout  = 'latex'
 ) |>
   zzobj2fig::o2f(filename = 'table1',
                  sub_dir = 'analysis/paper/tables')
 ```
 
-`zztable1` defaults: continuous → mean (SD),
-categorical → n (%). For non-normal continuous
-variables (ADAS13 is right-skewed in this
-cohort), override with `summary = "median_iqr"`.
-For CDISC-compliant output (single-spaced, sans-
-serif, no row p-values), set `theme = "regulatory"`.
+The left side of the formula lists the variables to
+summarize and the right side the stratifying variable.
+`zztable1` defaults to mean (SD) for continuous
+variables and n (%) for categorical ones. For a
+right-skewed continuous variable, and ADAS13 is one in
+this cohort, override with
+`numeric_summary = 'median_iqr'`. The `theme` argument
+selects a journal style from `console`, `nejm`,
+`lancet`, `jama`, `bmj`, and `simple`; `pvalue = FALSE`
+suppresses the row tests, which a descriptive Table 1
+should generally not carry.
 
 The Table 1 produced should match the formatting
 expected by the target journal. For a methods
@@ -406,27 +410,36 @@ template.
 ```r
 library(zzlongplot)
 
-longplot(
-  data       = adnimerge_clean,
-  time       = 'years_since_baseline',
-  outcome    = 'ADAS13',
-  id         = 'RID',
-  group      = 'DX_bl',
-  facet      = 'APOE4_any',
-  stat       = 'mean_ci',
-  theme      = 'regulatory'
-) +
-  labs(
-    title    = 'ADAS13 trajectories by baseline diagnosis',
-    subtitle = 'Stratified by any APOE4 allele (ADNI 1/GO/2/3)'
-  )
+zzlongplot::lplot(
+  adnimerge_clean,
+  form               = ADAS13 ~ years_since_baseline | DX_bl,
+  facet_form         = ~ APOE4_any,
+  cluster_var        = 'RID',
+  summary_statistic  = 'mean',
+  confidence_interval = 0.95,
+  clinical_mode      = TRUE,
+  theme              = 'fda',
+  xlab               = 'Years since baseline',
+  ylab               = 'ADAS13',
+  title              = 'ADAS13 trajectories by baseline diagnosis',
+  subtitle           = 'Stratified by any APOE4 allele (ADNI 1/GO/2/3)'
+)
 ```
 
-The `stat = 'mean_ci'` argument computes the
-group-wise mean and Wald 95% CI at each visit;
-`theme = 'regulatory'` produces CDISC-style
-plots that satisfy journal figure standards
-without custom `ggplot2::theme()` code.
+The formula reads outcome by time, split after the bar
+by group; `facet_form` adds the panel variable, and
+`cluster_var` names the column that identifies a
+subject, without which the function cannot tell repeated
+measures from independent ones. The
+`summary_statistic` and `confidence_interval` arguments
+compute the group-wise mean and Wald 95% CI at each
+visit. `clinical_mode` switches on the trial-oriented
+defaults, and `theme` selects a publication style from
+the set the package ships, `fda` here and `nejm`,
+`lancet`, `jama`, `nature`, `science`, or `jco` if you
+are writing for one of those, so that journal figure
+standards are met without custom `ggplot2::theme()`
+code.
 
 The plot reveals: ADAS13 trajectories diverge
 by baseline diagnosis (LMCI worse than EMCI),
@@ -681,11 +694,10 @@ supports:
    cognitive scores between converters and
    non-converters. Produce both LaTeX and
    HTML output.
-3. Use `zzlongplot` to produce a MMSE
-   trajectory plot stratified by `DX_bl` with
-   a `theme = 'regulatory'` override of the
-   default color palette. Save at 300 DPI
-   for journal submission.
+3. Use `zzlongplot::lplot()` to produce an MMSE
+   trajectory plot stratified by `DX_bl`, with
+   `theme = 'fda'` overriding the default color
+   palette. Save at 300 DPI for journal submission.
 4. Implement the participant-level
    cross-validation in `tidymodels` for the
    primary model. Confirm fold sizes are

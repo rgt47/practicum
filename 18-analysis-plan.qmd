@@ -243,31 +243,40 @@ standard clinical-trial designs:
 ```r
 library(zzpower)
 
-# parallel-group RCT, continuous outcome
-power_t_two_sample(
-  delta = 0.5,        # standardized effect
-  alpha = 0.05,
-  power = 0.80,
-  ratio = 1           # 1:1 allocation
-)
-#> n per group: 64
+# parallel-group RCT, continuous outcome:
+# required N at 80% power for a standardized effect of 0.5
+zzpower::power_calc("ttest_2groups",
+           target_power  = 0.80,
+           effect_size   = 0.5,
+           effect_method = "cohens_d",
+           alpha         = 0.05)
+
+# the converse question: power at a fixed sample size
+zzpower::power_calc("ttest_2groups",
+           sample_size   = 100,
+           effect_size   = 0.5,
+           effect_method = "cohens_d")
 ```
 
-For more complex designs (cluster RCTs, crossover,
-stratified, multi-arm), the package has analogous
-functions. For situations not covered in closed
-form, simulate:
+The first argument names a design from the package's
+registry. Besides `ttest_2groups` it holds
+`ttest_paired`, `ttest_one_sample`, `prop_2groups`,
+`correlation`, `logrank`, `fisher_exact`, `trend_prop`,
+`anova_oneway`, `mcnemar`, `mixed_model`, and
+`cluster_rct`, which covers most of what a clinical SAP
+needs. Supplying `target_power` solves for sample size;
+supplying `sample_size` solves for power.
+
+To see the trade-off rather than a single number, which
+is usually what a protocol discussion actually wants,
+`power_table()` sweeps a grid of effect sizes against
+power thresholds:
 
 ```r
-power_simulate(
-  n_per_arm = 64,
-  delta = 0.5,
-  alpha = 0.05,
-  generator = function(n, delta) ...,
-  test = function(d) t.test(...)$p.value,
-  R = 5000
-)
-#> Empirical power: 0.81
+zzpower::power_table("ttest_2groups",
+            effect_grid      = seq(0.3, 0.8, by = 0.1),
+            power_thresholds = c(0.80, 0.90),
+            effect_method    = "cohens_d")
 ```
 
 In the SAP, report the sample size with the

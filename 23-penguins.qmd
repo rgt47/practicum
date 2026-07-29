@@ -172,7 +172,7 @@ session inside the container.
 Verify the compendium is well-formed:
 
 ```r
-zzrenvcheck::check()
+zzrenvcheck::check_packages()
 ```
 
 This audits all five Pillars and produces a list
@@ -228,13 +228,12 @@ We drop 11 rows; analyses use $n = 333$.
 ```r
 library(zztable1)
 
-table1(
+zztable1::table1(
+  bill_length_mm + bill_depth_mm + flipper_length_mm +
+    body_mass_g + sex ~ species,
   data    = penguins_clean,
-  vars    = c('bill_length_mm', 'bill_depth_mm',
-              'flipper_length_mm', 'body_mass_g', 'sex'),
-  strata  = 'species',
-  overall = TRUE,
-  output  = 'latex'
+  totals  = TRUE,
+  layout  = 'latex'
 ) |>
   zzobj2fig::o2f(filename = 'table1', sub_dir = 'figures')
 ```

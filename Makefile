@@ -6,7 +6,7 @@ help:
 	@echo '  preview  Live preview in browser'
 	@echo '  publish  Publish to Netlify'
 	@echo '  clean    Remove rendered outputs and freeze cache'
-	@echo '  check    Validate scaffold structure'
+	@echo '  check    Validate scaffold structure and namespaced calls'
 	@echo '  deps     Install R and Python dependencies'
 	@echo '  deps-r   Install R package dependencies via pak'
 	@echo '  deps-py  Install Python dependencies (requirements.txt)'
@@ -37,6 +37,7 @@ check:
 	done; \
 	test $$missing -eq 0 || exit 1; \
 	echo "ok: all $$(ls -1 *.qmd | wc -l | tr -d ' ') .qmd files registered in _quarto.yml"
+	@Rscript tools/check-calls.R
 
 deps: deps-r deps-py
 

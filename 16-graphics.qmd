@@ -416,8 +416,11 @@ defaults match this practicum's conventions.
 
 ```r
 library(zzlongplot)
-spaghetti(adni_long, time = "VISIT", value = "ADAS",
-          subject = "RID", group = "DX")
+zzlongplot::lplot(adni_long,
+      form        = ADAS ~ VISIT | DX,
+      cluster_var = "RID",
+      xlab        = "Visit",
+      ylab        = "ADAS-Cog")
 ```
 
 When to reach for `zzlongplot`:

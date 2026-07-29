@@ -55,6 +55,29 @@ jobs:
             any::rvest
             any::httr2
             any::haven
+            any::usethis
+            any::skimr
+
+      # The in-house packages are not on CRAN. Install them best-effort so
+      # that the call check below can verify calls against them; if the
+      # install fails, the check reports them as unverifiable rather than
+      # failing, and the deploy proceeds.
+      - name: Install in-house packages (best effort)
+        continue-on-error: true
+        run: |
+          Rscript -e 'install.packages("remotes")' \
+            -e 'for (p in c("rgt47/zzlongplot", "rgt47/zztable1",
+                            "rgt47/zzpower", "rgt47/zzrenvcheck",
+                            "rgt47/zzobj2fig"))
+                  try(remotes::install_github(p, upgrade = "never"))'
+
+      # Guards against the book naming a function that does not exist. Every
+      # pkg::fn() call in the prose is checked against the package's exports.
+      # This is here because several such calls shipped undetected: they sat
+      # in static code blocks the render never executes, so a clean render
+      # said nothing about whether the code would run.
+      - name: Check namespaced function calls
+        run: Rscript tools/check-calls.R
 
       # Committed _freeze/ results are reused when a chapter is unchanged, so
       # a full R/Python execution is not normally required in CI. Python is
