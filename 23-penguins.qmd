@@ -236,7 +236,7 @@ table1(
   overall = TRUE,
   output  = 'latex'
 ) |>
-  zztab2fig::to_pdf('figures/table1.pdf')
+  zzobj2fig::o2f(filename = 'table1', sub_dir = 'figures')
 ```
 
 The produced Table 1 has columns for each

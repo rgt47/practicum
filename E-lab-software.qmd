@@ -1,0 +1,146 @@
+# The rgtlab Software {#sec-lab-software}
+
+::: {.callout-note}
+## Why this appendix exists
+
+Several chapters use tools written in the author's lab, and
+a reader is entitled to know what those tools are, what they
+depend on, and how much of the book's argument rests on
+them. This appendix is the inventory.
+
+It exists partly as a disclosure. A textbook that teaches
+its author's own software has an obvious conflict, and the
+honest response is to make the extent of it visible rather
+than to distribute the mentions thinly enough that nobody
+notices.
+:::
+
+## What the book depends on, and what it does not
+
+The chapters were written so that a reader with none of
+this software installed can still do the work. Every
+technique the book teaches has a portable expression:
+`renv`, Docker, Quarto, Git, and the tidyverse are the
+substance, and the tools below are conveniences layered on
+them.
+
+Two exceptions are worth naming plainly. @sec-zzcollab is
+about `zzcollab` and cannot be separated from it, though
+its Five Pillars framing applies to any compendium. And the
+two case studies (@sec-penguins, @sec-adni) use `zztable1`
+and `zzlongplot` for table and figure production, which a
+reader without them should substitute with `gtsummary` and
+plain `ggplot2`; nothing in the analyses depends on the
+substitution.
+
+Everything else is optional. Where a chapter mentions one
+of these tools, it names the portable alternative in the
+same breath, and a reader who ignores the tool loses
+convenience rather than capability.
+
+## Research infrastructure
+
+**`zzcollab`** ([github.com/rgt47/zzcollab](https://github.com/rgt47/zzcollab)).
+A Docker-based research collaboration framework. Composes
+`rrtools`-style compendium layout, `renv`, and containers
+into one command-line workflow with profile-based project
+scaffolding. Treated at length in @sec-zzcollab.
+
+**`zzrenvcheck`** ([github.com/rgt47/zzrenvcheck](https://github.com/rgt47/zzrenvcheck)).
+Validates that every package used in source code is declared
+in `DESCRIPTION` and locked in `renv.lock`. It complements
+`renv` rather than replacing it: `renv` confirms the lockfile
+matches the installed library, while this confirms that the
+code, the manifest, and the lockfile agree. Declaration-only,
+so it runs without a container or an installed environment.
+Used in @sec-renv.
+
+**`zzgit`** ([github.com/rgt47/zzgit](https://github.com/rgt47/zzgit)).
+A zsh plugin replacing the `git add . && git commit -am`
+reflex with an interactive stage-and-commit: secret scanning
+of the staged diff via `gitleaks`, a protected-branch guard,
+and a Conventional Commits wizard. Discussed in
+@sec-git-solo.
+
+**`zzvim-R`** ([github.com/rgt47/zzvim-R](https://github.com/rgt47/zzvim-R)).
+A Vim and Neovim plugin linking the editor to an embedded R
+terminal: send a line, a visual selection, or a Quarto
+chunk, and render the document without leaving the editor.
+Mentioned in @sec-workstation.
+
+## Reporting and presentation
+
+**`zztable1`** ([github.com/rgt47/zztable1](https://github.com/rgt47/zztable1)).
+Publication-quality summary tables with automatic format
+detection for LaTeX and HTML. The portable alternative is
+`gtsummary`. Used in both case studies.
+
+**`zzlongplot`** ([github.com/rgt47/zzlongplot](https://github.com/rgt47/zzlongplot)).
+Longitudinal plots with grouping, change scores, and
+faceting, including CDISC-oriented regulatory themes. The
+portable alternative is `ggplot2` with `stat_summary`, which
+@sec-graphics shows explicitly. Used in @sec-adni.
+
+**`zzobj2fig`** ([github.com/rgt47/zzobj2fig](https://github.com/rgt47/zzobj2fig)).
+Generates LaTeX tables from data frames and statistical
+objects, and crops them to standalone PDF figures. Carries
+journal themes (APA, Nature, NEJM) and S3 methods for `lm`
+and `glm`. Its main entry point is `o2f()`.
+
+## Statistical methods
+
+**`zzpower`** ([github.com/rgt47/zzpower](https://github.com/rgt47/zzpower)).
+An interactive Shiny power and sample-size calculator across
+two-group, paired, one-sample, two-proportion, and
+correlation designs, with power curves and downloadable
+reports. Used in @sec-analysis-plan.
+
+**`nof1power`** ([github.com/rgt47/nof1power](https://github.com/rgt47/nof1power)).
+Power analysis and Monte Carlo simulation for N-of-1
+crossover trials, a design @sec-analysis-plan does not
+otherwise treat. Itself built as a `zzcollab` compendium.
+
+**`zzmesoimpute`** ([github.com/rgt47/zzmesoimpute](https://github.com/rgt47/zzmesoimpute)).
+Imputation for left-censored, below-detection-limit
+concentrations from multiplexed immunoassays, with a common
+interface across substitution, uniform draw,
+regression-on-order-statistics, censored maximum likelihood,
+and multiple imputation. Discussed in @sec-missing, where
+the point is that left censoring is not missingness.
+
+**`zzfisher`**. Fisher's exact test for $r \times 2$
+contingency tables, with tree-based and network-based
+algorithms implemented in R, C, and C++. Relevant to the
+sparse-table case @sec-ai-coding uses as its example of a
+plausibly-wrong statistic.
+
+## Domain and data collection
+
+**`zzedc`** ([github.com/rgt47/zzedc](https://github.com/rgt47/zzedc)).
+A Shiny electronic data capture system for clinical trials:
+authentication, entry forms, quality-control reports, and
+export. The setting @sec-acquisition describes when it says
+clinical data usually arrive from a capture system rather
+than as a file.
+
+**`zzworld`** ([github.com/rgt47/zzworld](https://github.com/rgt47/zzworld)).
+Scoring for the WORLD item in cognitive assessment,
+computing edit distance between a response and the target
+word and integrating with MMSE totals. Narrow by design, and
+included here for completeness rather than because any
+chapter uses it.
+
+## A caution about depending on any of it
+
+None of these packages is on CRAN. They are installed from
+GitHub, they carry version numbers that reflect active
+development rather than stability, and several are below
+version 1.0. The reproducibility argument of @sec-renv
+applies to them with more force than it does to CRAN
+packages, not less: pin them by commit in `renv.lock`, and
+expect that an analysis depending on an unpinned in-house
+package will not reproduce in two years.
+
+The same caution should temper how much of your own workflow
+you build on any lab's internal tooling, including this one.
+The portable core is what survives a change of institution.
