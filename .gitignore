@@ -1,25 +1,40 @@
+# Quarto
+.quarto/
 /.quarto/
-/_book/
-/_site/
+_book/
+_site/
+site_libs/
+**/*.quarto_ipynb
+# Stray single-chapter render output written beside the source, not in
+# _book/. nav-toggle.html is a real source file and is exempted.
+*_files/
+*.html
+!nav-toggle.html
+
+# LaTeX build artifacts
 *.log
 *.aux
 *.toc
 *.out
 *.bbl
 *.blg
+
+# R / Python env
 *.Rhistory
-*.Rproj.user
-.DS_Store
 .Rdata
 .Renviron
 .env
-**/*.quarto_ipynb
+*.Rproj.user
+inst/doc
 
-# Stray render output. Rendering a single chapter (quarto render
-# 13-wrangling.qmd) writes beside the source rather than into
-# _book/, which is how these end up at the repo root. nav-toggle.html
-# is a real source file and is exempted.
-/*.html
-!/nav-toggle.html
-/*_files/
-/site_libs/
+# renv
+renv/library/
+renv/staging/
+
+# zzcollab
+.make/
+.zzcollab.log
+
+# tools / OS
+.DS_Store
+.claude/
