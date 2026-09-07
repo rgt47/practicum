@@ -9,7 +9,7 @@ Science and Statistical Thinking', Duke University, Fall 2025,
 Çetinkaya-Rundel and Knox) for potential incorporation into
 *Biostatistics Practicum*, and proposes a concrete plan of work.
 
-## Epistemic status
+## Status
 
 The judgements below rest on the following evidence, and the reader
 should weight them accordingly.
