@@ -368,7 +368,7 @@ lintr::lint_dir("R")
 ```
 
 `styler` rewrites whitespace, indentation, and
-assignment to a canonical form; `lintr` is a static
+assignment to a canonical form. `lintr` is a static
 analyzer that flags what `styler` cannot fix, including
 some genuine bugs: a variable used before assignment,
 an `=` where `<-` was meant, the `T`/`TRUE` hazard from
