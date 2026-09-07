@@ -56,14 +56,14 @@ By the end of this chapter you should be able to:
 ## Orientation
 
 Some analyses outgrow a laptop: multi-core simulations,
-genome-scale pipelines, multi-hour model fits. The useful
-question is never whether to 'move to the cloud', which is a
-procurement decision rather than an analytic one, but which
-specific resource you have run out of. Wall-clock time, memory,
-and specialized hardware are three different shortages with
-three different answers, and an analyst who has diagnosed the
-shortage correctly will usually find that the cheapest adequate
-remedy is not the public cloud at all.
+genome-scale pipelines, multi-hour model fits. Whether to 'move
+to the cloud' is a procurement decision rather than an analytic
+one, and it is, we would argue, never the useful question. The
+useful question is which specific resource has run out.
+Wall-clock time, memory, and specialized hardware are three
+different shortages with three different answers. An analyst
+who has diagnosed the shortage correctly will usually find that
+the cheapest adequate remedy is not the public cloud at all.
 
 That matters because renting a machine introduces problems a
 laptop does not have. The instance bills by the hour whether or

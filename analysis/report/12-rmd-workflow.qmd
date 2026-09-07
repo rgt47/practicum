@@ -63,13 +63,12 @@ By the end of this chapter you should be able to:
 
 The preceding chapter argued for the literate document. This
 one is about living in it, which is a different problem and a
-less elevated one. A document is rendered once when it is
-written and perhaps forty times before it is submitted, and the
-frictions that are negligible on the first render are the
-dominant cost by the fortieth: the figure that lands three
-pages from its citation, the cross-reference that works in HTML
-and breaks in PDF, the expensive chunk that re-runs every time
-you fix a typo.
+less elevated one. A document is rendered once when it is written and perhaps
+forty times before it is submitted. The frictions that are
+negligible on the first render are the dominant cost by the
+fortieth: the figure that lands three pages from its citation,
+the cross-reference that works in HTML and breaks in PDF, the
+expensive chunk that re-runs every time you fix a typo.
 
 None of this is intellectually interesting, and all of it is
 worth knowing, because the alternative to knowing it is doing

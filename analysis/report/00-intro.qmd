@@ -15,8 +15,8 @@ learn by doing them.*
 
 ## What is 'practicum'?
 
-A practicum is a supervised, hands-on course of
-study. This book is a practicum in the fullest
+A practicum is a supervised, hands-on course of study.
+We intend this book as a practicum in the fullest
 sense: it teaches skills that cannot be acquired by
 reading, only by doing. Every chapter closes with
 exercises that require the reader to sit at a
@@ -26,18 +26,18 @@ analysis report.
 
 The book is the companion to *Statistical Computing
 in the Age of AI*, the methods-focused volume. The
-two books cover complementary territory: the
-methods volume teaches what to compute and why;
-this volume teaches how to compute it reproducibly.
-That is, where the methods volume is concerned with
-the substance of an analysis, the present volume is
-concerned with the craft by which that analysis is
-made to survive scrutiny.
+two books cover complementary territory. The methods
+volume teaches what to compute and why; this volume
+teaches how to compute it reproducibly. That is,
+where the methods volume is concerned with the
+substance of an analysis, the present volume is
+concerned with the practice by which that analysis
+is made to survive scrutiny.
 
 ## What this book covers
 
 We begin with an account of the territory the book
-covers, which is the practical craft of
+covers, which is the practical work of
 biostatistical data analysis. The book is organized
 into eight parts, and every chapter belongs to one of
 them.
@@ -101,11 +101,11 @@ artifact (@sec-federal), the failures of inference that
 no amount of compliance prevents (@sec-ethics), and the
 closing review (@sec-synthesis). These come last
 deliberately. Deposition is instruction about handing
-over something you have not built until now, and the
-ethics chapter's argument, that the entire
-infrastructural apparatus of this book is orthogonal to
-whether an analysis misleads, can only land once that
-apparatus has been built.
+over something you have not built until now. The ethics
+chapter argues that the entire infrastructural apparatus
+of this book is orthogonal to whether an analysis
+misleads. That argument can only land once the apparatus
+has been built.
 
 Two appendices follow: alternative wrangling
 paradigms for reading code that is not tidyverse
@@ -168,7 +168,7 @@ flowchart TD
 
 The trade-off is deliberate. On the one hand, a
 deeper treatment of any single method would merit a
-volume of its own; on the other, the analyst who
+volume of its own. On the other, the analyst who
 cannot move a finished analysis through the full
 workflow is poorly served by depth alone. We have
 therefore aimed for breadth across the workflow
@@ -226,10 +226,10 @@ following:
    responses against your own work.
 
 The book is, we grant, somewhat dense. Reading two
-chapters per week is a sustainable pace, and
-covering it in a quarter or trimester is realistic.
-We would emphasize that the exercises are the work;
-the chapters are merely the scaffolding.
+chapters per week is a sustainable pace, and covering
+it in a quarter or trimester is realistic. We would
+emphasize that the exercises are the work. The
+chapters are merely the scaffolding.
 
 ## The chapter pattern
 
@@ -269,25 +269,30 @@ component.
 
 The companion textbook is titled *Statistical
 Computing in the Age of AI*. This Practicum is named
-for its content (Biostatistics Practicum) rather
-than the AI framing, but the framing is present
-throughout: every chapter has a 'Collaborating with
-an LLM' section showing how to use AI assistance for
-the chapter's tools, and @sec-ai-coding is the
-meta-chapter on AI-assisted coding more generally.
+for its content (Biostatistics Practicum) rather than
+the AI framing, but the framing is present throughout.
+Every chapter has a 'Collaborating with an LLM'
+section showing how to use AI assistance for the
+chapter's tools, and @sec-ai-coding is the
+meta-chapter on AI-assisted coding more generally. The
+'LLM' in that section title is shorthand. It covers
+both a chat interface and a coding agent, such as
+Claude Code, that reads a project's files and edits
+them directly. @sec-ai-coding treats the distinction
+and when each is the right tool.
 
 The position the books take is consistent: large
-language models are an amplifier of analyst
-productivity, not a replacement for analyst
-judgment. We argue this position by demonstration
-rather than by assertion. The reader is encouraged
-to use the AI assistance the book describes, to
-verify it the way the book describes, and to form
-his or her own view.
+language models, and the coding agents built on them,
+amplify analyst productivity rather than replace
+analyst judgment. We argue this position by
+demonstration rather than by assertion. We encourage
+the reader to use the AI assistance the book
+describes, to verify it the way the book describes,
+and to form his or her own view.
 
 ## What this book is, in three sentences
 
-This is a graduate practicum in the daily craft of
+This is a graduate practicum in the daily work of
 biostatistical data analysis. It comprises eight
 parts: the reproducibility mindset, the workstation,
 reproducible infrastructure, reproducible reporting,
@@ -299,5 +304,3 @@ working through it, the reader can produce a
 reproducible, defensible analysis on a real
 biomedical question with an interdisciplinary team,
 using AI assistance without being misled by it.
-
-Good luck.

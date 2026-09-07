@@ -499,8 +499,8 @@ asking, roughly in the order that catches the most:
 That list is short by design, and it is the list of a
 generalist reader. For the statistical content specifically,
 the most compact published instrument is Harrell's author
-checklist [@harrell2024checklist], which enumerates the errors
-a biomedical manuscript makes often enough to be worth checking
+checklist [@harrell2024checklist]. It enumerates the errors a
+biomedical manuscript makes often enough to be worth checking
 mechanically: exact p-values rather than 'NS' or 'p < 0.05',
 intervals reported alongside tests, continuous variables not
 categorized, no stepwise selection, missingness documented

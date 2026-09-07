@@ -79,13 +79,13 @@ sentinel values that some upstream system used to mean 'missing'.
 Reading a file correctly is a matter of asserting what you
 expect and checking that you got it.
 
-An **interface**, by which I mean a REST API such as REDCap's or
+An **interface**, by which we mean a REST API such as REDCap's or
 an institutional data warehouse's, is a query against a living
-system. What it returns today is not what it returned last month,
-because rows have been added, corrected, and occasionally
+system. What it returns today is not what it returned last
+month, because rows have been added, corrected, and occasionally
 deleted. The reproducibility problem is therefore different in
-kind: the code is deterministic but the data source is not, and
-the only defense is to freeze what you received.
+kind. The code is deterministic, but the data source is not, and
+the only defense is to freeze what was received.
 
 A **scrape** is what you resort to when the data exist but no
 interface does. It is the most fragile of the three, because the
@@ -247,10 +247,10 @@ clean
 ```
 
 The identifier survives as a string, the date is a date, the
-sentinel is a missing value rather than a number, and the site is
-a factor whose levels you have declared, which means that a
-fourth site appearing in next month's extract will arrive as `NA`
-and be visible rather than silently swelling the level set.
+sentinel is a missing value rather than a number, and the site
+is a factor whose levels you have declared. This means a fourth
+site appearing in next month's extract will arrive as `NA` and
+be visible, rather than silently swelling the level set.
 
 That last property is the one to internalize. A full `col_types`
 specification is a contract with the file. When the file changes,

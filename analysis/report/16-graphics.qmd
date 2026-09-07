@@ -57,11 +57,12 @@ By the end of this chapter you should be able to:
 ## Orientation
 
 A figure is the only part of a paper that most readers will
-examine closely, and it is the part over which the analyst has
-the most control and exercises the least deliberation. The
-default output of a plotting call is a decision, made by
-somebody who had never seen your data, about what the reader's
-eye should be drawn to. Accepting it is also a decision.
+examine closely. It is also the part over which the analyst
+has the most control and, unfortunately, exercises the least
+deliberation. The default output of a plotting call is a
+decision, made by somebody who never saw your data, about
+what the reader's eye should be drawn to. Accepting it is
+also a decision.
 
 A figure that survives peer review is one whose data, encoding,
 and aesthetic choices all serve the single claim the figure

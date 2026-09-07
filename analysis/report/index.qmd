@@ -1,23 +1,23 @@
 # Welcome {.unnumbered .unlisted}
 
 
-This is the online version of **Biostatistics Practicum** by
-The rgtlab Curriculum Project, a graduate textbook in applied
-biostatistics practice.
+This is the online version of **Biostatistics Practicum**, a
+graduate textbook in applied biostatistics practice from the
+rgtlab Curriculum Project.
 
 The book covers the practical workflow that surrounds
 statistical modeling: reproducibility, Git infrastructure,
 Docker, Quarto reporting, tidyverse data wrangling, and
-clinical-trial case studies. Jenny Bryan's STAT 545
-[@bryan2019stat545] at UBC is the pedagogical model for this
-approach. The companion volume,
+clinical-trial case studies. We take Jenny Bryan's STAT 545
+[@bryan2019stat545] at UBC as our pedagogical model. The
+companion volume,
 [*Statistical Computing in the Age of AI*](https://rgtlab.org/scai),
-covers the statistical theory and inference that this book
-deliberately excludes.
+covers the statistical theory and inference that we deliberately
+exclude here.
 
-See the [Preface](preface.qmd) for motivation and the
-[Conventions](conventions.qmd) page for visual cues used
-throughout.
+We refer the reader to the [Preface](preface.qmd) for our
+motivation and to the [Conventions](conventions.qmd) page for the
+visual cues used throughout.
 
 ## License
 

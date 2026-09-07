@@ -61,35 +61,33 @@ medications, clinical data joined to imaging indices. The
 operation is one function call, and it is nonetheless
 among the most reliable sources of error in applied work.
 
-The reason is worth stating precisely, because it
-explains what this chapter is defending against. A join
-has two failure modes and neither of them raises an
-error. It can drop rows, when a key present on one side
-is absent on the other, in which case the analysis
-silently proceeds on a smaller and possibly different
-cohort than the one described in the methods section. Or
-it can multiply rows, when a key that should be unique
-is not, in which case a patient contributes several
-times to an estimate that assumed they contributed once.
-The first shrinks the denominator; the second corrupts
-the standard errors. Both produce a data frame that
-looks exactly like the one you wanted, and both survive
-every check that a person makes by glancing at the
-output.
+The reason is worth stating precisely, because it explains
+what this chapter is defending against. A join has two
+failure modes, and neither raises an error. It can drop rows,
+when a key present on one side is absent on the other. The
+analysis then silently proceeds on a smaller, and possibly
+different, cohort than the one described in the methods
+section. Or it can multiply rows, when a key that should be
+unique is not. A patient then contributes several times to
+an estimate that assumed a single contribution. The first
+shrinks the denominator; the second corrupts the standard
+errors. Both produce a data frame that looks exactly like the
+one you wanted, and both survive every check that a person
+makes by glancing at the output.
 
-What catches them is not care but arithmetic: a stated
-expectation about how many rows the result should have,
-checked against how many it does. That is the habit this
-chapter is built around, and the `relationship` argument
+What catches them is not care but arithmetic. That is, a
+stated expectation about how many rows the result should
+have, checked against how many it does. That is the habit
+this chapter is built around. The `relationship` argument
 introduced in `dplyr` 1.1.0 is the tooling that makes
 stating the expectation cheap enough to do every time.
 
 ## The statistician's contribution {#sec-joins-human}
 
-Every join in this chapter is one function call. The
-reason joins are among the most common sources of silent
-error in applied work is that the function call is not
-where the difficulty lives:
+Every join in this chapter is one function call. Joins are
+among the most common sources of silent error in applied
+work precisely because the function call is not where the
+difficulty lives:
 
 **Verify after every join.** A join that says it
 returned the right number of rows usually did. A join
@@ -424,16 +422,16 @@ stopifnot(nrow(analytic) == nrow(visits))   # joins should be 1-1 on visits
 saveRDS(analytic, "data/derived/analytic.rds")
 ```
 
-The script: cleans names, verifies key uniqueness,
-runs an `anti_join` audit, performs the joins with
-explicit `relationship` declarations, and asserts the
-final row count. A reviewer can read it and trust the
-join semantics.
+The script cleans names, verifies key uniqueness, runs an
+`anti_join` audit, performs the joins with explicit
+`relationship` declarations, and asserts the final row
+count. A reviewer can read it and trust the join semantics
+without re-deriving them.
 
 ## Collaborating with an LLM on joins
 
-LLMs handle joins well; the trap is silent join
-inflation.
+LLMs handle joins well. The trap, in our experience, is
+silent join inflation.
 
 **Prompt 1: choosing a join.** Describe the question
 and the two tables; ask the LLM to recommend a join
@@ -473,7 +471,8 @@ assertions.
 
 ## Principle in use
 
-Three habits stand between a join and a silent bug:
+Three habits stand between a join and a silent bug in the
+downstream analysis:
 
 1. **Pick the join that matches the question.**
    Inner for matched-only; left for left-preserving;
@@ -539,12 +538,11 @@ Three habits stand between a join and a silent bug:
    returns 60 rows and `left_join` returns 100 rows
    (40 with `NA`s).
 2. `anti_join(x, y)` returns rows of `x` whose key is
-   *not* present in `y`. In a biomedical cleanup
-   workflow it answers: 'Which patients appear in my
-   outcome file but not in the lab data?' (or vice
-   versa), exposing missing data, duplicate IDs, or
-   mismatched cohorts. Run before the analytic join
-   to catch problems early.
+   *not* present in `y`. In a biomedical cleanup workflow it
+   answers: 'Which patients appear in my outcome file but not
+   in the lab data?' (or vice versa). It thereby exposes
+   missing data, duplicate IDs, or mismatched cohorts. Run it
+   before the analytic join, so that problems surface early.
 3. `table_a |> left_join(table_b, by = 'patient_id', relationship = 'many-to-one')`.
    A many-to-one join attaches the single table-B
    row to every table-A row sharing the key. The

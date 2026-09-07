@@ -64,13 +64,12 @@ rather than one that made sense to you at the time.
 The argument for convention is not aesthetic. A directory
 organized to your own logic is navigable by you and by nobody
 else, and 'nobody else' includes the version of you that
-returns after eighteen months. A compendium that follows a
-recognized layout can be opened by a stranger who has seen one
-before, and they will know where the paper is, where the raw
-data is, and which directory holds things that were derived
-rather than given. That is the whole benefit, and it is
-substantial enough that the specific convention matters much
-less than having one. The `rrtools` package supplies a
+returns after eighteen months. A compendium that follows a recognized layout can be opened by a
+stranger who has seen one before. That stranger will know where
+the paper is, where the raw data is, and which directory holds
+things that were derived rather than given. That is the whole
+benefit, and it is substantial enough that the specific
+convention matters much less than having one at all. The `rrtools` package supplies a
 convention by turning an R package into a compendium: it adds
 an `analysis/` directory for narrative and data, and Docker
 integration for the environment.

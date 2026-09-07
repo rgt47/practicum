@@ -185,6 +185,20 @@ than a chat window. The verification step
 (reviewing every change before commit) is the
 safety mechanism.
 
+By 2026 the field has a name for the distinction that
+verification step marks. 'Vibe coding' is prompting an
+agent, accepting what it produces, and running it
+without reading the diff; it is a reasonable posture
+for a disposable script only you will use. 'Agentic
+coding' (or agentic engineering) is the same
+plan-write-execute-iterate loop with a human reviewing
+the diff against a real acceptance criterion before it
+is trusted. The two look identical from the terminal.
+They differ only in whether anyone checked. Everything
+in this chapter, and in the exercises that follow it,
+is written for the second posture. Treat the first as
+something you do only when being wrong costs nothing.
+
 ## LLM failure modes in R
 
 A non-exhaustive catalog of bugs that appear in
@@ -403,8 +417,8 @@ inference code base that other people will rely
 on. Audit, test, and review with full
 understanding.
 
-The LLM is a leverage tool. Leverage works only
-when you understand the load.
+An LLM multiplies what you already understand. It does not
+substitute for understanding you do not have.
 
 ## Prompt patterns that work
 

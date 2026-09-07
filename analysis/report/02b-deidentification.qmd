@@ -66,17 +66,17 @@ By the end of this chapter you should be able to:
 
 ## Orientation
 
-De-identification is the process of transforming data so
-that the individuals it describes can no longer reasonably
-be identified. Under the United States HIPAA Privacy Rule,
-de-identified data fall outside the Rule's restrictions,
-which is why de-identification is the gateway to most
-secondary analysis and data sharing. But the word carries
-rather less certainty than it appears to, and the distinction
-is worth drawing at the outset: de-identified is not the same
-as anonymous, and a dataset stripped of names can still, we
-shall see, be re-identified through the combination of the
-ordinary variables that remain.
+De-identification is the process of transforming data so that
+the individuals it describes can no longer reasonably be
+identified. Under the United States HIPAA Privacy Rule,
+de-identified data fall outside the Rule's restrictions. This is
+why de-identification serves as the gateway to most secondary
+analysis and data sharing. The word carries rather less
+certainty than it appears to, however, and the distinction is
+worth drawing at the outset. De-identified is not the same as
+anonymous. A dataset stripped of names can still, we shall see,
+be re-identified through the combination of the ordinary
+variables that remain.
 
 This chapter covers the two regulatory methods, the
 practical transformations that implement Safe Harbor, and
@@ -238,13 +238,13 @@ phi
 ```
 
 The transformations: remove the direct identifiers, replace
-the medical record number with a salted hash so that
-within-dataset linkage survives without the number itself,
-shift each patient's dates by a fixed per-patient random
-offset (preserving intervals while destroying the actual
-calendar dates), generalize ages above 89, and truncate the
-ZIP to its first three digits, suppressing prefixes from
-sparsely populated regions.
+the medical record number with a salted hash, shift each
+patient's dates by a fixed per-patient random offset
+(preserving intervals while destroying the actual calendar
+dates), generalize ages above 89, and truncate the ZIP to its
+first three digits, suppressing prefixes from sparsely
+populated regions. The salted hash is what lets within-dataset
+linkage survive without the number itself.
 
 ```{r}
 #| label: deident-transform

@@ -59,19 +59,20 @@ The previous chapter left a gap and did not dwell on it.
 environment. Beneath them sit the system libraries they compile
 against, the R build itself, and the operating system beneath
 that, none of which the lockfile records. Most of the time this
-does not matter, which is precisely why it is easy to overlook:
-the gap is invisible until an analysis depends on a linear
+does not matter. That is precisely why it is easy to overlook.
+The gap stays invisible until an analysis depends on a linear
 algebra library that computes eigenvalues in a marginally
-different order, or on a geospatial stack that is not installed
-on the reviewer's machine at all.
+different order. It also stays invisible until an analysis
+depends on a geospatial stack that is not installed on the
+reviewer's machine at all.
 
 Docker closes the gap by specifying the whole stack rather than
 the top of it. The cost is a second technology to learn and a
-build step to wait for, and this chapter takes the position
-that the cost is worth paying for work that must reproduce
-years later or that depends on system libraries at all, and is
-not worth paying for a self-contained analysis that will be
-finished this quarter.
+build step to wait for. This chapter takes the position that the
+cost is worth paying for work that must reproduce years later,
+and worth paying for work that depends on system libraries at
+all. It is not worth paying for a self-contained analysis that
+will be finished this quarter.
 
 The `rocker` project [@boettiger2017rocker] provides
 curated Docker images for R: minimal R, R with

@@ -5,18 +5,19 @@
 
 The practicum teaches the tidyverse as its default wrangling
 stack, because that is the idiom most biostatistics students
-and collaborators read and write in 2026. But a meaningful
-fraction of R code in the wild uses different tools: base R
-(always), `data.table` (industry, performance-critical code,
-several CRAN packages internally), `arrow` (Parquet and
-Python interop), and, more recently, `polars` for R.
+and collaborators read and write in 2026. A meaningful
+fraction of R code in the wild, however, uses different
+tools: base R (always), `data.table` (industry,
+performance-critical code, several CRAN packages internally),
+`arrow` (Parquet and Python interop), and, more recently,
+`polars` for R.
 
-The goal here is **reading-level fluency**, not conversion.
-A finishing biostatistics student should be able to open an
-R script written by someone else and recognize whatever
-paradigm the author chose. Writing idiomatic `data.table`
-is a separate investment; this appendix does not claim to
-make you fluent, only literate.
+The goal here is **reading-level fluency**, not conversion. A
+finishing biostatistics student should be able to open an R
+script written by someone else and recognize whatever
+paradigm the author chose. Writing idiomatic `data.table` is
+a separate investment. This appendix does not claim to make
+you fluent, only literate.
 :::
 
 ## Four paradigms

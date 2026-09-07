@@ -79,10 +79,10 @@ reconstruct the analysis.
 But what does that shift actually demand of the analyst? Three
 consequences follow, and we have organized the chapter around
 them. First, two people editing one file at the same time will
-eventually collide, and Git can resolve the collision only when
-the edits do not overlap; the rest of the time it hands the
-problem back to a human, who must then know what each of the two
-edits was trying to accomplish. Second, the history has become
+eventually collide. Git can resolve the collision only when the
+edits do not overlap. The rest of the time it hands the problem
+back to a human, who must then know what each of the two edits
+was trying to accomplish. Second, the history has become
 something a colleague reads, which raises the cost of a careless
 commit message from a private inconvenience to a shared tax.
 Third, and most consequentially for a statistician, a change to
@@ -389,7 +389,7 @@ approaching it again with the diff in front of you.
 
 ### Conflicts in `renv.lock`
 
-The lockfile is JSON, and Git will happily present a conflict
+The lockfile is JSON, and Git will readily present a conflict
 in it. Do not resolve it by hand. The two of you have
 installed different versions of something, and the lockfile is
 a build product of the library (@sec-renv). The correct

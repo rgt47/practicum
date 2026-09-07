@@ -54,19 +54,20 @@ By the end of this chapter you should be able to:
 ## Orientation
 
 Numeric columns misbehave loudly. A value that should be a
-number and is not will stop the analysis, and you will fix it
+number and is not will stop the analysis, and the fix follows
 within the minute. Text, categories, and dates are the opposite
-case, and that is why they deserve a chapter. A date parsed
-under the wrong convention is still a date. A factor with an
-unintended reference level still fits. A string with trailing
-whitespace still joins, to nothing. Each of these produces a
-result rather than an error, and the result is wrong in a way
-that no amount of staring at the output will reveal, because
-the output looks exactly as it should.
+case, and that is why they merit a chapter of their own. A date
+parsed under the wrong convention is still a date. A factor
+with an unintended reference level still fits. A string with
+trailing whitespace still joins, to nothing. Each of these
+produces a result rather than an error. Unfortunately, the
+result is wrong in a way that no amount of staring at the
+output will reveal, because the output looks exactly as it
+should.
 
 We take up here the three packages that make these types
 tractable. Master them, and a large share of biomedical data
-cleaning becomes routine; more to the point, the failures that
+cleaning becomes routine. More to the point, the failures that
 remain become the loud kind.
 
 The packages are:
@@ -82,8 +83,8 @@ naming and pipe-friendly interfaces.
 ## The statistician's contribution {#sec-types-human}
 
 The three packages are well documented and pleasant to
-use. The bugs they exist to prevent are not bugs of
-syntax but of timing and assumption:
+use. The bugs they exist to prevent are not bugs of syntax.
+They are bugs of timing and assumption:
 
 **Factor or character?** A character vector is
 flexible: any value, any order, any new level later. A
@@ -122,11 +123,10 @@ These judgments are what distinguish a working data
 cleaning script from one that silently mishandles a
 common type.
 
-The factor-or-character decision is not a matter of
-taste, and it is not a decision made once. It is a
-decision about *when* in the pipeline the conversion
-happens, and @fig-factor-timing is the answer this
-chapter argues for.
+The factor-or-character decision is not a matter of taste.
+Nor is it a decision made once. It is a decision about *when*
+in the pipeline the conversion happens, and @fig-factor-timing
+gives the answer this chapter argues for.
 
 ```{mermaid}
 %%| echo: false
@@ -315,13 +315,13 @@ errors.
 ## A runnable example: parsing a messy clinical field
 
 The three tools of this chapter earn their place on the
-free-text fields that clinical data are full of. To
-illustrate, consider a single column recording a dosing
-instruction as the site typed it, with the drug, the
-amount, and the start date all run together and formatted
-inconsistently. We use a regular expression to pull out the
-structured pieces and `lubridate` to parse the dates, which
-arrive in three different formats.
+free-text fields that clinical data are full of. To illustrate,
+consider a single column recording a dosing instruction as the
+site typed it, with the drug, the amount, and the start date
+all run together and formatted inconsistently. We use a
+regular expression to pull out the structured pieces, and
+`lubridate` to parse the dates, which arrive in three
+different formats.
 
 ```{r}
 #| label: types-regex-dates
@@ -349,20 +349,19 @@ parsed
 ```
 
 Three regular-expression constructs do the work. The anchor
-`^[A-Za-z]+` takes the leading word, the drug. The
-lookahead `\\d+(?=\\s?mg)` takes the digits that precede
-`mg` without capturing the `mg` itself. The lookbehind
-`(?<=started )` takes everything after the word `started`,
-which is the date in whatever format the site used;
-`parse_date_time` then tries each candidate format in turn.
-The result is a tidy three-column table from a single messy
-string.
+`^[A-Za-z]+` takes the leading word, the drug. The lookahead
+`\\d+(?=\\s?mg)` takes the digits that precede `mg` without
+capturing the `mg` itself. The lookbehind `(?<=started )`
+takes everything after the word `started`, which is the date
+in whatever format the site used. `parse_date_time` then
+tries each candidate format in turn. The result is a tidy
+three-column table drawn from a single messy string.
 
 ### The same parsing in Python
 
 `pandas` exposes the same operations through its `.str`
 accessor and `to_datetime`. The regular expressions are
-identical, because the regex dialect is shared; only the
+identical, because the regex dialect is shared. Only the
 surrounding idiom differs.
 
 ```{python}
@@ -382,11 +381,11 @@ out
 ```
 
 The `format="mixed"` argument is `pandas`' counterpart to
-supplying several `orders` to `parse_date_time`: it lets
-each value be parsed by whichever format fits. The lesson is
-that regex and date parsing are portable skills; the drug,
-dose, and date fall out the same way in either language,
-and a biostatistician who knows the constructs can work in
+supplying several `orders` to `parse_date_time`. It lets each
+value be parsed by whichever format fits. The lesson is that
+regex and date parsing are portable skills. The drug, dose,
+and date fall out the same way in either language, and a
+biostatistician who knows the constructs can work in
 whichever the project uses.
 
 ::: {.callout-note icon=false collapse=true}
@@ -402,26 +401,25 @@ mean outcome under high-dose treatment?
 
 **Answer.**
 
-The intercept estimates the linear-predictor value at
-the reference level (`"high"`), so the high-dose mean
-on the link scale is 18.2 (or its inverse-link
-transform, depending on the family). The
-`treatmentplacebo` coefficient (-3.1) is the
-difference from high-dose. The placebo mean on the
-link scale is therefore 18.2 - 3.1 = 15.1.
+The intercept estimates the linear-predictor value at the
+reference level (`"high"`). The high-dose mean on the link
+scale is therefore 18.2 (or its inverse-link transform,
+depending on the family). The `treatmentplacebo` coefficient
+(-3.1) is the difference from high-dose, so the placebo mean
+on the link scale is 18.2 - 3.1 = 15.1.
 
-For clinical reporting, it is usually clearer to set
-the reference deliberately to `"placebo"` so the
-intercept is the placebo baseline and treatment
-coefficients are the increments from baseline:
+For clinical reporting, it is usually clearer to set the
+reference deliberately to `"placebo"`, so the intercept gives
+the placebo baseline and the treatment coefficients give the
+increments from baseline:
 
 ```r
 treatment <- factor(treatment,
                     levels = c("placebo", "low", "high"))
 ```
 
-The default alphabetical ordering creates frequent
-misreporting of effect direction.
+The default alphabetical ordering is, unfortunately, a
+frequent source of misreported effect direction.
 
 :::
 
@@ -466,9 +464,9 @@ ymd_hms("2026-03-09 01:00:00", tz = "US/Pacific") + hours(24)
 #> [1] "2026-03-10 02:00:00 PDT"
 ```
 
-The first is a calendar day; the second is 24 wall-
-clock hours, which crosses a DST boundary. Use whichever
-is appropriate for the analysis.
+The first is a calendar day. The second is 24 wall-clock
+hours, which crosses a DST boundary. Use whichever notion of
+a day is appropriate for the analysis at hand.
 
 ## Common antipatterns
 
@@ -542,15 +540,16 @@ clean <- raw |>
   filter(!is.na(visit_date), !is.na(treatment))
 ```
 
-The cleaned data has dates parsed from mixed formats,
-treatment standardized and explicitly factored,
-small sites collapsed, missing sex coded explicitly.
-The script documents every transformation as code.
+The cleaned data have dates parsed from mixed formats,
+treatment standardized and explicitly factored, small sites
+collapsed, and missing sex coded explicitly. That is, the
+script documents every transformation as code, rather than
+leaving it to memory.
 
 ## Collaborating with an LLM on types
 
-LLMs handle these packages well; the trap is silent
-type coercion.
+LLMs handle these packages well. The trap, as far as we have
+observed, is silent type coercion.
 
 **Prompt 1: parsing dates.** Paste a sample of date
 strings (10 examples covering the formats present)
@@ -591,8 +590,8 @@ interpretation.
 
 ## Principle in use
 
-Three habits keep text, categories, and dates from
-becoming the project's bug list:
+Three habits keep text, categories, and dates from becoming
+entries on the project's bug list:
 
 1. **Convert to factor late.** Cleaning in
    character; modeling in factor. Specify reference
@@ -639,27 +638,24 @@ becoming the project's bug list:
 
 ## Prerequisites answers {#sec-quiz-answers-14}
 
-1. Before R 4.0, `read.csv()` and `data.frame()`
-   converted character columns to factors by default,
-   causing surprise when levels were invented,
-   ordered, or appeared where a character string was
-   expected (e.g., as merge keys). Downstream
-   analysts had to remember `stringsAsFactors = FALSE`
-   or suffer silent coercion. R 4.0 made `FALSE` the
-   default; the old default is remembered only when
-   reading elderly code.
-2. `str_detect(string, pattern)` returns a logical
-   vector of the same length as `string`: `TRUE`
-   where the pattern matched, `FALSE` elsewhere.
-   `str_extract()` returns a character vector: the
-   first matching substring per input, or
-   `NA_character_` where there was no match.
-   `str_detect` is for filtering; `str_extract` is
+1. Before R 4.0, `read.csv()` and `data.frame()` converted
+   character columns to factors by default. This caused
+   surprise when levels were invented, ordered, or appeared
+   where a character string was expected, for example as
+   merge keys. Downstream analysts had to remember
+   `stringsAsFactors = FALSE` or suffer silent coercion.
+   R 4.0 made `FALSE` the default, and the old default is
+   remembered now only when reading elderly code.
+2. `str_detect(string, pattern)` returns a logical vector of
+   the same length as `string`: `TRUE` where the pattern
+   matched, `FALSE` elsewhere. `str_extract()` returns a
+   character vector, namely the first matching substring per
+   input, or `NA_character_` where there was no match. In
+   short, `str_detect` is for filtering and `str_extract` is
    for pulling out parts.
 3. `parse_date_time(x, orders = c('ymd', 'mdy', 'Bdy'))`
-   (or with `readr::parse_date` and multiple format
-   strings). `lubridate::parse_date_time()` tries
-   each order against each input and returns the
-   first that parses. Inputs that match no format
-   produce `NA`, allowing you to flag and inspect
-   them.
+   (or `readr::parse_date` with multiple format strings)
+   is the tool. `lubridate::parse_date_time()` tries each
+   order against each input and returns the first that
+   parses. Inputs that match no format produce `NA`, which
+   lets you flag and inspect them.

@@ -3,101 +3,105 @@
 ## Why this book?
 
 Most biostatistics graduate curricula teach statistical theory
-thoroughly and practical data-analysis craft casually. Students
-learn likelihood theory and the fine points of hypothesis
-testing but arrive at their first collaborative project unsure
-how to set up a project directory, commit changes with `git`,
-parameterize a report, or write a defensible statistical
-analysis plan.
+thoroughly. They teach practical data-analysis skill casually.
+Students learn likelihood theory and the fine points of
+hypothesis testing. Unfortunately, they arrive at their first
+collaborative project unsure how to set up a project directory,
+commit changes with `git`, parameterize a report, or write a
+defensible statistical analysis plan.
 
-The omission is not an oversight by any individual program. It
-is structural. A curriculum committee allocates credit hours to
-what can be examined, and the craft of analysis has resisted
-examination: there is no closed-form answer to 'how should this
-project be organized', and no problem set that distinguishes a
-compendium a stranger can rebuild from a directory of scripts
-that happens to have produced the right numbers once. The
-result is that the skills a biostatistician uses every working
-day are the ones the degree least prepared them for, and they
-are acquired, if at all, by apprenticeship and accident.
+We do not read this omission as an oversight by any individual
+program. It is structural. A curriculum committee allocates
+credit hours to what can be examined, and the craft of analysis
+has resisted examination. There is no closed-form answer to how
+a project should be organized. Nor is there a problem set that
+distinguishes a compendium a stranger can rebuild from a
+directory of scripts that happened to produce the right numbers
+once. The result is that the skills a biostatistician uses every
+working day are the ones the degree least prepared them for.
+They are acquired, if at all, by apprenticeship and accident.
 
-This book aims to close that gap. It teaches the practical
-skills needed to do reproducible biostatistical work in 2026:
-the tools, the workflows, and the professional norms. We assume
-throughout that the reader will also be studying a theory-heavy
+This book aims to close that gap. We teach the practical skills
+needed to do reproducible biostatistical work in 2026: the
+tools, the workflows, and the professional norms. We assume
+throughout that the reader is also studying a theory-heavy
 statistical computing course alongside this one, and we treat
 modeling as that course's territory rather than our own.
 
 ## Why now
 
-A book of this kind would have been useful in 2015. It is
-necessary in 2026, because three developments have converged
-that together change what a competent biostatistician is
-expected to be able to do.
+A book of this kind would have been useful in 2015. We consider
+it necessary in 2026, because three developments have converged
+to change what a competent biostatistician is expected to do.
 
 **Reproducibility stopped being a virtue and became a
 requirement.** For two decades the case for reproducible
-analysis was made on scientific grounds and heard as
-exhortation [@peng2011reproducible; @goodman2016what]. That
-changed when the funders wrote it down. The 2022 memorandum
-from the White House Office of Science and Technology Policy
-[@usshi2022ostp] directs every federal research funder to
-require immediate public access to publications and to the
-data underlying them, with agency implementation due by the
-end of 2025. Since January 2023 every NIH application has
-carried a Data Management and Sharing Plan that becomes a term
-of the award. The FDA has required CDISC-conformant submissions
-since 2016. A graduate entering the field now will be asked, in
-their first year, to name a repository, produce a persistent
+analysis was made on scientific grounds and heard as exhortation
+[@peng2011reproducible; @goodman2016what]. That changed when
+funders made reproducibility a formal requirement. The 2022
+memorandum from the White House Office of Science and Technology
+Policy [@usshi2022ostp] directs every federal research funder to
+require immediate public access to publications and to the data
+underlying them, with agency implementation due by the end of
+2025. Since January 2023, every NIH application has carried a
+Data Management and Sharing Plan that becomes a term of the
+award. The FDA has required CDISC-conformant submissions since
+2016. A graduate entering the field now will be asked, in their
+first year, to name a repository, produce a persistent
 identifier, and state how the computational environment will be
-preserved. These are not questions a theory sequence answers,
+preserved. A theory sequence does not answer these questions,
 and the person on the team most likely to be asked them is the
-statistician. @sec-federal treats the policy landscape directly;
-the rest of the book is, in effect, the technical answer to it.
+statistician. @sec-federal treats the policy landscape directly.
+The rest of the book is, in effect, the technical answer to it.
 
 **Large language models moved the scarce skill.** By 2026 a
-competent model will produce working R for most of the
-exercises in this book, and for a substantial share of the
-analysis code a junior statistician is asked to write. The
-bottleneck has moved from producing code to auditing it. This
-is a genuine change in what expertise consists of, and it cuts
-in a specific direction: the parts of the work a model does
-well are the mechanical parts this book teaches quickly, and
-the parts it does badly are the judgments this book spends
-most of its pages on. A model will not tell you that the
-verb in your discussion section outruns your design, that the
-join you just wrote inflated the denominator, or that the
-subgroup you are about to report was not one you were powered
-for. It will, however, write the join. Pretending the tools do
-not exist would leave students to discover their failure modes
-in production; teaching them without teaching verification
-would be worse. @sec-ai-coding takes the question head on, and
-every chapter closes with prompts paired with an explicit
-verification step.
+competent model produces working R for most of the exercises in
+this book, and for a substantial share of the analysis code a
+junior statistician is asked to write. The bottleneck has moved
+from producing code to auditing it. We consider this a genuine
+change in what expertise consists of, and it cuts in a specific
+direction. The parts of the work a model does well are the
+mechanical parts this book teaches quickly. The parts it does
+badly are the judgments this book spends most of its pages on. A
+model will not tell you that your discussion section overstates
+what your design supports. It will not tell you that the join
+you just wrote inflated the denominator, or that the subgroup
+you are about to report was not one you were powered for. It
+will, however, write the join. By 2026 much of that writing
+happens inside an agent, a tool that reads the codebase, edits
+several files, and runs the result, rather than a chat window
+that returns a single answer to copy. The agent changes the
+speed and the blast radius of a mistake. It does not change who
+is responsible for catching it. Pretending the tools do not
+exist would leave students to discover their failure modes in
+production. Teaching them without teaching verification would be
+worse. @sec-ai-coding takes the question head on, and every
+chapter closes with prompts paired with an explicit verification
+step.
 
 **The tooling finally settled.** The infrastructure this book
 teaches was, until recently, a moving target. Quarto reached
-maturity and absorbed R Markdown's role; `renv`
+maturity and absorbed R Markdown's role. The `renv` package
 [@ushey2026renv] displaced `packrat` and became the default for
-project-level dependency pinning; the `rocker` images
+project-level dependency pinning. The `rocker` images
 [@boettiger2017rocker] made containerized R routine rather than
-exotic; `targets` [@landau2021targets] gave R a dependency-aware
-build tool that fits how analysts actually work. A book written
-in 2018 would have taught tools that are now deprecated. The
-stack described here is stable enough to be worth learning and
-recent enough that most working biostatisticians have not been
-taught it.
+exotic, and `targets` [@landau2021targets] gave R a
+dependency-aware build tool that fits how analysts actually
+work. A book written in 2018 would have taught tools that are
+now deprecated. The stack described here is stable enough to be
+worth learning, and recent enough that most working
+biostatisticians have not been taught it.
 
 ## What the peer curricula do and do not cover
 
 Several chapters of this book justify their existence by
 reference to a survey of the published graduate curricula of
-peer United States biostatistics programs. The sources are
-recorded in @sec-peer-survey so that a reader can check the
-claim rather than take it.
+peer United States biostatistics programs. We record the
+sources in @sec-peer-survey so that a reader can check the claim
+rather than take it on faith.
 
-The survey's finding is not that peer programs are deficient.
-It is that the published curricula concentrate, reasonably, on
+The survey's finding is not that peer programs are deficient. It
+is that the published curricula concentrate, reasonably, on
 statistical computing in the algorithmic sense: optimization,
 simulation design, the bootstrap, Bayesian computation. What
 recurs in the gaps is the operational layer that sits between a
@@ -105,50 +109,53 @@ method and a result a reader can trust. The command line, SQL
 and database extraction, principled missing-data practice,
 dependency-aware pipelines, continuous integration, and
 de-identification each appear in a minority of published
-curricula, and each is something a biostatistician will be
-asked to do within months of starting work. Where a chapter
-here exists because of such a gap, it says so at its opening
-and cites the evidence.
+curricula. Each is something a biostatistician will be asked to
+do within months of starting work. Where a chapter here exists
+because of such a gap, it says so at its opening and cites the
+evidence.
 
 Two topics deserve particular mention because their absence has
 a cost that alumni report directly. The first is CDISC
-(@sec-cdisc): graduates entering pharmaceutical and
-contract-research positions encounter SDTM and ADaM on their
+(@sec-cdisc). Graduates entering pharmaceutical and
+contract-research positions encounter SDTM and ADaM in their
 first week and find that no course prepared them. The second is
 SAS (@sec-sas), which remains the screening filter for a large
-share of United States industry positions regardless of what one
-thinks of the language. Neither chapter argues that these
+share of United States industry positions, regardless of what
+one thinks of the language. Neither chapter argues that these
 standards are good. Both argue that a graduate who cannot read
-them is excluded from work they are otherwise qualified for.
+them is excluded from work he or she is otherwise qualified
+for.
 
 ## Craft is not separable from correctness
 
-It would be possible to read the preceding sections as an
-argument about professional convenience: learn the tools, get
-the job, satisfy the funder. That reading understates the case.
+A reader could take the preceding sections as an argument about
+professional convenience: learn the tools, get the job, satisfy
+the funder. That reading understates the case.
 
 The infrastructure in this book exists because analysis is
 error-prone in ways that infrastructure catches and vigilance
-does not. A join that silently multiplies rows, a package
-update that changes a function's behavior between the analysis
-and the revision, a figure built from an intermediate that was
-never rebuilt after the cleaning script changed: none of these
-announces itself, and none is caught by being careful. They are
-caught by an assertion, a lockfile, and a dependency graph.
-The claim that reproducible infrastructure is a courtesy to
-future readers is true and incomplete. Its more immediate
-payoff is that it is what lets a statistician carry the ten or
-fifteen simultaneous projects that the work actually consists
-of [@slade2023team] without any of them quietly rotting.
+does not. Consider three failures: a join that silently
+multiplies rows, a package update that changes a function's
+behavior between the analysis and the revision, and a figure
+built from an intermediate that was never rebuilt after the
+cleaning script changed. None of these is visible at the time it
+happens, and none is caught by being careful. Each is caught by
+an assertion, a lockfile, or a dependency graph. The claim that
+reproducible infrastructure is a courtesy to future readers is
+true, but it is incomplete. Its more immediate payoff is that it
+lets a statistician carry the ten or fifteen simultaneous
+projects that the work actually consists of [@slade2023team]
+without letting any of them deteriorate unnoticed.
 
-At the same time, this book is careful not to claim more for
-its tools than they deliver. A perfectly reproducible,
-fully compliant, numerically correct analysis can still mislead
-every reader it reaches, and no lockfile or container will
-notice. @sec-ethics is the chapter that says so, and it is
-placed early rather than late because the rest of the book is
-easier to keep in proportion once the reader knows what the
-infrastructure cannot do.
+At the same time, we are careful not to claim more for these
+tools than they deliver. A perfectly reproducible, fully
+compliant, numerically correct analysis can still mislead every
+reader it reaches. No automated check catches that kind of
+failure. @sec-ethics is the chapter that says so. We place it
+late rather than early because its argument, that the entire
+infrastructural apparatus of this book is orthogonal to whether
+an analysis misleads, only lands once that apparatus has been
+built.
 
 ## What is different here
 
@@ -162,10 +169,12 @@ infrastructure cannot do.
   competent tool use, and they are the part of the work that
   neither a package nor a model performs.
 - **AI-assisted workflows are taught explicitly.** Students in
-  2026 will use large language models in their daily work.
-  Rather than pretend otherwise, the book dedicates a chapter
-  to using LLMs responsibly in R coding, and ends every chapter
-  with adversarial prompts designed to expose model limits.
+  2026 will use large language models, often through coding
+  agents that read and edit a project directly, in their daily
+  work. Rather than pretend otherwise, the book dedicates a
+  chapter to using LLMs and coding agents responsibly in R
+  work, and ends every chapter with adversarial prompts
+  designed to expose their limits.
 - **Real case studies.** Two full analyses (Palmer Penguins and
   ADNI MCI prediction) are carried end-to-end, from project
   scaffolding to final report.

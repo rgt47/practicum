@@ -74,13 +74,12 @@ advantages: you pull only the rows and columns you need, you
 leave the authoritative copy untouched, and you record, in the
 query itself, exactly how your analytic dataset was derived.
 
-This chapter is not a database course. It teaches the
-subset of SQL and the `DBI`/`dbplyr` tooling that covers
-the recurring needs of applied biostatistics: connect,
-filter, join, aggregate, and extract. The deeper matters
-of schema design, indexing, and transaction management
-belong to a database text and to your data-engineering
-colleagues.
+This chapter is not a database course. It teaches the subset
+of SQL and the `DBI`/`dbplyr` tooling that covers the
+recurring needs of applied biostatistics: connect, filter,
+join, aggregate, and extract. The deeper matters of schema
+design, indexing, and transaction management belong to a
+database text, and to your data-engineering colleagues.
 
 ## The statistician's contribution {#sec-databases-human}
 
@@ -251,12 +250,12 @@ analytic <- summary_q |> collect()
 analytic
 ```
 
-Everything up to `collect()` ran in the database; only the
+Everything up to `collect()` ran in the database. Only the
 small summary crossed into memory. This is the pattern to
-internalize: filter and aggregate lazily against the
-table, then `collect()` the modest result. The
-verification habit still applies, so we check the row
-count is what a per-arm summary should give.
+internalize: filter and aggregate lazily against the table,
+then `collect()` the modest result. The verification habit
+still applies, so we check that the row count matches what a
+per-arm summary should give.
 
 ```{r}
 #| label: db-verify
@@ -358,15 +357,16 @@ your analysis rested on.
 
 ## Collaborating with an LLM on databases
 
-LLMs write competent SQL and `dbplyr`; the traps are
-correctness on joins and the silent scale of a query.
+LLMs write competent SQL and `dbplyr`. The traps, in our
+experience, are correctness on joins and the silent scale of
+a query.
 
 **Prompt 1: drafting a query.** Describe the tables, their
 keys, and the summary you want, and ask for both the SQL
 and the `dbplyr` equivalent.
 
 *What to watch for.* The join key and the join type. An
-LLM will happily write an inner join where you needed a
+LLM will readily write an inner join where you needed a
 left join, dropping patients with no visits. State the
 cardinality you expect.
 

@@ -82,11 +82,11 @@ it adds a modeling layer with assumptions of its own.
 Sensitivity analysis is essential, but it is open-ended. There
 is, in short, no method here that is free of difficulty.
 
-The pragmatic stance is: document the missingness,
-be honest about the mechanism, implement one
-principled approach (most often multiple imputation
-via `mice`), and report the sensitivity of
-conclusions to alternative approaches.
+The pragmatic stance, in our view, is this: document the
+missingness, be honest about the mechanism, implement one
+principled approach (most often multiple imputation via
+`mice`), and report the sensitivity of conclusions to
+alternative approaches.
 
 ## The statistician's contribution {#sec-missing-human}
 
