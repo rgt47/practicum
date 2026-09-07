@@ -100,13 +100,14 @@ into an act with consequences for somebody else:
 **A merge conflict is a disagreement about the analysis, not
 about the text.** Git presents a conflict as two versions of a
 region of a file, and the tooling invites you to pick one. In
-analysis code this is almost always wrong. If your colleague
-changed the exclusion threshold from 250 to 220 and you
-changed the same line to add a lower bound, the correct
-resolution contains both changes, and the fact that the two of
-you independently touched the exclusion criteria within a week
-is itself a finding worth a conversation. Resolve the conflict
-by understanding both intents, not by choosing a winner.
+analysis code this is almost always wrong. Suppose your
+colleague changed the exclusion threshold from 250 to 220 and
+you changed the same line to add a lower bound. The correct
+resolution contains both changes. The fact that the two of
+you independently touched the exclusion criteria within a
+week is itself a finding worth a conversation. Resolve the
+conflict by understanding both intents, not by choosing a
+winner.
 
 **Review the analysis, not the code.** A software engineer
 reviewing a diff asks whether it compiles, whether it is

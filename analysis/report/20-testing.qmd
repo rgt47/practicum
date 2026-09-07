@@ -66,7 +66,7 @@ ceremony.
 The reasoning has two holes. The first is that the script does
 not run once. It runs every time a data extract is refreshed,
 an exclusion is revised, or a reviewer asks for a sensitivity
-analysis, and by then its author has forgotten which of its
+analysis. By then its author has forgotten which of its
 branches were ever exercised. The second is more serious: the
 claim 'it runs on one known dataset' is doing no work, because
 the failures that matter in analysis code do not stop it

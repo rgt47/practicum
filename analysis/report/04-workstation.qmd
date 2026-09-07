@@ -56,37 +56,37 @@ By the end of this chapter you should be able to:
 A workstation is the one piece of infrastructure in this book
 that nobody will ever ask you about. No reviewer inspects it,
 no funder requires it, and no collaborator sees it. It is
-therefore the piece most likely to be left in whatever state it
-arrived in, and the piece whose defects are hardest to
-attribute, because a poorly configured machine does not
-announce itself. It expresses itself as friction: a path that
-works here and not there, a package that is a different version
-than you thought, a project that takes twenty minutes to resume
-because the last session's state lived in your head. Each is
-small enough to absorb, which is exactly why they accumulate
-for years.
+therefore the piece most likely to be left in whatever state
+it arrived in. Its defects are also the hardest to attribute,
+because a poorly configured machine does not announce itself.
+It expresses itself instead as friction: a path that works
+here and not there, a package that is a different version
+than you thought, a project that takes twenty minutes to
+resume because the last session's state lived in your head.
+Each is small enough to absorb on its own, which is exactly
+why such problems accumulate over years.
 
 We shall build in this chapter what we would call the minimum
 viable workstation of a professional biostatistician in 2026.
 The word to notice is 'minimum'. The goal is not a comfortable
-machine, which is a matter of taste this book has no standing
-to legislate, but a legible one: a configuration that is
-written down, restorable, and separable from the projects that
-run on it.
+machine; that is a matter of taste this book has no standing
+to legislate. The goal is a legible one, a configuration that
+is written down, restorable, and separable from the projects
+that run on it.
 
-The goal is a workstation where: (1) the analysis you run
-on Tuesday produces the same result on Wednesday, (2) the
-analysis you run at home produces the same result as in
-the office, (3) the configuration is reproducible from a
-git checkout if the laptop dies. None of this is glamorous;
-all of it is foundational.
+Concretely, we want a workstation where the analysis you run
+on Tuesday produces the same result on Wednesday, where the
+analysis you run at home produces the same result as in the
+office, and where the configuration itself is reproducible
+from a git checkout if the laptop dies. None of this is
+glamorous. All of it is foundational.
 
 ## The statistician's contribution {#sec-workstation-human}
 
-A workstation is configured once and then lived in for
-years, which is why its small decisions compound. These
-are the ones worth making deliberately rather than by
-default:
+A workstation is configured once and then lived in for years.
+That is precisely why its small decisions compound. The
+following are the ones we would urge you to make deliberately
+rather than by default:
 
 **Pin the foundational toolchain.** A specific version of
 R, Quarto, and the rendering engine; documented and

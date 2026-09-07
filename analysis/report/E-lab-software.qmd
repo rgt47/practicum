@@ -3,16 +3,16 @@
 ::: {.callout-note}
 ## Why this appendix exists
 
-Several chapters use tools written in the author's lab, and
-a reader is entitled to know what those tools are, what they
+Several chapters use tools written in the author's lab. A
+reader is entitled to know what those tools are, what they
 depend on, and how much of the book's argument rests on
 them. This appendix is the inventory.
 
 It exists partly as a disclosure. A textbook that teaches
-its author's own software has an obvious conflict, and the
-honest response is to make the extent of it visible rather
-than to distribute the mentions thinly enough that nobody
-notices.
+its author's own software has an obvious conflict. The
+honest response, in our view, is to make the extent of it
+visible rather than to distribute the mentions thinly enough
+that nobody notices.
 :::
 
 ## What the book depends on, and what it does not
@@ -25,12 +25,12 @@ substance, and the tools below are conveniences layered on
 them.
 
 Two exceptions are worth naming plainly. @sec-zzcollab is
-about `zzcollab` and cannot be separated from it, though
-its Five Pillars framing applies to any compendium. And the
-two case studies (@sec-penguins, @sec-adni) use `zztable1`
-and `zzlongplot` for table and figure production, which a
-reader without them should substitute with `gtsummary` and
-plain `ggplot2`; nothing in the analyses depends on the
+about `zzcollab` and cannot be separated from it, though its
+Five Pillars framing applies to any compendium. The two case
+studies (@sec-penguins, @sec-adni) use `zztable1` and
+`zzlongplot` for table and figure production. A reader
+without them should substitute `gtsummary` and plain
+`ggplot2`; nothing in the analyses depends on the
 substitution.
 
 Everything else is optional. Where a chapter mentions one

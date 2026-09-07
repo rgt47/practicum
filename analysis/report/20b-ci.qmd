@@ -68,7 +68,7 @@ out the code, reconstructs the environment, runs the tests,
 and renders the report; if anything fails, you are told
 within minutes. The value for the biostatistician is
 specific: CI runs your analysis on a machine that is not
-yours, from a clean state, which is the closest thing to a
+yours, from a clean state. That is the closest thing to a
 proof that a collaborator could reproduce it.
 
 This chapter uses GitHub Actions, the CI system built into

@@ -54,12 +54,12 @@ By the end of this chapter you should be able to:
 Nearly every argument for version control is an argument about
 collaboration: merging other people's work, reviewing their
 changes, avoiding the overwrite of a file two people edited at
-once. None of that applies to an analyst working alone, which
-is why solo Git is a harder sell than it looks and why so many
+once. None of that applies to an analyst working alone. That is why
+solo Git is a harder sell than it looks, and why so many
 statisticians postpone learning it until a project forces the
 issue.
 
-The case has to be made differently, and it rests on a single
+The case has to be made differently. It rests on a single
 observation: you are not one person over the life of a project.
 The analyst who wrote the cleaning script in March and the
 analyst asked in November why the denominator is what it is

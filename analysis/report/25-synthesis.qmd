@@ -90,13 +90,11 @@ eight parts:
    both presuppose a finished artifact, one to hand
    over and one to be skeptical about.
 
-Two appendices sit outside the sequence:
-@sec-alternative-wrangling, for reading the base R,
-`data.table`, and `arrow` code that a tidyverse
-education does not prepare you for, and
-@sec-peer-survey, which records the curricular
-evidence on which several chapters rest their case
-for existing.
+Two appendices sit outside the sequence. @sec-alternative-wrangling
+is for reading the base R, `data.table`, and `arrow` code
+that a tidyverse education does not prepare you for.
+@sec-peer-survey records the curricular evidence on which
+several chapters rest their case for existing.
 
 The parts are progressive: each builds on the
 previous. Reproducibility is impossible without

@@ -57,9 +57,10 @@ By the end of this chapter you should be able to:
 
 We work through in this chapter a single end-to-end case
 study: predicting conversion from Mild Cognitive Impairment
-(MCI) to Alzheimer's disease (AD) dementia within a three-year
-horizon, using baseline sociodemographic, clinical, and
-neuropsychological measures. Our goal is not to solve the
+(MCI) to Alzheimer's disease (AD) dementia within a
+three-year horizon. The predictors are baseline
+sociodemographic, clinical, and neuropsychological measures.
+Our goal is not to solve the
 prediction problem, which would be a book-length exercise in
 its own right, but to demonstrate the Practicum workflow
 end-to-end: scaffolding, planning, wrangling, figuring,

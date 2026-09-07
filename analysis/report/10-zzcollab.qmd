@@ -69,17 +69,17 @@ reproducibility problem and each left the wiring to the reader.
 A compendium does not come with a lockfile; a lockfile does not
 come with a container; a container does not know where your
 paper lives. Assembling the three by hand is about half an hour
-of work per project and is exactly the kind of work that gets
-done slightly differently every time, which defeats the
+of work per project. It is also exactly the kind of work that
+gets done slightly differently every time, which defeats the
 consistency it was supposed to produce.
 
 `zzcollab` is an opinionated framework that does the assembly.
 It packages the ideas of `rrtools`, `renv`, and Docker into a
 single command-line workflow, trading flexibility for speed of
 setup and for uniformity across a group's projects. The trade
-is real in both directions and worth stating plainly: every
-project in the group looks the same and a collaborator knows
-where things live without asking, at the price of rather less
+is real in both directions and worth stating plainly. Every
+project in the group looks the same, and a collaborator knows
+where things live without asking. The price is rather less
 control over the layout than bare `rrtools` would give you. A
 reader who wants that control should use `rrtools` directly and
 will lose nothing this book teaches.

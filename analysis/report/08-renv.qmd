@@ -56,8 +56,8 @@ dependency changed underneath it. That much is familiar and is
 not, on its own, the interesting problem, because a failure is
 loud and gets fixed. The dangerous case is the one where
 nothing fails: the code still runs, the report still renders,
-and one of the numbers is different, because a default changed
-or a tie is now broken the other way. Nothing in the output
+and one of the numbers is different. A default changed, or a
+tie is now broken the other way, and nothing in the output
 says so. The analyst who re-runs an old analysis and gets a
 slightly different table has no way, without a record of what
 was installed the first time, to tell a genuine correction from

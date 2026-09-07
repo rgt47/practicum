@@ -69,11 +69,11 @@ files with a single command.
 The gap between those two states is usually occupied by a
 manual step that nobody thinks of as a step: a number read off
 the console and typed into a sentence. It is the most
-reasonable thing in the world to do, it takes four seconds, and
-it severs the connection between the analysis and the claim. On
-the day the data are corrected and the analysis is re-run, the
-figures update and the sentence does not, and there is nothing
-anywhere that will tell you. Literate programming exists to
+reasonable thing in the world to do. It also takes four
+seconds and severs the connection between the analysis and the
+claim. On the day the data are corrected and the analysis is
+re-run, the figures update and the sentence does not. Nothing
+anywhere will tell you so. Literate programming exists to
 close that particular gap, and Quarto is the current standard
 tool for closing it in R.
 
