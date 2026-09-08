@@ -4,7 +4,10 @@ type: software
 title: "practicum"
 version: 0.1.0
 date-released: "2026-08-01"
-license: GPL-3
+license:
+  - CC-BY-4.0
+  - GPL-3.0
+license-url: "https://github.com/rgt47/practicum/blob/main/LICENSE.md"
 authors:
   - family-names: Thomas
     given-names: Ronald G.

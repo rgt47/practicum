@@ -3,7 +3,11 @@ Title: practicum Data Analysis
 Version: 0.0.0.9000
 Authors@R:
     person(given = "Ronald G.", family = "Thomas", email = "rgthomas@ucsd.edu", role = c("aut", "cre"))
-Description: Data analysis workspace for the practicum project.
+Description: Data analysis workspace and build machinery for
+    Biostatistics Practicum. The License field below governs this
+    package code only. The book's prose, figures, and exercises in
+    analysis/report are licensed CC BY 4.0, and code blocks printed
+    in the text are MIT. See LICENSE.md for the full split.
 License: GPL-3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
