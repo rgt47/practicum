@@ -206,6 +206,29 @@ No prior Docker, `renv`, or Quarto experience is assumed.
 See the [Conventions](conventions.qmd) page for the visual
 cues used throughout the book.
 
+## Assigning parts of this book
+
+Instructors are welcome to assign individual chapters rather
+than the whole book, and the book is built to allow it. Every
+chapter opens with a `Sources` note, a prerequisites quiz whose
+answers appear at the end of the same chapter, and a statement
+of learning objectives, so that a chapter assigned on its own
+tells the reader what it assumes. Because the book is free, an
+instructor assigning three chapters incurs no cost that has to
+be justified to anyone.
+
+The dependency structure is real, though, and @fig-book-map in
+@sec-intro shows it. Parts I through III build the
+infrastructure that later parts use. A chapter from Part V or VI
+can be assigned on its own to a reader who already has a working
+environment; assigned to one who does not, it will send them
+back several parts. The case studies in Part VII assume
+everything above them.
+
+The prose, figures, and exercises are licensed CC BY 4.0, so
+adaptation, translation, and excerpting are permitted with
+credit. See the colophon for the full license split.
+
 ## Acknowledgments
 
 This book draws heavily on Jenny Bryan's STAT 545
