@@ -159,6 +159,49 @@ sources:
   it means the identifiers are load-bearing, and you should be
   able to say why.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: everything was already public
+
+**Question.** A colleague assembles a dataset entirely
+from public sources: forum posts, a professional registry,
+and voter rolls. Nothing was obtained without permission
+and nothing was private. They argue no ethical review is
+needed because they disclosed nothing new. Where does the
+argument fail?
+
+**Answer.**
+
+It treats disclosure as a property of each field rather
+than of the combination, and the harm is entirely in the
+combination.
+
+A forum post about a health condition is public to that
+forum's readers. A registry entry is public to people
+looking up practitioners. Voter rolls are public to anyone
+who asks. Each disclosure has an implicit audience, and
+the people in the data chose exposure to *that* audience.
+
+Joining them creates a fact that existed nowhere before:
+this named person, at this address, has this condition.
+Nobody consented to that, because it was not available to
+consent to. The keys that make the join possible are
+exactly the quasi-identifiers of @sec-deident, and this is
+the aggregation version of the same mechanism.
+
+The second failure is that 'public' describes access, not
+permission. Publicly readable data still carries terms of
+use, and scraping is a distinct act from reading. The
+practical test is the one this section gives: could you
+tell the people in your dataset what you built, and would
+they recognize it as something they agreed to?
+
+Note also what this argument implies for the ethics of
+review itself. If assembling it needs no review because
+each piece was public, then no aggregation ever needs
+review, which is a conclusion nobody defends when stated
+plainly.
+:::
+
 ## Causal overclaiming
 
 The second failure is the most common one in biomedical

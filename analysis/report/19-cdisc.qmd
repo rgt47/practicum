@@ -246,6 +246,44 @@ for instance, takes values in `{'M', 'F', 'U',
 ADaM specification will cite the relevant CDISC codelist
 version for each controlled variable.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: why not analyze SDTM directly?
+
+**Question.** SDTM already holds every collected value in
+a tidy, one-row-per-observation layout. ADaM is derived
+from it and adds no new data. Why build a second layer
+rather than fit the model on SDTM?
+
+**Answer.**
+
+Because SDTM and ADaM answer to different masters, and
+collapsing them costs you the thing a submission is for.
+
+SDTM is a faithful record of what was collected. It is
+immutable once locked, and its structure is dictated by
+the collection instrument rather than by any analysis.
+Nothing in it encodes a decision.
+
+ADaM encodes decisions, and that is the point. Which
+subjects are in the efficacy population. How a
+time-to-event value was derived and where censoring came
+from. Which visit counts as baseline. Those are choices
+made in the analysis plan, and ADaM is where they become
+explicit, traceable, and reviewable one at a time.
+
+Fit the model on SDTM and those decisions still get made,
+but inside the modeling script, mixed together, visible
+only to whoever reads the code. A reviewer asking 'how did
+you define the analysis population' would have to
+reconstruct it from a pipeline rather than read a flag
+column.
+
+The separation is the same one this book makes everywhere
+between raw and derived data. SDTM is `data/raw/`; ADaM is
+`data/derived/`. The regulatory context just makes the
+consequence of blurring them explicit.
+:::
+
 ## Worked example: SDTM to ADaM to survival in R
 
 The example below fabricates minimal SDTM domains, derives

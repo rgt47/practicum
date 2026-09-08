@@ -280,6 +280,45 @@ linear history. For solo work, the difference rarely
 matters; pick one and use it consistently. `merge` is
 simpler to reason about; `rebase` produces cleaner logs.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: what belongs in a commit?
+
+**Question.** You have spent a morning on an analysis. You
+cleaned the data, fixed a typo in the README, fitted three
+candidate models, and deleted an old script. Is that one
+commit or several, and what is the test?
+
+**Answer.**
+
+Several, and the test is whether you could revert one part
+without losing the others.
+
+Ask what each change is *for*. Cleaning the data, fixing
+the README and deleting the script are three unrelated
+intentions that happen to have shared a morning. Bundled
+into one commit, they become inseparable: discovering next
+week that the cleaning rule was wrong now means reverting
+the README fix too, or hand-editing the revert.
+
+The three model fits are the interesting case. If they are
+alternatives you are choosing between, they are one commit
+each, because you will want to point at the one you kept
+and say when and why. If they are a single specification
+search you always intended to run together, they are one
+commit.
+
+The useful discipline is to write the message first. If
+the message needs the word 'and', or a bulleted list of
+unrelated items, the commit is doing too much. 'Clean
+implausible BP values' is a commit. 'Clean data, fix
+README, try some models' is a diary entry.
+
+This matters more in solo work than it seems, because you
+are the only reviewer you will ever get, and a commit
+history is the only record of why the analysis looks the
+way it does.
+:::
+
 ## Remotes: GitHub, GitLab, Gitea
 
 A remote is a copy of the repository hosted elsewhere.

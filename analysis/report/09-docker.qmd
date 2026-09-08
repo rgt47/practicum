@@ -345,6 +345,49 @@ This produces a self-contained, citable artifact that
 will outlive Docker Hub or GitHub.
 
 ::: {.callout-note icon=false collapse=true}
+## Check your understanding: does a pinned tag pin the image?
+
+**Question.** Your Dockerfile begins
+`FROM rocker/verse:4.4.1`. That is an exact version, not
+`latest`. Does rebuilding it in two years give you the
+same image?
+
+**Answer.**
+
+Probably not, and the reason catches people who thought
+they had done the careful thing.
+
+A tag is a movable label, not a fixed identity. `4.4.1`
+pins the R version, and the maintainers can and do rebuild
+that tag against a newer Ubuntu base, refreshed apt
+packages, and patched system libraries. Your `FROM` line
+resolves to whatever the tag points at today.
+
+The immutable identity is the digest:
+
+```
+FROM rocker/verse@sha256:1a2b3c...
+```
+
+That is content-addressed and cannot change. If it
+resolves at all, it resolves to exactly the bytes you
+built against.
+
+The trade-off is real, which is why the book does not
+insist on digests everywhere. A pinned digest never picks
+up a security patch, so it ages into a liability, and the
+hash is unreadable in a diff. The usual compromise is a
+version tag during development and a digest recorded at
+the moment of submission, alongside the `sap-v1.0` tag of
+@sec-analysis-plan, so the archived artifact is
+reconstructible even though day-to-day work is not frozen.
+
+Either way, `docker save` above sidesteps the question
+entirely by archiving the built image rather than the
+instructions for building it.
+:::
+
+::: {.callout-note icon=false collapse=true}
 ## Check your understanding: image vs. container
 
 **Question.** You build an image `readmissions:v1.0`,

@@ -404,6 +404,43 @@ Coblis simulator
 (`colorbrewer2.org/learnmore/colorblind-simulator.html`)
 or `colorBlindness::cvdPlot()`.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: why a theme function?
+
+**Question.** `theme_set(theme_practicum())` applies your
+house style once, at the top of the document, and every
+subsequent plot inherits it. Defining `theme_practicum()`
+and adding it to each plot means typing it repeatedly. Why
+would anyone prefer the repetition?
+
+**Answer.**
+
+Because `theme_set()` is invisible state, and invisible
+state is what makes a figure hard to reproduce.
+
+A plot styled by `theme_set()` looks different depending
+on whether an earlier chunk ran. Lift that chunk into a
+different document, a slide deck, a colleague's session,
+and it renders with ggplot2's defaults instead. Nothing
+errors; the figure is simply not the one you approved.
+This is the same argument the book makes against a
+`.Rprofile` that attaches packages: code that only works
+because of something that happened earlier is code that
+travels badly.
+
+Adding the theme explicitly makes each plot
+self-contained. It also makes opting out possible, which
+matters more than it sounds: a figure prepared to a
+journal's specification needs to *not* carry your house
+style, and with `theme_set()` the only way to do that is
+to remember to reset it.
+
+The cost is real, so the honest position is that
+`theme_set()` is fine in a self-contained analysis script
+and wrong in a book, a package, or anything whose chunks
+might be reordered or reused.
+:::
+
 ## Export formats
 
 `ggsave()` writes to many formats, picked by

@@ -371,6 +371,42 @@ package-installation layer. Only changes to
 correct: when dependencies change, the layer should
 rebuild.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: is `renv` enough on its own?
+
+**Question.** Your project has a committed `renv.lock`
+pinning every package to an exact version. A colleague
+clones it and runs `renv::restore()`. Are you guaranteed
+the same numbers?
+
+**Answer.**
+
+No, and knowing what is left over is the reason this book
+puts Docker in the next chapter rather than stopping here.
+
+`renv` pins R packages. It does not pin:
+
+- **R itself.** The lockfile records the R version it was
+  built under but does not install it. A colleague on a
+  different R gets your packages on their interpreter.
+- **System libraries.** Packages that link to GDAL, GSL,
+  or a specific BLAS behave differently against different
+  system versions, and none of that is in the lockfile.
+  A different BLAS can change the last digits of a
+  regression coefficient.
+- **The operating system**, and anything that depends on
+  locale, line endings, or filesystem case sensitivity.
+
+So `renv::restore()` gets you the same *package* versions,
+which removes the largest and most common source of drift.
+It does not get you the same computational environment.
+
+That is the division of labor between the Five Pillars:
+`renv.lock` handles the R layer, the Dockerfile handles
+everything beneath it. Either alone leaves a gap, which is
+why the pillars are a stack rather than a menu.
+:::
+
 ## Migrating an existing project
 
 For a project that has been using packages without

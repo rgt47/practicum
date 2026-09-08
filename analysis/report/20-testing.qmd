@@ -209,6 +209,47 @@ flowchart TD
   U --> I --> E
 ```
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: what would you have tested?
+
+**Question.** A cleaning script filters to adults with
+`filter(age >= 18)`. Six months later someone discovers
+the export encodes unknown age as `-1`, so those rows were
+silently dropped as minors. Which layer of the diagram
+would have caught it, and what would the test have
+asserted?
+
+**Answer.**
+
+The integration layer, and only if the synthetic dataset
+contained a `-1`.
+
+That qualification is the whole lesson. A unit test on the
+filter would pass: given ages 17, 25 and 40, it correctly
+keeps two. The function is not broken. The *data* violated
+an assumption the function never stated, and no test of
+the function alone can see that.
+
+An integration test catches it if the synthetic fixture
+exercises the case, which is why the guidance says the
+fixture should exercise every branch, including the
+branches you do not think exist. A fixture built from
+plausible values only would miss it too.
+
+There are two assertions worth writing, and they fail at
+different times. One on the input, asserting that `age`
+falls in a plausible range before the filter runs, which
+fails the day the export changes. One on the output,
+asserting that the number of rows dropped is what the
+codebook predicts, which fails the day the meaning
+changes.
+
+The first is a claim about the data; the second is a claim
+about your understanding of it. Analysis pipelines mostly
+break for the second reason, and mostly get tested only
+for the first.
+:::
+
 ## Unit tests with testthat
 
 For a function in `R/clean.R`:
