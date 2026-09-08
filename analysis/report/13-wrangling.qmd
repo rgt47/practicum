@@ -174,6 +174,34 @@ The tidy form makes group operations natural: 'mean BP
 by visit' is `group_by(visit) |> summarize(mean(bp))`,
 not a custom column-traversal.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: which rule is broken?
+
+**Question.** A lab table has one row per patient and
+columns `hgb`, `hgb_units`, `cre`, `cre_units`. A
+colleague says it is untidy. Which of the three rules does
+it break, and what is the tidy form?
+
+**Answer.**
+
+Rule 1, and arguably rule 3.
+
+The rule 1 violation is that `hgb` and `cre` are values of
+a *test* variable that has been promoted into column
+names, exactly as `bp_v1` and `bp_v2` promote visit. The
+tidy form has columns `patient_id`, `test`, `value`,
+`units`, with one row per patient-test.
+
+The rule 3 case is subtler and worth noticing. Units are a
+property of the *test*, not of the patient-test
+observation: hemoglobin is in g/dL for every patient. So
+`units` belongs in a separate lookup table keyed by
+`test`, and repeating it on every row is duplication that
+can drift. In practice many analysts leave it denormalized
+and accept the risk, which is a defensible choice made
+deliberately rather than a rule you did not notice.
+:::
+
 ## Core dplyr verbs
 
 The vocabulary of tidy wrangling:
@@ -546,6 +574,39 @@ useful for programmatic generation of names.
 
 `rlang::sym()` and `!!` are older patterns; `{{ }}` is
 preferred in modern code.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: `{{ }}` or `.data[[ ]]`?
+
+**Question.** You are writing two functions. One is called
+as `summarize_by(df, species)`, with the column typed
+bare. The other loops over `names(df)` and receives each
+column name as a string. Which tool does each need, and
+what happens if you swap them?
+
+**Answer.**
+
+The first needs `{{ col }}`; the second needs
+`.data[[col_name]]`.
+
+Swapping them fails in two different ways, and the second
+is the dangerous one. Passing a bare name where a string
+is expected gives `object 'species' not found`, because
+`.data[[ ]]` evaluates its argument normally and there is
+no variable called `species` in scope. That is a loud
+failure and you fix it in seconds.
+
+Passing a string to `{{ }}` does not error. It embraces
+the literal string `"species"`, and `group_by("species")`
+groups by a constant, giving you one group containing
+every row. The result is a data frame of the right shape
+with silently wrong numbers, which is the class of bug
+this chapter's antipatterns section is about.
+
+The rule of thumb: if the caller types the column, use
+`{{ }}`; if the caller passes a name your code computed,
+use `.data[[ ]]`.
+:::
 
 ## Common antipatterns
 

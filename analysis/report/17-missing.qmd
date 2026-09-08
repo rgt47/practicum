@@ -203,6 +203,39 @@ establish whether the values are missing or merely
 unobserved below a bound, because those are different
 problems with different remedies.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: can you test for MAR?
+
+**Question.** A reviewer asks you to justify the
+assumption that your data are missing at random. What can
+you show them, and what can you not?
+
+**Answer.**
+
+You cannot test it. This is the single most important
+thing in the chapter and the most often fudged.
+
+MAR says missingness depends on *observed* variables. MNAR
+says it depends on the unobserved values themselves. The
+distinguishing evidence is exactly the data you do not
+have, so no test on the observed data separates them. A
+test that appeared to would be evidence you had the
+missing values after all.
+
+What you can show is narrower and still worth showing.
+That missingness is *not* MCAR, by demonstrating it varies
+with observed covariates. That every variable predicting
+missingness is in the imputation model, which is what
+makes MAR plausible rather than proven. And that the
+conclusion survives a departure from MAR, via a delta
+adjustment or a tipping-point analysis.
+
+That last one is the real answer to the reviewer. You do
+not defend MAR; you show how far from MAR the truth would
+have to be before your conclusion changed, and let the
+reader judge whether that distance is credible.
+:::
+
 ## Diagnosing missingness
 
 Before any imputation, look at the pattern. The
@@ -518,6 +551,41 @@ useful summary: how much of the variance in
 $\hat\beta$ is due to missing data. Values above
 0.5 suggest the analysis is heavily influenced
 by imputation; consider sensitivity.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: why not impute once?
+
+**Question.** `mice` with `m = 1` produces a complete
+dataset in a fraction of the time. Since the imputation
+model is the same, what exactly does the extra work of
+`m = 20` buy?
+
+**Answer.**
+
+Not a better point estimate. The coefficients from one
+draw and from twenty pooled draws are similar, and with
+`m = 1` you would often not notice the difference.
+
+What twenty draws buy is the standard error. Rubin's
+rules combine within-imputation variance, the ordinary
+uncertainty in each completed dataset, with
+*between*-imputation variance, which measures how much the
+estimate moves depending on which plausible values were
+filled in. A single draw has no between-imputation
+component, so the variance term is missing entirely and
+the reported interval is too narrow.
+
+That is why single imputation is an antipattern while
+multiple imputation is not, even though both invent the
+same kind of value. Single imputation treats a guess as an
+observation. Multiple imputation makes several guesses and
+reports how much they disagreed, and that disagreement is
+the information single imputation discards.
+
+The `fmi` above is that disagreement expressed as a
+fraction, which is why it cannot be computed at all from a
+single imputation.
+:::
 
 ## A worked example
 

@@ -377,6 +377,45 @@ Type matching is strict: `patient_id = "001"` does
 not match `patient_id = 1`. Convert to a canonical
 type before joining.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: the join that lost rows
+
+**Question.** You `left_join` a 500-row visits table to a
+demographics table and get 500 rows back, which is what
+you expected. A colleague says this proves nothing. Are
+they right?
+
+**Answer.**
+
+They are. A row count matching your expectation rules out
+duplication and rules out nothing else.
+
+Every `patient_id` in visits could have failed to match,
+and `left_join` would still return exactly 500 rows, each
+with `NA` in every demographics column. The count is
+identical whether the join worked perfectly or not at all.
+This is the specific case where the type trap above bites:
+character `"001"` against numeric `1` matches nothing, and
+the row count never moves.
+
+Two checks catch it and the count does not. Count the
+`NA`s in a column that came from the right-hand table,
+which should be zero if every visit has demographics. And
+run the anti-join:
+
+```r
+visits |> anti_join(demographics, by = "patient_id") |>
+  distinct(patient_id)
+```
+
+An empty result means every key matched. A result listing
+all 500 patients means the join silently did nothing.
+
+The general point is that `nrow()` is a structural check,
+in the sense @sec-testing gives that term, and structural
+checks pass on wrong answers.
+:::
+
 ## Upsert operations with `rows_*`
 
 For row-by-row updates of a table from another (the

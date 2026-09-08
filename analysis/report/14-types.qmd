@@ -263,6 +263,39 @@ The regex fundamentals you need:
 For complex regex, build incrementally and test each
 step.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: why character, then factor?
+
+**Question.** This chapter argues for keeping categorical
+variables as character through reading, cleaning and
+joining, and converting to factor only at modeling and
+plotting. What actually goes wrong if you convert at read
+time instead?
+
+**Answer.**
+
+Two things, and the second is why the rule exists.
+
+Recoding becomes harder. A factor's permitted values are
+fixed at creation, so assigning a value that is not
+already a level yields `NA` with a warning rather than the
+value you assigned. Every cleaning step then has to
+manage levels alongside data, and `str_replace()` on a
+factor silently coerces to character anyway.
+
+Joining becomes unsafe. Two factors built independently
+from different sources almost never share a level set, and
+their underlying integer codes mean different things.
+Joining on them compares codes, not labels, so rows match
+that should not and fail to match that should. Character
+comparison is on the text and cannot go wrong this way.
+
+The general principle: factor is a *modeling* type. It
+encodes a fixed set of categories and a reference level,
+which is exactly what a model needs and exactly what makes
+it brittle while the data are still moving.
+:::
+
 ## Dates with `lubridate`
 
 Parsing:
@@ -493,6 +526,44 @@ ymd_hms("2026-03-09 01:00:00", tz = "US/Pacific") + hours(24)
 The first is a calendar day. The second is 24 wall-clock
 hours, which crosses a DST boundary. Use whichever notion of
 a day is appropriate for the analysis at hand.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: which date bug is silent?
+
+**Question.** Three things go wrong with dates in this
+chapter: a mixed-format column parsed with a single
+format, an Excel serial number read as a number, and
+`days(1)` used across a daylight-saving boundary. Which of
+the three will your code tell you about, and which will it
+not?
+
+**Answer.**
+
+Only the first announces itself, and even then partially.
+`as.Date(x, format = "%Y-%m-%d")` on `03/14/2026` returns
+`NA`, so the failure is visible if anyone counts the `NA`s
+afterward. If the pipeline filters missing dates without
+counting, it disappears too.
+
+The other two are silent by construction.
+
+An Excel serial date is a perfectly valid number. `45405`
+reads as 45405, sorts, means, and plots without complaint;
+nothing marks it as a date at all. It is only wrong
+relative to an intention the data do not record.
+
+The DST case is worse, because both answers are correct.
+`d + days(1)` gives the same clock time the next calendar
+day; `d + hours(24)` gives the instant 24 hours later.
+Across a spring-forward boundary these differ by an hour,
+and which you want depends on whether your interval is a
+*calendar* day or a *duration*. R cannot know which you
+meant, so it cannot warn you.
+
+The lesson generalizes past dates: a bug that produces
+`NA` is cheap, and a bug that produces a plausible number
+is expensive. Assertions exist for the second kind.
+:::
 
 ## Common antipatterns
 
