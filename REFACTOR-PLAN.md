@@ -73,8 +73,8 @@ Phases A to D. Rows without a 'Now' value are unchanged.*
 | Total words | 111,865 | ~120,000 | n/a |
 | Pages | ~248 (estimated, wrong) | **712** (rendered) | Downey: ~140 per semester course |
 | Chapters and appendices | 38 | 39 (glossary added) | n/a |
-| Median chapter length | ~6 pages | | one sitting; acceptable as is |
-| Chapters over 4,000 words | 6 | 6 | split or justify |
+| Median chapter, rendered | n/a | **18 pages** | one sitting |
+| Chapters over 25 pages | n/a | 4 | split or justify |
 | Exercises | 173 in 34 files | 176 in 34 files | n/a |
 | Chapters publishing solutions | 0 | **14**, 48 chunks | OpenIntro: nearly all |
 | Chapters labeling open-ended sets | 0 | **20** | state why no key exists |
@@ -572,8 +572,38 @@ evidential support and should be done alongside Finding 1.
 
 ### Finding 8. Length and modularity
 
-**Measured.** 111,865 words. The rendered PDF is 712 pages; the
-'~248 estimated pages' carried by earlier drafts was wrong, see Part 6.
+**Measured from the rendered PDF, 2026-09-08.** 712 pages across 39
+chapters and appendices. Median chapter **18 pages**, mean 17.8. The
+distribution is tighter than the word counts suggested:
+
+| Pages | Chapters |
+|---|---|
+| 26 to 28 | `13-wrangling`, `16-graphics`, `17-missing`, `22-sas` |
+| 20 to 24 | 12 chapters |
+| 14 to 18 | 15 chapters |
+| 10 to 12 | 5 chapters |
+| 4 to 8 | 3 appendices |
+
+**This changes Finding 8 substantially.** The earlier version ranked
+chapters by word count and named six over 4,000 words as split
+candidates. Rendered, the picture is different. `25b-communicating` was
+second-longest by words and is 20 pages, mid-pack. `05b-git-teams` was
+third and is 18. The genuinely long chapters are `13-wrangling`,
+`16-graphics` and `17-missing` at 28, none of which appeared in the
+word-count list at all, because code and figures occupy pages that
+words do not count.
+
+Median 18 pages is roughly a 45-minute read, which is above the
+one-sitting target but not alarmingly so, and no chapter is an outlier
+demanding a split on length alone. **The recommendation is now to split
+nothing on these numbers.** The book's length problem is its total, not
+its per-chapter distribution, and the total is a consequence of scope
+plus the executable-output work of Phase C rather than of any chapter
+sprawling.
+
+The glossary is the longest single unit at 35 pages, which is expected
+for a reference appendix and is not a reading unit.
+
 Word counts are
 more reliable than the page estimates, so they are given directly here.
 Median chapter 2,900 words. Six files exceed 4,000 words:
@@ -592,7 +622,13 @@ weakest criterion across the Open Textbook Library corpus, at 62.5%
 positive, and this book is better placed than most because every
 chapter opens with a prerequisites quiz that states what it assumes.
 
-**Action.** Split only the five long chapters, at natural seams, and
+**Action, revised 2026-09-08.** Split nothing on length. The rendered
+median is 18 pages and no chapter is an outlier; the four longest are
+`13-wrangling`, `16-graphics`, `17-missing` and `22-sas` at 26 to 28,
+none of which the word-count proxy identified. The book's length
+question is its 712-page total, not its per-chapter distribution.
+
+*Superseded.* Split only the five long chapters, at natural seams, and
 leave the total length alone. Make the modularity that already exists
 explicit by stating in the preface that chapters are assignable
 individually, since an instructor assigning three chapters of a free
@@ -814,7 +850,8 @@ number no more than about twenty and all carry provenance.
 
 1. Build the glossary appendix by extracting bolded first-use terms.
 2. Add a PDF index.
-3. Split the five long chapters at natural seams.
+3. Do not split chapters on length. Superseded by the rendered
+   page counts; see Finding 8.
 4. State the modular-assignment policy in the preface.
 5. List in the Open Textbook Library and solicit reviews.
 6. Produce a print-on-demand paperback.
