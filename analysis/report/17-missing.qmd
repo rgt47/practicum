@@ -217,6 +217,11 @@ in particular rows.
 #| fig-cap: "Missingness heatmap for the Palmer Penguins data. Each
 #|   row is an observation, each column a variable; missing cells are
 #|   marked. The `sex` variable carries most of the missingness."
+#| fig-alt: "Heatmap of the penguin data with one row per
+#|   observation and one column per variable. Present values are
+#|   shaded uniformly; missing cells are marked in a contrasting
+#|   color. The sex column carries a scattered band of missing
+#|   cells; the other columns are nearly solid."
 #| fig-scap: "Missingness heatmap for the penguin data"
 #| fig-width: 7
 #| fig-height: 4
@@ -235,6 +240,10 @@ suggests:
 #| fig-cap: "Count of missing values per variable. Two body
 #|   measurements and `sex` account for essentially all the
 #|   missingness in the penguin data."
+#| fig-alt: "Horizontal bar chart counting missing values for each
+#|   variable in the penguin data. The bar for sex is much the
+#|   longest, two body-measurement variables show short bars, and
+#|   the remaining variables have no bar at all."
 #| fig-scap: "Count of missing values per variable"
 #| fig-width: 6
 #| fig-height: 3.5
@@ -246,8 +255,23 @@ UpSet plot shows how missingness co-occurs across
 variables, and the case summary counts missing
 cells per row:
 
-```r
+```{r}
+#| label: fig-miss-upset
+#| fig-cap: "An UpSet plot of missingness intersections in the penguin
+#|   data. The bars count rows sharing each combination of missing
+#|   variables, which separates rows missing only `sex` from the two
+#|   rows missing every morphology measurement."
+#| fig-alt: "UpSet plot with a tall bar for rows missing only sex, and
+#|   a short bar for the small set of rows missing all four body
+#|   measurements together."
+#| fig-width: 6
+#| fig-height: 3.5
+#| message: false
 gg_miss_upset(penguins)          # UpSet-style intersection plot
+```
+
+```{r}
+#| label: miss-case-summary
 miss_case_summary(penguins)      # how many missing per row
 ```
 
@@ -277,9 +301,11 @@ missingness. R's default for `lm`, `glm`, and most
 modeling functions is `na.omit` (or
 `na.action = na.omit`).
 
-```r
+```{r}
+#| label: miss-complete-case
 fit_cc <- lm(Ozone ~ Solar.R + Wind + Temp, data = airquality)
 nrow(fit_cc$model)              # rows actually used
+nrow(airquality)                # rows available
 ```
 
 When complete-case is acceptable:
@@ -310,9 +336,16 @@ the sample mean. Two problems:
 2. Coefficients on the imputed variable are
    attenuated toward zero (regression dilution).
 
-```r
+```{r}
+#| label: miss-antipattern-mean
+df <- data.frame(x = c(2, 4, 6, 8, NA, NA))
+sd_before <- sd(df$x, na.rm = TRUE)
+
 # do not do this
 df$x[is.na(df$x)] <- mean(df$x, na.rm = TRUE)
+
+# the spread has shrunk, and nothing recorded that it did
+c(before = sd_before, after = sd(df$x))
 ```
 
 **Last observation carried forward (LOCF)** is
@@ -352,6 +385,12 @@ missingness that single imputation discards.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-mi-steps
+%%| fig-alt: "Flowchart of multiple imputation. One incomplete
+%%|   dataset fans out into M completed sets, each of which is
+%%|   fitted separately. All M fits converge on a pooling node
+%%|   applying Rubin's rules, combining within- and between-set
+%%|   variance, which yields a single pooled estimate and standard
+%%|   error."
 %%| fig-cap: "The three steps of multiple imputation. The between-dataset
 %%|   variation recovered at the pooling step is the uncertainty that
 %%|   single imputation throws away."
@@ -379,7 +418,9 @@ The three steps in detail:
 
 In R:
 
-```r
+```{r}
+#| label: miss-mice
+#| message: false
 library(mice)
 
 # step 1: impute
@@ -465,7 +506,8 @@ slightly conservative t-tests for moderate $M$.
 `mice::pool()` does all of this automatically.
 Inspect the components:
 
-```r
+```{r}
+#| label: miss-pooled-diagnostics
 summary(pooled)$df         # degrees of freedom per coefficient
 summary(pooled)$fmi        # fraction of missing information
 summary(pooled)$lambda     # proportion of variance attributable to missingness
@@ -707,11 +749,6 @@ than a silent one:
    imputation, and multiple imputation. Report
    the bias of each in the coefficient of
    interest across 500 simulated replicates.
-3. Write the missing-data section of a SAP for a
-   hypothetical trial in which ~15% of outcome
-   observations are expected to be missing due
-   to dropout. Pre-specify the primary approach
-   and at least two sensitivity analyses.
 4. Use the `mice::ampute()` function to induce
    MAR missingness on a complete dataset. Fit
    the analysis on the full data and on the
@@ -722,6 +759,195 @@ than a silent one:
    Vary $\delta$ over $(-1, 1)$ in steps of 0.25
    and plot the coefficient as a function of
    $\delta$. Identify the tipping point if any.
+
+**Writing, not computing.** No answer key; this is a
+document, and what a good one establishes is stated
+rather than computed.
+
+6. Write the missing-data section of a SAP for a
+   hypothetical trial in which ~15% of outcome
+   observations are expected to be missing due
+   to dropout. Pre-specify the primary approach
+   and at least two sensitivity analyses. A good
+   answer names the estimand, states the primary
+   approach before any data are seen, and makes
+   each sensitivity analysis a departure from a
+   stated assumption rather than a second attempt
+   at the same one.
+
+::: {.callout-tip icon=false collapse=true}
+## Solutions to exercises 1, 2, 4 and 5
+
+**1. Complete case against multiple imputation.**
+
+```{r}
+#| label: soln-17-1
+#| message: false
+cc <- lm(Ozone ~ Solar.R + Wind + Temp, data = airquality)
+
+imp20 <- mice(airquality, m = 20, method = "pmm",
+              seed = 2, printFlag = FALSE)
+mi <- pool(with(imp20, lm(Ozone ~ Solar.R + Wind + Temp)))
+
+comparison <- dplyr::bind_rows(
+  broom::tidy(cc) |> dplyr::mutate(method = "complete case"),
+  summary(mi) |>
+    tibble::as_tibble() |>
+    dplyr::rename(term = term, estimate = estimate,
+                  std.error = std.error) |>
+    dplyr::mutate(method = "multiple imputation")
+) |>
+  dplyr::select(method, term, estimate, std.error)
+
+comparison
+```
+
+The coefficients move little; the standard errors are what
+change, and they change in both directions. MI uses all
+153 rows rather than the 111 complete ones, which tightens
+some estimates, while the between-imputation variance
+widens others. A method that only ever tightened intervals
+would be recovering information it does not have.
+
+**2. Bias of three methods under MAR.**
+
+```{r}
+#| label: soln-17-2
+set.seed(11)
+
+one_rep <- function(n = 200, beta = 1) {
+  x <- rnorm(n); z <- rnorm(n)
+  y <- beta * x + 0.5 * z + rnorm(n)
+  # MAR: x goes missing more often when z is large
+  x[runif(n) < plogis(-1.4 + z)] <- NA
+  d <- data.frame(y, x, z)
+
+  b_cc <- coef(lm(y ~ x + z, data = d))[["x"]]
+
+  d_mean <- d
+  d_mean$x[is.na(d_mean$x)] <- mean(d_mean$x, na.rm = TRUE)
+  b_mean <- coef(lm(y ~ x + z, data = d_mean))[["x"]]
+
+  im <- mice(d, m = 5, printFlag = FALSE, seed = 1)
+  s_mi <- summary(pool(with(im, lm(y ~ x + z))))
+  s_mi <- s_mi[s_mi$term == "x", ]
+
+  c(cc = b_cc - beta,
+    mean = b_mean - beta,
+    mi = s_mi$estimate - beta,
+    se_cc = summary(lm(y ~ x + z, data = d))$coefficients["x", 2],
+    se_mean = summary(lm(y ~ x + z,
+                         data = d_mean))$coefficients["x", 2],
+    se_mi = s_mi$std.error)
+}
+
+# 100 replicates rather than 500, to keep the book's build fast
+res <- rowMeans(replicate(100, one_rep()))
+round(res, 3)
+```
+
+Read the two halves separately. All three methods are close
+to unbiased in the coefficient, because the missingness
+depends on `z` and `z` is in the model, which is what MAR
+means. The bias column is not where mean imputation fails.
+
+The standard errors separate the three, and not in the
+direction the usual slogan suggests. Multiple imputation is
+tightest, complete case wider, and mean imputation widest of
+all.
+
+The ordering is worth sitting with, because the textbook
+warning about mean imputation is that it *understates*
+uncertainty, and that is not what happens here. Two
+different quantities are being confused. Mean imputation
+does shrink the spread of the variable it fills, which the
+antipattern earlier in this chapter demonstrates directly.
+But the standard error of a regression coefficient is not
+that spread: filling 20% of a covariate with a constant
+destroys the covariance between `x` and `y` in those rows,
+which weakens the estimated relationship and inflates the
+residual variance. The reported error goes up, not down.
+
+The variance-understatement warning applies where the naive
+error ignores the imputation step, most sharply when the
+outcome itself is filled in. Here MI wins on the honest
+grounds: it uses all 200 rows rather than the roughly 160
+complete ones, and it carries the between-imputation
+variance forward rather than pretending the filled values
+were observed.
+
+**4. Ampute, impute, and check recovery.**
+
+```{r}
+#| label: soln-17-4
+#| message: false
+set.seed(12)
+complete_data <- na.omit(airquality[, c("Ozone", "Solar.R",
+                                        "Wind", "Temp")])
+
+truth <- coef(lm(Ozone ~ Solar.R + Wind + Temp,
+                 data = complete_data))
+
+amputed <- mice::ampute(complete_data, prop = 0.3,
+                        mech = "MAR")$amp
+recovered <- summary(pool(with(
+  mice(amputed, m = 20, printFlag = FALSE, seed = 3),
+  lm(Ozone ~ Solar.R + Wind + Temp))))
+
+data.frame(term = names(truth),
+           truth = round(unname(truth), 3),
+           recovered = round(recovered$estimate, 3))
+```
+
+MI recovers the full-data coefficients approximately, which
+is the claim being checked. 'Approximately' is doing real
+work: a single run can miss by more than you expect, and
+one replicate is a demonstration rather than evidence.
+
+**5. Delta adjustment and the tipping point.**
+
+```{r}
+#| label: fig-soln-17-5
+#| fig-cap: "A delta-adjustment sensitivity curve. The coefficient is
+#|   plotted against the shift applied to imputed values; the
+#|   horizontal line marks zero. Where the curve crosses it, if it
+#|   does, is the tipping point."
+#| fig-alt: "Line plot of a logistic-regression coefficient against
+#|   delta from -1 to 1, declining steadily, with a dashed horizontal
+#|   reference line at zero."
+#| fig-width: 5.5
+#| fig-height: 3.2
+#| message: false
+set.seed(13)
+n <- 400
+d <- data.frame(x = rnorm(n))
+d$y <- rbinom(n, 1, plogis(0.4 * d$x))
+d$x[runif(n) < 0.25] <- NA
+
+delta_fit <- function(delta) {
+  im <- mice(d, m = 10, printFlag = FALSE, seed = 4)
+  im$imp$x <- im$imp$x + delta
+  s <- summary(pool(with(im, glm(y ~ x, family = binomial))))
+  s$estimate[s$term == "x"]
+}
+
+deltas <- seq(-1, 1, by = 0.25)
+curve <- data.frame(delta = deltas,
+                    estimate = vapply(deltas, delta_fit, numeric(1)))
+
+ggplot2::ggplot(curve, ggplot2::aes(delta, estimate)) +
+  ggplot2::geom_line() +
+  ggplot2::geom_hline(yintercept = 0, linetype = 2)
+```
+
+The coefficient moves smoothly with $\delta$, so the
+question is whether it crosses zero inside a range of
+$\delta$ you consider plausible. If it does not, the
+conclusion is robust to this departure from MAR; if it
+does, the crossing point is what the report should quote,
+alongside an argument about which values of $\delta$ are
+credible.
+:::
 
 ## Further reading
 

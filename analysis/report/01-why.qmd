@@ -136,6 +136,11 @@ leg.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-repro-legs
+%%| fig-alt: "Flowchart with a single node, reproducible analysis,
+%%|   branching to three requirements: Code, meaning every step is
+%%|   executable; Data, meaning raw inputs are versioned; and
+%%|   Environment, meaning packages, R version and operating system
+%%|   are pinned."
 %%| fig-cap: "The three ingredients of a methods-reproducible analysis.
 %%|   Each is necessary, and each has a characteristic failure mode: code
 %%|   with undocumented manual steps, data that is 'the file a colleague
@@ -396,6 +401,11 @@ Three habits make reproducibility automatic:
    reproducibility.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises ask
+you to examine work you have done or literature in your field, so no
+answer key is possible. What a good answer establishes is stated with
+each.
 
 1. Take the last analysis you wrote. List every piece of
    information that is not in the script but would be

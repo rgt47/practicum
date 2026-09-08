@@ -301,6 +301,11 @@ everything to its right runs in R on whatever crossed.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-collect-boundary
+%%| fig-alt: "Left-to-right diagram with two grouped regions. Inside
+%%|   the database region, a 50-million-row table passes through
+%%|   filter, join, and group-and-aggregate. A collect() node marks
+%%|   the boundary. Inside the R region, the reduced result feeds
+%%|   model, plot, and iterate."
 %%| fig-cap: "The collect() boundary. Operations that make the data
 %%|   smaller belong on the database side; operations that need R's
 %%|   statistical machinery belong on the R side. Moving collect()
@@ -419,11 +424,162 @@ Three habits keep the extraction defensible:
    many-to-many join between `visits` and a table with
    duplicate `patient_id` values. Observe the inflated row
    count and explain it.
+**On your own machine.** No answer key; the interesting part
+is the measurement, which depends on your hardware.
+
 5. Using the `duckdb` backend instead of `RSQLite`, read a
    large CSV file directly with `duckdb`'s
    `read_csv_auto` and run an aggregation without ever
    loading the file into R. Compare the memory use to
    `readr::read_csv()` followed by `dplyr`.
+
+::: {.callout-tip icon=false collapse=true}
+## Solutions to exercises 1 to 4
+
+The chapter's connection was closed, so these open a fresh
+one and rebuild the two tables.
+
+```{r}
+#| label: soln-15b-setup
+#| message: false
+con2 <- dbConnect(RSQLite::SQLite(), ":memory:")
+dbWriteTable(con2, "demographics", demographics)
+dbWriteTable(con2, "visits", visits)
+```
+
+**1. Visit count and first-to-last change, in SQL.**
+
+```{r}
+#| label: soln-15b-1
+dbGetQuery(con2, "
+  SELECT patient_id,
+         COUNT(*) AS n_visits,
+         MAX(CASE WHEN r_last  = 1 THEN sbp END) -
+         MAX(CASE WHEN r_first = 1 THEN sbp END) AS sbp_change
+  FROM (
+    SELECT patient_id, visit, sbp,
+           ROW_NUMBER() OVER (PARTITION BY patient_id
+                              ORDER BY visit)      AS r_first,
+           ROW_NUMBER() OVER (PARTITION BY patient_id
+                              ORDER BY visit DESC) AS r_last
+    FROM visits
+  )
+  GROUP BY patient_id
+")
+```
+
+The window functions number each patient's visits from
+both ends, so the first and last rows can be picked out
+inside a single aggregation. Patients with one visit get a
+change of zero, which is correct and worth noticing: it is
+not the same as missing, and a real analysis should decide
+which it wants.
+
+**2. The same query through `dbplyr`, and its SQL.**
+
+```{r}
+#| label: soln-15b-2
+#| warning: false
+q <- tbl(con2, "visits") |>
+  group_by(patient_id) |>
+  window_order(visit) |>
+  mutate(first_sbp = first(sbp), last_sbp = last(sbp)) |>
+  ungroup() |>
+  group_by(patient_id) |>
+  summarize(n_visits = n(),
+            sbp_change = max(last_sbp) - max(first_sbp))
+
+q |> collect()
+q |> show_query()
+```
+
+Two things are worth extracting from this.
+
+`first()` and `last()` are *window* functions, so they
+belong in `mutate()` and not in `summarize()`. Writing
+`summarize(sbp_change = last(sbp) - first(sbp))` looks
+natural and fails, because a window function needs the
+rows it is ordered over and an aggregate has already
+collapsed them. The two-step form computes the values per
+row, then aggregates.
+
+`window_order()` has no dplyr equivalent in memory, where
+`first()` and `last()` simply follow row order. A database
+table has no inherent order, so it must be stated. Omit it
+and the answer is whichever row the engine happened to
+reach first, with no warning.
+
+The generated SQL is more verbose than the hand-written
+version and computes the same thing. Which to prefer is a
+maintenance question, not a performance one: the `dbplyr`
+version stays readable to someone who knows dplyr and not
+SQL, and `show_query()` means the SQL is never hidden.
+
+**3. A third table, and a three-way join.**
+
+```{r}
+#| label: soln-15b-3
+labs <- data.frame(
+  patient_id = c(1, 1, 2, 3, 3, 4, 5),
+  test       = "HbA1c",
+  value      = c(7.1, 6.8, 8.2, 7.5, 7.3, 6.9, 8.0)
+)
+dbWriteTable(con2, "labs", labs)
+
+result <- tbl(con2, "labs") |>
+  filter(test == "HbA1c") |>
+  inner_join(tbl(con2, "visits") |>
+               distinct(patient_id), by = "patient_id") |>
+  inner_join(tbl(con2, "demographics"), by = "patient_id") |>
+  group_by(arm) |>
+  summarize(mean_hba1c = mean(value, na.rm = TRUE),
+            n_labs = n(), .groups = "drop") |>
+  collect()
+
+result
+stopifnot(nrow(result) == n_distinct(demographics$arm))
+```
+
+Note the `distinct(patient_id)` on `visits`. Without it
+the join multiplies each lab result by that patient's
+visit count, and the mean silently becomes a
+visit-weighted average rather than a lab-weighted one. The
+row-count assertion would not catch that, because the
+result still has one row per arm. Exercise 4 is the same
+error made visible.
+
+**4. A deliberate many-to-many, and why the count inflates.**
+
+```{r}
+#| label: soln-15b-4
+# demographics with a duplicated patient, as a re-consent
+# appended rather than replacing the original row
+demo_dup <- rbind(demographics,
+                  data.frame(patient_id = 1, age = 65,
+                             arm = "Active"))
+dbWriteTable(con2, "demo_dup", demo_dup)
+
+n_before <- tbl(con2, "visits") |> count() |> pull(n)
+n_after  <- tbl(con2, "visits") |>
+  inner_join(tbl(con2, "demo_dup"), by = "patient_id") |>
+  count() |> pull(n)
+
+c(visits = n_before, after_join = n_after)
+```
+
+```{r}
+#| label: soln-15b-disconnect
+#| echo: false
+dbDisconnect(con2)
+```
+
+Patient 1 has two visits and now two demographics rows, so
+those two visits become four. The join did not fail and
+issued no warning; SQL has no equivalent of dplyr's
+`relationship` argument. The only defense is to check the
+key before joining, which is why the chapter's own
+pipeline asserts uniqueness rather than trusting it.
+:::
 
 ## Further reading
 

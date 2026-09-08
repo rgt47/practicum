@@ -113,6 +113,14 @@ part of the book each one came from.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-habits-map
+%%| fig-alt: "Seven habit nodes, each tagged with the part of the
+%%|   book that argued for it, all converging on a single outcome
+%%|   node. The habits are: the compendium is the unit, pin the
+%%|   environment, version control from day one, pre-specify then
+%%|   tag, test the statistics rather than the shape, every number
+%%|   in the prose is computed, and every model output is a
+%%|   hypothesis until verified. The outcome node reads: an analysis
+%%|   that survives scrutiny, and a reviewer, and a decade."
 %%| fig-cap: "Seven habits and where the book argued for each. If
 %%|   the tools in this book are all replaced within a decade, which
 %%|   is likely, these are the commitments that survive the

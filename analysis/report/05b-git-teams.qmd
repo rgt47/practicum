@@ -224,6 +224,11 @@ analysis of record.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-git-pr
+%%| fig-alt: "Flowchart of the feature-branch workflow. Create a
+%%|   feature branch, commit and push, open a pull request, then CI
+%%|   checks and colleague review. A decision node asks whether both
+%%|   pass: if no, the loop returns to commit and push; if yes, the
+%%|   branch merges to main."
 %%| fig-cap: "The feature-branch workflow. Work never lands on `main`
 %%|   directly: it arrives through a pull request that CI has checked
 %%|   and a colleague has read. The branch is short-lived and is
@@ -688,6 +693,9 @@ Three habits keep `main` worth defending:
    in the prose. The test suite checks none of them.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises need a
+collaborator and a remote repository, so no answer key is possible.
 
 1. With a partner (or with a second clone of your own
    repository, playing both parts), manufacture a merge

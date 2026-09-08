@@ -158,6 +158,11 @@ product it regenerates.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-renv-cycle
+%%| fig-alt: "Two nodes in a cycle. The project library of installed
+%%|   packages feeds renv.lock through renv::snapshot(), and
+%%|   renv.lock rebuilds the project library through
+%%|   renv::restore(). Only renv.lock is marked as versioned in
+%%|   Git."
 %%| fig-cap: "The renv cycle. snapshot() records the project library
 %%|   into the lockfile; restore() rebuilds the library from the
 %%|   lockfile. Only the lockfile is committed to Git."
@@ -482,6 +487,10 @@ Three habits keep the lockfile honest:
    itself).
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises modify
+a project library and lockfile, so no answer key is possible.
+`renv::status()` is the verification.
 
 1. Initialize `renv` in an existing project of yours.
    Commit the lockfile. Clone the project on a clean

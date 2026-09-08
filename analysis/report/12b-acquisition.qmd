@@ -154,6 +154,13 @@ step most often skipped.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-acquisition-routes
+%%| fig-alt: "Three source nodes converging on one. A file raises
+%%|   delimiter, encoding and column-type problems; an interface
+%%|   raises authentication, pagination, rate limits and JSON shape;
+%%|   a web page raises terms of use, selectors and silent structure
+%%|   changes. All three lead to a single checked analysis file with
+%%|   types asserted, levels counted and missingness described,
+%%|   which then feeds everything downstream."
 %%| fig-cap: "The three ways data arrive and the one step they
 %%|   share. A file, an interface, and a web page raise different
 %%|   problems on the way in, but all three produce an object that
@@ -314,8 +321,20 @@ extract violates an assumption the first one satisfied.
 
 In the tidyverse idiom this book uses, the artifact is a chunk:
 
-```r
-raw <- read_csv("data/raw/visits.csv",
+```{r}
+#| label: acq-first-look
+#| message: false
+# A stand-in export, including the surprises the checks below exist
+# to catch: a site code nobody mentioned, and an out-of-range age.
+visits_path <- file.path(tempdir(), "visits.csv")
+readr::write_csv(tibble::tibble(
+  patient_id = sprintf("%03d", 1:6),
+  site       = c("A", "A", "B", "B", "B", "ZZ"),
+  sex        = c("F", "M", "F", "M", "F", "U"),
+  age        = c(64, 71, 52, 45, 38, 59)
+), visits_path)
+
+raw <- read_csv(visits_path,
                 col_types = cols(patient_id = col_character()))
 
 # distributions, missingness, and type of every column
@@ -714,15 +733,19 @@ Three habits govern the step where most silent errors enter:
 
 ## Exercises
 
-1. Take a delimited file you did not create. Read it once with no
-   arguments and once with a full `col_types` specification.
-   Diff the two results. Document every column on which they
-   disagree and say which is correct.
-2. Construct a small CSV containing each of the pathologies in
+1. Construct a small CSV containing each of the pathologies in
    this chapter (leading-zero identifier, sentinel missing value,
    American-format date, trailing whitespace in a factor level, a
    byte-order mark). Write a read that handles all five and an
    assertion suite that would fail if any of them regressed.
+
+**On your own data and network.** No answer key; these need a
+file you supply or a host you contact.
+
+2. Take a delimited file you did not create. Read it once with no
+   arguments and once with a full `col_types` specification.
+   Diff the two results. Document every column on which they
+   disagree and say which is correct.
 3. Query any public API with `httr2` (ClinicalTrials.gov and
    openFDA both permit anonymous access). Write the response to a
    dated raw file with a provenance note. Then write a second
@@ -739,6 +762,69 @@ Three habits govern the step where most silent errors enter:
    available instead, are the data personal, and would your
    request rate cost the host anything. Only then write the
    scraper, or, having answered honestly, do not.
+
+::: {.callout-tip icon=false collapse=true}
+## Solution to exercise 1
+
+**A file containing all five pathologies, and a read that
+survives them.**
+
+```{r}
+#| label: soln-12b-1
+#| message: false
+bad_path <- file.path(tempdir(), "pathologies.csv")
+
+# Written as raw bytes so the byte-order mark is really there.
+writeBin(charToRaw(paste0(
+  "﻿", "patient_id,visit_date,site,sbp\n",
+  "007,03/14/2026,Site A ,142\n",
+  "042,12/01/2026, Site B,-999\n"
+)), bad_path)
+
+raw <- readr::read_csv(
+  bad_path,
+  col_types = readr::cols(
+    patient_id = readr::col_character(),   # keeps the leading zero
+    visit_date = readr::col_date(format = "%m/%d/%Y"),
+    site       = readr::col_character(),
+    sbp        = readr::col_double()
+  ),
+  na = c("", "NA", "-999"),                # the sentinel
+  trim_ws = TRUE                           # the padding
+)
+raw
+```
+
+`readr` strips the byte-order mark on its own, which is
+worth knowing rather than assuming; the other four need
+saying explicitly. Reading with no arguments would have
+turned `007` into the number 7, left `03/14/2026` as a
+string, kept `Site A ` distinct from `Site A`, and
+carried `-999` into every mean you computed afterward.
+
+Now the assertions, which are the half of the exercise
+that matters. They are what fails if a future export
+regresses:
+
+```{r}
+#| label: soln-12b-1-assert
+stopifnot(
+  is.character(raw$patient_id),
+  all(nchar(raw$patient_id) == 3),
+  inherits(raw$visit_date, "Date"),
+  !any(grepl("^\\s|\\s$", raw$site)),
+  all(is.na(raw$sbp) | raw$sbp > 0),
+  !any(grepl("﻿", names(raw)))
+)
+
+# the sentinel became NA rather than a number
+sum(is.na(raw$sbp))
+```
+
+Each assertion names one pathology, so a failure message
+points at the specific thing that changed. A single
+composite check would tell you only that something did.
+:::
 
 ## Further reading
 

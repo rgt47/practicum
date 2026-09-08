@@ -127,6 +127,14 @@ before the syntax.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-ci-anatomy
+%%| fig-alt: "Flowchart of a CI workflow run. A push to main or a
+%%|   pull request triggers a fresh virtual machine, which then
+%%|   checks out the repository, installs R, runs renv::restore() to
+%%|   prove the lockfile is complete, runs the tests to prove the
+%%|   numbers are right, and runs quarto render to prove the report
+%%|   builds. A decision node asks whether every step exited zero:
+%%|   yes gives a green check, no gives a red cross with a log
+%%|   naming the failing step."
 %%| fig-cap: "The anatomy of a workflow run. The machine is fresh
 %%|   every time, which is what makes the result meaningful: the
 %%|   analysis is rebuilt from what is in the repository rather than
@@ -270,6 +278,10 @@ Three habits decide what a green check is worth:
    log error is usually the cause.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises
+configure continuous integration on a repository you control, so no
+answer key is possible. A green or red run is the verification.
 
 1. Add a GitHub Actions workflow to an existing analysis
    compendium that restores `renv` and renders the report

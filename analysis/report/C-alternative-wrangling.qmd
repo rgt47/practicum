@@ -39,7 +39,16 @@ cut off from most of CRAN.
 
 The four idioms that matter:
 
-```r
+```{r}
+#| label: alt-base-r
+df <- data.frame(
+  age    = c(17, 42, 64, 71, 55),
+  sex    = c('F', 'M', 'F', 'M', 'F'),
+  race   = c('A', 'B', 'A', 'C', 'B'),
+  weight = c(58, 82, 71, 68, 90),
+  height = c(160, 178, 165, 172, 169)
+)
+
 # Subset rows: logical, numeric, or negative-numeric indexing
 adults <- df[df$age >= 18, ]
 
@@ -76,7 +85,9 @@ The three mental pieces:
   plus `mutate` plus `summarize`).
 - `by` groups (like `group_by`).
 
-```r
+```{r}
+#| label: alt-data-table
+#| message: false
 library(data.table)
 dt <- as.data.table(df)
 
@@ -141,12 +152,24 @@ pipelines over datasets that do not fit in memory, or to
 read Parquet files at speeds that exceed native
 `data.frame` for large data.
 
-```r
+```{r}
+#| label: alt-arrow
+#| message: false
 library(arrow)
 library(dplyr)
 
+# A stand-in for the Parquet dataset the text describes
+trial_dir <- file.path(tempdir(), 'big-trial')
+data.frame(
+  site  = rep(c('SITE01', 'SITE02'), each = 4),
+  visit = rep(c('Baseline', 'Week12'), 4),
+  arm   = rep(c('Placebo', 'Active'), 4),
+  age   = c(61, 64, 58, 70, 66, 59, 72, 63)
+) |>
+  write_dataset(trial_dir)
+
 # Open a Parquet dataset lazily (no RAM cost)
-ds <- open_dataset('big-trial/')
+ds <- open_dataset(trial_dir)
 
 # dplyr pipeline against the lazy dataset
 summary <- ds |>
@@ -154,6 +177,8 @@ summary <- ds |>
   group_by(arm) |>
   summarize(mean_age = mean(age), n = n()) |>
   collect()
+
+summary
 ```
 
 Use `arrow` when: (a) data is stored as Parquet or
@@ -201,6 +226,10 @@ For now, prefer `data.table` if you need speed or
 - **`polars`**, not yet, in R, as of early 2026.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises time
+code on your own hardware or read package source, so no answer key is
+possible. The comparison, not the number, is the point.
 
 1. Take a wrangling pipeline from @sec-wrangling and
    rewrite it three ways: in `data.table`, in base R, and

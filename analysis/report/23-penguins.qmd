@@ -187,6 +187,11 @@ project, the output should be clean.
 #| fig-cap: "Missingness map for the raw penguin data. Missingness is
 #|   concentrated in `sex`, with two rows missing all four morphology
 #|   measurements."
+#| fig-alt: "Missingness map of the raw penguin data, one row per
+#|   observation and one column per variable, with missing cells
+#|   marked. The sex column shows scattered missing cells throughout;
+#|   two rows are missing across all four morphology columns at
+#|   once, appearing as short horizontal gaps."
 #| fig-scap: "Missingness map for the raw penguin data"
 #| fig-width: 7
 #| fig-height: 4
@@ -258,6 +263,11 @@ order rather than alphabetical.
 #| fig-cap: "Body mass against flipper length, colored by species and
 #|   faceted by island. Three clear clusters emerge, and the within-cluster
 #|   association motivates the model that follows."
+#| fig-alt: "Scatter plot of body mass against flipper length,
+#|   points colored by species and split into one panel per island.
+#|   Three separated clusters are visible, with Gentoo heaviest and
+#|   longest-flippered; within every cluster body mass rises with
+#|   flipper length."
 #| fig-scap: "Body mass against flipper length, by species"
 #| fig-width: 7.5
 #| fig-height: 4
@@ -367,6 +377,11 @@ That is what the diagnostics are for.
 #|   mean and variance structure; the Q-Q plot tests the residual
 #|   distribution; residuals versus leverage identifies influential
 #|   observations."
+#| fig-alt: "Four-panel regression diagnostic grid. Residuals
+#|   against fitted values and the scale-location plot both scatter
+#|   without obvious pattern; the normal quantile-quantile plot
+#|   follows its reference line closely; residuals against leverage
+#|   show no point beyond the Cook's distance contours."
 #| fig-scap: "Diagnostic plots for the fitted penguin model"
 #| fig-width: 7
 #| fig-height: 6
@@ -580,27 +595,126 @@ what it is a template for:
 
 ## Exercises
 
-1. Reproduce this chapter's compendium from
-   scratch. Run `make render` and verify the
-   outputs match the ones checked into the
-   reference repository.
-2. Extend the analysis: fit an interaction
+1. Extend the analysis: fit an interaction
    model `body_mass_g ~ flipper_length_mm * species`.
    Test the interaction; report AIC against
    the main-effects model.
-3. Write a second Table 1 stratifying by year
+2. Write a second Table 1 stratifying by year
    (2007, 2008, 2009) rather than species.
    What does the difference between the two
    tables tell you about the data collection
    design?
-4. Deposit your compendium to Zenodo. Confirm
+3. Fit a multinomial regression of `species` on
+   the four morphometric measurements, and report
+   how often it recovers the observed species.
+
+**On your own machine.** No answer key; these are
+things you do to a repository, not to data.
+
+4. Reproduce this chapter's compendium from
+   scratch. Run `make render` and verify the
+   outputs match the ones checked into the
+   reference repository.
+5. Add the model from exercise 3 to the compendium as
+   a second analysis script, and verify the
+   compendium still renders end to end.
+6. Deposit your compendium to Zenodo. Confirm
    the DOI resolves and the README is the
    first thing a reader sees.
-5. Take the penguins compendium and add a
-   second analysis script that fits a
-   multinomial regression of `species` on
-   the four morphometric measurements. Verify
-   the compendium still renders end to end.
+
+::: {.callout-tip icon=false collapse=true}
+## Solutions to exercises 1 to 3
+
+**1. The interaction, tested and compared.**
+
+```{r}
+#| label: soln-23-1
+#| message: false
+main <- lm(body_mass_g ~ flipper_length_mm + species,
+           data = penguins_clean)
+inter <- lm(body_mass_g ~ flipper_length_mm * species,
+            data = penguins_clean)
+
+anova(main, inter)
+AIC(main, inter)
+```
+
+The interaction asks whether the mass-per-millimeter
+slope differs by species, not whether the species differ
+in mass. The `anova()` F-test and the AIC comparison
+answer the same question two ways, and they should agree;
+where they disagree, the difference is small enough that
+the choice is not doing any work. Report the comparison
+you pre-specified, not the one that came out better.
+
+**2. Table 1 by year rather than by species.**
+
+```{r}
+#| label: soln-23-2
+#| message: false
+penguins_clean |>
+  dplyr::group_by(year) |>
+  dplyr::summarize(
+    n            = dplyr::n(),
+    across(c(bill_length_mm, flipper_length_mm, body_mass_g),
+           \(x) round(mean(x), 1)),
+    .groups = "drop"
+  )
+
+table(penguins_clean$year, penguins_clean$species)
+```
+
+The year-stratified table is unremarkable next to the
+species one. Mean body mass spans about 110 g across
+years; across species it spans nearly 1,400 g, and mean
+flipper length moves 6 mm by year against 27 mm by
+species. The between-year differences are real but an
+order of magnitude smaller, and they are what a Table 1
+stratified by year would put in front of the reader as
+though it were the structure of the data.
+
+The cross-tabulation says why they are small. Each
+species was sampled in every year in roughly stable
+proportions, so year is close to a nuisance variable and
+species is the design. A Table 1 that stratifies by the
+wrong variable will look reassuringly balanced and tell
+you nothing, which is the point of the exercise.
+
+**3. Multinomial classification of species.**
+
+```{r}
+#| label: soln-23-3
+#| message: false
+#| results: hide
+fit_mn <- nnet::multinom(
+  species ~ bill_length_mm + bill_depth_mm +
+            flipper_length_mm + body_mass_g,
+  data = penguins_clean)
+```
+
+```{r}
+#| label: soln-23-3-out
+predicted <- predict(fit_mn)
+tab <- table(observed = penguins_clean$species, predicted)
+tab
+round(sum(diag(tab)) / sum(tab), 3)
+```
+
+Every penguin is classified correctly, which is what the
+scatter plots earlier in the chapter already implied: the
+three species separate cleanly in morphometric space.
+
+An accuracy of exactly 1 should make you suspicious rather
+than pleased, and it is the reason this exercise is worth
+doing. The number is resubstitution on the data the model
+was fitted to, with four continuous predictors and
+well-separated groups, so it measures how flexible the
+model is at least as much as how learnable the species
+are. Report it as what the exercise asked for, how often
+the model recovers the observed species, and never as
+predictive accuracy. That claim needs cross-validation or
+a held-out set, and would come back lower.
+:::
 
 ## Further reading
 

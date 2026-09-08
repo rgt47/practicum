@@ -297,6 +297,11 @@ than by replacing anything.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-libpaths
+%%| fig-alt: "Decision flowchart starting from a library(dplyr)
+%%|   call. If an active project renv library is present, the
+%%|   project-pinned version is used. If not, the user library is
+%%|   searched, then the site and system libraries. All three
+%%|   outcomes converge on a node reading 'first match wins'."
 %%| fig-cap: "The library search path. R takes the first match it
 %%|   finds, and installs into the first entry. Activating `renv`
 %%|   prepends the project library, which is why the same
@@ -564,6 +569,10 @@ Three habits define a defensible workstation:
    `.Rprofile` makes your sessions non-reproducible.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises change
+the state of your machine, so no answer key is possible. Verification is
+what your own system reports afterward.
 
 1. From a fresh user account, install R, Quarto, and
    Git, and render this book's index chapter. Document

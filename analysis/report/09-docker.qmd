@@ -244,6 +244,14 @@ the slow package-restore layer untouched.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-docker-layers
+%%| fig-alt: "Vertical stack of Dockerfile layers in build order,
+%%|   annotated by how often each changes. A cached rocker/verse
+%%|   base, then system dependencies that rarely change, then
+%%|   copying renv.lock and restoring packages, which changes when
+%%|   packages change, then copying the source tree, which changes
+%%|   on every edit, then the render command. The last two layers
+%%|   are highlighted in contrasting colors to mark the cache
+%%|   boundary."
 %%| fig-cap: "Docker layer caching. Slow, slow-changing layers go early;
 %%|   the fast, frequently-edited source goes last. Editing the
 %%|   manuscript invalidates only the final COPY, so the expensive
@@ -544,6 +552,10 @@ Docker earns its build time through three habits:
    outlive your laptop and your Docker Hub account.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises build
+and run containers, so no answer key is possible. A successful build and
+a matching render are the check.
 
 1. Dockerize a simple existing analysis of yours.
    Build the image, run it, and verify it produces

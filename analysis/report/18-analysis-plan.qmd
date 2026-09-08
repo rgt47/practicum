@@ -240,7 +240,9 @@ before you draft section 8, and again after.
 `zzpower` provides power calculations for the
 standard clinical-trial designs:
 
-```r
+```{r}
+#| label: sap-power-calc
+#| message: false
 library(zzpower)
 
 # parallel-group RCT, continuous outcome:
@@ -272,7 +274,8 @@ is usually what a protocol discussion actually wants,
 `power_table()` sweeps a grid of effect sizes against
 power thresholds:
 
-```r
+```{r}
+#| label: sap-power-table
 zzpower::power_table("ttest_2groups",
             effect_grid      = seq(0.3, 0.8, by = 0.1),
             power_thresholds = c(0.80, 0.90),
@@ -371,6 +374,13 @@ the sequence that has to hold.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-sap-timeline
+%%| fig-alt: "Left-to-right timeline. Drafting the SAP with no data
+%%|   access leads to an immutable pushed git tag sap-v1.0, then to
+%%|   data lock and unblinding, then to analysis, then to a report
+%%|   that labels results pre-specified or exploratory. A dashed
+%%|   branch from the data lock shows an amendment made after data
+%%|   access, tagged sap-v1.1 and marked exploratory unless
+%%|   justified and dated, rejoining the analysis."
 %%| fig-cap: "The SAP against the data timeline. Everything to the
 %%|   left of the lock is pre-specified and carries the study's
 %%|   inferential authority. Anything written after it is
@@ -562,13 +572,22 @@ Three habits make a plan binding rather than decorative:
 
 ## Exercises
 
-1. Draft a SAP (skeleton only) for a hypothetical
+1. Use `zzpower` to compute the required sample
+   size for a two-arm comparison under three
+   plausible effect sizes (small, medium, large).
+   Then inflate each for a cluster randomized
+   design with 20 patients per practice and an
+   intracluster correlation of 0.02, and report
+   the number of clusters required.
+
+**Documents, not computations.** No answer key; a good
+answer is a document, and what makes it good is stated
+rather than computed.
+
+2. Draft a SAP (skeleton only) for a hypothetical
    cluster randomized trial of a patient-education
-   intervention. Use the 243B template.
-2. Use `zzpower` to compute the required sample
-   size for the primary analysis in exercise 1
-   under three plausible effect sizes (small,
-   medium, large). Include the table in the SAP.
+   intervention. Use the 243B template, and include
+   the table from exercise 1.
 3. Locate a published paper with a publicly
    available SAP. Audit whether the paper's
    analyses match the SAP. Identify any deviations;
@@ -582,6 +601,76 @@ Three habits make a plan binding rather than decorative:
    missing-data strategy following a blinded data
    review. Tag both versions in git; verify the
    timeline is auditable.
+
+::: {.callout-tip icon=false collapse=true}
+## Solution to exercise 1
+
+**The individual-level requirement first.**
+
+```{r}
+#| label: soln-18-1
+#| message: false
+library(zzpower)
+
+per_arm <- vapply(
+  c(small = 0.2, medium = 0.5, large = 0.8),
+  \(d) power_calc("ttest_2groups",
+                  target_power  = 0.80,
+                  effect_size   = d,
+                  effect_method = "cohens_d",
+                  alpha         = 0.05)$sample_sizes$n,
+  numeric(1))
+
+ceiling(per_arm)          # analytic n per arm
+```
+
+Note `sample_sizes` rather than `sample_size`: the element
+is a list, because a two-arm calculation returns per-arm
+and total figures separately, along with an ITT-inflated
+version. Reading `$n` gives the analytic requirement per
+arm, which is what the design effect below scales.
+
+**Then the design effect.** A cluster randomized trial
+does not randomize patients; it randomizes practices, and
+patients within a practice resemble one another. The
+variance inflation is
+$\text{DEFF} = 1 + (m - 1)\rho$, with $m$ patients per
+cluster and $\rho$ the intracluster correlation:
+
+```{r}
+#| label: soln-18-1b
+m   <- 20      # patients per practice
+rho <- 0.02    # intracluster correlation
+
+deff <- 1 + (m - 1) * rho
+
+total <- 2 * per_arm                 # both arms
+
+data.frame(
+  effect       = names(per_arm),
+  n_total      = ceiling(total),
+  deff         = round(deff, 2),
+  n_cluster    = ceiling(total * deff),
+  clusters     = ceiling(ceiling(total * deff) / m),
+  row.names    = NULL
+)
+```
+
+An intracluster correlation of 0.02 sounds negligible and
+is not. With 20 patients per practice it inflates the
+required sample by 38%, because the design effect depends
+on $\rho$ and cluster size jointly. Doubling the cluster
+size to 40 would inflate it by 78% instead, so recruiting
+more patients per practice buys progressively less.
+
+Two things belong in the SAP alongside this table. The
+value of $\rho$ is an assumption, not a measurement, and
+it should be attributed to a source and given a
+sensitivity range. And the number that gets recruited is
+`clusters`, rounded up, so the realized sample is
+generally larger than `n_cluster_adj`; quoting the latter
+as the target understates what the trial must enroll.
+:::
 
 ## Further reading
 

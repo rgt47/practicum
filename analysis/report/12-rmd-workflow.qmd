@@ -212,6 +212,12 @@ small reproducibility argument against it.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-rmd-migrate
+%%| fig-alt: "Decision flowchart on whether to migrate an R Markdown
+%%|   project. If the document is finished and published, leave it.
+%%|   Otherwise, if a Quarto-only capability is needed, convert. If
+%%|   not, a third question asks whether the document will grow or
+%%|   change hands: yes leads to convert, no leads back to leaving
+%%|   it alone."
 %%| fig-cap: "Whether to migrate an R Markdown project. Currency is
 %%|   not a reason on its own. The cases that justify the work are a
 %%|   document that is still growing, a Quarto-only capability you
@@ -638,6 +644,9 @@ Three habits keep the fifth render as cheap as the first:
    fix.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises
+convert and render documents of your own, so no answer key is possible.
 
 1. Take a recent `.R` analysis and convert it to a
    `.qmd` via `knitr::spin`. Re-render. Note what

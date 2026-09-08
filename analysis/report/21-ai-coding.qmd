@@ -261,12 +261,16 @@ NA, empty, single-row, or zero-variance input.
 
 **Question.** The LLM produces:
 
-```r
+```{r}
+#| label: ai-hallucinated-api
+#| error: true
+data <- data.frame(grp = c("a", "a", "b"), x = c(1, 3, 5))
+
 data |> dplyr::summarise_groups(mean(x))
 ```
 
-You run it; R errors with 'could not find function
-"summarize_groups"'. What is the right fix?
+You run it and R cannot find the function. What is
+the right fix?
 
 **Answer.**
 
@@ -274,7 +278,9 @@ The function does not exist. The LLM hallucinated
 it from `summarize` and `group_by`. The correct
 modern dplyr is:
 
-```r
+```{r}
+#| label: ai-corrected-api
+#| message: false
 data |> dplyr::group_by(grp) |> dplyr::summarize(mean = mean(x))
 ```
 
@@ -303,6 +309,13 @@ deadline.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-verify-loop
+%%| fig-alt: "Verification loop. A prompt yields generated code,
+%%|   which is read end to end, run on the happy path, run on edge
+%%|   cases including NA, empty input, a single row, wrong types and
+%%|   zero variance, then compared against a reference such as a
+%%|   closed form or your own version. A decision node asks whether
+%%|   it is correct: no returns to the prompt, yes proceeds to
+%%|   writing a test that locks the behavior, then committing."
 %%| fig-cap: "The verify-first loop. Plausibility is what the model
 %%|   optimizes for and is not what you are checking. Every arrow
 %%|   back to the prompt is a case the model got wrong in a way that
@@ -519,6 +532,10 @@ Three habits keep the model an amplifier:
    callout in your documentation.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises need
+API credentials and code of your own, so no answer key is possible. Each
+states what a good answer establishes.
 
 1. Install `ellmer`. Write a short R function that
    uses `chat_claude()` to summarize a block of

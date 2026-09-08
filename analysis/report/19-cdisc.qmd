@@ -147,6 +147,13 @@ statistician must track across every join.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-cdisc-pipeline
+%%| fig-alt: "Vertical pipeline from protocol and SAP, to the CRF
+%%|   for site data entry, to SDTM domains such as DM, EX, AE, LB,
+%%|   VS and DS holding one row per observation, to analysis-ready
+%%|   ADaM datasets such as ADSL, ADTTE and ADAE, to tables,
+%%|   listings and figures, and finally to the CSR and FDA
+%%|   submission. Dashed annotations mark SDTM as immutable once
+%%|   locked and ADaM as traceable back to SDTM."
 %%| fig-cap: "The regulatory data pipeline from protocol to FDA
 %%|   submission. SDTM is the immutable source the statistician reads;
 %%|   ADaM is the analysis-ready layer the statistician builds."
@@ -393,6 +400,12 @@ regulatory reviewers look for beneath the curve.
 #|   derived from the fabricated ADTTE. The drug arm shows the longer
 #|   survival that its lower simulated hazard was constructed to
 #|   produce. The risk table beneath reports subjects still at risk."
+#| fig-alt: "Kaplan-Meier plot with two descending step functions,
+#|   one per treatment arm, showing the proportion surviving over
+#|   time. The drug arm's curve stays above the placebo arm's
+#|   throughout and the gap widens with follow-up. A risk table
+#|   beneath the axis lists the number of subjects still at risk at
+#|   each time point."
 #| fig-scap: "Kaplan-Meier curves derived from the fabricated ADTTE"
 #| fig-width: 7
 #| fig-height: 6
@@ -536,6 +549,9 @@ Three habits carry a submission through review:
    `AE` SDTM domain. Include `AEDECOD`, `AESER`, `AESEV`, and
    a treatment-emergent flag `TRTEMFL` derived from whether
    `AESTDTC >= TRTSDT`.
+**Beyond this book's dependencies.** No answer key; these
+need packages the book does not ship, or a document you write.
+
 3. Install `admiral` and `pharmaverseadam` from CRAN. Load
    `pharmaverseadam::adsl` and compare its column list to the
    `ADSL` built in this chapter. Which variables are missing
@@ -544,6 +560,118 @@ Three habits carry a submission through review:
 4. Write an ADaM specification table (in Quarto) for the
    `ADTTE` built above: variable name, label, type, source,
    and derivation. Render it to PDF.
+
+::: {.callout-tip icon=false collapse=true}
+## Solutions to exercises 1 and 2
+
+**1. A second parameter stacked into `ADTTE`.**
+
+BDS datasets grow downward, not sideways. A second
+endpoint is more rows with a different `PARAMCD`, never a
+second `AVAL` column, and that is the structural point the
+exercise is testing.
+
+```{r}
+#| label: soln-19-1
+#| message: false
+set.seed(31)
+
+# a synthetic progression event, earlier than death and
+# only for some subjects
+ds_pfs <- ds |>
+  mutate(
+    prog_time = rexp(n(), rate = 0.0035),
+    PROGDT    = DSSTDTC - round(pmin(prog_time, 200)),
+    had_prog  = PROGDT > (DSSTDTC - 200) & DSDECOD == 'COMPLETED'
+  ) |>
+  select(USUBJID, PROGDT, had_prog)
+
+adtte_pfs <- adsl |>
+  left_join(ds, by = 'USUBJID') |>
+  left_join(ds_pfs, by = 'USUBJID') |>
+  mutate(
+    PARAMCD  = 'PFS',
+    PARAM    = 'Progression-Free Survival (days)',
+    STARTDT  = TRTSDT,
+    # first of progression or death; else censor at last contact
+    ADT      = if_else(had_prog & !is.na(PROGDT),
+                       pmin(PROGDT, DSSTDTC), DSSTDTC),
+    AVAL     = as.numeric(ADT - STARTDT),
+    CNSR     = if_else(had_prog | DSDECOD == 'DEATH', 0L, 1L),
+    EVNTDESC = case_when(
+      had_prog                ~ 'Progression',
+      DSDECOD == 'DEATH'      ~ 'Death',
+      .default                = 'Administrative censoring'),
+    ANL01FL  = 'Y'
+  ) |>
+  select(all_of(names(adtte)))
+
+adtte2 <- bind_rows(adtte, adtte_pfs)
+
+# the check the exercise asks for
+stopifnot(nrow(adtte2) == 2 * n)
+count(adtte2, PARAMCD, EVNTDESC)
+```
+
+`select(all_of(names(adtte)))` is what keeps the two
+blocks stackable. Stacking frames with different columns
+succeeds and fills the gaps with `NA`, which is how a BDS
+dataset quietly acquires columns that apply to one
+parameter and not the other.
+
+PFS events are at least as frequent as OS events by
+construction, since progression or death both count. If
+your version shows fewer PFS events than OS events,
+the composite endpoint is wrong.
+
+**2. A minimal `ADAE` with a treatment-emergent flag.**
+
+```{r}
+#| label: soln-19-2
+#| message: false
+set.seed(32)
+
+# fabricated AE domain: some events precede first dose
+ae <- adsl |>
+  slice_sample(n = nrow(adsl) * 2, replace = TRUE) |>
+  select(USUBJID, TRTSDT) |>
+  mutate(
+    AEDECOD  = sample(c('HEADACHE', 'NAUSEA', 'FATIGUE',
+                        'NEUTROPENIA'), n(), replace = TRUE),
+    AESER    = sample(c('N', 'Y'), n(), replace = TRUE,
+                      prob = c(0.9, 0.1)),
+    AESEV    = sample(c('MILD', 'MODERATE', 'SEVERE'), n(),
+                      replace = TRUE, prob = c(.6, .3, .1)),
+    AESTDTC  = TRTSDT + sample(-10:200, n(), replace = TRUE)
+  ) |>
+  select(USUBJID, AEDECOD, AESER, AESEV, AESTDTC)
+
+adae <- ae |>
+  left_join(select(adsl, USUBJID, TRT01A, TRTSDT, SAFFL),
+            by = 'USUBJID') |>
+  mutate(TRTEMFL = if_else(AESTDTC >= TRTSDT, 'Y', NA_character_)) |>
+  select(USUBJID, TRT01A, SAFFL, AEDECOD, AESER, AESEV,
+         AESTDTC, TRTSDT, TRTEMFL)
+
+count(adae, TRTEMFL)
+head(adae, 4)
+```
+
+Two conventions are worth stating, because both are easy
+to get wrong and neither produces an error.
+
+`TRTEMFL` is `'Y'` or `NA`, not `'Y'` or `'N'`. CDISC
+flag variables are permissible-value flags: absent means
+absent, and coding the negative case as `'N'` makes
+`filter(TRTEMFL == 'Y')` and
+`filter(TRTEMFL != 'N')` disagree on the missing rows.
+
+The comparison is `>=`, not `>`. An event starting on the
+day of first dose is treatment-emergent. Using `>` drops
+exactly the events most likely to be attributed to the
+drug, and the count above shows how many rows that
+decision moves.
+:::
 
 ## Further reading
 

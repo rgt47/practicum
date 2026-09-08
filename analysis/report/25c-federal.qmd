@@ -24,7 +24,7 @@ materials for a graduate practicum in biostatistics.
 
 Answer the following questions to see if you can bypass
 this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-02.
+chapter in @sec-quiz-answers-25c.
 
 1. What does the 2022 OSTP 'Nelson memo' require of
    federally funded research, and by when does each
@@ -221,6 +221,15 @@ is the decision as it actually runs.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-repo-choice
+%%| fig-alt: "Decision flowchart for choosing a deposition target.
+%%|   The first question asks whether the artifact contains PHI or
+%%|   restricted data. If yes, a domain repository such as dbGaP,
+%%|   TCIA or GEO is used where one exists, otherwise institutional
+%%|   controlled access plus a synthetic public surrogate. If no, a
+%%|   second question separates code from data: code goes to GitHub
+%%|   with a Zenodo release for the DOI, while data goes to a domain
+%%|   repository such as GEO, SRA, NeuroVault or ICPSR where one
+%%|   exists, otherwise Zenodo, OSF or Dryad."
 %%| fig-cap: "Choosing a deposition target. The first question is
 %%|   whether the artifact carries protected information; the second
 %%|   is whether a repository specific to the data type exists. A
@@ -452,6 +461,9 @@ Three habits make federal compliance painless:
    the discipline's standard repository.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises
+deposit artifacts and read policies, so no answer key is possible.
 
 1. Locate the current NIH DMSP template and write a
    complete plan for a hypothetical 100-patient

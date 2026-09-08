@@ -155,6 +155,13 @@ takes for granted. @fig-five-pillars is that stack.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-five-pillars
+%%| fig-alt: "Five layers stacked bottom to top, each depending on
+%%|   the one below. From the bottom: the Dockerfile supplying
+%%|   operating system, system libraries and the R build; renv.lock
+%%|   pinning every R package version; .Rprofile activating the
+%%|   project library; the source code in R/ and analysis/; and at
+%%|   the top the data, raw and derived or a documented path to
+%%|   it."
 %%| fig-cap: "The Five Pillars as a layered stack. Each layer
 %%|   assumes the one beneath it. Remove the Dockerfile and the R
 %%|   packages have no operating system to install onto; remove the
@@ -514,6 +521,9 @@ project:
    not for every one-off project.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises create
+projects on disk, so no answer key is possible.
 
 1. Scaffold a `zzcollab` analysis project for
    the Palmer Penguins dataset. Run `make r`,

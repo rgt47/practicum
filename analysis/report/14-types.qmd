@@ -131,6 +131,11 @@ gives the answer this chapter argues for.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-factor-timing
+%%| fig-alt: "Left-to-right chain. Read, clean and recode, and join
+%%|   all stay in character type. A highlighted node marks where to
+%%|   convert to factor, setting the reference level deliberately.
+%%|   From there the chain branches to Model and to Plot, both
+%%|   working in factor type."
 %%| fig-cap: "Where to convert. Character is the safe type through
 %%|   reading, cleaning, and joining, because a new or misspelled
 %%|   value is merely a new string rather than an invalid level.
@@ -148,8 +153,12 @@ flowchart LR
 
 The standard operations:
 
-```r
+```{r}
+#| label: types-forcats
+#| message: false
 library(forcats)
+library(dplyr)
+library(palmerpenguins)
 
 f <- factor(c("low", "high", "low", "medium", "high"))
 
@@ -161,7 +170,9 @@ levels(f)
 fct_infreq(f)
 
 # reorder by another variable
-df |> mutate(species = fct_reorder(species, body_mass_g, mean))
+penguins |>
+  mutate(species = fct_reorder(species, body_mass_g, mean,
+                               .na_rm = TRUE))
 
 # specify order explicitly
 fct_relevel(f, "low", "medium", "high")
@@ -196,7 +207,8 @@ When to keep as character:
 Pattern detection, extraction, replacement, and
 splitting:
 
-```r
+```{r}
+#| label: types-stringr
 library(stringr)
 
 s <- c("ABC123", "ABC", "XYZ-789", NA)
@@ -255,7 +267,8 @@ step.
 
 Parsing:
 
-```r
+```{r}
+#| label: types-lubridate-parse
 library(lubridate)
 
 # fixed format
@@ -275,7 +288,8 @@ ymd_hm("2026-04-23 14:30")
 
 Components:
 
-```r
+```{r}
+#| label: types-date-components
 d <- ymd("2026-04-23")
 year(d)         # 2026
 month(d)        # 4
@@ -286,7 +300,8 @@ wday(d, label = TRUE)  # Thu
 
 Arithmetic:
 
-```r
+```{r}
+#| label: types-date-arithmetic
 d + days(7)              # 2026-04-30
 d %m+% months(3)         # 2026-07-23 (handles month length safely)
 
@@ -297,9 +312,11 @@ as.numeric(ymd("2026-12-31") - ymd("2026-01-01"), units = "days")
 
 Time zones:
 
-```r
+```{r}
+#| label: types-timezone
 # parse as a specific time zone
-ymd_hms("2026-04-23 14:30:00", tz = "America/Los_Angeles")
+t <- ymd_hms("2026-04-23 14:30:00", tz = "America/Los_Angeles")
+t
 
 # convert
 with_tz(t, "UTC")          # same instant, different zone
@@ -326,6 +343,7 @@ different formats.
 ```{r}
 #| label: types-regex-dates
 #| message: false
+reticulate::py_require("pandas")
 library(tidyverse)
 
 dosing <- tibble(
@@ -413,9 +431,15 @@ reference deliberately to `"placebo"`, so the intercept gives
 the placebo baseline and the treatment coefficients give the
 increments from baseline:
 
-```r
+```{r}
+#| label: types-reference-level
+treatment <- c("high", "placebo", "low", "high", "placebo")
+
 treatment <- factor(treatment,
                     levels = c("placebo", "low", "high"))
+
+levels(treatment)      # placebo is now the reference
+
 ```
 
 The default alphabetical ordering is, unfortunately, a
@@ -429,7 +453,8 @@ frequent source of misreported effect direction.
 Excel may arrive as `45405` (= 2024-04-23 in Excel's
 1900-epoch numbering). Parse with:
 
-```r
+```{r}
+#| label: types-excel-date
 janitor::excel_numeric_to_date(45405)
 #> [1] "2024-04-23"
 ```
@@ -457,7 +482,8 @@ zone (base R). Be explicit; never assume.
 **Daylight-saving transitions.** Adding 24 hours and
 adding 1 day are not always the same:
 
-```r
+```{r}
+#| label: types-dst
 ymd_hms("2026-03-09 01:00:00", tz = "US/Pacific") + days(1)
 #> [1] "2026-03-10 01:00:00 PDT"
 ymd_hms("2026-03-09 01:00:00", tz = "US/Pacific") + hours(24)
@@ -472,8 +498,11 @@ a day is appropriate for the analysis at hand.
 
 **Hand-coded `ifelse` chains for date parsing**:
 
-```r
-# bad
+```{r}
+#| label: types-antipattern-dates
+x <- c("04/23/2026", "2026-04-23")
+
+# bad: ifelse strips the Date class and returns bare numbers
 ifelse(grepl("/", x),
        as.Date(x, format = "%m/%d/%Y"),
        as.Date(x, format = "%Y-%m-%d"))
@@ -485,15 +514,21 @@ parse_date_time(x, orders = c("mdy", "ymd"))
 **Letting characters become factors silently in old
 code**:
 
-```r
+```{r}
+#| label: types-read-strings
+#| message: false
+f <- file.path(tempdir(), "file.csv")
+write.csv(data.frame(site = "A", n = 3), f, row.names = FALSE)
+
 # always specify
-read.csv("file.csv", stringsAsFactors = FALSE)
-read_csv("file.csv")              # readr default is FALSE
+class(read.csv(f, stringsAsFactors = FALSE)$site)
+class(readr::read_csv(f, show_col_types = FALSE)$site)  # readr default
 ```
 
 **Comparing factors by value when levels differ**:
 
-```r
+```{r}
+#| label: types-factor-compare
 f1 <- factor("a", levels = c("a", "b"))
 f2 <- factor("a", levels = c("a", "c"))
 f1 == f2                          # works, but levels differ
@@ -503,13 +538,35 @@ as.character(f1) == as.character(f2)
 
 ## Worked example: cleaning a CRF export
 
-```r
+```{r}
+#| label: types-worked-cleanup
+#| message: false
+#| warning: false
 library(tidyverse)
 library(janitor)
 library(lubridate)
 library(forcats)
 
-raw <- read_csv("data/raw/crf_export.csv")
+# A stand-in for the messy export: mixed date formats, one Excel
+# serial date, inconsistent treatment spellings, a rare site that
+# should be lumped, and blank sex entries. Twenty-four rows, so that
+# fct_lump_min's threshold of 10 has something to bite on.
+crf_path <- file.path(tempdir(), "crf_export.csv")
+set.seed(3)
+tibble(
+  `Visit Date`       = rep(c("2026-01-14", "02/19/2026",
+                             NA, "2026-03-02"), 6),
+  `Visit Date Excel` = rep(c(NA, NA, 45405, NA), 6),
+  Treatment          = rep(c("placebo", "PBO",
+                             "low dose", "HIGH DOSE"), 6),
+  Site               = c(rep("A", 12), rep("B", 10), "Y", "Z"),
+  Sex                = rep(c("F", "M", "", "F"), 6)
+) |>
+  write_csv(crf_path, na = "")
+
+# na = "NA" keeps blank Sex as an empty string rather than NA, which
+# is what the fct_recode below is there to handle.
+raw <- read_csv(crf_path, na = "NA", show_col_types = FALSE)
 
 clean <- raw |>
   clean_names() |>
@@ -525,7 +582,7 @@ clean <- raw |>
 
     # standardize treatment text
     treatment = str_to_title(treatment),
-    treatment = str_replace(treatment, "Placebo|Pbo", "Placebo"),
+    treatment = str_replace(treatment, "^Pbo$", "Placebo"),
 
     # convert to factor with deliberate reference
     treatment = factor(treatment,
@@ -535,9 +592,11 @@ clean <- raw |>
     site = fct_lump_min(site, min = 10, other_level = "Other"),
 
     # recode missing-as-unknown
-    sex = fct_recode(sex, "Unknown" = "")
+    sex = fct_recode(factor(sex), "Unknown" = "")
   ) |>
   filter(!is.na(visit_date), !is.na(treatment))
+
+count(clean, treatment, site, sex)
 ```
 
 The cleaned data have dates parsed from mixed formats,
@@ -619,11 +678,117 @@ entries on the project's bug list:
    to parse.
 4. Write a function that takes any character column
    and returns a tibble of value, count, and
-   proportion. Use it to audit the categorical
-   variables in a recent analysis of yours.
+   proportion.
 5. Create a dataset with a datetime in PST and convert
    it to UTC two ways: with `with_tz` and
    `force_tz`. Explain the difference.
+
+**On your own data.** No answer key; the answer depends
+on your data.
+
+6. Use the function from exercise 4 to audit the
+   categorical variables in a recent analysis of
+   yours. Report any level you did not expect.
+
+::: {.callout-tip icon=false collapse=true}
+## Solutions to exercises 1 to 5
+
+**1. Reorder a factor by a summary of another variable.**
+
+```{r}
+#| label: soln-14-1
+#| fig-cap: "Mean body mass by species, with the factor reordered so
+#|   the bars ascend. The ordering is a property of the data, not of
+#|   the alphabet."
+#| fig-alt: "Bar chart of mean body mass for three penguin species,
+#|   ascending from Chinstrap through Adelie to Gentoo."
+#| fig-width: 5
+#| fig-height: 3
+#| message: false
+library(ggplot2)
+
+penguins |>
+  filter(!is.na(body_mass_g)) |>
+  mutate(species = fct_reorder(species, body_mass_g, mean)) |>
+  ggplot(aes(species, body_mass_g)) +
+  stat_summary(fun = mean, geom = "col")
+```
+
+`fct_reorder()` changes the level order, and the plot
+follows because ggplot2 draws factors in level order.
+Sorting the data frame instead would not have worked.
+
+**2. Collapsing spelling variants to a canonical level.**
+
+```{r}
+#| label: soln-14-2
+hosp <- c("General Hospital Main Campus", "Gen. Hospital",
+          "GENHOSP", "Mercy Regional")
+
+canonical <- case_when(
+  str_detect(str_to_lower(str_remove_all(hosp, "[^A-Za-z]")),
+             "^gen") ~ "General Hospital",
+  .default = hosp
+)
+tibble(raw = hosp, canonical)
+```
+
+Stripping punctuation and case before matching is what
+lets one pattern cover all three variants. Note that this
+collapses `GENHOSP` correctly and leaves `Mercy Regional`
+alone, which is the behavior to check.
+
+**3. Parsing mixed formats and flagging failures.**
+
+```{r}
+#| label: soln-14-3
+#| warning: false
+visit_raw <- c("2026-01-14", "02/19/2026", "Feb 3 2026",
+               "not recorded")
+
+parsed <- tibble(visit_raw) |>
+  mutate(
+    visit_date = parse_date_time(visit_raw,
+                                 orders = c("ymd", "mdy", "Bdy")),
+    failed = is.na(visit_date)
+  )
+parsed
+```
+
+The fourth value cannot parse, and the point of the
+`failed` column is that it is now data rather than a
+warning nobody reads. Filtering silently on
+`!is.na(visit_date)` would lose the count.
+
+**4. A reusable level audit.**
+
+```{r}
+#| label: soln-14-4
+audit_levels <- function(df, col) {
+  df |>
+    count({{ col }}, sort = TRUE) |>
+    mutate(proportion = n / sum(n))
+}
+
+audit_levels(penguins, island)
+```
+
+**5. `with_tz` against `force_tz`.**
+
+```{r}
+#| label: soln-14-5
+t <- ymd_hms("2026-04-23 14:30:00", tz = "America/Los_Angeles")
+
+with_tz(t, "UTC")    # same instant, clock reads differently
+force_tz(t, "UTC")   # same clock reading, different instant
+```
+
+`with_tz` preserves the moment and relabels it; `force_tz`
+preserves the digits and moves the moment. Use `with_tz`
+when combining data recorded in different zones, and
+`force_tz` only to repair a timestamp that was stamped with
+the wrong zone to begin with.
+:::
 
 ## Further reading
 

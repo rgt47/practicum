@@ -192,6 +192,15 @@ still answer the question you had.
 
 ```{mermaid}
 %%| echo: false
+%%| fig-alt: "Left-to-right flowchart. A PHI table branches into
+%%|   four parallel transformations, each labeled with what it
+%%|   costs: Suppress loses the variable, Generalize loses
+%%|   resolution, Hash makes the key unrecoverable while preserving
+%%|   linkage, and Shift dates loses calendar time while preserving
+%%|   intervals. All four converge on a de-identified table, which
+%%|   in turn leads to a residual-risk node noting that
+%%|   quasi-identifiers still combine and the result is not
+%%|   anonymous."
 %%| label: fig-deident-pipeline
 %%| fig-cap: "The four Safe Harbor transformations and what each
 %%|   gives up. Suppression loses the variable; generalization loses
@@ -401,28 +410,179 @@ Three habits keep the claim matched to the method:
 
 ## Exercises
 
-1. Enumerate the eighteen Safe Harbor identifiers from
-   memory, then check your list against the official one.
-   Which did you miss?
-2. Take the synthetic `phi` dataset from this chapter and
+1. Take the synthetic `phi` dataset from this chapter and
    add a free-text `notes` column containing a sentence
    that mentions a patient's name. Write code that detects
    and flags the identifier in the free text; explain why
    this is harder than handling a structured column.
-3. Construct a synthetic dataset of 200 patients with age,
+2. Construct a synthetic dataset of 200 patients with age,
    sex, and three-digit ZIP. Compute the largest $k$ for
    which the dataset is k-anonymous on those three
    quasi-identifiers. Generalize age into decade bands and
    recompute; by how much does $k$ improve?
-4. Implement date shifting that preserves within-patient
+3. Implement date shifting that preserves within-patient
    intervals but uses a different random offset per patient.
    Verify on synthetic data that the interval between two
    of a patient's dates is unchanged while the calendar
    dates differ.
+
+**Writing and recall.** No answer key; these are prose and
+memory rather than computation.
+
+4. Enumerate the eighteen Safe Harbor identifiers from
+   memory, then check your list against the official one.
+   Which did you miss?
 5. Explain, in a paragraph suitable for a data-management
    plan, why a salted hash of the medical record number is
    preferable to either keeping the number or dropping the
    ability to link visits.
+
+::: {.callout-tip icon=false collapse=true}
+## Solutions to exercises 1 to 3
+
+**1. Finding an identifier in free text.**
+
+```{r}
+#| label: soln-02b-1
+notes <- c(
+  "Ana Ruiz presented with headache; BP elevated.",
+  "Patient reports improvement since last visit.",
+  "Discussed results with Mr. Cole and his daughter.",
+  "Referred to cardiology."
+)
+phi_notes <- phi |> mutate(notes = notes)
+
+# a name dictionary built from the structured column
+known <- unlist(strsplit(phi$name, " "))
+pattern <- paste0("\\b(", paste(known, collapse = "|"), ")\\b")
+
+phi_notes |>
+  mutate(flagged = stringr::str_extract_all(notes, pattern)) |>
+  select(name, notes, flagged)
+```
+
+The dictionary catches `Ana Ruiz` and `Cole`, and that is
+the whole lesson. It works only because the names were
+already in a structured column of the same table. A note
+mentioning a relative, a referring physician, an employer,
+or a patient whose name is spelled differently from the
+registry is invisible to it, and a note reading 'the
+patient's daughter Sarah' contains an identifier this
+approach cannot see at all.
+
+A structured column has a fixed domain: every value in
+`mrn` is a medical record number, so a single rule handles
+all of them. Free text has no domain. Detection becomes a
+recall problem with no upper bound, which is why
+regulated workflows tend to suppress free text entirely
+rather than attempt to clean it.
+
+**2. k-anonymity, before and after generalization.**
+
+```{r}
+#| label: soln-02b-2
+set.seed(52)
+n <- 200
+quasi <- tibble(
+  age  = as.integer(round(rnorm(n, 62, 14))),
+  sex  = sample(c("M", "F"), n, replace = TRUE),
+  zip3 = sample(c("920", "921", "922"), n, replace = TRUE)
+)
+
+k_of <- function(d) d |> count(across(everything())) |>
+                    pull(n) |> min()
+
+c(
+  raw          = k_of(quasi),
+  decade_bands = k_of(mutate(quasi,
+                    age = cut(age, seq(20, 100, by = 10),
+                              right = FALSE))),
+  top_bottom   = k_of(mutate(quasi,
+                    age = cut(age, c(-Inf, 50, 60, 70, 80, Inf)))),
+  two_bands    = k_of(mutate(quasi,
+                    age = cut(age, c(-Inf, 60, Inf)))),
+  drop_zip     = k_of(mutate(quasi,
+                    age = cut(age, c(-Inf, 60, Inf))) |>
+                    select(-zip3))
+)
+```
+
+The interesting result is how little the obvious step
+helps. With exact ages the dataset is 1-anonymous: someone
+is unique on the three fields together, so releasing it
+releases them. Banding age into decades leaves $k$ at 1.
+So does top-and-bottom coding the tails. Only collapsing
+age to two bands moves $k$ to 10, and dropping the ZIP
+entirely takes it to 37.
+
+The reason is that $k$ is a *minimum*, not an average.
+With 200 patients, decade bands give roughly 48 cells and
+about four people each on average, which sounds
+comfortable, and the average is irrelevant. One
+combination in the sparse tail, an 87-year-old man in
+`922`, has a single occupant, and that one cell sets $k$
+for the whole dataset. Generalization improves $k$ only
+when it fixes the specific rarest cell, so the useful
+question is never 'how coarse are my bands' but 'who is
+alone'.
+
+That is also why $k$ falls so sharply as quasi-identifiers
+accumulate: each additional field multiplies the number of
+cells while the sample stays fixed. Two cautions follow. A
+higher $k$ is not a guarantee, since it says nothing about
+whether the sensitive value is constant within a cell,
+which is what l-diversity addresses. And each of these
+steps costs analytic resolution, so the last row is not a
+recommendation, only the arithmetic.
+
+**3. Per-patient date shifting, and the interval check.**
+
+```{r}
+#| label: soln-02b-3
+set.seed(53)
+longitudinal <- tibble(
+  patient_id = rep(c("P1", "P2"), each = 3),
+  event      = rep(c("admit", "surgery", "discharge"), 2),
+  date       = as.Date(c("2026-01-14", "2026-01-17", "2026-01-22",
+                         "2026-02-03", "2026-02-05", "2026-02-11"))
+)
+
+offsets <- tibble(
+  patient_id = c("P1", "P2"),
+  offset     = sample(-90:90, 2)
+)
+
+shifted <- longitudinal |>
+  left_join(offsets, by = "patient_id") |>
+  mutate(date_shifted = date + offset)
+
+# intervals within a patient are unchanged
+intervals <- shifted |>
+  group_by(patient_id) |>
+  summarize(
+    orig    = as.numeric(max(date) - min(date)),
+    shifted = as.numeric(max(date_shifted) - min(date_shifted)),
+    .groups = "drop")
+
+intervals
+stopifnot(identical(intervals$orig, intervals$shifted))
+
+# calendar dates differ
+stopifnot(!any(shifted$date == shifted$date_shifted))
+```
+
+The offset must be per patient, not per row: a per-row
+offset would destroy the intervals the analysis needs, and
+a single study-wide offset would preserve the calendar
+relationship between patients, so anyone knowing one
+admission date could recover all the others.
+
+Note also what the shift does *not* protect. Season
+survives, so a study of influenza admissions still leaks
+approximate time of year, and an offset drawn from a range
+of 90 days is recoverable in expectation if an adversary
+knows even one true date for one patient.
+:::
 
 ## Further reading
 

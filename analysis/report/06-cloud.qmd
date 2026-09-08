@@ -130,6 +130,13 @@ biostatistician should try them.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-compute-tier
+%%| fig-alt: "Decision flowchart asking what resource you have run
+%%|   out of. Interactive work stays on the laptop. Running out of
+%%|   wall-clock time on a parallel job, or out of memory, routes to
+%%|   a question about university HPC availability: if available,
+%%|   SLURM with Apptainer; if not, or if the queue is too slow, the
+%%|   public cloud. Needing specialized hardware such as a GPU or
+%%|   very large memory routes directly to the public cloud."
 %%| fig-cap: "Choosing a compute tier. The laptop is the default and
 %%|   the right place for anything interactive. A university cluster
 %%|   is usually free and should be tried before a paid cloud. The
@@ -606,6 +613,10 @@ Three habits keep the bill and the science both under control:
    only when you must.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises
+provision compute you pay for or are granted, so no answer key is
+possible. Cost and wall-clock time are what you compare.
 
 1. Launch a `t3.medium` EC2 instance in the AWS free
    tier (or equivalent). Install R, clone a GitHub

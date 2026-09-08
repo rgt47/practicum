@@ -31,7 +31,7 @@ institutional review board, is the last line of defense.
 
 Answer the following questions to see if you can bypass this
 chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-02c.
+@sec-quiz-answers-25d.
 
 1. A dataset is assembled entirely from information that
    individuals published about themselves in public. Explain how
@@ -211,6 +211,12 @@ The figure below plots the same two group means twice.
 #|   axis at 71 and the same difference fills the panel. Neither panel
 #|   contains a false number, and a reader who glances at B carries away
 #|   a conclusion the data do not support."
+#| fig-alt: "Two bar panels showing the identical pair of means.
+#|   In panel A the y-axis starts at zero and the two bars are
+#|   almost the same height, so the difference reads as small. In
+#|   panel B the y-axis starts at 71 and the same difference fills
+#|   the panel, so one bar towers over the other. Only the axis
+#|   limits differ between the panels."
 #| fig-scap: "The same two means, encoded twice"
 #| fig-width: 7
 #| fig-height: 3.5
@@ -337,6 +343,11 @@ being asked.
 #|   zero. These are not in conflict; they are answers to different
 #|   questions. Reading significance off the overlap on the left is the
 #|   error."
+#| fig-alt: "Two panels. On the left, two group means each with a
+#|   95 percent confidence interval; the two intervals visibly
+#|   overlap. On the right, a single 95 percent interval for the
+#|   difference between the means, plotted against a reference line
+#|   at zero, which it clearly excludes."
 #| fig-scap: "Overlapping intervals versus the interval for the difference"
 #| fig-width: 7
 #| fig-height: 3.2
@@ -586,20 +597,24 @@ one:
 
 ## Exercises
 
-1. Take the discussion section of a paper you have co-authored.
-   List every causal verb. For each, state the design that would
-   license it and the design you actually had. Rewrite any that
-   fail.
-2. Reproduce the truncated-axis figure in this chapter with data
-   of your own. Show it to a colleague without comment and ask
-   them to describe the effect size in words. Then show them the
-   zero-baseline version and ask again.
-3. Construct a dataset in which two group means have overlapping
+1. Construct a dataset in which two group means have overlapping
    95% intervals and a two-sample t-test rejects at the 5%
    level. State the largest overlap you can achieve while
    retaining significance, and explain the relationship between
    the standard error of a mean and the standard error of a
    difference.
+
+**On your own work.** No answer key; these require a paper, a
+figure, or a colleague you supply.
+
+2. Take the discussion section of a paper you have co-authored.
+   List every causal verb. For each, state the design that would
+   license it and the design you actually had. Rewrite any that
+   fail.
+3. Reproduce the truncated-axis figure in this chapter with data
+   of your own. Show it to a colleague without comment and ask
+   them to describe the effect size in words. Then show them the
+   zero-baseline version and ask again.
 4. Find a published figure in your field that encodes a quantity
    as area or uses a dual axis. Redraw it honestly. Write a
    paragraph on what changes.
@@ -612,6 +627,100 @@ one:
    relative to the population the intervention is meant to
    serve. Write the single sentence the Discussion should
    contain about generalization, and check whether it does.
+
+::: {.callout-tip icon=false collapse=true}
+## Solution to exercise 1
+
+**Overlapping intervals with a significant test.**
+
+Build the groups deterministically rather than by
+sampling, so that the demonstration does not depend on the
+draw. Standardizing a random vector gives a group with
+exactly the mean and standard deviation you asked for:
+
+```{r}
+#| label: soln-25d-1
+set.seed(21)
+n <- 60
+exact <- function(mean, sd, n) {
+  z <- as.numeric(scale(rnorm(n)))   # mean 0, sd 1 exactly
+  mean + sd * z
+}
+
+g1 <- exact(100.00, 6, n)
+g2 <- exact(102.63, 6, n)            # delta chosen below
+
+ci <- function(x) mean(x) + c(-1, 1) * qt(0.975, length(x) - 1) *
+                  sd(x) / sqrt(length(x))
+
+round(ci(g1), 2)
+round(ci(g2), 2)
+
+tt <- t.test(g2, g1)
+round(c(difference = mean(g2) - mean(g1),
+        p = tt$p.value), 4)
+round(as.numeric(tt$conf.int), 2)
+```
+
+The two per-group intervals overlap, and the test rejects,
+and the interval for the difference excludes zero. Nothing
+here is contradictory; the three statements answer
+different questions.
+
+The arithmetic is the whole explanation, and it sets the
+window the delta above was chosen from. The standard error
+of one mean is $s/\sqrt{n}$. The standard error of the
+*difference* of two independent means is
+$\sqrt{s_1^2/n_1 + s_2^2/n_2}$, which for equal groups is
+$\sqrt{2}$ times one group's standard error, not twice it.
+Writing $c \approx 2$ for the critical value at $n = 60$:
+
+- The two intervals **overlap** while
+  $\delta < 2c\,s/\sqrt{n} \approx 4.0\,s/\sqrt{n}$.
+- The test **rejects** once
+  $\delta > c\sqrt{2}\,s/\sqrt{n} \approx 2.83\,s/\sqrt{n}$.
+
+Any $\delta$ between those two bounds gives both at once,
+and with $s = 6$ and $n = 60$ the window is roughly 2.19
+to 3.10. The value 2.63 sits in the middle of it.
+
+**The largest overlap you can achieve** is at the lower
+edge, where the test only just rejects:
+
+```{r}
+#| label: soln-25d-1b
+overlap_at <- function(delta, n = 60, sd = 6) {
+  set.seed(21)
+  a <- exact(100, sd, n); b <- exact(100 + delta, sd, n)
+  ca <- ci(a); cb <- ci(b)
+  c(delta = delta,
+    p = t.test(b, a)$p.value,
+    overlap = unname(ca[2] - cb[1]))
+}
+
+t(vapply(c(2.2, 2.4, 2.63, 2.8, 3.0, 3.2),
+         overlap_at, numeric(3))) |>
+  round(3)
+```
+
+Every row here rejects, so read the *first*: at
+$\delta = 2.2$ the test gives $p = 0.047$ and the
+intervals still overlap by 0.90 units, which is the widest
+overlap compatible with significance in this design.
+Reducing $\delta$ further loses the rejection. Going the
+other way, the overlap shrinks steadily and turns negative
+by $\delta = 3.2$, where the intervals have separated.
+
+The sweep also confirms the bounds computed above: the
+lower edge sits just under 2.2 and the upper just over
+3.0, against the predicted 2.19 and 3.10.
+
+Reading significance off the overlap on the left-hand
+panel of @fig-overlap is therefore not a conservative
+approximation. It is a test with the wrong standard error,
+and it fails in the direction of declaring 'no difference'
+when there is one.
+:::
 
 ## Further reading
 

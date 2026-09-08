@@ -145,6 +145,13 @@ study on the right.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-compendium-anatomy
+%%| fig-alt: "Flowchart. A research compendium branches into three
+%%|   components: a package backbone of DESCRIPTION, R/ and man/;
+%%|   an analysis directory holding data, paper and figures; and a
+%%|   Dockerfile with renv.lock. Each leads in turn to the property
+%%|   it supplies: self-describing so a stranger can navigate it, a
+%%|   single directory holding code, data and narrative together,
+%%|   and computable so another user can re-run it."
 %%| fig-cap: "What a compendium is made of. The package backbone
 %%|   supplies convention and dependency declaration; the analysis
 %%|   directory supplies the study; the Dockerfile supplies the
@@ -490,6 +497,10 @@ Three habits make the compendium navigable to a stranger:
    Zenodo DOI gives a citable, durable artifact.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises
+scaffold real projects on disk, so no answer key is possible. The
+directory tree that results is the check.
 
 1. Create a new rrtools compendium for a small
    completed analysis of your own. Commit it to a

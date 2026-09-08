@@ -190,6 +190,13 @@ it does in most applications.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-test-layers
+%%| fig-alt: "Three stacked layers in increasing scope. Unit tests
+%%|   exercise one function on known input, catch helper bugs, and
+%%|   cost seconds. Integration tests run the whole pipeline on a
+%%|   twenty-line synthetic dataset, catch composition bugs and
+%%|   silent filter and join errors, and cost seconds. End-to-end
+%%|   tests run raw data through to final figures, catch everything
+%%|   remaining, and cost minutes to hours."
 %%| fig-cap: "The three test layers and what each one catches.
 %%|   Unit tests are fast and narrow; end-to-end tests are slow and
 %%|   broad; the integration layer, where a synthetic dataset is run
@@ -206,7 +213,8 @@ flowchart TD
 
 For a function in `R/clean.R`:
 
-```r
+```{r}
+#| label: test-age-group-fn
 # R/clean.R
 #' Compute age groups from numeric age
 #' @param age numeric vector
@@ -220,7 +228,11 @@ age_group <- function(age) {
 
 Tests in `tests/testthat/test-clean.R`:
 
-```r
+```{r}
+#| label: test-age-group-tests
+#| message: false
+library(testthat)
+
 test_that("age_group bins typical adult ages correctly", {
   expect_equal(as.character(age_group(c(20, 50, 75))),
                c("18-39", "40-64", "65+"))
@@ -234,7 +246,9 @@ test_that("age_group respects boundary values", {
 })
 
 test_that("age_group handles NA", {
-  expect_true(is.na(age_group(NA)))
+  # NA_real_, not NA: bare NA is logical, and cut() rejects it. The
+  # distinction is invisible until the test is actually run.
+  expect_true(is.na(age_group(NA_real_)))
 })
 
 test_that("age_group errors on non-numeric input", {
@@ -264,8 +278,24 @@ the pipeline composition fails.
 Integration tests run the full pipeline on a small
 synthetic dataset:
 
-```r
+```{r}
+#| label: test-integration
+#| message: false
 # tests/testthat/test-pipeline.R
+# In a package the test file would load run_pipeline from R/; it is
+# defined here so the example executes as written.
+run_pipeline <- function(raw) {
+  raw |>
+    janitor::clean_names() |>
+    dplyr::filter(age >= 18) |>
+    dplyr::mutate(age_group = age_group(age)) |>
+    tidyr::pivot_longer(dplyr::starts_with("bp_"),
+                        names_to = "visit", names_prefix = "bp_v",
+                        values_to = "bp") |>
+    dplyr::filter(!is.na(bp)) |>
+    dplyr::mutate(visit = as.integer(visit)) |>
+    dplyr::select(patient_id, age_group, sex, treatment, visit, bp)
+}
 
 test_that("cleaning pipeline produces expected analytic dataset", {
   # synthetic data that exercises every branch
@@ -319,7 +349,12 @@ values, or whether the right rows were filtered.
 A bug that produces 100 rows of the wrong patients
 passes the test silently. To test correctness:
 
-```r
+```{r}
+#| label: test-structural-vs-correct
+result        <- data.frame(patient_id = 1:100, age = rep(40:49, 10))
+expected_ids  <- 1:100
+expected_ages <- rep(40:49, 10)
+
 expect_equal(nrow(result), 100)            # structural
 expect_setequal(result$patient_id,         # correctness
                 expected_ids)
@@ -438,7 +473,12 @@ false confidence:
 
 **Tautological tests.**
 
-```r
+```{r}
+#| label: test-antipattern-tautology
+# foo ignores its argument and always returns 42. It is wrong for
+# every input, and the test below still passes.
+foo <- function(x) 42
+
 test_that("foo works", {
   expect_equal(foo(1), foo(1))    # always passes
 })
@@ -477,7 +517,10 @@ date-tolerant comparison.
 
 **Overly permissive tolerances.**
 
-```r
+```{r}
+#| label: test-antipattern-tolerance
+result <- 0.9                                # nowhere near 0.5
+
 expect_equal(result, 0.5, tolerance = 0.5)   # passes for any value
 ```
 
@@ -486,7 +529,8 @@ A 100% tolerance is no test.
 **Tests that test the test framework, not the
 code.**
 
-```r
+```{r}
+#| label: test-antipattern-vacuous
 expect_true(TRUE)
 ```
 
@@ -495,7 +539,9 @@ Watch for them in code reviews.
 
 ## Worked example: testing a cleaning pipeline
 
-```r
+```{r}
+#| label: test-worked-cleaning
+#| message: false
 # R/cleaning.R
 clean_visits <- function(raw) {
   raw |>
@@ -511,7 +557,9 @@ clean_visits <- function(raw) {
 }
 
 # tests/testthat/test-cleaning.R
-source("../../R/cleaning.R")
+# In the package this line loads the function above; here it is
+# already in scope, so the tests run as written.
+# source("../../R/cleaning.R")
 
 test_that("cleaning excludes minors", {
   raw <- tibble::tibble(
@@ -619,25 +667,47 @@ that reports green:
 
 ## Exercises
 
-1. Add unit tests for two functions from an
+1. `age_group()` earlier in this chapter is tested
+   for typical ages, boundaries, `NA`, and
+   non-numeric input. One gap remains: what the
+   function does with an age outside the range the
+   breaks cover. Find the behavior, decide whether
+   it is the behavior you want, and write the test
+   that pins whichever answer you choose.
+2. Write a `summarize_species()` function returning
+   mean body mass and count per species from
+   `palmerpenguins::penguins`. Give it one
+   structural test and one correctness test, and say
+   in a comment which is which and why the
+   structural one is insufficient on its own.
+3. Take the tautological test from this chapter,
+   `expect_equal(foo(1), foo(1))`, and replace it
+   with an assertion that fails against
+   `foo <- function(x) 42` while passing against a
+   correct implementation.
+
+**On your own project.** No answer key; these need code,
+a repository, or a colleague you supply.
+
+4. Add unit tests for two functions from an
    existing analysis of yours. Aim for at least: a
    happy-path test, an edge-case test, and an
    error-path test.
-2. Write an integration test: a 20-line synthetic
+5. Write an integration test: a 20-line synthetic
    dataset that exercises every branch of your
    pipeline. Run the full pipeline in under a
    second.
-3. Set up GitHub Actions with a workflow that runs
+6. Set up GitHub Actions with a workflow that runs
    `testthat::test_local()` on every push. Push and
    verify the workflow runs green.
-4. Introduce a deliberate bug into your pipeline.
+7. Introduce a deliberate bug into your pipeline.
    Verify the test suite catches it. If it does
    not, add a test that does.
-5. Apply `vdiffr::expect_doppelganger` to one of
+8. Apply `vdiffr::expect_doppelganger` to one of
    your project's plots. Modify the plot's theme
    slightly; verify the test fails and you can
    accept or reject the change.
-6. Review a colleague's test suite rather than their
+9. Review a colleague's test suite rather than their
    code. For each test, decide whether it checks
    statistical content or only structure, and find
    at least one test that would pass even if the
@@ -645,6 +715,123 @@ that reports green:
    value-level assertion that would catch the bug,
    and deliver the review in writing as a
    pull-request comment (@sec-git-teams).
+
+::: {.callout-tip icon=false collapse=true}
+## Solutions to exercises 1 to 3
+
+**1. What happens outside the range of the breaks.**
+
+```{r}
+#| label: soln-20-1
+as.character(age_group(c(-5, 0, 200)))
+```
+
+A negative age returns `NA`. The breaks begin at 0, and
+`cut()` places anything below the first break outside every
+interval. An age of 200 is absorbed into `65+`, because
+the last break is `Inf`.
+
+The asymmetry is the finding. An impossible age at the top
+of the range is silently accepted as plausible; an
+impossible age at the bottom becomes `NA`, which is the
+same value a genuinely missing age produces. Downstream,
+a data-entry error of `-5` is indistinguishable from an
+age nobody recorded.
+
+Whether that is acceptable is a judgment, and the test
+should pin whichever judgment you make. Pinning the
+current behavior:
+
+```{r}
+#| label: soln-20-1b
+test_that("age_group returns NA below the first break", {
+  expect_true(is.na(age_group(-5)))
+})
+```
+
+Preferring an error instead, the test comes first and the
+function changes to satisfy it:
+
+```{r}
+#| label: soln-20-1c
+age_group_strict <- function(age) {
+  stopifnot(is.numeric(age))
+  if (any(age < 0, na.rm = TRUE))
+    stop("negative age")
+  cut(age, breaks = c(0, 18, 40, 65, Inf), right = FALSE,
+      labels = c("under-18", "18-39", "40-64", "65+"))
+}
+
+test_that("age_group_strict rejects negative ages", {
+  expect_error(age_group_strict(-5), "negative age")
+  expect_equal(as.character(age_group_strict(30)), "18-39")
+})
+```
+
+Either is defensible. What is not defensible is leaving
+the behavior untested, because then it is not a decision
+at all, only whatever `cut()` happened to do.
+
+**2. A structural test and a correctness test.**
+
+```{r}
+#| label: soln-20-2
+#| message: false
+library(palmerpenguins)
+
+summarize_species <- function(data) {
+  data |>
+    dplyr::filter(!is.na(body_mass_g)) |>
+    dplyr::group_by(species) |>
+    dplyr::summarize(mean_mass = mean(body_mass_g),
+                     n = dplyr::n(), .groups = "drop")
+}
+
+test_that("summarize_species returns the expected shape", {
+  # STRUCTURAL: shape only. This passes even if mean_mass
+  # is computed as a median, a sum, or the wrong column.
+  out <- summarize_species(penguins)
+  expect_s3_class(out, "tbl_df")
+  expect_named(out, c("species", "mean_mass", "n"))
+  expect_equal(nrow(out), 3)
+})
+
+test_that("summarize_species computes the right values", {
+  # CORRECTNESS: a value the test computes independently.
+  out <- summarize_species(penguins)
+  adelie <- penguins$body_mass_g[penguins$species == "Adelie"]
+  expect_equal(out$mean_mass[out$species == "Adelie"],
+               mean(adelie, na.rm = TRUE))
+  expect_equal(out$n[out$species == "Adelie"],
+               sum(!is.na(adelie)))
+})
+```
+
+The structural test is worth keeping, because a change in
+column names breaks callers. It is insufficient because
+every assertion in it would still pass if `mean()` were
+replaced by `median()`. Only the second test would fail,
+and only because it recomputes the answer a different way
+rather than comparing the function to itself.
+
+**3. Replacing the tautology.**
+
+```{r}
+#| label: soln-20-3
+#| error: true
+foo <- function(x) 42          # wrong for every input
+
+test_that("foo doubles its input", {
+  expect_equal(foo(1), 2)
+  expect_equal(foo(3), 6)
+})
+```
+
+The fix is to assert against a value computed
+independently of the function, here by hand. Any assertion
+whose expected value comes from calling the function is
+circular, and no amount of adding cases repairs that.
+:::
 
 ## Further reading
 
