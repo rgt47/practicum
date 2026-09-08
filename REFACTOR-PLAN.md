@@ -65,44 +65,47 @@ account for most of the available gain.
 
 ## Part 1. Measured state
 
-| Property | Measured | Target from evidence |
-|---|---|---|
-| Total words | 111,865 | n/a |
-| Estimated pages (at 450 w/p) | ~248 | Downey: ~140 per semester course |
-| Chapters and appendices | 38 | n/a |
-| Median chapter length | ~6 pages | one sitting; acceptable as is |
-| Chapters over 9 pages | 5 | split or justify |
-| Exercises | 173 in 34 files | n/a |
-| Exercises with published solutions | 0 | OpenIntro: nearly all |
-| Chapters with exactly 5 exercises | 27 of 34 | proportional to chapter weight |
-| Executable `{r}` chunks | 48, in 11 files | code that renders is code that is checked |
-| Display-only fenced blocks | 258, in 27 files | n/a |
-| Technical figures (code-generated) | ~20, in 11 files | 1 per code-bearing section (~170) |
-| Portraits placed (policy allows 4 to 5) | 0 | 5, per the April policy |
-| `credits.qmd` rows complete | 0 of 5, plus cover TODO | all |
-| Other ambient imagery | 0 | 0, per the April policy |
-| Technical sections | 374 | n/a |
-| Of those, code-bearing | 170 | each yields a rendered artifact |
-| Of those, prose only | 204 | exempt from the figure floor |
-| Files whose only figure is a mermaid diagram | 29 | n/a |
-| Content files with zero figures | 5 | zero |
-| `fig-alt` coverage | 43 of 43 rendering figures (was 0) | all informative figures |
-| Figure labels inside display fences | 5, in `11-quarto`, `12-rmd-workflow`, `23-penguins` | render nothing; see Finding 2 |
-| Files containing `fig-cap` | 34 of 46 | n/a |
-| Embedded video, iframe, or media | 0 | distributed through chapters |
-| Glossary | absent | present |
-| Index | absent | present |
-| HTML table of contents | docked sidebar, search, breadcrumbs | correct as is |
-| PDF table of contents | absent (`toc: false`) | present |
-| Distance from quiz to its answers | end of chapter (667 lines in `13-wrangling`) | adjacent |
-| License, reader-facing | CC BY-NC-ND 4.0 | CC BY |
-| License, package metadata | GPL-3 | MIT or GPL-3 for code only |
-| Body-text contrast | ~16:1; teal accent ~5.0:1 | at or above 4.5:1 |
-| Heading hierarchy | clean, no level skips | correct as is |
-| Output formats | HTML, PDF (6.5 x 9in trim) | plus print-on-demand |
-| `freeze: auto` | set | correct as is |
-| Bibliography entries | 99; 34 from 2024 or later | correct as is |
-| 'Check your understanding' sections | 1 per chapter (2 in `03`) | 1 per major section |
+*Baseline is the 2026-09-07 scan; 'Now' is 2026-09-08, after
+Phases A to D. Rows without a 'Now' value are unchanged.*
+
+| Property | Baseline | Now | Target from evidence |
+|---|---|---|---|
+| Total words | 111,865 | ~120,000 | n/a |
+| Pages | ~248 (estimated, wrong) | **712** (rendered) | Downey: ~140 per semester course |
+| Chapters and appendices | 38 | 39 (glossary added) | n/a |
+| Median chapter length | ~6 pages | | one sitting; acceptable as is |
+| Chapters over 4,000 words | 6 | 6 | split or justify |
+| Exercises | 173 in 34 files | 176 in 34 files | n/a |
+| Chapters publishing solutions | 0 | **14**, 48 chunks | OpenIntro: nearly all |
+| Chapters labeling open-ended sets | 0 | **20** | state why no key exists |
+| Executable `{r}` chunks | 48, in 11 files | **166** | code that renders is code that is checked |
+| Top-level ```` ```r ```` display blocks | 128 | **60** | mostly correct as display |
+| Technical figures (code-generated) | ~20 | 27 | 1 per code-bearing section |
+| Portraits placed (policy allows 4 to 5) | 0 | | 5, per the April policy |
+| `credits.qmd` rows complete | 0 of 5, plus cover TODO | | all |
+| Other ambient imagery | 0 | | 0, per the April policy |
+| Technical sections | 374 | | n/a |
+| Of those, code-bearing | 170 | | each yields a rendered artifact |
+| Of those, prose only | 204 | | exempt from the figure floor |
+| Files whose only figure is a mermaid diagram | 29 | | n/a |
+| Content files with zero figures | 5 | | zero |
+| `fig-alt` coverage | 0 of 46 files | **all rendering figures** | all informative figures |
+| Figure labels inside display fences | 5, in `11-quarto`, `12-rmd-workflow`, `23-penguins` | | render nothing; see Finding 2 |
+| Files containing `fig-cap` | 34 of 46 | | n/a |
+| Embedded video, iframe, or media | 0 | | distributed through chapters |
+| Glossary | absent | **appendix F, ~75 terms** | present |
+| Index | absent | absent (see Phase D) | present |
+| HTML table of contents | docked sidebar, search, breadcrumbs | | correct as is |
+| PDF table of contents | absent (`toc: false`) | **present, verified** | present |
+| Quiz-to-answer link | present in all 34 | unchanged | adjacent |
+| License, reader-facing | CC BY-NC-ND 4.0 | **CC BY 4.0** | CC BY |
+| License, code | MIT / CC0 / GPL-3, disagreeing | **MIT printed, GPL-3 package** | code only |
+| Body-text contrast | ~16:1; teal accent ~5.0:1 | | at or above 4.5:1 |
+| Heading hierarchy | clean, no level skips | | correct as is |
+| Output formats | HTML, PDF (6.5 x 9in trim) | | plus print-on-demand |
+| `freeze: auto` | set | | correct as is |
+| Bibliography entries | 99; 34 from 2024 or later | | correct as is |
+| 'Check your understanding' sections | 1 per chapter (2 in `03`) | | 1 per major section |
 
 Several things in that table are worth stating plainly as strengths,
 because they are unusual. The bibliography is current, with 25 entries
@@ -506,7 +509,8 @@ have a navigable sidebar table of contents, so this is two thirds of a
 known complaint rather than all of it.' That is true of the HTML output
 and false of the PDF. `_quarto.yml` sets `toc: false` under the `pdf`
 format, and no `\tableofcontents` appears in any of the LaTeX includes.
-The PDF is therefore a roughly 248-page document with no table of
+The PDF is therefore a 712-page document (rendered and counted
+2026-09-08) with no table of
 contents, no index, and no glossary, which is the complete verbatim
 complaint rather than two thirds of it, and it is the closest match in
 the entire reviewer corpus to this book's actual condition: a long PDF
@@ -568,7 +572,9 @@ evidential support and should be done alongside Finding 1.
 
 ### Finding 8. Length and modularity
 
-**Measured.** 111,865 words, about 248 estimated pages. Word counts are
+**Measured.** 111,865 words. The rendered PDF is 712 pages; the
+'~248 estimated pages' carried by earlier drafts was wrong, see Part 6.
+Word counts are
 more reliable than the page estimates, so they are given directly here.
 Median chapter 2,900 words. Six files exceed 4,000 words:
 `12b-acquisition` (5,249), `25b-communicating` (4,999),
@@ -605,7 +611,7 @@ and outer margins, which is a print book's page and not a screen's. The
 print-on-demand edition is therefore closer than the first draft
 implied. It is still blocked, though, on both the NC license of Finding
 4 and the missing PDF table of contents of Finding 5, because a
-248-page paperback with no way to navigate it is not a product worth
+712-page paperback with no way to navigate it is not a product worth
 selling.
 
 **Why it matters.** Perceived quality is mediated by colleague
@@ -961,10 +967,31 @@ photographic budget is ever revisited, the claim that color interior
 printing would defeat a sub-ten-dollar paperback is stated from general
 knowledge and needs a vendor quote before it is relied on.
 
-**Unverified in both drafts.** The book has not been rendered as part
-of this analysis, so the 248-page estimate, the claim that a full
-render completes clean, and the behavior of `toc: true` under `scrbook`
-are all untested. Cultural relevance remains unassessed. The contrast
+**Now verified, 2026-09-08.** The book was rendered to both HTML and
+PDF. Both complete clean with no warnings. `toc: true` under `scrbook`
+produces a correct multi-level table of contents with page numbers, and
+the trim is the intended 6.5 by 9 inches (468 by 648 points).
+
+**And the page estimate was wrong by a factor of nearly three. The
+book is 712 pages, not ~248.** Every draft of this plan repeated the
+248 figure, derived by dividing 111,865 words by a conventional 450
+words per page. That divisor is for a dense prose page on a larger
+trim. This book is set at 11pt on a 6.5 by 9 inch page, and a large
+share of its content is code and rendered output, which occupy a page
+at a fraction of prose density. The estimate should not have been
+carried through four revisions without a render to check it, and the
+lesson is the same one this plan keeps relearning: build the artifact
+before quoting numbers about it.
+
+**Consequences for the plan.** Finding 8 argued against restructuring
+toward Downey's ~140-page target on the grounds that 248 was
+defensible for the scope. At 712 that argument is much weaker, and
+length becomes a live question rather than a settled one. Note also
+that Phase C *added* pages by converting display blocks into executed
+chunks with output, so this number will keep rising. The
+print-on-demand item in Phase D needs rethinking: a 712-page paperback
+is a different product, and a different price, from the sub-ten-dollar
+edition the evidence base describes. Cultural relevance remains unassessed. The contrast
 ratios are computed from the hex values in `practicum.scss` rather than
 measured against rendered output, and no dark-mode variant was
 examined. Whether the worked examples are in fact worked, as opposed to
