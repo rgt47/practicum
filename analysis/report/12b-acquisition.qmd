@@ -616,6 +616,46 @@ scraper survive the addition of a second table to the page. It
 will not survive a redesign, and nothing will, which is why the
 next section matters more than this one.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: why not fetch at render time?
+
+**Question.** Putting the API call directly in your `.qmd`
+means the report always reflects the current data, and
+there is no stale intermediate file to manage. That sounds
+like an argument for reproducibility. Why does this chapter
+insist on a separate acquisition script instead?
+
+**Answer.**
+
+Because 'always current' and 'reproducible' are opposites,
+and the phrasing hides it.
+
+A document that fetches at render time produces different
+output on every render, by design. Re-render it next year
+and you cannot reconstruct this year's numbers; the inputs
+are gone. That is the exact failure the whole book is
+about, arriving through a door marked convenience.
+
+Three further consequences follow. The render now needs
+network access and a valid credential, so it fails on a CI
+runner, in a container, and on a plane. It fails silently
+in a worse way if the endpoint returns a partial result.
+And it hits someone else's server every time anyone builds
+the document, which is a cost you are imposing on a host
+who did not agree to it.
+
+The two-script pattern separates the two things being
+confused. `01-acquire.R` runs rarely, deliberately, by a
+human, and writes a dated raw file with a provenance note.
+`02-clean.R` runs on every render and touches no network.
+The first is an *event*; the second is a *function*. Only
+the second belongs in a build.
+
+The test the chapter proposes is a good one: disconnect
+the network and render. If it still builds, the boundary
+is in the right place.
+:::
+
 ## The discipline that makes any of this reproducible
 
 An acquisition that runs at render time is a reproducibility bug

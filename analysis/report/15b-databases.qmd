@@ -346,6 +346,43 @@ careless cross-join can inconvenience every other user, so
 test on a `LIMIT`-ed subset before running the full
 extraction.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: is a query a reproducible input?
+
+**Question.** Your analysis begins by running a SQL query
+against the hospital warehouse. The query is committed to
+the repository. Is the analysis reproducible?
+
+**Answer.**
+
+The *code* is. The analysis is not, and the difference is
+the point of this section.
+
+A committed query guarantees that anyone can see how the
+extract was defined. It guarantees nothing about what the
+extract contained, because the warehouse is a moving
+target. Records get corrected. Late-arriving lab results
+appear. A patient withdraws consent and their rows are
+purged. Run the identical query six months later and you
+get a different table, with no error and no indication
+that anything changed.
+
+This is unlike every other input the book discusses. A CSV
+in `data/raw/` is a fixed artifact; a query is an
+*instruction* whose result depends on when it ran.
+
+The remedy is to treat the extract as the raw data rather
+than the query. Run the query once, deliberately, and
+write the result to a dated file. Record alongside it the
+query text, the timestamp, and the database version or
+snapshot identifier if the warehouse offers one. That file
+is what the analysis reads, and it is what gets archived.
+
+The query remains in the repository as provenance, which
+is exactly the role @sec-acquisition gives an acquisition
+script. Same pattern, different source.
+:::
+
 ## Reproducibility of the extraction
 
 The analytic dataset is a build product, and the query is

@@ -266,6 +266,46 @@ The conventions matter because a reader who has seen
 one rrtools compendium can navigate any other one
 without instruction.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: where does a derived file live?
+
+**Question.** Your cleaning script reads
+`analysis/data/raw_data/visits.csv` and produces a tidy
+analytic table. Where does the output go, and should it be
+committed?
+
+**Answer.**
+
+It goes in `analysis/data/derived_data/`, and whether to
+commit it depends on a trade-off worth naming rather than
+a rule.
+
+The placement is not negotiable. Raw and derived are
+separate directories because raw data is *evidence* and
+derived data is a *build product*. Writing the cleaned
+table back over the input destroys the only copy of what
+you were given, and no amount of version control recovers
+a file that was overwritten before it was ever committed.
+Treat `raw_data/` as read-only, by convention if your
+filesystem will not enforce it.
+
+Committing the derived file is the real question. Against:
+it is reproducible from the raw data plus the script, so
+storing it duplicates information and bloats the
+repository with a binary that changes on every run. For:
+it lets a reader check your numbers without installing
+your environment, and it fixes what the analysis actually
+used, which matters if the cleaning script is later
+corrected.
+
+The usual resolution is to commit derived data when it is
+small and the analysis is being archived, and to leave it
+untracked during development. What is not defensible is
+committing derived data and *not* the script that made it,
+which is the arrangement that looks tidiest and explains
+least.
+:::
+
 ## Writing the paper in Quarto
 
 `analysis/paper/paper.qmd` is the manuscript. It uses

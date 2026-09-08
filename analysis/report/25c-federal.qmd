@@ -294,6 +294,41 @@ For a typical biostatistician, the practical pattern is:
 - De-identified or synthetic supplementary data in
   Zenodo for unconditional access.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: is GitHub deposition?
+
+**Question.** Your code is public on GitHub, with a
+README, a license and a full commit history. The DMSP asks
+where the code will be preserved. Is a GitHub URL an
+adequate answer?
+
+**Answer.**
+
+No, and the reason is not that GitHub is unreliable. It is
+that GitHub makes no preservation commitment at all.
+
+A repository can be deleted by its owner, renamed, made
+private, or removed when an account lapses. The URL then
+returns a 404 and the citation in your paper points at
+nothing. None of that is a failure on GitHub's part; it is
+a code-hosting service, and hosting is not archiving.
+
+A repository also has no fixed identity. `main` today is
+not `main` next year, so a bare URL does not say which
+version produced the results.
+
+Deposition supplies both. A Zenodo release mints a DOI
+that resolves permanently, snapshots the repository at
+that commit, and carries a preservation undertaking. The
+GitHub-Zenodo integration does this on every tagged
+release, which is why the pattern above pairs them rather
+than choosing: GitHub for working, Zenodo for the record.
+
+The same distinction applies to the tag in
+@sec-analysis-plan. A tag organizes; an external,
+timestamped, immutable record is what makes it evidence.
+:::
+
 ## `renv.lock` vs. `Imports:` in DESCRIPTION
 
 A DESCRIPTION file's `Imports:` field lists package

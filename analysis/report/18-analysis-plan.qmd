@@ -433,6 +433,46 @@ registry (ClinicalTrials.gov, ANZCTR, ISRCTN) at
 the time of registration. The deposited copy is the
 authoritative pre-specification.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: a tag you could have forged
+
+**Question.** You tag the SAP `sap-v1.0` before data lock,
+as this chapter recommends. A skeptical reviewer points out
+that `git tag` can be created at any time with any name,
+and that you could have written the tag last week after
+seeing the results. What actually stops you?
+
+**Answer.**
+
+Locally, nothing. The reviewer is right about the
+mechanism and wrong about the conclusion, and it is worth
+knowing which is which.
+
+A tag is a label on a commit and can be created, deleted
+and moved at will. Commit dates are metadata a determined
+person can set. A repository sitting on your laptop proves
+nothing about *when*, only about *what*.
+
+What supplies the timing is publication to somewhere you
+do not control. Pushing the tag to a remote creates a
+record on a server with its own timestamps and its own
+log. The registry deposit above is stronger still, since
+ClinicalTrials.gov records a submission date you cannot
+edit. Stronger again is anything that timestamps content
+cryptographically, such as a Zenodo DOI or an OSF
+registration.
+
+So the honest statement of the practice is: the tag makes
+the pre-specification *findable and unambiguous*, and an
+external record makes it *credible*. The chapter's
+instruction to push the tag rather than merely create it is
+carrying the whole weight, and a SAP tagged but never
+pushed provides organization without evidence.
+
+This is the same distinction @sec-federal draws between
+hosting an artifact and depositing it.
+:::
+
 ## Worked example: SAP outline
 
 > **Title:** Statistical Analysis Plan for the

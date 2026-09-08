@@ -335,6 +335,43 @@ reproduced; correctness ensures that what you reported is
 right. Tools address reproducibility; statistical
 training addresses correctness; both must be present.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: reproducibly wrong
+
+**Question.** An analysis is fully reproducible: pinned
+environment, executable code, versioned data, one command
+to rebuild every number. It also dichotomizes a continuous
+outcome at the median, which costs power and makes the
+effect estimate depend on the sample. What has
+reproducibility bought, and what has it not?
+
+**Answer.**
+
+It has bought the ability to find out. It has not made the
+analysis right, and nothing about the infrastructure will.
+
+What reproducibility supplies is *legibility*. The
+dichotomization is in the code, at a specific line, in a
+form a reviewer can point at. In an irreproducible
+analysis the same decision is invisible, described in
+methods as 'patients were classified as high or low' with
+no way to see the cut point or how it was chosen. The
+error exists either way; only one version is auditable.
+
+It also makes the fix cheap. Changing one line and
+rebuilding gives the corrected result in minutes, where an
+irreproducible analysis would need reconstruction from
+notes.
+
+The failure mode to keep in view is the one this section
+names: a fully reproducible pipeline produces a *reliably*
+wrong answer, and its polish can read as authority. A
+reviewer impressed by the Docker image and the lockfile
+may look less hard at the model. That is why the book puts
+@sec-ethics last rather than treating the infrastructure
+as the destination.
+:::
+
 ## Collaborating with an LLM on reproducibility
 
 LLMs are well-suited to spotting reproducibility gaps.
