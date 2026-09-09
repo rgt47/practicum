@@ -293,6 +293,50 @@ and that the sensitivity analysis erodes the estimate. A PI
 who learns that from a reviewer instead of from you will not
 trust the next memo.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: the number that changed
+
+**Question.** You sent a memo three weeks ago quoting a
+hazard ratio of 0.71. Rerunning after a data correction
+gives 0.78, which does not change the conclusion. Do you
+tell the PI, and what do you send?
+
+**Answer.**
+
+Yes, and promptly, and the reasoning is not about the
+number.
+
+The temptation to stay quiet is strongest exactly here,
+because the conclusion held. Saying nothing feels like
+sparing everyone a distraction over a difference that
+does not matter.
+
+It matters for three reasons. The figure is already in
+circulation: it may be in a slide deck, a draft, or a
+grant, and every downstream use of 0.71 is now wrong even
+though the conclusion is not. Second, someone else will
+find it, and a discrepancy discovered by a reviewer costs
+far more than one you reported. Third, and most
+consequential, you are establishing what your silence
+means. A collaborator who learns that you report changes
+only when they alter conclusions must independently verify
+everything, because your not-mentioning carries no
+information.
+
+What you send is short: the old number, the new number,
+what changed in the data, and one sentence stating the
+conclusion is unaffected. Not an apology, and not a
+rehearsal of the whole analysis. The compendium already
+holds the detail, and this is exactly what the version
+history is for; you can say precisely which commit
+produced which number.
+
+The general rule this chapter is built on: your value to a
+team is that your numbers can be relied upon, which
+depends far more on how you handle the ones that change
+than on the ones that do not.
+:::
+
 ## Null results
 
 The analysis found nothing. This happens constantly, and the

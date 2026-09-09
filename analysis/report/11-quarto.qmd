@@ -285,6 +285,41 @@ Cross-references work across formats: HTML produces
 hyperlinks, PDF produces 'Figure 3' references, Word
 produces field codes.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: a broken reference is a loud failure
+
+**Question.** You write `@fig-trajectory` in the prose but
+the chunk producing that figure is a display-only block,
+so the label never resolves. What happens when you render,
+and why is that better than the alternative?
+
+**Answer.**
+
+Quarto emits `WARN: Unable to resolve crossref
+@fig-trajectory` and renders the text as `?fig-trajectory`.
+The build completes, so it is a warning rather than an
+error, but the defect is visible in both the log and the
+output.
+
+Compare the alternative. Written as 'Figure 3 shows the
+trajectory', the reference is a string. Insert a figure
+earlier, and the sentence now points at the wrong figure.
+Nothing warns, nothing renders oddly, and the reader
+follows you to a plot that does not show what you claim.
+The document is wrong in a way no tool can detect, because
+you never told the tool what you meant.
+
+This is the same distinction the book draws about inline
+code: a hardcoded number cannot go stale loudly, only
+quietly. Cross-references convert an entire class of
+manuscript error, the kind introduced by revision rather
+than by mistake, into a build warning.
+
+Worth knowing: this is not hypothetical for this book. Two
+chapters carried cross-references to anchors that did not
+exist, and the render found both immediately.
+:::
+
 ## Bibliographies and citations
 
 Add a `.bib` file:

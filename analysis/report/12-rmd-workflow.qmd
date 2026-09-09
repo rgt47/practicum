@@ -460,6 +460,48 @@ For mixing R and Python heavily in one document,
 Jupyter engine may produce cleaner output. For pure R
 or R-with-occasional-Python, knitr is fine.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: whose Python is it?
+
+**Question.** A `.qmd` with a `{python}` chunk renders
+correctly on your machine. A colleague clones the
+repository, runs `renv::restore()`, and the render fails
+with `ModuleNotFoundError`. What went wrong, and what
+would have prevented it?
+
+**Answer.**
+
+`renv` pins R packages. It says nothing about Python, so
+the document depended on whatever interpreter and packages
+happened to be installed on your machine, which is exactly
+the ambient state the book argues against everywhere else.
+
+The document worked for you by accident of history: you
+had `pandas` from some earlier project.
+
+The fix is to declare the dependency in the document, so
+that provisioning is part of the build rather than a
+precondition of it:
+
+```r
+reticulate::py_require("pandas")
+```
+
+Modern `reticulate` reads those declarations and
+provisions an ephemeral environment, which means the
+requirement travels with the source.
+
+The alternative many projects reach for, a
+`requirements.txt` plus an instruction to run
+`pip install -r`, is weaker for a reason worth
+generalizing. It puts the requirement in a file the render
+does not read, so nothing enforces the connection, and the
+failure appears on someone else's machine rather than
+yours. A dependency the build declares is checked on every
+render; a dependency documented in a README is checked
+when someone reads the README.
+:::
+
 ## Multi-language documents
 
 Quarto natively supports R, Python, and Julia. With

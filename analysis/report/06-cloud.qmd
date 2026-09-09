@@ -411,6 +411,51 @@ finishes with, archive to S3.
 Egress (data leaving AWS) is charged; ingress is free.
 Plan large transfers accordingly.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: should PHI go to the cloud?
+
+**Question.** Your simulation study is too slow on a
+laptop, so you plan to move it to EC2. The data are
+de-identified under Safe Harbor. Is that sufficient to
+proceed?
+
+**Answer.**
+
+No. De-identification addresses one of three separate
+questions, and the other two are the ones that stop
+projects.
+
+The first is contractual. A data use agreement typically
+names where data may be stored and processed, and many
+prohibit third-party cloud entirely or require specific
+arrangements. Safe Harbor de-identification does not
+release you from a DUA you signed, and an IRB protocol
+naming institutional servers is a commitment you cannot
+vary alone.
+
+The second is regulatory. Under HIPAA, using a cloud
+provider for PHI requires a Business Associate Agreement.
+Your institution may hold one covering specific AWS
+accounts under specific configurations, and the personal
+account you opened with a credit card is not covered by
+it.
+
+The third is the one @sec-deident already made: Safe
+Harbor produces data that is de-identified, not anonymous.
+Residual re-identification risk is why the DUA and the BAA
+exist at all, rather than being redundant with the
+de-identification.
+
+The practical order is therefore: read the DUA, ask
+whether your institution has a covered account, and only
+then compare instance prices. Reversing that order is how
+people discover at submission that their analysis ran
+somewhere it should not have.
+
+Note that a simulation study on synthetic data raises none
+of this, which is often the cheapest way through.
+:::
+
 ## Cost control
 
 Cloud billing surprises share a structure. The meter

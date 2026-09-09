@@ -403,6 +403,49 @@ of @sec-git-teams assumes a readable diff; `styler` and
 continuous-integration workflow of @sec-ci and the
 guarantee holds for every contributor, human or not.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: the code that ran clean
+
+**Question.** An LLM writes a function. You read it, it
+looks right, you run it on your data and it returns
+plausible numbers with no errors or warnings. How much has
+that established?
+
+**Answer.**
+
+Almost nothing, and the reason is what makes LLM code a
+distinct problem rather than just more code to review.
+
+A language model is optimizing for plausibility. That is
+the objective, and it applies to the output as much as the
+source: code that looks like correct code, producing
+numbers that look like correct numbers. Your three checks
+tested readability, execution and plausibility, which are
+the three things the model is best at producing
+independently of correctness.
+
+What you have ruled out is syntax errors and hard crashes.
+What remains: silent type coercion, a look-alike function
+with a different default, an outdated API that still runs,
+an off-by-one in a filter, and a subtly wrong statistical
+choice that no amount of reading catches because it is
+defensible-looking.
+
+The verify-first loop exists because the happy path is the
+one case a plausible-looking wrong answer is most likely
+to survive. Edge cases (`NA`, empty input, a single row,
+zero variance) break plausible-but-wrong code where
+typical input does not, and comparison against a reference
+you computed independently is the only check that does not
+route through your own judgment about how the code looks.
+
+The generalization is uncomfortable and worth sitting
+with: your confidence after reading generated code is
+evidence about the code's *readability*, which the model
+optimized for, and not about its correctness, which it did
+not.
+:::
+
 ## When not to reach for an LLM
 
 Tasks where the cognitive cost of evaluating the
