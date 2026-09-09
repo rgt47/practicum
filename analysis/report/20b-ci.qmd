@@ -174,7 +174,7 @@ jobs:
       - uses: r-lib/actions/setup-renv@v2   # restore renv.lock
 
       - name: Run tests
-        run: Rscript -e 'testthat::test_dir("tests")'
+        run: Rscript -e 'tinytest::test_all()'
 
       - name: Render report
         run: quarto render
@@ -289,7 +289,7 @@ answer key is possible. A green or red run is the verification.
 2. Deliberately commit a change that removes a package from
    `renv.lock` but leaves its use in the code. Observe the
    CI failure and read the log to locate the cause.
-3. Extend the workflow to run a `testthat` (or `tinytest`)
+3. Extend the workflow to run a `tinytest`
    suite. Add a test that pins a key numeric result and
    confirm CI fails when you change that result.
 4. Introduce a code chunk that reads a file not committed

@@ -346,7 +346,7 @@ Before committing any LLM-generated code:
    implementation, a closed-form solution, a
    simpler version you wrote yourself.
 5. **Write a test.** Lock the behavior in
-   testthat. Future regressions are caught
+   tinytest. Future regressions are caught
    automatically.
 6. **Only then commit.**
 

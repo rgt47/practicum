@@ -32,22 +32,22 @@ chapter in @sec-quiz-answers-20.
 2. What is the difference between a unit test, an
    integration test, and an end-to-end test in the
    context of a data analysis pipeline?
-3. What does `testthat::expect_snapshot()` capture,
-   and when is a snapshot test preferable to a direct
-   value-comparison test?
+3. What does `tinytest::expect_equal_to_reference()`
+   capture, and when is a reference test preferable to a
+   direct value-comparison test?
 
 ## Learning objectives
 
 By the end of this chapter you should be able to:
 
 - Write unit tests for analytic helper functions
-  with `testthat`.
+  with `tinytest`.
 - Add an integration test that exercises the full
   data pipeline on a small synthetic dataset.
-- Use `expect_snapshot()` to capture complex outputs
-  (printed objects, plots, summary tables).
+- Use `expect_equal_to_reference()` to capture complex
+  outputs (printed objects, summary tables).
 - Run the test suite locally via
-  `testthat::test_local()` and in CI via GitHub
+  `tinytest::test_all()` and in CI via GitHub
   Actions.
 - Identify test smells (tests that pass for the
   wrong reason, tests that hide bugs, flaky tests).
@@ -79,31 +79,44 @@ analysis scripts the honest answer is no.
 We bring in this chapter the habits of software engineering to
 bear on that question.
 
-The framework used in this chapter is `testthat`
-(3rd edition), because it is the framework the reader
-is most likely to meet in the wider R ecosystem and
-in the companion textbook (chapter 20 of *Statistical
-Computing in the Age of AI*, which covers it in the
-package-development context). This chapter focuses on
-applying it to non-package analysis code.
+The framework used in this chapter is `tinytest`,
+because it is what projects scaffolded with `zzcollab`
+ship with and what the rest of this book assumes. It has
+no dependencies of its own, which matters when the point
+of the surrounding chapters is to pin an environment;
+each test file runs on its own; and the assertion
+vocabulary is small enough to hold in your head.
 
 ::: {.callout-note}
-## A note on tinytest
+## A note on testthat
 
-The house standard for projects scaffolded with
-`zzcollab` is `tinytest`, not `testthat`. The two are
-close cousins: `tinytest` has no dependencies, keeps
-each test file runnable on its own, and uses the same
-`expect_*()` vocabulary. Everything in this chapter
-transfers with small substitutions, principally
-`expect_equal()` and `expect_true()` in place of their
-`testthat` namesakes, and `tinytest::test_package()`
-or `run_test_dir()` in place of `testthat::test_local()`.
+`testthat` is the framework you are most likely to meet
+elsewhere, and the one the companion volume uses in the
+package-development context. The discipline this chapter
+teaches, testing statistical content rather than plumbing,
+is identical under either, and most of the translation is
+mechanical. Three differences are worth knowing before you
+read `testthat` code:
+
+- **There is no wrapper.** `testthat` groups assertions
+  inside `test_that("description", { ... })`. In
+  `tinytest` each `expect_*()` call is itself a test, and
+  the description goes in an `info=` argument. Files stay
+  flatter, and a failure reports the file and line rather
+  than a block name.
+- **The vocabulary is smaller.** `tinytest` has no
+  `expect_named()`, `expect_setequal()`, `expect_type()`
+  or `expect_s3_class()`. Use `expect_equal(names(x), ...)`,
+  `expect_equal(sort(a), sort(b))`,
+  `expect_equal(typeof(x), ...)` and `expect_inherits()`.
+  This is a feature rather than a gap: each is a plain
+  comparison whose failure output shows the two values.
+- **Snapshots work differently.**
+  `expect_equal_to_reference()` stores an `.rds` of the
+  object rather than printed text.
+
 Where a project already depends on `testthat`, stay with
-it; where you are starting fresh under `zzcollab`, prefer
-`tinytest`. The discipline the chapter teaches, testing
-statistical content rather than plumbing, is identical
-under either framework.
+it. Mixing frameworks in one suite buys nothing.
 :::
 
 ## The statistician's contribution {#sec-testing-human}
@@ -250,7 +263,7 @@ break for the second reason, and mostly get tested only
 for the first.
 :::
 
-## Unit tests with testthat
+## Unit tests with tinytest
 
 For a function in `R/clean.R`:
 
@@ -267,48 +280,56 @@ age_group <- function(age) {
 }
 ```
 
-Tests in `tests/testthat/test-clean.R`:
+Tests in `inst/tinytest/test-clean.R`:
 
 ```{r}
 #| label: test-age-group-tests
 #| message: false
-library(testthat)
+library(tinytest)
 
-test_that("age_group bins typical adult ages correctly", {
-  expect_equal(as.character(age_group(c(20, 50, 75))),
-               c("18-39", "40-64", "65+"))
-})
+expect_equal(as.character(age_group(c(20, 50, 75))),
+             c("18-39", "40-64", "65+"),
+             info = "typical adult ages bin correctly")
 
-test_that("age_group respects boundary values", {
-  expect_equal(as.character(age_group(c(18, 40, 65))),
-               c("18-39", "40-64", "65+"))
-  expect_equal(as.character(age_group(c(17, 39, 64))),
-               c("under-18", "18-39", "40-64"))
-})
+# the interval starts are inclusive, because right = FALSE
+expect_equal(as.character(age_group(c(18, 40, 65))),
+             c("18-39", "40-64", "65+"),
+             info = "boundary values fall in the upper bin")
+expect_equal(as.character(age_group(c(17, 39, 64))),
+             c("under-18", "18-39", "40-64"),
+             info = "values just below a break stay below")
 
-test_that("age_group handles NA", {
-  # NA_real_, not NA: bare NA is logical, and cut() rejects it. The
-  # distinction is invisible until the test is actually run.
-  expect_true(is.na(age_group(NA_real_)))
-})
+# NA_real_, not NA: bare NA is logical, and cut() rejects it. The
+# distinction is invisible until the test is actually run.
+expect_true(is.na(age_group(NA_real_)),
+            info = "numeric NA propagates rather than erroring")
 
-test_that("age_group errors on non-numeric input", {
-  expect_error(age_group("twenty"))
-})
+expect_error(age_group("twenty"),
+             info = "non-numeric input is rejected")
 ```
 
-Each `test_that()` is one named test with one or
-more `expect_*()` assertions. Run all tests:
+Each `expect_*()` call is one test. There is no
+enclosing block, which is the most visible difference
+from `testthat`: the `info=` string does the work
+`test_that()`'s description does, and a failure reports
+the file and line number alongside it.
+
+Run all tests:
 
 ```r
-testthat::test_local()
-# or, if the project is a package:
-devtools::test()
+tinytest::test_all()          # from the project root
+# or, for a package:
+tinytest::test_package("practicum")
 ```
 
-For non-package analysis projects, place tests in
-`tests/testthat/` and source the relevant scripts
-at the top of the test file.
+The layout `tinytest` expects is `inst/tinytest/` for the
+test files and a one-line `tests/tinytest.R` that runs
+them, which is what `zzcollab` scaffolds. Shipping tests
+under `inst/` has a consequence worth knowing: they are
+installed with the package, so a user who has your
+compendium can run its test suite without your source
+tree. For an analysis whose credibility rests on being
+checkable by someone else, that is the right default.
 
 ## Integration tests on synthetic data
 
@@ -322,7 +343,7 @@ synthetic dataset:
 ```{r}
 #| label: test-integration
 #| message: false
-# tests/testthat/test-pipeline.R
+# inst/tinytest/test-pipeline.R
 # In a package the test file would load run_pipeline from R/; it is
 # defined here so the example executes as written.
 run_pipeline <- function(raw) {
@@ -338,31 +359,35 @@ run_pipeline <- function(raw) {
     dplyr::select(patient_id, age_group, sex, treatment, visit, bp)
 }
 
-test_that("cleaning pipeline produces expected analytic dataset", {
-  # synthetic data that exercises every branch
-  raw <- tibble::tibble(
-    patient_id = c(1, 2, 3, 4),
-    age        = c(25, 50, 75, 17),     # one excluded
-    bp_v1      = c(120, 140, 160, NA),
-    bp_v2      = c(118, 138, NA,  NA),
-    sex        = c("M", "F", "F", "M"),
-    treatment  = c("placebo", "active", "placebo", "active")
-  )
+# synthetic data that exercises every branch
+raw <- tibble::tibble(
+  patient_id = c(1, 2, 3, 4),
+  age        = c(25, 50, 75, 17),     # one excluded
+  bp_v1      = c(120, 140, 160, NA),
+  bp_v2      = c(118, 138, NA,  NA),
+  sex        = c("M", "F", "F", "M"),
+  treatment  = c("placebo", "active", "placebo", "active")
+)
 
-  clean <- run_pipeline(raw)
+clean <- run_pipeline(raw)
 
-  # structural assertions
-  expect_s3_class(clean, "tbl_df")
-  expect_named(clean, c("patient_id", "age_group", "sex",
-                        "treatment", "visit", "bp"))
+# structural assertions. tinytest has no expect_s3_class or
+# expect_named, and does not need them: both are ordinary
+# comparisons, and a failure prints the two values.
+expect_inherits(clean, "tbl_df", info = "returns a tibble")
+expect_equal(names(clean),
+             c("patient_id", "age_group", "sex",
+               "treatment", "visit", "bp"),
+             info = "column names and order are as specified")
 
-  # row count: 3 adults x 2 visits, minus NAs
-  expect_equal(nrow(clean), 5)    # patient 4 excluded; patient 3 has 1 NA bp
+# row count: 3 adults x 2 visits, minus NAs
+expect_equal(nrow(clean), 5,
+             info = "patient 4 excluded; patient 3 has one NA bp")
 
-  # specific values
-  expect_equal(clean[clean$patient_id == 1 & clean$visit == 1, "bp"][[1]],
-               120)
-})
+# specific values
+expect_equal(clean$bp[clean$patient_id == 1 & clean$visit == 1],
+             120,
+             info = "a known cell survives the pipeline unchanged")
 ```
 
 The synthetic dataset is small (4 patients, 2
@@ -397,8 +422,8 @@ expected_ids  <- 1:100
 expected_ages <- rep(40:49, 10)
 
 expect_equal(nrow(result), 100)            # structural
-expect_setequal(result$patient_id,         # correctness
-                expected_ids)
+expect_equal(sort(result$patient_id),      # correctness
+             sort(expected_ids))
 expect_equal(result$age, expected_ages)
 ```
 
@@ -410,29 +435,36 @@ testing failure mode in data analysis.
 
 :::
 
-## Snapshot tests
+## Reference tests
 
 For complex outputs that are hard to assert
-literally, snapshots:
+literally, compare against a stored reference:
 
 ```r
-test_that("summary table renders correctly", {
-  fit <- lm(mpg ~ wt + hp, data = mtcars)
-  expect_snapshot(summary(fit))
-})
+fit <- lm(mpg ~ wt + hp, data = mtcars)
+expect_equal_to_reference(coef(fit), "ref/mtcars-coefs.rds",
+                          info = "coefficients unchanged")
 
-test_that("Table 1 has expected structure", {
-  expect_snapshot(gtsummary::tbl_summary(d, by = treatment))
-})
+expect_equal_to_reference(summary(fit)$r.squared,
+                          "ref/mtcars-r2.rds")
 ```
 
-On first run, the output is captured to
-`tests/testthat/_snaps/`. On subsequent runs,
-output is compared to the snapshot; if it differs,
-the test fails and you decide whether to accept
-(`testthat::snapshot_accept()`) or investigate.
+On first run the object is written to the named file and
+the test passes trivially. On subsequent runs the value is
+compared against it; if it differs the test fails, and you
+decide whether the change is intended (delete the file and
+regenerate) or a regression.
 
-Snapshots are useful when:
+One difference from `testthat` is worth understanding
+rather than glossing. `expect_snapshot()` captures
+*printed output* as text, so it also detects changes in
+formatting. `expect_equal_to_reference()` stores the
+*object*, so it compares values and ignores how they
+print. For analysis code the object comparison is usually
+what you want: a coefficient that changed matters, and a
+`print` method that gained a blank line does not.
+
+Reference tests are useful when:
 
 - Output is complex and tedious to assert literally.
 - Output is human-readable formatting (tables,
@@ -442,10 +474,12 @@ Snapshots are useful when:
 
 Snapshots are not useful when:
 
-- Output changes for trivial reasons (whitespace,
-  random seed, system locale). These produce false
+- Output changes for trivial reasons (random seed,
+  system locale, an unstable sort). These produce false
   positives.
-- The snapshot is too large to read manually.
+- The stored object is too large to inspect when it
+  changes, which makes 'accept or investigate' a coin
+  toss.
 
 ## Visual regression testing with vdiffr
 
@@ -455,13 +489,11 @@ rendered plot and compares on subsequent runs:
 ```r
 library(vdiffr)
 
-test_that("regression plot is unchanged", {
-  fit <- lm(mpg ~ wt, data = mtcars)
-  p <- ggplot(broom::augment(fit), aes(.fitted, .resid)) +
-        geom_point() +
-        geom_hline(yintercept = 0)
-  expect_doppelganger("regression-residual-plot", p)
-})
+fit <- lm(mpg ~ wt, data = mtcars)
+p <- ggplot(broom::augment(fit), aes(.fitted, .resid)) +
+      geom_point() +
+      geom_hline(yintercept = 0)
+expect_doppelganger("regression-residual-plot", p)
 ```
 
 vdiffr handles cross-platform rendering issues
@@ -469,6 +501,13 @@ vdiffr handles cross-platform rendering issues
 image comparison. Useful for catching unintended
 changes to plot code (an axis label change, a
 geom swap).
+
+Note that `vdiffr` is built on `testthat` and expects to
+run inside it, so this is the one place in the chapter
+where the two frameworks do not substitute for each
+other. If visual regression matters to a project, that is
+a reason to use `testthat` there; `tinysnapshot` is the
+`tinytest`-native alternative and is younger.
 
 ## Continuous integration
 
@@ -497,9 +536,9 @@ jobs:
         with:
           packages: |
             local::.
-            any::testthat
+            any::tinytest
       - name: Run tests
-        run: Rscript -e 'testthat::test_local()'
+        run: Rscript -e 'tinytest::test_all()'
 ```
 
 Push the workflow; on every commit, GitHub runs the
@@ -520,9 +559,8 @@ false confidence:
 # every input, and the test below still passes.
 foo <- function(x) 42
 
-test_that("foo works", {
-  expect_equal(foo(1), foo(1))    # always passes
-})
+expect_equal(foo(1), foo(1),      # always passes
+             info = "foo works")
 ```
 
 The test cannot fail because it tests `foo()` against
@@ -531,30 +569,28 @@ itself. Useless.
 **Tests that mock the tested function.**
 
 ```r
-test_that("fit_model returns a list", {
-  with_mocked_bindings(
-    code = expect_type(fit_model(d), "list"),
-    fit_model = function(d) list(...)
-  )
-})
+fit_model <- function(d) list()          # stub, for the test
+expect_equal(typeof(fit_model(d)), "list")
 ```
 
-You replaced the function under test with a stub;
-the test passes because the stub returns a list, not
-because `fit_model` works.
+You replaced the function under test with a stub; the
+test passes because the stub returns a list, not because
+`fit_model` works. `tinytest` has no mocking facility,
+which makes this smell harder to write by accident than
+it is under `testthat`'s `with_mocked_bindings()`.
 
 **Brittle snapshots.**
 
 ```r
-test_that("output looks right", {
-  expect_snapshot(do_thing(today()))     # date in output
-})
+expect_equal_to_reference(do_thing(today()),
+                          "ref/do_thing.rds")   # date in output
 ```
 
-The snapshot includes the current date; the test
-fails every day. Either remove the date from the
-output or use `expect_snapshot_value` with a
-date-tolerant comparison.
+The stored object includes the current date, so the test
+fails every day after the first. Either take the date out
+of the returned object or compare the parts that should be
+stable, which usually means asserting on specific fields
+rather than on the whole object.
 
 **Overly permissive tolerances.**
 
@@ -597,47 +633,48 @@ clean_visits <- function(raw) {
     dplyr::filter(!is.na(bp))
 }
 
-# tests/testthat/test-cleaning.R
+# inst/tinytest/test-cleaning.R
 # In the package this line loads the function above; here it is
 # already in scope, so the tests run as written.
 # source("../../R/cleaning.R")
 
-test_that("cleaning excludes minors", {
-  raw <- tibble::tibble(
-    patient_id = 1:3,
-    age        = c(25, 17, 30),
-    bp_v1      = c(120, 110, 130),
-    bp_v2      = c(122, 112, 128)
-  )
-  result <- clean_visits(raw)
-  expect_setequal(result$patient_id, c(1, 3))
-})
+# the age filter
+raw <- tibble::tibble(
+  patient_id = 1:3,
+  age        = c(25, 17, 30),
+  bp_v1      = c(120, 110, 130),
+  bp_v2      = c(122, 112, 128)
+)
+result <- clean_visits(raw)
+expect_equal(sort(unique(result$patient_id)), c(1, 3),
+             info = "cleaning excludes minors")
 
-test_that("cleaning drops NA blood pressures", {
-  raw <- tibble::tibble(
-    patient_id = c(1, 1, 2),
-    age        = c(25, 25, 30),
-    bp_v1      = c(120, NA, 130),
-    bp_v2      = c(NA,  118, 128)
-  )
-  result <- clean_visits(raw)
-  expect_equal(nrow(result), 4)        # 6 cells, 2 NA → 4
-  expect_true(all(!is.na(result$bp)))
-})
+# the NA filter
+raw <- tibble::tibble(
+  patient_id = c(1, 1, 2),
+  age        = c(25, 25, 30),
+  bp_v1      = c(120, NA, 130),
+  bp_v2      = c(NA,  118, 128)
+)
+result <- clean_visits(raw)
+expect_equal(nrow(result), 4,
+             info = "6 cells, 2 NA, so 4 rows survive")
+expect_true(all(!is.na(result$bp)),
+            info = "no NA blood pressures remain")
 
-test_that("cleaning produces long format", {
-  raw <- tibble::tibble(
-    patient_id = 1,
-    age        = 25,
-    bp_v1      = 120,
-    bp_v2      = 118
-  )
-  result <- clean_visits(raw)
-  expect_named(result,
-               c("patient_id", "age", "visit", "bp"),
-               ignore.order = TRUE)
-  expect_equal(nrow(result), 2)
-})
+# the reshape
+raw <- tibble::tibble(
+  patient_id = 1,
+  age        = 25,
+  bp_v1      = 120,
+  bp_v2      = 118
+)
+result <- clean_visits(raw)
+expect_equal(sort(names(result)),
+             sort(c("patient_id", "age", "visit", "bp")),
+             info = "long format has the expected columns")
+expect_equal(nrow(result), 2,
+             info = "one patient with two visits gives two rows")
 ```
 
 The tests cover: the age filter, the NA filter, the
@@ -652,7 +689,7 @@ LLMs draft tests well; the judgment about what to
 test needs human input.
 
 **Prompt 1: drafting tests.** Paste the function and
-ask: 'write `testthat` tests covering happy path,
+ask: 'write `tinytest` tests covering happy path,
 edge cases, and error handling. Make the assertions
 specific to values, not just structure.'
 
@@ -739,7 +776,7 @@ a repository, or a colleague you supply.
    pipeline. Run the full pipeline in under a
    second.
 6. Set up GitHub Actions with a workflow that runs
-   `testthat::test_local()` on every push. Push and
+   `tinytest::test_all()` on every push. Push and
    verify the workflow runs green.
 7. Introduce a deliberate bug into your pipeline.
    Verify the test suite catches it. If it does
@@ -785,9 +822,8 @@ current behavior:
 
 ```{r}
 #| label: soln-20-1b
-test_that("age_group returns NA below the first break", {
-  expect_true(is.na(age_group(-5)))
-})
+expect_true(is.na(age_group(-5)),
+            info = "age below the first break gives NA")
 ```
 
 Preferring an error instead, the test comes first and the
@@ -803,10 +839,10 @@ age_group_strict <- function(age) {
       labels = c("under-18", "18-39", "40-64", "65+"))
 }
 
-test_that("age_group_strict rejects negative ages", {
-  expect_error(age_group_strict(-5), "negative age")
-  expect_equal(as.character(age_group_strict(30)), "18-39")
-})
+expect_error(age_group_strict(-5), pattern = "negative age",
+             info = "negative age is rejected")
+expect_equal(as.character(age_group_strict(30)), "18-39",
+             info = "a valid age still bins correctly")
 ```
 
 Either is defensible. What is not defensible is leaving
@@ -828,24 +864,22 @@ summarize_species <- function(data) {
                      n = dplyr::n(), .groups = "drop")
 }
 
-test_that("summarize_species returns the expected shape", {
-  # STRUCTURAL: shape only. This passes even if mean_mass
-  # is computed as a median, a sum, or the wrong column.
-  out <- summarize_species(penguins)
-  expect_s3_class(out, "tbl_df")
-  expect_named(out, c("species", "mean_mass", "n"))
-  expect_equal(nrow(out), 3)
-})
+# STRUCTURAL: shape only. Every line below passes even if
+# mean_mass is computed as a median, a sum, or the wrong column.
+out <- summarize_species(penguins)
+expect_inherits(out, "tbl_df", info = "structural: a tibble")
+expect_equal(names(out), c("species", "mean_mass", "n"),
+             info = "structural: column names")
+expect_equal(nrow(out), 3, info = "structural: one row per species")
 
-test_that("summarize_species computes the right values", {
-  # CORRECTNESS: a value the test computes independently.
-  out <- summarize_species(penguins)
-  adelie <- penguins$body_mass_g[penguins$species == "Adelie"]
-  expect_equal(out$mean_mass[out$species == "Adelie"],
-               mean(adelie, na.rm = TRUE))
-  expect_equal(out$n[out$species == "Adelie"],
-               sum(!is.na(adelie)))
-})
+# CORRECTNESS: values the test computes independently.
+adelie <- penguins$body_mass_g[penguins$species == "Adelie"]
+expect_equal(out$mean_mass[out$species == "Adelie"],
+             mean(adelie, na.rm = TRUE),
+             info = "correctness: the mean is the mean")
+expect_equal(out$n[out$species == "Adelie"],
+             sum(!is.na(adelie)),
+             info = "correctness: n counts non-missing")
 ```
 
 The structural test is worth keeping, because a change in
@@ -862,10 +896,8 @@ rather than comparing the function to itself.
 #| error: true
 foo <- function(x) 42          # wrong for every input
 
-test_that("foo doubles its input", {
-  expect_equal(foo(1), 2)
-  expect_equal(foo(3), 6)
-})
+expect_equal(foo(1), 2, info = "foo doubles 1")
+expect_equal(foo(3), 6, info = "foo doubles 3")
 ```
 
 The fix is to assert against a value computed
