@@ -8051,15 +8051,14 @@
     },
     "zzpower": {
       "Package": "zzpower",
-      "Version": "1.0.0",
-      "Source": "unknown",
+      "Version": "1.1.0",
+      "Source": "GitHub",
       "Type": "Package",
       "Title": "Interactive Power Analysis Calculator for Clinical Trial Designs",
       "Authors@R": "person(\"Ronald G.\", \"Thomas\", , \"rgthomas@ucsd.edu\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0003-1686-4965\"))",
       "Description": "An interactive 'Shiny' application for power analysis and sample size calculations across multiple statistical tests. Supports two-group, paired, and one-sample t-tests, two-proportion comparisons, and correlation tests via a scalable plugin/registry architecture. Provides multiple effect size specifications per test, interactive power curves, detailed results tables, and downloadable reports. Designed for clinical researchers and statisticians planning studies.",
       "License": "GPL (>= 3)",
       "Encoding": "UTF-8",
-      "RoxygenNote": "7.3.3",
       "Depends": [
         "R (>= 4.1.0)"
       ],
@@ -8081,8 +8080,15 @@
       "URL": "https://github.com/rgt47/zzpower",
       "BugReports": "https://github.com/rgt47/zzpower/issues",
       "VignetteBuilder": "knitr",
+      "Config/roxygen2/version": "8.0.0",
       "Author": "Ronald G. Thomas [aut, cre] (ORCID: <https://orcid.org/0000-0003-1686-4965>)",
-      "Maintainer": "Ronald G. Thomas <rgthomas@ucsd.edu>"
+      "Maintainer": "Ronald G. Thomas <rgthomas@ucsd.edu>",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "rgt47",
+      "RemoteRepo": "zzpower",
+      "RemoteRef": "main",
+      "RemoteSha": "517ceb6ec67cee7b1f28cf702297f7d2baef047f"
     }
   }
 }
