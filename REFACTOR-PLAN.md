@@ -664,6 +664,71 @@ and solicit reviews, which is simultaneously a credibility and an
 awareness act. Produce a print-on-demand paperback from the existing
 PDF. Publish a page of adopting courses as it accumulates.
 
+### Finding 10. The book does not satisfy its own Five Pillars
+
+**Added 2026-09-08.** Not in the original scan, and found only by
+looking at the repository's CI while migrating the testing chapter.
+`10-zzcollab` names five pillars as the minimum for a reproducible
+project. This project has two and a half of them.
+
+| Pillar | In this repository |
+|---|---|
+| 1. Dockerfile | **absent** |
+| 2. `renv.lock` | **absent** |
+| 3. `.Rprofile` | present, but never loaded (below) |
+| 4. Source code | present |
+| 5. Data | present, synthetic and `palmerpenguins` |
+
+**There is no `renv.lock` anywhere in the repository.** The book that
+devotes a chapter to `renv`, and whose own figure lists the lockfile as
+pillar two, does not pin its own R packages. The render now depends on
+roughly thirty packages, and nothing records which versions produce the
+numbers in the text.
+
+**The `.Rprofile` is inert.** It sits at the repository root, but
+Quarto renders from `analysis/report`, and R sources `.Rprofile` from
+the working directory. Running R from the render directory shows
+`RETICULATE_PYTHON` unset, so the file has no effect on any build.
+
+Were it loaded, it would be worse rather than better. It hardcodes
+`/opt/miniconda3/bin/python3` and instructs the reader to 'adjust the
+path below to match your machine', which is the ambient-machine-state
+dependency the surrounding chapters exist to argue against. The
+`reticulate::py_require()` declarations added in Phase C supersede it.
+
+**CI renders from a committed cache and therefore never executes the
+code.** `_freeze/` is tracked, 120 files, and holds fully executed
+markdown. `.github/workflows/render-book.yml` finds no `renv.lock`, so
+it installs only `knitr` and `rmarkdown`, then renders. That succeeds
+only because Quarto reads the frozen results rather than running
+anything. The workflow is a markup gate, not an execution gate.
+
+This qualifies a claim made repeatedly in this plan. Finding 2 argues
+that converting display blocks to executable chunks means the code is
+'checked by rendering'. It is checked when the author renders. It is
+not checked by CI, and a package update that broke every chunk would
+deploy green.
+
+**In fairness**, a book is not a clinical analysis, the freeze cache is
+the correct mechanism for an expensive build, and committing it is
+deliberate. The objection is narrower: the project asks readers to
+adopt practices it does not apply to itself, and a reader who clones
+this repository to see a worked compendium finds two pillars missing.
+
+**Action, in order of value.**
+
+1. Add a `renv.lock`. This is the one that unblocks the others, and it
+   is `renv::init()` plus `renv::snapshot()`.
+2. Move `.Rprofile` to `analysis/report/`, or delete it. It currently
+   does nothing, and what it would do is wrong now that `py_require()`
+   handles Python.
+3. Add a scheduled CI job that renders with `--cache-refresh` against
+   the restored lockfile, so the code is executed somewhere other than
+   the author's laptop. Weekly is enough; it is the only thing that
+   would catch upstream package drift.
+4. Consider a Dockerfile. The workflow already builds and renders in
+   one when present, so this is the cheapest pillar to add.
+
 ## Part 3. Phased plan
 
 Effort figures are estimates in working days for one person, offered
