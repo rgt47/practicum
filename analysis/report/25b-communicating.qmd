@@ -232,6 +232,87 @@ comes out. Most methods detail comes out. The model
 specification comes out. Diagnostics come out. They live in
 the compendium, and the memo says where.
 
+### The numbers in a memo should be computed
+
+Before the example itself, one point about how it is built.
+Every figure quoted below is produced by the chunk that
+follows and inserted by inline code, not typed. That is habit
+six of @sec-synthesis applied to the one document where it is
+most often skipped, because a memo feels like correspondence
+rather than output.
+
+The reason to bother is that memos get revised. A data
+correction arrives, the analysis is rerun, and the prose still
+carries last week's estimate unless a human remembers every
+place a number appears. Inline code makes that
+impossible: the number in the sentence *is* the number from
+the model.
+
+```{r}
+#| label: comm-trial
+#| message: false
+library(dplyr)
+
+# The trial as reported: 1:1 randomization, readmission
+# ascertained from a state health-information exchange.
+n_arm <- 1353
+
+trial <- tibble(
+  # a factor, so the arms keep trial order rather than
+  # alphabetical order when grouped
+  arm     = factor(rep(c("Usual care", "Home health"), each = n_arm),
+                   levels = c("Usual care", "Home health")),
+  readmit = c(rep(1L, 336), rep(0L, n_arm - 336),    # usual care
+              rep(1L, 279), rep(0L, n_arm - 279))    # home health
+)
+
+rates <- trial |>
+  group_by(arm) |>
+  summarize(n = n(), events = sum(readmit),
+            rate = mean(readmit), .groups = "drop")
+
+# prop.test takes control first, so the difference and the
+# interval are both usual care minus home health
+fit  <- prop.test(x = rates$events, n = rates$n, correct = FALSE)
+diff <- 100 * (rates$rate[1] - rates$rate[2])
+ci   <- 100 * fit$conf.int
+
+rates
+round(c(estimate = diff, lower = ci[1], upper = ci[2]), 1)
+```
+
+```{r}
+#| label: comm-sensitivity
+# Pre-specified MNAR sensitivity. 6.3% of outcomes were not
+# ascertainable. The concern is one-sided: if the intervention
+# arm's unascertained patients fared worse than their observed
+# peers, the effect shrinks. So apply the penalty there only.
+p_missing <- 0.063
+delta     <- 1.5          # intervention arm's missing, relative risk
+
+adjusted <- rates |>
+  mutate(
+    n_miss   = round(n * p_missing),
+    penalty  = c(1, delta),                 # usual care, home health
+    ev_adj   = events + round(n_miss * rate * penalty),
+    rate_adj = ev_adj / n
+  )
+
+fit_s  <- prop.test(x = adjusted$ev_adj, n = adjusted$n,
+                    correct = FALSE)
+diff_s <- 100 * (adjusted$rate_adj[1] - adjusted$rate_adj[2])
+ci_s   <- 100 * fit_s$conf.int
+
+round(c(estimate = diff_s, lower = ci_s[1], upper = ci_s[2]), 1)
+```
+
+Note what the second chunk establishes and what it does not.
+It shows the conclusion survives one specific departure from
+the missing-at-random assumption. It says nothing about
+whether a factor of 1.5 is the right departure to worry
+about, which is a clinical judgment the memo has to state in
+words.
+
 ### Worked example: a memo
 
 > **To:** Dr. X, Cardiology
@@ -239,8 +320,11 @@ the compendium, and the memo says where.
 > **Re:** HF-HOME primary analysis, 2026-06-15
 >
 > **Finding.** Home-health visits within seven days of
-> discharge reduced thirty-day all-cause readmission by 4.2
-> percentage points (95% CI 1.1 to 7.3; from 24.8% to 20.6%).
+> discharge reduced thirty-day all-cause readmission by
+> `r sprintf("%.1f", diff)` percentage points (95% CI
+> `r sprintf("%.1f", ci[1])` to `r sprintf("%.1f", ci[2])`;
+> from `r sprintf("%.1f%%", 100 * rates$rate[1])` to
+> `r sprintf("%.1f%%", 100 * rates$rate[2])`).
 > The pre-specified primary analysis supports the trial's
 > hypothesis.
 >
@@ -249,18 +333,22 @@ the compendium, and the memo says where.
 >
 > **What you should know.**
 >
-> - Design: 1,500 patients, 1:1 randomized, stratified by
->   site and baseline ejection fraction. The analysis is the
->   one pre-specified in SAP v1.0, tagged before unblinding.
+> - Design: `r format(nrow(trial), big.mark = ",")` patients,
+>   1:1 randomized, stratified by site and baseline ejection
+>   fraction. The analysis is the one pre-specified in SAP
+>   v1.0, tagged before unblinding.
 > - Estimate: the interval excludes zero but includes effects
->   as small as 1.1 points. The trial was powered to detect
->   4.5, so we are estimating an effect at roughly the size we
->   planned for, with the imprecision that implies.
-> - Principal threat: 6.3% of patients had no outcome
->   ascertainable from the state health-information exchange.
->   These are handled by multiple imputation, and the
->   pre-specified MNAR sensitivity analysis moves the estimate
->   to 3.6 points (CI 0.4 to 6.8). The conclusion is
+>   as small as `r sprintf("%.1f", ci[1])` points. The trial
+>   was powered to detect 4.5, so we are estimating an effect
+>   at roughly the size we planned for, with the imprecision
+>   that implies.
+> - Principal threat: `r sprintf("%.1f%%", 100 * p_missing)` of
+>   patients had no outcome ascertainable from the state
+>   health-information exchange. These are handled by multiple
+>   imputation, and the pre-specified MNAR sensitivity analysis
+>   moves the estimate to `r sprintf("%.1f", diff_s)` points
+>   (CI `r sprintf("%.1f", ci_s[1])` to
+>   `r sprintf("%.1f", ci_s[2])`). The conclusion is
 >   directionally robust but the lower bound is close to zero.
 >
 > **Caveats, ranked.**
