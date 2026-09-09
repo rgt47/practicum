@@ -821,9 +821,52 @@ to overrun, and re-estimate after the first three chapters.
    `13-wrangling` (17 each).
 2. Convert the executable subset to `{r}` chunks, one chapter at a
    time, rendering after each chapter.
-3. For blocks that cannot execute, add a dated verification note
-   stating how and when the command was checked. `22-sas` and
-   `05b-git-teams` are expected to stay largely display-only.
+3. ~~For blocks that cannot execute, add a dated verification note
+   stating how and when the command was checked.~~ **Revised
+   2026-09-08.** Replaced with an automated check, for two reasons.
+
+   A dated note is a claim about the past that decays from the moment
+   it is written, and 60 of them across the book would be 60 assertions
+   nobody re-checks. Worse, most could not be written honestly in the
+   first place: verifying `renv::init()`, a `docker build`, or an AWS
+   provisioning sequence means running it against a real project,
+   daemon or account, and writing 'verified' beside a command nobody
+   ran is the failure mode this whole plan exists to correct.
+
+   What *is* checkable, mechanically and repeatedly, is whether the R
+   functions those blocks name still exist. That is the part of the
+   code-rot exposure a rendered build cannot see, because `freeze`
+   protects only executed chunks.
+
+   **The book already had this check, and it was broken in two ways.**
+   `tools/check-calls.R` predates this plan, is wired into
+   `make check`, and its header records that it once caught five
+   nonexistent calls the render never would have. I wrote a duplicate
+   before looking in `tools/`, which was wasted work and a reminder to
+   read the repository before adding to it. The duplicate is deleted;
+   both bugs below are fixed in the original.
+
+   *It verified nothing when run the way the Makefile runs it.* The
+   script called `list.files(".")`, so from the repository root it
+   found no `.qmd` files, reported `ok: 0 resolvable calls verified`,
+   and exited 0. A passing check that checks nothing is the vacuous
+   test `20-testing` warns against, sitting in the project's own
+   toolchain. It now resolves `analysis/report` explicitly and verifies
+   **106 calls, 18 unverifiable here**.
+
+   *It reported a false failure when run correctly.* `haven::write_xpt`
+   was flagged as not exported. The call is real; the extracted token
+   was `write_xpt.` with a sentence-ending period absorbed, because an
+   R function name may legitimately contain a period and the pattern
+   cannot tell punctuation from identifier. Trailing periods are now
+   stripped before resolution. The offending sentence was one I added
+   to a `fig-alt` in `22-sas` earlier in this same session, so the
+   check caught a defect introduced by the refactoring itself.
+
+   Note what none of this covers: shell, Docker, cloud and SAS commands
+   remain unverifiable without a human running them, and no note in the
+   text should imply otherwise. Writing 'verified' beside a command
+   nobody ran is the failure mode this plan exists to correct.
 4. Bring every code-bearing section to at least one rendered artifact,
    which is 170 sections against the current ~20, prioritizing the
    five files that currently have no figure of any kind: `11-quarto`,
