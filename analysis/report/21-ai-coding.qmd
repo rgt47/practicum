@@ -261,12 +261,16 @@ NA, empty, single-row, or zero-variance input.
 
 **Question.** The LLM produces:
 
-```r
+```{r}
+#| label: ai-hallucinated-api
+#| error: true
+data <- data.frame(grp = c("a", "a", "b"), x = c(1, 3, 5))
+
 data |> dplyr::summarise_groups(mean(x))
 ```
 
-You run it; R errors with 'could not find function
-"summarize_groups"'. What is the right fix?
+You run it and R cannot find the function. What is
+the right fix?
 
 **Answer.**
 
@@ -274,7 +278,9 @@ The function does not exist. The LLM hallucinated
 it from `summarize` and `group_by`. The correct
 modern dplyr is:
 
-```r
+```{r}
+#| label: ai-corrected-api
+#| message: false
 data |> dplyr::group_by(grp) |> dplyr::summarize(mean = mean(x))
 ```
 
@@ -303,6 +309,13 @@ deadline.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-verify-loop
+%%| fig-alt: "Verification loop. A prompt yields generated code,
+%%|   which is read end to end, run on the happy path, run on edge
+%%|   cases including NA, empty input, a single row, wrong types and
+%%|   zero variance, then compared against a reference such as a
+%%|   closed form or your own version. A decision node asks whether
+%%|   it is correct: no returns to the prompt, yes proceeds to
+%%|   writing a test that locks the behavior, then committing."
 %%| fig-cap: "The verify-first loop. Plausibility is what the model
 %%|   optimizes for and is not what you are checking. Every arrow
 %%|   back to the prompt is a case the model got wrong in a way that
@@ -333,7 +346,7 @@ Before committing any LLM-generated code:
    implementation, a closed-form solution, a
    simpler version you wrote yourself.
 5. **Write a test.** Lock the behavior in
-   testthat. Future regressions are caught
+   tinytest. Future regressions are caught
    automatically.
 6. **Only then commit.**
 
@@ -389,6 +402,49 @@ of @sec-git-teams assumes a readable diff; `styler` and
 `lintr` are how you guarantee one. Wire them into the
 continuous-integration workflow of @sec-ci and the
 guarantee holds for every contributor, human or not.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: the code that ran clean
+
+**Question.** An LLM writes a function. You read it, it
+looks right, you run it on your data and it returns
+plausible numbers with no errors or warnings. How much has
+that established?
+
+**Answer.**
+
+Almost nothing, and the reason is what makes LLM code a
+distinct problem rather than just more code to review.
+
+A language model is optimizing for plausibility. That is
+the objective, and it applies to the output as much as the
+source: code that looks like correct code, producing
+numbers that look like correct numbers. Your three checks
+tested readability, execution and plausibility, which are
+the three things the model is best at producing
+independently of correctness.
+
+What you have ruled out is syntax errors and hard crashes.
+What remains: silent type coercion, a look-alike function
+with a different default, an outdated API that still runs,
+an off-by-one in a filter, and a subtly wrong statistical
+choice that no amount of reading catches because it is
+defensible-looking.
+
+The verify-first loop exists because the happy path is the
+one case a plausible-looking wrong answer is most likely
+to survive. Edge cases (`NA`, empty input, a single row,
+zero variance) break plausible-but-wrong code where
+typical input does not, and comparison against a reference
+you computed independently is the only check that does not
+route through your own judgment about how the code looks.
+
+The generalization is uncomfortable and worth sitting
+with: your confidence after reading generated code is
+evidence about the code's *readability*, which the model
+optimized for, and not about its correctness, which it did
+not.
+:::
 
 ## When not to reach for an LLM
 
@@ -519,6 +575,10 @@ Three habits keep the model an amplifier:
    callout in your documentation.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises need
+API credentials and code of your own, so no answer key is possible. Each
+states what a good answer establishes.
 
 1. Install `ellmer`. Write a short R function that
    uses `chat_claude()` to summarize a block of

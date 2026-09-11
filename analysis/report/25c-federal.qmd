@@ -24,7 +24,7 @@ materials for a graduate practicum in biostatistics.
 
 Answer the following questions to see if you can bypass
 this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-02.
+chapter in @sec-quiz-answers-25c.
 
 1. What does the 2022 OSTP 'Nelson memo' require of
    federally funded research, and by when does each
@@ -221,6 +221,15 @@ is the decision as it actually runs.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-repo-choice
+%%| fig-alt: "Decision flowchart for choosing a deposition target.
+%%|   The first question asks whether the artifact contains PHI or
+%%|   restricted data. If yes, a domain repository such as dbGaP,
+%%|   TCIA or GEO is used where one exists, otherwise institutional
+%%|   controlled access plus a synthetic public surrogate. If no, a
+%%|   second question separates code from data: code goes to GitHub
+%%|   with a Zenodo release for the DOI, while data goes to a domain
+%%|   repository such as GEO, SRA, NeuroVault or ICPSR where one
+%%|   exists, otherwise Zenodo, OSF or Dryad."
 %%| fig-cap: "Choosing a deposition target. The first question is
 %%|   whether the artifact carries protected information; the second
 %%|   is whether a repository specific to the data type exists. A
@@ -284,6 +293,41 @@ For a typical biostatistician, the practical pattern is:
   applicable.
 - De-identified or synthetic supplementary data in
   Zenodo for unconditional access.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: is GitHub deposition?
+
+**Question.** Your code is public on GitHub, with a
+README, a license and a full commit history. The DMSP asks
+where the code will be preserved. Is a GitHub URL an
+adequate answer?
+
+**Answer.**
+
+No, and the reason is not that GitHub is unreliable. It is
+that GitHub makes no preservation commitment at all.
+
+A repository can be deleted by its owner, renamed, made
+private, or removed when an account lapses. The URL then
+returns a 404 and the citation in your paper points at
+nothing. None of that is a failure on GitHub's part; it is
+a code-hosting service, and hosting is not archiving.
+
+A repository also has no fixed identity. `main` today is
+not `main` next year, so a bare URL does not say which
+version produced the results.
+
+Deposition supplies both. A Zenodo release mints a DOI
+that resolves permanently, snapshots the repository at
+that commit, and carries a preservation undertaking. The
+GitHub-Zenodo integration does this on every tagged
+release, which is why the pattern above pairs them rather
+than choosing: GitHub for working, Zenodo for the record.
+
+The same distinction applies to the tag in
+@sec-analysis-plan. A tag organizes; an external,
+timestamped, immutable record is what makes it evidence.
+:::
 
 ## `renv.lock` vs. `Imports:` in DESCRIPTION
 
@@ -452,6 +496,9 @@ Three habits make federal compliance painless:
    the discipline's standard repository.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises
+deposit artifacts and read policies, so no answer key is possible.
 
 1. Locate the current NIH DMSP template and write a
    complete plan for a hypothetical 100-patient

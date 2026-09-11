@@ -28,15 +28,24 @@ placeholders <- c(
   "bioc::DESeq2", "dplyr::rows_"
 )
 
-qmd <- list.files(".", pattern = "[.]qmd$", full.names = TRUE)
-qmd <- qmd[!grepl("^[.]/_(book|freeze)/", qmd)]
+# Run from the repository root or from the report directory; the
+# check silently verified nothing when invoked from the root,
+# because list.files(".") found no .qmd files there.
+report_dir <- if (dir.exists("analysis/report")) "analysis/report" else "."
+qmd <- list.files(report_dir, pattern = "[.]qmd$", full.names = TRUE)
+qmd <- qmd[!grepl("/_(book|freeze)/", qmd)]
 
 pattern <- "\\b[a-zA-Z][a-zA-Z0-9.]*::[a-zA-Z_.][a-zA-Z0-9._]*"
 calls <- unlist(lapply(qmd, function(f) {
   regmatches(readLines(f, warn = FALSE),
              gregexpr(pattern, readLines(f, warn = FALSE)))
 }))
-calls <- sort(unique(unlist(calls)))
+# A function name may legitimately contain a period, so the pattern
+# above cannot exclude one. That means a call ending a sentence,
+# "...written with haven::write_xpt.", arrives here with the
+# punctuation attached. Strip trailing periods before resolving.
+calls <- sub("[.]+$", "", unlist(calls))
+calls <- sort(unique(calls))
 calls <- setdiff(calls, c(known_fictional, placeholders))
 
 missing <- character(0)

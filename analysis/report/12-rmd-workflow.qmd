@@ -212,6 +212,12 @@ small reproducibility argument against it.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-rmd-migrate
+%%| fig-alt: "Decision flowchart on whether to migrate an R Markdown
+%%|   project. If the document is finished and published, leave it.
+%%|   Otherwise, if a Quarto-only capability is needed, convert. If
+%%|   not, a third question asks whether the document will grow or
+%%|   change hands: yes leads to convert, no leads back to leaving
+%%|   it alone."
 %%| fig-cap: "Whether to migrate an R Markdown project. Currency is
 %%|   not a reason on its own. The cases that justify the work are a
 %%|   document that is still growing, a Quarto-only capability you
@@ -454,6 +460,48 @@ For mixing R and Python heavily in one document,
 Jupyter engine may produce cleaner output. For pure R
 or R-with-occasional-Python, knitr is fine.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: whose Python is it?
+
+**Question.** A `.qmd` with a `{python}` chunk renders
+correctly on your machine. A colleague clones the
+repository, runs `renv::restore()`, and the render fails
+with `ModuleNotFoundError`. What went wrong, and what
+would have prevented it?
+
+**Answer.**
+
+`renv` pins R packages. It says nothing about Python, so
+the document depended on whatever interpreter and packages
+happened to be installed on your machine, which is exactly
+the ambient state the book argues against everywhere else.
+
+The document worked for you by accident of history: you
+had `pandas` from some earlier project.
+
+The fix is to declare the dependency in the document, so
+that provisioning is part of the build rather than a
+precondition of it:
+
+```r
+reticulate::py_require("pandas")
+```
+
+Modern `reticulate` reads those declarations and
+provisions an ephemeral environment, which means the
+requirement travels with the source.
+
+The alternative many projects reach for, a
+`requirements.txt` plus an instruction to run
+`pip install -r`, is weaker for a reason worth
+generalizing. It puts the requirement in a file the render
+does not read, so nothing enforces the connection, and the
+failure appears on someone else's machine rather than
+yours. A dependency the build declares is checked on every
+render; a dependency documented in a README is checked
+when someone reads the README.
+:::
+
 ## Multi-language documents
 
 Quarto natively supports R, Python, and Julia. With
@@ -638,6 +686,9 @@ Three habits keep the fifth render as cheap as the first:
    fix.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises
+convert and render documents of your own, so no answer key is possible.
 
 1. Take a recent `.R` analysis and convert it to a
    `.qmd` via `knitr::spin`. Re-render. Note what

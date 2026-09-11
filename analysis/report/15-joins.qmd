@@ -142,6 +142,11 @@ fail to match, and if so, from which side.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-join-choice
+%%| fig-alt: "Decision flowchart for choosing a join. The first
+%%|   question asks whether to keep rows with no match: no gives
+%%|   inner_join. Yes leads to a second question asking which side
+%%|   the unmatched rows come from: left x gives left_join, right y
+%%|   gives right_join, and both gives full_join."
 %%| fig-cap: "Choosing a join. The first question is whether unmatched
 %%|   rows should survive; the second is from which table. The
 %%|   filtering joins (semi, anti) answer a different question again:
@@ -204,6 +209,7 @@ equivalent; they are expressed with `isin`.
 ```{r}
 #| label: joins-bind
 #| echo: false
+reticulate::py_require("pandas")
 band_members <- dplyr::band_members
 band_instruments <- dplyr::band_instruments
 ```
@@ -226,32 +232,64 @@ duplicate keys: each row in the left can match
 multiple rows in the right, and vice versa. The
 result is a Cartesian product of matches per key.
 
-```r
+```{r}
+#| label: joins-many-to-many
+#| message: false
+#| warning: true
+library(dplyr)
+
 a <- tibble(id = c(1, 1, 2), x = c("a", "b", "c"))
 b <- tibble(id = c(1, 1, 2), y = c("p", "q", "r"))
 
+# Five rows, not three: each id-1 in a joins each id-1 in b, giving
+# four, plus the single id-2 match. dplyr warns because this is
+# usually a key error rather than an intention.
 inner_join(a, b, by = "id")
-# Warning message:
-# In inner_join(...): Detected an unexpected many-to-many relationship between `x` and `y`.
-# Returns 5 rows: each id-1 from a (2 rows) joins to each id-1 from b (2 rows) = 4 rows;
-# plus the single id-2 match.
 ```
 
 dplyr 1.1.0+ warns by default. The fix is to declare
 the expected relationship:
 
-```r
-inner_join(a, b, by = "id", relationship = "many-to-many")
+```{r}
+#| label: joins-relationship
+#| error: true
 # explicit; no warning, even with duplicates
-inner_join(a, b, by = "id", relationship = "one-to-one")
+inner_join(a, b, by = "id", relationship = "many-to-many")
+
 # errors if duplicates exist on either side
+inner_join(a, b, by = "id", relationship = "one-to-one")
 ```
 
 Common pattern: each `patient_id` should appear once
 in the demographics table. Joining demographics
 (many-to-one with respect to a visits table):
 
-```r
+```{r}
+#| label: joins-fixtures
+#| echo: false
+# Three small tables used by the examples that follow: one row per
+# patient in demographics, several visits per patient, several labs
+# per visit. P004 appears in visits but not demographics, which the
+# anti-join audit below is there to catch.
+demographics <- tibble(
+  patient_id = c("P001", "P002", "P003"),
+  age        = c(64, 71, 52),
+  sex        = c("F", "M", "F")
+)
+visits <- tibble(
+  visit_id   = sprintf("V%02d", 1:6),
+  patient_id = c("P001", "P001", "P002", "P002", "P003", "P004"),
+  sbp        = c(148, 141, 155, 149, 132, 139)
+)
+labs <- tibble(
+  visit_id  = c("V01", "V01", "V02", "V03"),
+  test_code = c("HGB", "CRE", "HGB", "HGB"),
+  value     = c(13.1, 0.9, 13.4, 11.8)
+)
+```
+
+```{r}
+#| label: joins-many-to-one
 visits |>
   left_join(demographics, by = "patient_id",
             relationship = "many-to-one")
@@ -279,7 +317,8 @@ duplicates in the demographics table.
 
 Diagnose:
 
-```r
+```{r}
+#| label: joins-key-duplicates
 demographics |> count(patient_id) |> filter(n > 1)
 ```
 
@@ -294,7 +333,8 @@ catches this at the join site.
 
 Before joining, verify the join columns:
 
-```r
+```{r}
+#| label: joins-key-audit
 # uniqueness of keys
 demographics |> distinct(patient_id) |> nrow()
 demographics |> nrow()
@@ -315,21 +355,78 @@ manual `anti_join` audits cover the cases.
 
 For composite keys, name all columns:
 
-```r
-labs |> left_join(reference_ranges,
-                  by = c("test_code", "sex", "age_group"))
+```{r}
+#| label: joins-compound-key
+reference_ranges <- tibble(
+  test_code = c("HGB", "HGB", "CRE"),
+  sex       = c("F", "M", "F"),
+  age_group = c("50-70", "50-70", "50-70"),
+  lower     = c(12.0, 13.5, 0.6),
+  upper     = c(15.5, 17.5, 1.1)
+)
+
+labs |>
+  left_join(visits, by = "visit_id") |>
+  left_join(demographics, by = "patient_id") |>
+  mutate(age_group = "50-70") |>
+  left_join(reference_ranges,
+            by = c("test_code", "sex", "age_group"))
 ```
 
 Type matching is strict: `patient_id = "001"` does
 not match `patient_id = 1`. Convert to a canonical
 type before joining.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: the join that lost rows
+
+**Question.** You `left_join` a 500-row visits table to a
+demographics table and get 500 rows back, which is what
+you expected. A colleague says this proves nothing. Are
+they right?
+
+**Answer.**
+
+They are. A row count matching your expectation rules out
+duplication and rules out nothing else.
+
+Every `patient_id` in visits could have failed to match,
+and `left_join` would still return exactly 500 rows, each
+with `NA` in every demographics column. The count is
+identical whether the join worked perfectly or not at all.
+This is the specific case where the type trap above bites:
+character `"001"` against numeric `1` matches nothing, and
+the row count never moves.
+
+Two checks catch it and the count does not. Count the
+`NA`s in a column that came from the right-hand table,
+which should be zero if every visit has demographics. And
+run the anti-join:
+
+```r
+visits |> anti_join(demographics, by = "patient_id") |>
+  distinct(patient_id)
+```
+
+An empty result means every key matched. A result listing
+all 500 patients means the join silently did nothing.
+
+The general point is that `nrow()` is a structural check,
+in the sense @sec-testing gives that term, and structural
+checks pass on wrong answers.
+:::
+
 ## Upsert operations with `rows_*`
 
 For row-by-row updates of a table from another (the
 'upsert' pattern):
 
-```r
+```{r}
+#| label: joins-rows-verbs
+#| error: true
+target <- tibble(id = 1:3, value = c("a", "b", NA))
+source <- tibble(id = 3:4, value = c("c", "d"))
+
 # insert new rows; error on key collision
 rows_insert(target, source, by = "id")
 
@@ -500,13 +597,16 @@ downstream analysis:
    A and B with different column-name conventions.
    Reshape both to long and stack them so that
    downstream analysis treats them uniformly.
-4. Take a recent multi-table analysis of yours.
-   Audit each join with `anti_join` to identify
-   missing keys; document any unexpected gaps.
-5. Use `rows_upsert` to merge two cohorts with
+4. Use `rows_upsert` to merge two cohorts with
    overlapping patients (some new, some updated).
    Verify the result has the expected number of
    rows.
+
+**On your own data.** These have no answer key.
+
+5. Take a recent multi-table analysis of yours.
+   Audit each join with `anti_join` to identify
+   missing keys; document any unexpected gaps.
 6. Review a colleague's multi-table script (or one
    from a public analysis repository) for join
    safety alone: for every join, determine the
@@ -516,6 +616,102 @@ downstream analysis:
    find as you would in a pull-request comment
    (@sec-git-teams), naming the specific line and
    the specific risk.
+
+::: {.callout-tip icon=false collapse=true}
+## Solutions to exercises 1 to 4
+
+**1. The four joins on `band_members` and `band_instruments`.**
+
+```{r}
+#| label: soln-15-1
+#| message: false
+inner_join(band_members, band_instruments, by = "name")
+left_join(band_members, band_instruments, by = "name")
+full_join(band_members, band_instruments, by = "name")
+anti_join(band_members, band_instruments, by = "name")
+```
+
+`inner_join` keeps only John and Paul, who appear in both.
+`left_join` keeps all three band members, giving Mick an
+`NA` instrument. `full_join` keeps Keith as well, giving
+him an `NA` band. `anti_join` returns Mick alone: the band
+member with no instrument row, and it adds no columns.
+
+**2. An unintended many-to-many, and the assertion that
+catches it.**
+
+```{r}
+#| label: soln-15-2
+#| error: true
+#| warning: true
+# demographics has a duplicated patient, perhaps from a
+# re-consent that was appended rather than replaced
+demo_dup <- tibble(patient_id = c("P001", "P001", "P002"),
+                   age = c(64, 65, 71))
+vis <- tibble(patient_id = c("P001", "P002"), sbp = c(148, 155))
+
+# the silent version: two rows become three
+left_join(vis, demo_dup, by = "patient_id")
+
+# the assertion, before anything downstream runs
+stopifnot(!anyDuplicated(demo_dup$patient_id))
+```
+
+The join itself does not fail; it quietly returns more rows
+than it received. The `stopifnot()` fails loudly, which is
+the behavior you want. Declaring
+`relationship = "many-to-one"` on the join achieves the
+same thing at the point of use.
+
+**3. Reconciling two site conventions.**
+
+```{r}
+#| label: soln-15-3
+#| message: false
+library(tidyr)
+
+site_a <- tibble(patient_id = "A01",
+                 systolic_bp = 148, diastolic_bp = 88)
+site_b <- tibble(patient_id = "B01",
+                 sbp_1 = 155, dbp_1 = 91)
+
+a_long <- site_a |>
+  rename(bp_systolic = systolic_bp, bp_diastolic = diastolic_bp) |>
+  pivot_longer(starts_with("bp_"), names_to = "measure")
+
+b_long <- site_b |>
+  rename(bp_systolic = sbp_1, bp_diastolic = dbp_1) |>
+  pivot_longer(starts_with("bp_"), names_to = "measure")
+
+bind_rows(a_long, b_long, .id = "site")
+```
+
+Renaming to a shared vocabulary *before* the pivot is what
+makes `bind_rows()` safe. Stacking first and reconciling
+after leaves you matching on strings that do not agree.
+
+**4. `rows_upsert`, and the row-count check.**
+
+```{r}
+#| label: soln-15-4
+cohort_1 <- tibble(patient_id = c("P001", "P002"),
+                   status = c("enrolled", "enrolled"))
+cohort_2 <- tibble(patient_id = c("P002", "P003"),
+                   status = c("withdrawn", "enrolled"))
+
+merged <- rows_upsert(cohort_1, cohort_2, by = "patient_id")
+merged
+
+# two originals plus one genuinely new patient
+stopifnot(nrow(merged) == 3)
+```
+
+P002 is updated in place rather than duplicated, and P003
+is inserted. The row count is the check that distinguishes
+an upsert from an accidental `bind_rows()`, which would
+have produced four rows and two conflicting records for
+P002.
+:::
 
 ## Further reading
 

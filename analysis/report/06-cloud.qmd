@@ -130,6 +130,13 @@ biostatistician should try them.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-compute-tier
+%%| fig-alt: "Decision flowchart asking what resource you have run
+%%|   out of. Interactive work stays on the laptop. Running out of
+%%|   wall-clock time on a parallel job, or out of memory, routes to
+%%|   a question about university HPC availability: if available,
+%%|   SLURM with Apptainer; if not, or if the queue is too slow, the
+%%|   public cloud. Needing specialized hardware such as a GPU or
+%%|   very large memory routes directly to the public cloud."
 %%| fig-cap: "Choosing a compute tier. The laptop is the default and
 %%|   the right place for anything interactive. A university cluster
 %%|   is usually free and should be tried before a paid cloud. The
@@ -404,6 +411,51 @@ finishes with, archive to S3.
 Egress (data leaving AWS) is charged; ingress is free.
 Plan large transfers accordingly.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: should PHI go to the cloud?
+
+**Question.** Your simulation study is too slow on a
+laptop, so you plan to move it to EC2. The data are
+de-identified under Safe Harbor. Is that sufficient to
+proceed?
+
+**Answer.**
+
+No. De-identification addresses one of three separate
+questions, and the other two are the ones that stop
+projects.
+
+The first is contractual. A data use agreement typically
+names where data may be stored and processed, and many
+prohibit third-party cloud entirely or require specific
+arrangements. Safe Harbor de-identification does not
+release you from a DUA you signed, and an IRB protocol
+naming institutional servers is a commitment you cannot
+vary alone.
+
+The second is regulatory. Under HIPAA, using a cloud
+provider for PHI requires a Business Associate Agreement.
+Your institution may hold one covering specific AWS
+accounts under specific configurations, and the personal
+account you opened with a credit card is not covered by
+it.
+
+The third is the one @sec-deident already made: Safe
+Harbor produces data that is de-identified, not anonymous.
+Residual re-identification risk is why the DUA and the BAA
+exist at all, rather than being redundant with the
+de-identification.
+
+The practical order is therefore: read the DUA, ask
+whether your institution has a covered account, and only
+then compare instance prices. Reversing that order is how
+people discover at submission that their analysis ran
+somewhere it should not have.
+
+Note that a simulation study on synthetic data raises none
+of this, which is often the cheapest way through.
+:::
+
 ## Cost control
 
 Cloud billing surprises share a structure. The meter
@@ -606,6 +658,10 @@ Three habits keep the bill and the science both under control:
    only when you must.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises
+provision compute you pay for or are granted, so no answer key is
+possible. Cost and wall-clock time are what you compare.
 
 1. Launch a `t3.medium` EC2 instance in the AWS free
    tier (or equivalent). Install R, clone a GitHub

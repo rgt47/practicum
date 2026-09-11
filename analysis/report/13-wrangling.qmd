@@ -54,6 +54,14 @@ By the end of this chapter you should be able to:
 - Recognize common wrangling antipatterns and replace
   them with tidy equivalents.
 
+::: {.column-margin}
+![Hadley Wickham, author of the tidyverse and of the tidy-data
+formulation this chapter teaches. Photograph by Hadley Wickham,
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/),
+via Wikimedia Commons.](images/portraits/wickham.jpg){fig-alt='Portrait
+photograph of Hadley Wickham.'}
+:::
+
 ## Orientation
 
 Real biomedical data arrive wide, irregular, and full of
@@ -166,11 +174,40 @@ The tidy form makes group operations natural: 'mean BP
 by visit' is `group_by(visit) |> summarize(mean(bp))`,
 not a custom column-traversal.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: which rule is broken?
+
+**Question.** A lab table has one row per patient and
+columns `hgb`, `hgb_units`, `cre`, `cre_units`. A
+colleague says it is untidy. Which of the three rules does
+it break, and what is the tidy form?
+
+**Answer.**
+
+Rule 1, and arguably rule 3.
+
+The rule 1 violation is that `hgb` and `cre` are values of
+a *test* variable that has been promoted into column
+names, exactly as `bp_v1` and `bp_v2` promote visit. The
+tidy form has columns `patient_id`, `test`, `value`,
+`units`, with one row per patient-test.
+
+The rule 3 case is subtler and worth noticing. Units are a
+property of the *test*, not of the patient-test
+observation: hemoglobin is in g/dL for every patient. So
+`units` belongs in a separate lookup table keyed by
+`test`, and repeating it on every row is duplication that
+can drift. In practice many analysts leave it denormalized
+and accept the risk, which is a defensible choice made
+deliberately rather than a rule you did not notice.
+:::
+
 ## Core dplyr verbs
 
 The vocabulary of tidy wrangling:
 
-```r
+```{r}
+#| label: wrangle-verbs
 library(dplyr)
 library(palmerpenguins)
 data(penguins)
@@ -229,6 +266,11 @@ intermediate file.
 #| label: wrangle-r-obj
 #| echo: false
 #| message: false
+# Declaring the Python dependency here rather than relying on whatever
+# interpreter happens to be on PATH is the same argument this book makes
+# for renv: the document states what it needs, and the build provisions
+# it.
+reticulate::py_require("pandas")
 library(palmerpenguins)
 penguins_df <- na.omit(penguins)
 ```
@@ -247,32 +289,38 @@ df.groupby("species", observed=True)["body_mass_g"].agg(["mean", "size"])
 
 **Renaming**:
 
-```r
+```{r}
+#| label: wrangle-rename
 penguins |> rename(mass = body_mass_g, flipper = flipper_length_mm)
 ```
 
 **Counting**:
 
-```r
+```{r}
+#| label: wrangle-count
 penguins |> count(species, sex, sort = TRUE)
 ```
 
 **Distinct values**:
 
-```r
+```{r}
+#| label: wrangle-distinct
 penguins |> distinct(species, island)
 ```
 
 **Slicing**:
 
-```r
+```{r}
+#| label: wrangle-slice
+set.seed(1)                                      # slice_sample is random
 penguins |> slice_max(body_mass_g, n = 5)        # 5 heaviest
 penguins |> slice_sample(n = 100)                # random 100
 ```
 
 **Conditional updates** with `case_when`:
 
-```r
+```{r}
+#| label: wrangle-case-when
 penguins |> mutate(
   size = case_when(
     body_mass_g <  3500 ~ "small",
@@ -284,7 +332,8 @@ penguins |> mutate(
 
 **Across multiple columns**:
 
-```r
+```{r}
+#| label: wrangle-across
 penguins |> summarize(
   across(where(is.numeric), \(x) mean(x, na.rm = TRUE))
 )
@@ -297,8 +346,21 @@ suffixes.
 
 ## Reshaping with `tidyr`
 
-```r
+```{r}
+#| label: wrangle-pivot-vocab
+#| message: false
 library(tidyr)
+library(dplyr)
+
+# a small wide frame to demonstrate on: two measures, two visits
+wide <- tibble(
+  patient_id = c("P001", "P002"),
+  bp_v1 = c(148, 139), hr_v1 = c(78, 72),
+  bp_v2 = c(141, 135), hr_v2 = c(75, 70)
+)
+long <- wide |>
+  pivot_longer(starts_with("bp_v"), names_to = "visit",
+               names_prefix = "bp_v", values_to = "bp")
 
 # wide to long
 wide |> pivot_longer(
@@ -377,6 +439,10 @@ mapped to the x-axis.
 #|   trial. Thin lines are individual patients; heavy lines are arm
 #|   means. Reshaping to long format is what makes visit an x-axis
 #|   variable."
+#| fig-alt: "Line chart of systolic blood pressure against visit
+#|   number. Faint lines trace each patient individually; two heavy
+#|   lines give the mean for each treatment arm. Both arm means
+#|   decline across visits, and the arms separate progressively."
 #| fig-scap: "Blood-pressure trajectories from the simulated trial"
 #| fig-width: 6.5
 #| fig-height: 4
@@ -405,12 +471,32 @@ format, 'time' is implicit in the column names and
 cannot be a single x-axis variable. Pivoting to long
 makes time an explicit column:
 
-```r
+```{r}
+#| label: fig-cyu-pivot
+#| fig-cap: "The plot the pivot makes possible: one line per patient,
+#|   faceted by treatment arm, with time on the x-axis because the
+#|   pivot turned it into a column."
+#| fig-alt: "Two side-by-side panels, one per treatment arm, each
+#|   showing individual patient lines descending from baseline through
+#|   three months to six months."
+#| fig-width: 6
+#| fig-height: 3
+#| message: false
+# the wide layout described in the question
+wide <- tibble(
+  patient_id  = sprintf("P%03d", 1:6),
+  treatment   = rep(c("Placebo", "Active"), each = 3),
+  bp_baseline = c(150, 148, 152, 149, 151, 147),
+  bp_3mo      = c(147, 145, 150, 142, 143, 140),
+  bp_6mo      = c(146, 144, 149, 137, 139, 135)
+)
+
 long <- wide |>
   pivot_longer(cols = starts_with("bp_"),
                names_to  = "time",
                names_prefix = "bp_",
-               values_to = "bp")
+               values_to = "bp") |>
+  mutate(time = factor(time, levels = c("baseline", "3mo", "6mo")))
 
 ggplot(long, aes(time, bp, group = patient_id)) +
   geom_line() +
@@ -432,11 +518,23 @@ Clinical CRF exports come with column names like
 These are unworkable in R: spaces, parentheses, units
 in names. `janitor::clean_names()` standardizes:
 
-```r
+```{r}
+#| label: wrangle-clean-names
+#| message: false
 library(janitor)
-d <- read.csv("crf.csv") |> clean_names()
+
+# a CRF export as it usually arrives, with the header row
+# written by whoever built the spreadsheet
+crf <- data.frame(
+  "Patient ID"             = "P001",
+  "Age (years)"            = 64,
+  "SBP at Baseline (mmHg)" = 148,
+  check.names = FALSE
+)
+names(crf)
+
+d <- clean_names(crf)
 names(d)
-#> [1] "patient_id"  "age_years"  "sbp_at_baseline_mm_hg"
 ```
 
 Run on every dataset on arrival. Saves quoting and
@@ -449,7 +547,8 @@ names as arguments, two idioms apply.
 
 **`{{ }}` (embrace)** for bare names:
 
-```r
+```{r}
+#| label: wrangle-curly-curly
 summarise_col <- function(df, col, fn = mean) {
   df |> summarize(result = fn({{ col }}, na.rm = TRUE))
 }
@@ -459,7 +558,8 @@ summarise_col(penguins, body_mass_g, fn = median)
 
 **`.data[[name]]`** for character strings:
 
-```r
+```{r}
+#| label: wrangle-data-pronoun
 summarise_col_str <- function(df, col_name, fn = mean) {
   df |> summarize(result = fn(.data[[col_name]], na.rm = TRUE))
 }
@@ -474,6 +574,39 @@ useful for programmatic generation of names.
 
 `rlang::sym()` and `!!` are older patterns; `{{ }}` is
 preferred in modern code.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: `{{ }}` or `.data[[ ]]`?
+
+**Question.** You are writing two functions. One is called
+as `summarize_by(df, species)`, with the column typed
+bare. The other loops over `names(df)` and receives each
+column name as a string. Which tool does each need, and
+what happens if you swap them?
+
+**Answer.**
+
+The first needs `{{ col }}`; the second needs
+`.data[[col_name]]`.
+
+Swapping them fails in two different ways, and the second
+is the dangerous one. Passing a bare name where a string
+is expected gives `object 'species' not found`, because
+`.data[[ ]]` evaluates its argument normally and there is
+no variable called `species` in scope. That is a loud
+failure and you fix it in seconds.
+
+Passing a string to `{{ }}` does not error. It embraces
+the literal string `"species"`, and `group_by("species")`
+groups by a constant, giving you one group containing
+every row. The result is a data frame of the right shape
+with silently wrong numbers, which is the class of bug
+this chapter's antipatterns section is about.
+
+The rule of thumb: if the caller types the column, use
+`{{ }}`; if the caller passes a name your code computed,
+use `.data[[ ]]`.
+:::
 
 ## Common antipatterns
 
@@ -495,8 +628,12 @@ loops, and are usually clearer.
 
 **Hardcoded column indices**:
 
-```r
-# bad
+```{r}
+#| label: wrangle-antipattern-position
+df <- tibble(id = 1, age = 64, site = "A", sex = "F",
+             visit = 1, arm = "Active", outcome = 12.4)
+
+# bad: which columns are these? you have to go and count
 df[, c(2, 4, 7)]
 
 # good
@@ -508,33 +645,57 @@ names are robust.
 
 **Manipulating raw data files**:
 
-```r
-# bad
-write.csv(d, "data.csv", row.names = FALSE)        # overwrites input
+```{r}
+#| label: wrangle-antipattern-write
+#| message: false
+library(readr)
+out <- tempdir()                      # a real directory, for the example
 
-# good
-write_rds(d, "data/derived/cleaned.rds")
+# bad: flat CSV loses factor levels, dates, and attributes
+write.csv(d, file.path(out, "data.csv"), row.names = FALSE)
+
+# good: an .rds round-trips the object exactly
+write_rds(d, file.path(out, "cleaned.rds"))
+identical(d, read_rds(file.path(out, "cleaned.rds")))
 ```
 
 Raw data should be read-only.
 
 **`stringsAsFactors` paranoia**:
 
-```r
-# unnecessary in R 4.0+
-options(stringsAsFactors = FALSE)
+```{r}
+#| label: wrangle-antipattern-saf
+# unnecessary in R 4.0+: this is already the default
+getOption("stringsAsFactors")
+class(data.frame(x = "a")$x)
 ```
 
 The default changed in R 4.0; the option is no-op now.
 
 ## Worked example: cohort cleanup
 
-```r
+```{r}
+#| label: wrangle-cohort-cleanup
+#| message: false
 library(tidyverse)
 library(janitor)
 
+# A stand-in for the raw export, written to a temporary file so the
+# whole pipeline below runs exactly as it would against a real one.
+raw_path <- file.path(tempdir(), "visits.csv")
+tibble(
+  `Patient ID` = sprintf("P%03d", 1:6),
+  Age          = c(17, 34, 52, 68, 71, 45),
+  Outcome      = c(1, 0, 1, NA, 0, 1),
+  Treatment    = rep(c("Placebo", "Active"), 3),
+  Visit_Date   = "2026-03-01",
+  bp_baseline  = c(150, 142, 138, 155, 147, 141),
+  bp_6mo       = c(144, 139, NA, 148, 140, 136)
+) |>
+  write_csv(raw_path)
+
 # read raw export
-raw <- read_csv("data/raw/visits.csv", show_col_types = FALSE)
+raw <- read_csv(raw_path, show_col_types = FALSE)
 
 # clean names, restrict to adults, derive age groups
 clean <- raw |>
@@ -558,7 +719,9 @@ long <- clean |>
   filter(!is.na(bp))
 
 # save the derived data
-saveRDS(long, "data/derived/visits_long.rds")
+saveRDS(long, file.path(tempdir(), "visits_long.rds"))
+
+head(long, 4)
 ```
 
 The script is the audit trail: clean column names,
@@ -661,15 +824,106 @@ Three habits keep a cleaning script auditable:
    accepts `col` as a bare column name and `fn` as a
    function; apply it to the penguins data with
    `col = bill_length_mm` and `fn = median`.
-4. Take a real CRF export (or simulate one) with
-   messy column names and apply
-   `janitor::clean_names()`. Document any rename
-   decisions you make manually beyond what janitor
-   does.
-5. Using `case_when`, derive a clinical
+4. Using `case_when`, derive a clinical
    classification variable from three or four
    continuous predictors. Verify the classification
    covers all rows (no NAs introduced unexpectedly).
+
+**On your own data.** These have no answer key,
+because the answer depends on your data.
+
+5. Take a real CRF export from your own work (or
+   simulate one) with messy column names and apply
+   `janitor::clean_names()`. Document any rename
+   decisions you make manually beyond what janitor
+   does.
+
+::: {.callout-tip icon=false collapse=true}
+## Solutions to exercises 1 to 4
+
+**1. Mean bill length by species and island.**
+
+```{r}
+#| label: soln-13-1
+#| message: false
+penguins |>
+  filter(!is.na(bill_length_mm)) |>
+  group_by(species, island) |>
+  summarize(mean_bill = mean(bill_length_mm),
+            n = n(), .groups = "drop")
+```
+
+`.groups = "drop"` matters: without it the result stays
+grouped by `species`, and the next verb in a longer
+pipeline would silently operate within species.
+
+**2. Wide to long.**
+
+```{r}
+#| label: soln-13-2
+set.seed(7)
+bp_wide <- tibble(
+  patient_id = sprintf("P%03d", 1:4),
+  bp_v1 = round(rnorm(4, 145, 8)),
+  bp_v2 = round(rnorm(4, 140, 8)),
+  bp_v3 = round(rnorm(4, 136, 8))
+)
+
+bp_wide |>
+  pivot_longer(starts_with("bp_v"),
+               names_to = "visit", names_prefix = "bp_v",
+               values_to = "bp") |>
+  mutate(visit = as.integer(visit))
+```
+
+Twelve rows from four, one per patient-visit. Converting
+`visit` to integer is the step people forget; left as a
+character it sorts "10" before "2".
+
+**3. A function taking a bare column name.**
+
+```{r}
+#| label: soln-13-3
+summarise_col <- function(df, col, fn) {
+  df |> summarize(result = fn({{ col }}, na.rm = TRUE))
+}
+
+summarise_col(penguins, bill_length_mm, fn = median)
+```
+
+The `{{ }}` is what lets the caller write
+`bill_length_mm` rather than `"bill_length_mm"`. Passing
+`na.rm = TRUE` inside the function rather than leaving it
+to the caller is a design choice worth making
+deliberately.
+
+**4. A classification with `case_when`, and the check.**
+
+```{r}
+#| label: soln-13-4
+classified <- penguins |>
+  filter(!is.na(body_mass_g), !is.na(flipper_length_mm),
+         !is.na(bill_length_mm)) |>
+  mutate(
+    build = case_when(
+      body_mass_g >= 4500 & flipper_length_mm >= 210 ~ "large",
+      body_mass_g >= 3500                            ~ "medium",
+      .default = "small"
+    )
+  )
+
+# the verification the exercise asks for
+stopifnot(!any(is.na(classified$build)))
+count(classified, build)
+```
+
+`.default` is what guarantees full coverage. Written with
+a final explicit condition instead, any row matching none
+of the branches would become `NA`, and `count()` would
+show it. Running the `stopifnot()` is the difference
+between believing the classification is complete and
+knowing it.
+:::
 
 ## Further reading
 

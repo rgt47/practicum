@@ -224,6 +224,11 @@ analysis of record.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-git-pr
+%%| fig-alt: "Flowchart of the feature-branch workflow. Create a
+%%|   feature branch, commit and push, open a pull request, then CI
+%%|   checks and colleague review. A decision node asks whether both
+%%|   pass: if no, the loop returns to commit and push; if yes, the
+%%|   branch merges to main."
 %%| fig-cap: "The feature-branch workflow. Work never lands on `main`
 %%|   directly: it arrives through a pull request that CI has checked
 %%|   and a colleague has read. The branch is short-lived and is
@@ -462,6 +467,45 @@ that mixes Windows and macOS machines without it will
 eventually produce a diff in which every line of a file has
 changed, and no review is possible through that noise.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: the conflict you cannot see
+
+**Question.** Two statisticians edit the cleaning script.
+One tightens the plausible blood-pressure range; the other
+adds an exclusion for missing outcomes, in a different
+part of the file. Git merges both without a conflict. Is
+that the right outcome?
+
+**Answer.**
+
+Git did the right thing. Whether the *analysis* is right
+is a question Git cannot reach, and this is the limit of
+what version control buys a team.
+
+A merge conflict is a textual condition: two branches
+changed overlapping lines. These edits did not overlap, so
+the merge is clean and both changes are now in effect
+together, which is very likely what nobody tested. The
+analytic cohort is now smaller than either statistician
+intended, and each will assume the count they saw on their
+own branch.
+
+This is the semantic-conflict case, and it is the argument
+for the pull request rather than for Git. A human reading
+the diff asks what the combined effect on the cohort is; a
+merge algorithm cannot. It is also the argument for the
+integration test of @sec-testing: an assertion on the
+final row count, or on the number of exclusions at each
+step, fails on the merged code even though neither change
+failed alone.
+
+The practical habit is to state the row count in the pull
+request description. Two PRs that each say 'n drops from
+500 to 480' should make a reviewer ask what happens when
+both land, which is the question the tooling will not ask
+for you.
+:::
+
 ## Reviewing an analysis diff
 
 Code review in software engineering asks whether the code is
@@ -688,6 +732,9 @@ Three habits keep `main` worth defending:
    in the prose. The test suite checks none of them.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises need a
+collaborator and a remote repository, so no answer key is possible.
 
 1. With a partner (or with a second clone of your own
    repository, playing both parts), manufacture a merge

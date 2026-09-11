@@ -131,6 +131,12 @@ arrows forward from the changed node.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-targets-dag
+%%| fig-alt: "Directed acyclic graph of a small pipeline. A raw file
+%%|   feeds an import step, which feeds clean_data. From clean_data
+%%|   the graph splits to fit_model and make_figure, and both of
+%%|   those feed the report node. Editing clean_data therefore makes
+%%|   everything downstream of it stale while leaving the import
+%%|   untouched."
 %%| fig-cap: "The dependency graph of a small analysis pipeline.
 %%|   Editing `clean_data` makes the model, the figure, and the report
 %%|   stale, but leaves the raw-data import untouched; targets rebuilds
@@ -277,6 +283,10 @@ Three habits make the pipeline's guarantee real:
    holds.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises build
+and invalidate a pipeline on your machine, so no answer key is possible.
+`tar_visnetwork()` and the rebuild behavior are the verification.
 
 1. Convert a small existing analysis (read, clean, model,
    plot) into a `targets` pipeline with one target per

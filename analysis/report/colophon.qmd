@@ -20,4 +20,10 @@ Build reproducibility is managed through `renv` for R
 packages and a pinned `zzcollab` Docker image for the
 operating-system and system-library layer.
 
+The prose, figures, and exercises are licensed CC BY 4.0. Code
+blocks printed in the text are MIT; the package code and build
+scripts are GPL-3. Third-party images are excluded from both and
+carry their own terms, recorded in [Credits](credits.qmd). The
+full statement is in `LICENSE.md`.
+
 Source available at <https://github.com/rgt47/practicum>.

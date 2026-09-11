@@ -85,6 +85,7 @@ for composition.
 #| echo: false
 #| message: false
 #| warning: false
+reticulate::py_require(c("pandas", "matplotlib"))
 library(tidyverse)
 library(patchwork)
 library(palmerpenguins)
@@ -169,6 +170,10 @@ named list.
 #| fig-cap: "One plot per species, produced by mapping a plotting
 #|   function over a split data frame. Only the Adelie panel is shown;
 #|   `plots` holds all three."
+#| fig-alt: "Scatter plot of body mass against flipper length for
+#|   Adelie penguins only, one panel from a list of three built by
+#|   mapping over species. Points rise from lower left to upper
+#|   right."
 #| fig-scap: "One plot per species, via purrr"
 #| fig-width: 6
 #| fig-height: 4
@@ -217,7 +222,8 @@ Three things to internalize:
 
 For a `dplyr`-native version:
 
-```r
+```{r}
+#| label: graphics-group-map
 penguins_clean |>
   group_by(species) |>
   group_map(\(d, k) {
@@ -241,6 +247,10 @@ differ in everything.
 #| fig-cap: "Three distinct views of the penguin data composed into one
 #|   figure with patchwork. The species legend is collected once and
 #|   placed at the bottom."
+#| fig-alt: "Three penguin panels composed into one figure: a
+#|   scatter plot, a distribution summary, and a categorical
+#|   comparison, all colored by species. A single shared species
+#|   legend sits beneath the three panels rather than beside each."
 #| fig-scap: "Three views of the penguin data, composed with patchwork"
 #| fig-width: 7.5
 #| fig-height: 6
@@ -303,7 +313,18 @@ across panels conditioned on a variable; both panels
 must use the same geom and aesthetic mapping. Build
 each plot separately and combine with `p1 + p2`.
 
-```r
+```{r}
+#| label: fig-patchwork-operator
+#| fig-cap: "The `+` operator places two plots side by side. A
+#|   histogram of body mass and a boxplot of body mass by species,
+#|   composed without either plot knowing about the other."
+#| fig-alt: "Two panels side by side: a histogram of penguin body
+#|   mass on the left, and a boxplot of body mass by species on the
+#|   right."
+#| fig-width: 7
+#| fig-height: 3
+#| message: false
+d <- penguins_clean
 p_hist <- ggplot(d, aes(body_mass_g)) + geom_histogram()
 p_box  <- ggplot(d, aes(species, body_mass_g)) + geom_boxplot()
 p_hist + p_box
@@ -351,7 +372,17 @@ plot then matches without per-plot theme calls.
 
 For palettes, define and reuse:
 
-```r
+```{r}
+#| label: fig-house-palette
+#| fig-cap: "A named palette applied through a house scale function.
+#|   Naming the values by species rather than by position means the
+#|   colors stay attached to the right group no matter how the data
+#|   are subset or reordered."
+#| fig-alt: "Scatter plot of body mass against flipper length with
+#|   the three penguin species drawn in the house palette: dark blue,
+#|   dark red, and sea green."
+#| fig-width: 6
+#| fig-height: 4
 practicum_palette <- c(
   "Adelie"    = "#1f4e79",
   "Chinstrap" = "#9d2235",
@@ -362,13 +393,53 @@ scale_color_practicum <- function(...)
   scale_color_manual(values = practicum_palette, ...)
 
 # in plots
-ggplot(...) + ... + scale_color_practicum()
+ggplot(penguins_clean,
+       aes(flipper_length_mm, body_mass_g, color = species)) +
+  geom_point(alpha = 0.8) +
+  scale_color_practicum()
 ```
 
 For color-blind safety, verify the palette with the
 Coblis simulator
 (`colorbrewer2.org/learnmore/colorblind-simulator.html`)
 or `colorBlindness::cvdPlot()`.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: why a theme function?
+
+**Question.** `theme_set(theme_practicum())` applies your
+house style once, at the top of the document, and every
+subsequent plot inherits it. Defining `theme_practicum()`
+and adding it to each plot means typing it repeatedly. Why
+would anyone prefer the repetition?
+
+**Answer.**
+
+Because `theme_set()` is invisible state, and invisible
+state is what makes a figure hard to reproduce.
+
+A plot styled by `theme_set()` looks different depending
+on whether an earlier chunk ran. Lift that chunk into a
+different document, a slide deck, a colleague's session,
+and it renders with ggplot2's defaults instead. Nothing
+errors; the figure is simply not the one you approved.
+This is the same argument the book makes against a
+`.Rprofile` that attaches packages: code that only works
+because of something that happened earlier is code that
+travels badly.
+
+Adding the theme explicitly makes each plot
+self-contained. It also makes opting out possible, which
+matters more than it sounds: a figure prepared to a
+journal's specification needs to *not* carry your house
+style, and with `theme_set()` the only way to do that is
+to remember to reset it.
+
+The cost is real, so the honest position is that
+`theme_set()` is fine in a self-contained analysis script
+and wrong in a book, a package, or anything whose chunks
+might be reordered or reused.
+:::
 
 ## Export formats
 
@@ -450,6 +521,11 @@ generation; covered in the analysis-plan chapter
 #| fig-cap: "A composed regression-diagnostic figure: residuals versus
 #|   fitted, a normal Q-Q plot, and Cook's distance, all sharing the
 #|   house theme."
+#| fig-alt: "Three regression diagnostic panels sharing one visual
+#|   theme: residuals against fitted values scattered around zero, a
+#|   normal quantile-quantile plot whose points follow the reference
+#|   line, and a Cook's distance plot with a few taller spikes
+#|   marking influential observations."
 #| fig-scap: "A composed regression-diagnostic figure"
 #| fig-width: 7
 #| fig-height: 6
@@ -516,6 +592,11 @@ slowly on the active arm than on placebo.
 #|   trial. Thin lines are individual patients; heavy lines are arm
 #|   means with a 95% confidence ribbon. This is the figure the
 #|   in-house `zzlongplot` package produces by default."
+#| fig-alt: "Longitudinal trajectory plot for a two-arm trial. Thin
+#|   faint lines show individual patients over time; two heavy lines
+#|   give the arm means, each wrapped in a shaded 95 percent
+#|   confidence ribbon. The ribbons are narrow early and widen at
+#|   later time points."
 #| fig-scap: "A longitudinal trajectory figure"
 #| fig-width: 7
 #| fig-height: 4.5
@@ -579,6 +660,11 @@ body-mass-versus-flipper-length scatter in `pandas` and
 #| fig-cap: "The penguin scatter reproduced in Python. The cleaned R
 #|   data frame crosses into Python through reticulate's `r` object,
 #|   so no intermediate file is written."
+#| fig-alt: "Matplotlib scatter plot of penguin body mass against
+#|   flipper length, colored by species, reproducing the earlier
+#|   ggplot2 figure in Python. The same three species clusters
+#|   appear, in matplotlib's default styling rather than the house
+#|   theme."
 #| fig-scap: "The penguin scatter reproduced in Python"
 #| fig-width: 6
 #| fig-height: 4
@@ -683,6 +769,10 @@ Three habits carry from the first figure to the last:
    plots from any prior exercise. Verify the plots
    render consistently in HTML, PDF, and Word
    output.
+
+**On your own work.** No answer key; these depend on
+material you supply.
+
 4. Replicate one published figure from a recent
    biomedical paper using ggplot2. Compare your
    replication to the original; identify what is
@@ -690,6 +780,116 @@ Three habits carry from the first figure to the last:
 5. Verify your color palette with the Coblis
    simulator. Adjust if any pair of categories
    become indistinguishable under deuteranopia.
+
+::: {.callout-tip icon=false collapse=true}
+## Solutions to exercises 1 to 3
+
+**1. A three-panel patchwork with one shared legend.**
+
+```{r}
+#| label: fig-soln-16-1
+#| fig-cap: "Scatter, residuals, and a normal Q-Q plot of the same
+#|   fit, composed with patchwork and sharing one species legend
+#|   collected at the bottom."
+#| fig-alt: "Three panels: body mass against flipper length colored by
+#|   species; residuals against fitted values scattered around zero;
+#|   and a normal quantile-quantile plot whose points follow the
+#|   reference line. A single species legend sits beneath."
+#| fig-width: 7.5
+#| fig-height: 6
+#| message: false
+fit <- lm(body_mass_g ~ flipper_length_mm, data = penguins_clean)
+aug <- broom::augment(fit, data = penguins_clean)
+
+p_a <- ggplot(aug, aes(flipper_length_mm, body_mass_g,
+                       color = species)) +
+  geom_point(alpha = 0.8)
+
+p_b <- ggplot(aug, aes(.fitted, .resid, color = species)) +
+  geom_point(alpha = 0.8) +
+  geom_hline(yintercept = 0, linetype = 2)
+
+p_c <- ggplot(aug, aes(sample = .resid, color = species)) +
+  stat_qq() + stat_qq_line()
+
+(p_a / (p_b | p_c)) +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
+```
+
+`plot_layout(guides = "collect")` is what shares the
+legend, and the `&` operator applies the theme to every
+panel rather than only the last. Using `+` there is the
+usual mistake, and it silently themes one panel.
+
+**2. A named list of plots, and a saver.**
+
+```{r}
+#| label: soln-16-2
+#| message: false
+plot_per_site <- function(data, site_col, outcome) {
+  split(data, data[[site_col]]) |>
+    purrr::imap(\(d, nm) {
+      ggplot(d, aes(.data[[outcome]])) +
+        geom_histogram(bins = 15) +
+        labs(title = nm)
+    })
+}
+
+save_plots <- function(plots, dir = tempdir()) {
+  paths <- file.path(dir, paste0(names(plots), ".pdf"))
+  purrr::walk2(plots, paths,
+               \(p, path) ggsave(path, p, width = 6, height = 4))
+  paths
+}
+
+plots <- plot_per_site(penguins_clean, "island", "body_mass_g")
+names(plots)
+basename(save_plots(plots))
+```
+
+`imap()` rather than `map()` is what gives each plot its
+group name for the title. `.data[[outcome]]` takes the
+outcome as a string, which is the right choice when the
+caller is passing a variable name held in a variable.
+
+**3. A house theme, applied.**
+
+```{r}
+#| label: fig-soln-16-3
+#| fig-cap: "One theme function applied to two different plots. Fonts,
+#|   grid lines, and legend placement come from a single definition,
+#|   so a change there propagates to every figure in the book."
+#| fig-alt: "Two panels sharing the same minimal styling: a scatter
+#|   plot and a boxplot, both with light grid lines and a legend
+#|   beneath."
+#| fig-width: 7
+#| fig-height: 3.2
+theme_practicum <- function(base_size = 11) {
+  theme_minimal(base_size = base_size) +
+    theme(
+      panel.grid.minor = element_blank(),
+      plot.title       = element_text(face = "bold"),
+      legend.position  = "bottom"
+    )
+}
+
+p1 <- ggplot(penguins_clean,
+             aes(flipper_length_mm, body_mass_g, color = species)) +
+  geom_point(alpha = 0.8) + theme_practicum()
+
+p2 <- ggplot(penguins_clean, aes(species, body_mass_g)) +
+  geom_boxplot() + theme_practicum()
+
+p1 | p2
+```
+
+Defining the theme as a function rather than calling
+`theme_set()` keeps it explicit at each use, which matters
+when a figure has to opt out. The cross-format
+verification the exercise asks for cannot be done from
+inside the book; render to each format and compare.
+:::
 
 ## Further reading
 

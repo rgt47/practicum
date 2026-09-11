@@ -98,6 +98,7 @@ book:
     - C-alternative-wrangling.qmd
     - D-peer-survey.qmd
     - E-lab-software.qmd
+    - F-glossary.qmd
     - credits.qmd
     - colophon.qmd
 
@@ -129,7 +130,8 @@ format:
     pdf-engine: xelatex
     documentclass: scrbook
     classoption: [11pt]
-    toc: false
+    toc: true
+    toc-depth: 2
     code-annotations: below
     highlight-style: arrow
     geometry:

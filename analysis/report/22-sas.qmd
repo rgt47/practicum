@@ -290,11 +290,23 @@ run;
 
 In R:
 
-```r
+```{r}
+#| label: sas-datastep-equivalent
+#| message: false
+library(dplyr)
+
+demo <- tibble(
+  usubjid = sprintf("01-%03d", 1:5),
+  age     = c(17, 42, 64, 71, 55),
+  bmi     = c(21.4, 27.8, 31.2, 24.9, 29.1)
+)
+
 adults <- demo |>
   filter(age >= 18) |>
   mutate(age_group = if_else(age < 65, 1L, 2L),
          log_bmi   = log(bmi))
+
+adults
 ```
 
 And a PROC step on the result. Each procedure has its
@@ -391,7 +403,12 @@ quit;
 
 R equivalent:
 
-```r
+```{r}
+#| label: sas-glm-equivalent
+#| message: false
+library(palmerpenguins)
+penguins_clean <- na.omit(penguins)
+
 fit <- lm(body_mass_g ~ species + flipper_length_mm,
           data = penguins_clean)
 emmeans::emmeans(fit, "species", contr = "pairwise",
@@ -415,7 +432,17 @@ run;
 
 R equivalent:
 
-```r
+```{r}
+#| label: sas-logistic-equivalent
+set.seed(4)
+n <- 200
+trial <- data.frame(
+  treatment = rep(c("placebo", "active"), each = n / 2),
+  age       = round(rnorm(n, 62, 9)),
+  sex       = sample(c("M", "F"), n, replace = TRUE),
+  outcome   = rbinom(n, 1, 0.3)
+)
+
 trial$treatment <- relevel(factor(trial$treatment),
                            ref = "placebo")
 trial$sex <- relevel(factor(trial$sex), ref = "M")
@@ -441,8 +468,19 @@ run;
 
 R equivalent:
 
-```r
+```{r}
+#| label: sas-mixed-equivalent
+#| message: false
+library(lme4)
+
+set.seed(5)
+long <- expand.grid(subject = factor(1:40), visit = 1:3) |>
+  transform(treatment = rep(c("placebo", "active"), each = 60)) |>
+  transform(y = 10 + 2 * (treatment == "active") + 0.5 * visit +
+                rnorm(120, 0, 2))
+
 fit <- lmer(y ~ treatment * visit + (1 | subject), data = long)
+summary(fit)$coefficients
 ```
 
 Note: `PROC MIXED`'s default covariance structure
@@ -471,11 +509,27 @@ run;
 
 R equivalent:
 
-```r
+```{r}
+#| label: sas-survival-equivalent
+#| message: false
 library(survival)
+
+set.seed(6)
+n <- 200
+adtte <- data.frame(
+  TRT01P = rep(c("Placebo", "Drug"), each = n / 2),
+  AGE    = round(rnorm(n, 63, 9)),
+  SEX    = sample(c("M", "F"), n, replace = TRUE)
+)
+# lower hazard on the drug arm, then administrative censoring at 24
+adtte$AVAL <- rexp(n, rate = ifelse(adtte$TRT01P == "Drug", 0.04, 0.08))
+adtte$CNSR <- as.integer(adtte$AVAL > 24)
+adtte$AVAL <- pmin(adtte$AVAL, 24)
+
 fit_km <- survfit(Surv(AVAL, 1L - CNSR) ~ TRT01P, data = adtte)
 fit_cox <- coxph(Surv(AVAL, 1L - CNSR) ~ TRT01P + AGE + SEX,
                  data = adtte)
+fit_cox
 ```
 
 The SAS `time aval * cnsr (1)` syntax means
@@ -581,6 +635,14 @@ checked every time something crosses.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-sas-boundary
+%%| fig-alt: "Left-to-right round trip. R cleans and derives, then
+%%|   writes a version 5 transport file with haven::write_xpt. SAS
+%%|   reads it through libname xport and proc copy, analyzes, and
+%%|   writes a second transport file, which R reads back with
+%%|   haven::read_xpt to tabulate and plot. A separate node points
+%%|   by dashed arrows at both transport files, requiring a check of
+%%|   row count, variable names, types and labels at each
+%%|   crossing."
 %%| fig-cap: "The R and SAS boundary. Transport version 5 is the
 %%|   durable interchange format and the one the FDA requires. Each
 %%|   crossing is a place where variable names can be truncated,
@@ -598,9 +660,12 @@ flowchart LR
 
 **R to SAS** via SAS transport (`.xpt`):
 
-```r
+```{r}
+#| label: sas-write-xpt
 library(haven)
-write_xpt(df, "data.xpt", version = 5)
+
+df <- data.frame(USUBJID = "01-001", AVAL = 12.4)
+write_xpt(df, file.path(tempdir(), "data.xpt"), version = 5)
 ```
 
 In SAS:
@@ -657,9 +722,20 @@ data out.pe; set pe; run;
 libname out clear;
 ```
 
-```r
+```{r}
+#| label: sas-results-table
+# Standing in for the transport file PROC MIXED would have written,
+# so that the R side of the boundary executes here.
+results_path <- file.path(tempdir(), "results.xpt")
+haven::write_xpt(
+  data.frame(TRTP = c("Placebo", "Drug"),
+             ESTIMATE = c(-2.14, -5.87),
+             STDERR = c(0.91, 0.94),
+             PROBT = c(0.019, 0.001)),
+  results_path, version = 5)
+
 # R: read SAS results, format as table
-results <- haven::read_xpt("results.xpt")
+results <- haven::read_xpt(results_path)
 gt::gt(results)
 ```
 
@@ -714,7 +790,8 @@ producing matching output:
 
 R:
 
-```r
+```{r}
+#| label: sas-r-reference-fit
 library(palmerpenguins)
 fit <- lm(body_mass_g ~ flipper_length_mm + species,
           data = na.omit(penguins))
@@ -825,6 +902,10 @@ habits:
    make the boundary explicit.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises need
+access to SAS, which this book does not ship, so no answer key is
+possible. Each states the agreement you should verify.
 
 1. Register for SAS OnDemand for Academics.
    Upload a CSV (use `palmerpenguins::penguins`

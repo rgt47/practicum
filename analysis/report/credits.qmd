@@ -7,19 +7,61 @@ chosen.
 
 ## Portraits
 
-The portraits of foundational figures in reproducible research
-and the R ecosystem appear in this book with attribution to
-their original sources. Each image is reproduced under the
-terms stated; please contact the book author for removal if any
-attribution is incorrect.
+Two portraits appear in the margins of this book. Both are
+reproduced under the Creative Commons licenses stated below, which
+require attribution; the credit lines here and in each figure
+caption are given to satisfy that condition.
 
-| Figure            | Where             | Source                                   | License          |
-| ----------------- | ----------------- | ---------------------------------------- | ---------------- |
-| Jenny Bryan       | @sec-git-solo     | TODO                                     | TODO             |
-| Ben Marwick       | @sec-rrtools      | TODO                                     | TODO             |
-| JJ Allaire        | @sec-quarto       | TODO                                     | TODO             |
-| Yihui Xie         | @sec-rmd-workflow | TODO                                     | TODO             |
-| Hadley Wickham    | @sec-wrangling    | TODO                                     | TODO             |
+**Robert Gentleman**, @sec-rrtools.
+
+- File: `images/portraits/gentleman.jpg`
+- Photograph by the R Consortium, from 'A View of the Future',
+  R/Medicine 2020 Virtual Conference, 2020-09-13
+- License: [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
+- Source: [Wikimedia
+  Commons](https://commons.wikimedia.org/wiki/File:Robert_Gentleman_on_R_Consortium.jpg)
+- Changes: resized to 400 px on the long edge; metadata stripped
+
+**Hadley Wickham**, @sec-wrangling.
+
+- File: `images/portraits/wickham.jpg`
+- Photograph by Hadley Wickham, 2015-11-04
+- License: [CC BY-SA
+  4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+- Source: [Wikimedia
+  Commons](https://commons.wikimedia.org/wiki/File:Hadley-wickham2016-02-04.jpg)
+- Changes: resized to 400 px on the long edge; metadata stripped
+
+The share-alike term on the Wickham photograph applies to that
+image, not to the surrounding text. The book's prose remains CC BY
+4.0; the photograph remains CC BY-SA 4.0 and must carry that
+license in any redistribution.
+
+### Portraits not included
+
+Slots for Jenny Bryan (@sec-git-solo), JJ Allaire (@sec-quarto)
+and Yihui Xie (@sec-rmd-workflow) were planned and are not
+filled. No freely licensed photograph of any of the three was
+found on Wikimedia Commons, and their personal and employer pages
+state no license terms permitting reuse. A photograph being
+publicly visible is not a license.
+
+One route remains open and was not taken. rOpenSci licenses its
+site content CC BY 4.0 except where otherwise noted, and hosts a
+headshot of Jenny Bryan in its own image tree at
+`ropensci.org/img/blog-images/2017-12-08-rprofile-jenny-bryan/`.
+That notice appears to cover it. The photograph was probably
+supplied by the subject rather than created by rOpenSci, so
+whether the site-wide grant extends to it is worth confirming with
+rOpenSci before use.
+
+Anyone offering a portrait for those chapters, or for Frank
+Harrell, Roger Peng, Karl Broman, Carl Boettiger or Friedrich
+Leisch, is invited to contact the author. It must be CC BY, CC0,
+or supplied with the subject's explicit permission, and this
+section must record the photographer, the source and the license
+before it ships. Please contact the author for removal if any
+attribution here is incorrect.
 
 ## Data sources
 

@@ -132,6 +132,12 @@ produces most collaboration friction.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-collab-spectrum
+%%| fig-alt: "Left-to-right chain of four roles: Consultant
+%%|   (transactional, acknowledgment), Collaborator (sustained,
+%%|   authorship), Co-investigator (named on the grant, authorship
+%%|   and effort), and Principal investigator (leads the science,
+%%|   first or last author). A separate annotation points along the
+%%|   chain: authority, time, and credit all increase."
 %%| fig-cap: "The collaboration spectrum. Authority, time
 %%|   commitment, and credit all rise together along it. Trouble
 %%|   arises when the statistician and the investigator place the
@@ -626,6 +632,10 @@ Three habits keep expectations from diverging:
    language for both.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises
+concern your own collaborations and cannot have an answer key. What a
+good answer establishes is stated with each.
 
 1. Take a paper you have contributed to and draft a
    CRediT-format contribution statement for every

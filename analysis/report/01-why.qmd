@@ -136,6 +136,11 @@ leg.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-repro-legs
+%%| fig-alt: "Flowchart with a single node, reproducible analysis,
+%%|   branching to three requirements: Code, meaning every step is
+%%|   executable; Data, meaning raw inputs are versioned; and
+%%|   Environment, meaning packages, R version and operating system
+%%|   are pinned."
 %%| fig-cap: "The three ingredients of a methods-reproducible analysis.
 %%|   Each is necessary, and each has a characteristic failure mode: code
 %%|   with undocumented manual steps, data that is 'the file a colleague
@@ -330,6 +335,43 @@ reproduced; correctness ensures that what you reported is
 right. Tools address reproducibility; statistical
 training addresses correctness; both must be present.
 
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: reproducibly wrong
+
+**Question.** An analysis is fully reproducible: pinned
+environment, executable code, versioned data, one command
+to rebuild every number. It also dichotomizes a continuous
+outcome at the median, which costs power and makes the
+effect estimate depend on the sample. What has
+reproducibility bought, and what has it not?
+
+**Answer.**
+
+It has bought the ability to find out. It has not made the
+analysis right, and nothing about the infrastructure will.
+
+What reproducibility supplies is *legibility*. The
+dichotomization is in the code, at a specific line, in a
+form a reviewer can point at. In an irreproducible
+analysis the same decision is invisible, described in
+methods as 'patients were classified as high or low' with
+no way to see the cut point or how it was chosen. The
+error exists either way; only one version is auditable.
+
+It also makes the fix cheap. Changing one line and
+rebuilding gives the corrected result in minutes, where an
+irreproducible analysis would need reconstruction from
+notes.
+
+The failure mode to keep in view is the one this section
+names: a fully reproducible pipeline produces a *reliably*
+wrong answer, and its polish can read as authority. A
+reviewer impressed by the Docker image and the lockfile
+may look less hard at the model. That is why the book puts
+@sec-ethics last rather than treating the infrastructure
+as the destination.
+:::
+
 ## Collaborating with an LLM on reproducibility
 
 LLMs are well-suited to spotting reproducibility gaps.
@@ -396,6 +438,11 @@ Three habits make reproducibility automatic:
    reproducibility.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises ask
+you to examine work you have done or literature in your field, so no
+answer key is possible. What a good answer establishes is stated with
+each.
 
 1. Take the last analysis you wrote. List every piece of
    information that is not in the script but would be

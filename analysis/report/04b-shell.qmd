@@ -172,6 +172,10 @@ every step, which is the whole design.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-shell-pipe
+%%| fig-alt: "Left-to-right pipeline. A 50,000-line CSV feeds into
+%%|   cut, which keeps one field; then sort, which makes duplicates
+%%|   adjacent; then uniq -c, which counts runs; then sort -rn piped
+%%|   to head, which ranks and truncates. The output is ten lines."
 %%| fig-cap: "A shell pipeline as a sequence of narrowing
 %%|   transformations. Each tool reads standard input and writes
 %%|   standard output, so composition needs no shared file format
@@ -323,6 +327,10 @@ The shell rewards three habits and punishes their absence:
    `head`, `wc -l`, and `file` are three seconds well spent.
 
 ## Exercises
+
+**On your own machine, data, or collaborations.** These exercises run
+against files on your own disk, so no answer key is possible. Each
+states what a correct result looks like.
 
 1. Using only the shell, determine the number of data rows,
    the delimiter, and the column names of a CSV file you

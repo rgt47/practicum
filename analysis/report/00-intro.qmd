@@ -107,11 +107,14 @@ of this book is orthogonal to whether an analysis
 misleads. That argument can only land once the apparatus
 has been built.
 
-Two appendices follow: alternative wrangling
+Three appendices follow: alternative wrangling
 paradigms for reading code that is not tidyverse
-(@sec-alternative-wrangling), and the peer-program
+(@sec-alternative-wrangling), the peer-program
 survey on which several chapters rest their case for
-existing (@sec-peer-survey).
+existing (@sec-peer-survey), and an inventory of the
+lab's own software, which several chapters use and
+which we disclose rather than distribute quietly
+(@sec-lab-software).
 
 @fig-book-map is the shape of the whole, and it is
 worth a moment before starting: the parts are not
@@ -122,6 +125,12 @@ assuming the earlier ones.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-book-map
+%%| fig-alt: "Flowchart of the book's eight parts as a dependency
+%%|   chain. Mindset leads to Workstation, which leads to
+%%|   Infrastructure. Infrastructure branches to both Reporting and
+%%|   Wrangling and graphics, and those two converge on Analysis
+%%|   practice, which leads to Case studies and finally to
+%%|   Obligations."
 %%| fig-cap: "The eight parts of the book and what each depends on.
 %%|   Infrastructure is what makes the mindset operational; reporting
 %%|   is what the infrastructure produces; the analysis practice and
@@ -236,12 +245,15 @@ chapters are merely the scaffolding.
 We note that every chapter follows the same
 structure:
 
+- **Sources.** A callout noting what lecture notes
+  or prior material the chapter draws on.
 - **Prerequisites quiz.** Three open-ended
   questions, in the style of *Advanced R*
   [@wickham2019advr]. Answer them honestly; if
   all three are easy, you can bypass the
   chapter. Answers appear in the
-  Prerequisites-answers section at the end.
+  Prerequisites-answers section at the end, and
+  each quiz links directly to them.
 - **Learning objectives.** What you will be able
   to do.
 - **Orientation.** A short prose framing of the

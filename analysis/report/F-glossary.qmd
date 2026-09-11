@@ -1,0 +1,306 @@
+# Glossary {#sec-glossary}
+
+Terms are defined as this book uses them. Where a term has a
+broader meaning elsewhere, the definition here is the working
+one, and the chapter cross-reference is where it is developed.
+
+## Reproducibility and compendia
+
+**Methods reproducibility.** The property that another analyst,
+given your code, data, and environment, obtains your numbers.
+Distinct from replication, which asks whether the finding holds
+in new data. See @sec-why.
+
+**Replication.** Repeating a study with new data to see whether
+the finding recurs. A reproducible analysis can be replicated;
+an irreproducible one cannot even be checked. See @sec-why.
+
+**Research compendium.** A single directory holding the code,
+data, environment specification, and narrative for one study,
+organized by convention so that a stranger can navigate it.
+See @sec-rrtools.
+
+**Provenance.** The record of where a data object came from and
+what was done to it. A query, a script, and a dated extraction
+note are provenance; a file named `final_v3.csv` is not.
+
+**Five Pillars.** The layered stack this book treats as the
+minimum for a reproducible project: Dockerfile, `renv.lock`,
+`.Rprofile`, source code, and data. See @sec-zzcollab.
+
+## Environment and dependencies
+
+**Library path.** The ordered list of directories R searches for
+installed packages, returned by `.libPaths()`. R takes the first
+match and installs into the first entry. See @sec-workstation.
+
+**`renv`.** A package that gives a project its own library and
+records exact package versions in a lockfile. See @sec-renv.
+
+**Lockfile.** `renv.lock`, the file recording every package
+version a project uses. It is the artifact committed to version
+control; the library itself is not. See @sec-renv.
+
+**`snapshot()` and `restore()`.** The two halves of the `renv`
+cycle. `snapshot()` writes the current library state into the
+lockfile; `restore()` rebuilds a library to match a lockfile.
+
+**Docker image.** A built, immutable filesystem containing an
+operating system, system libraries, and R. A container is a
+running instance of an image. See @sec-docker.
+
+**Layer caching.** Docker's reuse of unchanged build steps. Slow,
+stable layers belong early in a Dockerfile and fast-changing
+source late, so that editing the manuscript does not trigger a
+package reinstall. See @sec-docker.
+
+**Apptainer.** A container runtime used on shared HPC systems,
+where Docker is usually unavailable because it requires root.
+See @sec-cloud.
+
+## Version control
+
+**Commit.** A recorded snapshot of the project with a message
+explaining why the change was made. See @sec-git-solo.
+
+**Branch.** A named line of development that can diverge from
+`main` and later be merged back. See @sec-git-solo.
+
+**Merge conflict.** The state where two branches changed the same
+lines and Git cannot decide which to keep. Resolved by editing
+the marked region and committing. See @sec-git-teams.
+
+**Pull request.** A proposal to merge a branch, reviewed by a
+colleague and checked by CI before it lands. See @sec-git-teams.
+
+**Tag.** A permanent, human-readable name for a specific commit,
+used here to mark submission and analysis-plan versions.
+
+**Continuous integration (CI).** Automated rebuilding and testing
+of the project on a fresh machine at every push, which proves the
+analysis runs from what is in the repository rather than from the
+state of anyone's laptop. See @sec-ci.
+
+## Reporting
+
+**Chunk.** A block of executable code in a Quarto or R Markdown
+document. A fenced block without braces is displayed but not
+executed. See @sec-quarto.
+
+**`freeze`.** A Quarto setting that caches computed output and
+re-executes only when the source changes.
+
+**Cross-reference.** A link such as `@fig-name` that resolves to a
+numbered figure, table, or section. An unresolved cross-reference
+is a build warning, not a silent failure.
+
+**`spin` and `purl`.** Complementary `knitr` functions. `spin()`
+turns an annotated R script into a document; `purl()` extracts
+the code from a document back into a script. See
+@sec-rmd-workflow.
+
+**Parameterized report.** A document taking parameters at render
+time, so that one source produces a report per cohort or site.
+See @sec-quarto.
+
+## Data wrangling
+
+**Tidy data.** A layout in which each variable is a column, each
+observation a row, and each type of observational unit a table.
+See @sec-wrangling.
+
+**Long and wide format.** Wide holds one row per subject with
+repeated measures across columns; long holds one row per
+subject-visit. Plotting and mixed models generally want long;
+within-subject differences are easier wide. See @sec-wrangling.
+
+**Pivot.** The reshaping operation between the two,
+`pivot_longer()` and `pivot_wider()`.
+
+**Factor.** R's type for a categorical variable, storing a fixed
+set of levels. Character is the safer type through reading,
+cleaning, and joining; factor is correct at modeling and
+plotting. See @sec-types.
+
+**Level and reference level.** The permitted values of a factor,
+and the one against which model coefficients are contrasted. The
+reference level should be chosen deliberately, not inherited from
+alphabetical order. See @sec-types.
+
+**Tidy evaluation.** The mechanism letting a function accept a
+bare column name. `{{ col }}` embraces an argument;
+`.data[[name]]` takes a column name as a string. See
+@sec-wrangling.
+
+**Key.** The column or columns identifying a row uniquely in a
+table. Verifying key uniqueness before a join is the single most
+useful check in this book. See @sec-joins.
+
+**Join.** Combining tables on a key. `inner_join` keeps matched
+rows only; `left_join` keeps all rows of the left table;
+`full_join` keeps all rows of both. `semi_join` and `anti_join`
+filter the left table by presence in the right without adding
+columns. See @sec-joins.
+
+**Many-to-many relationship.** A join in which the key repeats on
+both sides, producing the product of the matches. Usually a key
+error rather than an intention, which is why dplyr warns.
+
+**Anti-join audit.** Using `anti_join()` to list the rows that
+failed to match, as a check on a join rather than a step in the
+pipeline.
+
+## Missing data
+
+**MCAR, MAR, MNAR.** Missing completely at random, missing at
+random given observed variables, and missing not at random. The
+third cannot be tested from the data and requires sensitivity
+analysis. See @sec-missing.
+
+**Complete-case analysis.** Dropping rows with any missing value
+in the model variables. Valid under MCAR, and it discards
+information and can bias estimates otherwise.
+
+**Mean imputation.** Replacing missing values with the column
+mean. It shrinks the variance and understates uncertainty, and
+this book treats it as an antipattern. See @sec-missing.
+
+**Multiple imputation.** Generating several completed datasets,
+fitting the model in each, and pooling. The between-dataset
+variation is the uncertainty single imputation discards.
+
+**Rubin's rules.** The formulas combining within- and
+between-imputation variance into one standard error.
+
+**Fraction of missing information (FMI).** The share of the
+variance of an estimate attributable to missingness, reported
+alongside pooled results.
+
+**Delta adjustment.** A sensitivity analysis shifting imputed
+values by a stated amount to probe departures from MAR.
+
+## Clinical data standards
+
+**CRF.** Case report form, the instrument by which site staff
+record data. See @sec-cdisc.
+
+**SDTM.** Study Data Tabulation Model, the CDISC standard for
+collected data, one row per observation. Immutable once locked;
+the statistician reads it and does not edit it. See @sec-cdisc.
+
+**ADaM.** Analysis Data Model, the analysis-ready layer the
+statistician builds from SDTM, each value traceable back to it.
+
+**ADSL, ADTTE, ADAE.** The subject-level, time-to-event, and
+adverse-event ADaM datasets.
+
+**TLF.** Tables, listings, and figures: the outputs of the
+statistical analysis, assembled into the clinical study report.
+
+**Define-XML, aCRF, SDRG, ADRG.** The metadata and documentation
+accompanying a submission: the machine-readable data definition,
+the annotated CRF, and the study and analysis data reviewer's
+guides.
+
+**Transport file (XPT).** The SAS transport format, version 5,
+required for regulatory submission and the durable interchange
+format between R and SAS. Each crossing can truncate variable
+names and lose labels, so each deserves a check. See @sec-sas.
+
+**Data lock and unblinding.** The point after which the dataset
+does not change and treatment assignment becomes known.
+Everything pre-specified before it carries the study's
+inferential authority. See @sec-analysis-plan.
+
+**Estimand.** A precise statement of what is being estimated,
+including the population, endpoint, and handling of intercurrent
+events.
+
+**SAP.** Statistical analysis plan. Drafted without data access,
+tagged in version control, and amended only with a dated new
+version. See @sec-analysis-plan.
+
+## Privacy
+
+**PHI.** Protected health information, the eighteen identifier
+categories under the HIPAA Privacy Rule. See
+@sec-deident.
+
+**Safe Harbor.** The de-identification method that removes those
+eighteen categories. The result is de-identified, not anonymous.
+
+**Quasi-identifier.** A field that is not an identifier alone but
+becomes one in combination, such as ZIP code with date of birth
+and sex.
+
+**Date shifting.** Offsetting every date for a patient by a
+constant, preserving within-patient intervals while destroying
+calendar time.
+
+## Testing
+
+**Unit test.** A test of one function on known input. Fast,
+narrow, and catches helper bugs. See @sec-testing.
+
+**Integration test.** A test running the whole pipeline on a small
+synthetic dataset. Catches composition bugs and silent filter and
+join errors, and has the best cost-benefit ratio for analysis
+code.
+
+**End-to-end test.** A test running raw data through to final
+outputs. Slow, broad, and the last line of defense.
+
+**Snapshot test.** A test comparing output against a recorded
+version, which detects change without asserting correctness.
+
+**Structural versus correctness assertion.** Checking that a
+result has the right shape, against checking that it holds the
+right values. Only the second is a correctness test.
+
+**Tautological test.** A test that passes regardless of whether
+the code is right, such as comparing a function's output to
+itself.
+
+## Graphics
+
+**Aesthetic mapping.** The assignment of a variable to a visual
+property such as position, color, or shape. The grammar of
+graphics requires the variable to be a column, which is why
+plotting usually wants long format. See @sec-graphics.
+
+**Faceting.** Splitting one plot into small multiples by a
+grouping variable.
+
+**Truncated axis.** A y-axis not beginning at zero, which
+exaggerates a difference without containing a false number. See
+@sec-ethics.
+
+**Alt text.** A short description of what a figure shows, read by
+screen readers. Required for informative images; decorative
+images take an empty description instead.
+
+## Pipelines
+
+**DAG.** Directed acyclic graph, the dependency structure of a
+pipeline. Editing one node makes everything downstream stale and
+nothing upstream. See @sec-targets.
+
+**Target.** One node of a `targets` pipeline: a named object with
+declared dependencies, rebuilt only when those change.
+
+## Open publishing
+
+**Open educational resource (OER).** A teaching work licensed to
+permit reuse, revision, and redistribution. Licenses forbidding
+derivative works do not qualify.
+
+**CC BY.** The Creative Commons Attribution license, permitting
+adaptation and commercial use with credit. The standard
+recommendation for open textbooks.
+
+**DOI.** Digital object identifier, a permanent citable handle
+for a deposited artifact. See @sec-federal.
+
+**Deposition.** Placing data or code in a repository that
+guarantees persistence, as distinct from hosting it on a personal
+page or a lab server.
