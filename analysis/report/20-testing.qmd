@@ -725,7 +725,7 @@ patient. The swapped function returns a plausible data frame, with
 two sexes in plausible proportions, which is exactly the kind of
 bug that survives inspection (Habit 8).
 
-This check has a name: **mutation testing**
+This check has a name: [**mutation testing**](F-glossary.qmd#gloss-mutation-testing)
 [@demillo1978hints]. Each planted bug is a *mutant*; a test that
 fails on it *kills* it; and the share of mutants killed measures
 how much the suite can see. Tools for other languages generate

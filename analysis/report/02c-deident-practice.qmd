@@ -465,7 +465,7 @@ fields the Weld records kept.
 
 ### k-anonymity
 
-The simplest formal tool is **k-anonymity** [@sweeney2002kanonymity]:
+The simplest formal tool is [**k-anonymity**](F-glossary.qmd#gloss-k-anonymity) [@sweeney2002kanonymity]:
 a dataset is k-anonymous on a set of quasi-identifiers if every
 combination of their values that appears is shared by at least
 $k$ records, so that no individual is distinguishable from at

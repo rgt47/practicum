@@ -1,0 +1,23 @@
+# Documents and Environments
+
+This part asks how an analysis rebuilds, as a document, on someone
+else's machine. It opens the second quarter and assumes a dataset
+of the kind Part III produces.
+
+- @sec-quarto writes the analysis as a Quarto document whose
+  numbers are computed rather than typed.
+- @sec-renv records the package versions the analysis used in a
+  lockfile and restores them elsewhere.
+- @sec-docker pins the R version, operating system, and system
+  libraries in a container.
+- @sec-zzcollab assembles the pieces into a research compendium and
+  audits it against the Five Pillars.
+- @sec-targets turns the analysis into a pipeline that rebuilds only
+  what an edit has invalidated.
+- @sec-cloud moves a job to a cluster or a cloud instance when a
+  laptop is not enough.
+
+If the quiz at the start of a chapter is easy, skip to the next.
+The first three chapters each add one layer of the environment and
+are best read in order; the last three depend on them but not on
+one another.

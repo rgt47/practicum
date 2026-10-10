@@ -79,7 +79,7 @@ of this book is orthogonal to whether an analysis
 misleads, and that argument can only land once the
 apparatus has been built.
 
-Seven appendices follow: alternative wrangling
+Eight appendices follow: alternative wrangling
 paradigms for reading code that is not tidyverse
 (@sec-alternative-wrangling), the peer-program survey
 on which several chapters rest their case for existing
@@ -89,8 +89,9 @@ disclose rather than distribute quietly
 (@sec-lab-software), a glossary (@sec-glossary), an
 instructor guide (@sec-instructor-guide), the
 AI-tooling landscape as of this edition (@sec-tooling),
-and a guide to migrating R Markdown projects
-(@sec-rmd-migration).
+a guide to migrating R Markdown projects
+(@sec-rmd-migration), and an index to every chapter's
+cheat sheet (@sec-cheat-sheets).
 
 @fig-book-map is the shape of the whole, and it is
 worth a moment before starting: the parts are not
@@ -237,6 +238,45 @@ later chapters can point back to it.
 You do not need to memorize the list now. Every
 chapter ends by naming the habits it has exercised,
 and @sec-synthesis returns to the whole list.
+
+## Getting help {#sec-getting-help}
+
+Ask in the course forum first, where the people answering know
+the book and the running study. Beyond the course, Posit Community
+(<https://forum.posit.co>) answers questions about R, the
+tidyverse, Quarto, and RStudio, and Stack Overflow answers
+well-posed programming questions tagged `r`.
+
+Whoever you ask, send a minimal reproducible example: the smallest
+code, with the smallest synthetic data, that shows the problem.
+The `reprex` package runs your code in a clean session and formats
+the code and its output for pasting, so a missing `library()` call
+or an object that exists only in your workspace shows up before
+anyone else sees it. A display-only example:
+
+```{.r}
+reprex::reprex({
+  library(dplyr)
+  visits <- tibble::tibble(id = c(1, 1, 2), sbp = c(120, NA, 135))
+  visits |>
+    summarize(mean_sbp = mean(sbp))
+})
+```
+
+A reprex is habit 1 at its smallest scale: code and data that
+travel together and run on someone else's machine. Building one
+often answers the question before you post it.
+
+Never post protected health information, rows of any dataset held
+under a data-use agreement, or credentials such as tokens,
+passwords, and keys, even in a private message. The rules are the
+same as for a language model (habit 12), and @sec-ai-governance
+sets them out: send structure, not data.
+
+To report an error in this book, open an issue in the repository's
+issue tracker (<https://github.com/rgt47/practicum/issues>); each
+page of the HTML edition links to it. Name the chapter and section,
+quote the passage, and say what you expected.
 
 ## The chapter pattern
 

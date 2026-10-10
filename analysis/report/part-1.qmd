@@ -1,0 +1,21 @@
+# Why and With Whom
+
+This part asks why an analysis should be reproducible at all, and
+what an analyst owes to two groups of people: the collaborators who
+depend on the work and the participants whose records make it
+possible. It is the first part of the first quarter, and it is
+deliberately light on code; the chapters that follow supply the
+tools, and these supply the reasons for using them.
+
+- @sec-why distinguishes methods, results, and inferential
+  reproducibility, and names the check that makes each common
+  failure loud.
+- @sec-team-science runs the intake conversation, places an
+  engagement on the collaboration spectrum, and settles authorship.
+- @sec-deident sets out the HIPAA de-identification pathways, what
+  each costs the analysis, and the obligations that survive
+  de-identification.
+
+Each chapter opens with a short 'Skip ahead?' quiz. If the quiz at
+the start of a chapter is easy, skip to the next chapter; if it is
+not, the chapter is written for you.

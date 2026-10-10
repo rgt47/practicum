@@ -232,7 +232,7 @@ resources are free, and kills it if it exceeds what it asked for.
 
 Most clusters do not permit Docker, for a good reason: the Docker
 daemon runs as root, and a shared multi-user cluster cannot grant
-every user root. The standard substitute is **Apptainer** (formerly
+every user root. The standard substitute is [**Apptainer**](F-glossary.qmd#gloss-apptainer) (formerly
 Singularity), a container runtime that runs unprivileged and can
 build its image directly from your Docker image
 [@kurtzer2017singularity]. The reproducibility argument of

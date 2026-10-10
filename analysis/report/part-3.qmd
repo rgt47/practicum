@@ -1,0 +1,23 @@
+# Data in Hand
+
+This part asks how raw files become an analysis dataset you can
+trust. It closes the first quarter, and its output, a checked and
+de-identified dataset, is the input to everything in the second.
+
+- @sec-acquisition reads a clinical export with a full column
+  specification and asserts against its usual pathologies.
+- @sec-apis queries web interfaces with `httr2` and freezes what
+  was received.
+- @sec-wrangling recodes per-site conventions and reports how many
+  rows each step removes.
+- @sec-types handles factors, free-text strings, and dates.
+- @sec-joins predicts and checks the row count of every join.
+- @sec-databases queries a database with SQL and `dbplyr`.
+- @sec-graphics builds figures with `ggplot2` and many figures at
+  once with `purrr`.
+- @sec-missing diagnoses missing data, imputes it with `mice`, and
+  runs a sensitivity analysis.
+- @sec-deident-practice applies the rules of @sec-deident to a
+  release, with assertions that fail if an identifier survives.
+
+If the quiz at the start of a chapter is easy, skip to the next.

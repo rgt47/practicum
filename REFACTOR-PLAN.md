@@ -2493,6 +2493,30 @@ or regulatory colleague read the corrected 02b and 25c. Fix the CI
 exit status. Add a render-time check that fails the build if `&#96;`
 appears in output.
 
+*Implementation record (2026-10-10).* Every phase below was
+executed in order on stacked branches, each verified by a clean full
+render (HTML and PDF: no warnings, no unresolved references or
+citations, no literal entities) before its commit:
+
+| Phase | Branch | Commit | Result |
+|---|---|---|---|
+| E1 | refactor/phase-e1 | `0d39fb1` | Tier 1 defects fixed |
+| E2 | refactor/phase-e2 | `19559a1` | Rest of Part 6; canonical Dockerfile built and run |
+| F, G | refactor/phase-f | `2b7292a` | Template, habits, pipeline diagram; HF-HOME generator and data |
+| H, K | refactor/phase-h | `cbb2615`, `cbe01bf`, `8704816` | All chapters converted; content gaps added |
+| I | refactor/phase-i | `1491fa9` | Merges, splits, moves, data-first order, capstone, PDF answers filter |
+| J | refactor/phase-j | see branch head | Part pages, cheat-sheet index, getting help, generated colophon, glossary anchors and links, `openany` |
+
+Outstanding after Phase J: the lockfile restore and executing CI
+(Finding 10, deferred by the author); SAS verification; the
+remaining portraits and the portrait-policy question (decision 15);
+bolding glossary terms at first use so that more can be linked
+(house rule 3); `targets`, `gtsummary`, and `mmrm` are used by
+chapters but absent from `renv.lock`; second readers for the
+statistical and compliance chapters (house rule 14); human expert
+re-review before any catalog listing; student pilots. The PDF is
+1,188 pages (decision 19).
+
 *E1 status (2026-10-09):* complete; commit `0d39fb1` on branch
 `refactor/phase-e1`, verified by a clean full render (HTML and PDF,
 no unresolved references, no literal entities).

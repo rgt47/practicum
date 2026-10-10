@@ -1,0 +1,59 @@
+# Cheat Sheets {#sec-cheat-sheets}
+
+Every chapter ends with a cheat sheet: the chapter's commands or
+decisions in one table, each paired with the check that confirms
+it worked. This appendix is an index to those tables, not a copy of
+them. The tables stay in their chapters, next to the prose that
+explains when each command is the wrong one, and a cheat sheet read
+without that prose is how a confident mistake begins.
+
+@tbl-cheat-sheet-index lists the chapters in reading order, grouped
+by part, with a cross-reference to each chapter's table. In the
+HTML edition each reference is a link; in print, it gives the table
+number, which begins with the chapter number or appendix letter.
+
+| Part | Chapter | Cheat sheet |
+|---|---|---|
+| I. Why and with whom | @sec-why | @tbl-why-cheat-sheet |
+| | @sec-team-science | @tbl-team-science-cheat-sheet |
+| | @sec-deident | @tbl-deident-concepts-cheat-sheet |
+| II. Your toolkit | @sec-shell | @tbl-shell-cheat-sheet |
+| | @sec-workstation | @tbl-workstation-cheat-sheet |
+| | @sec-git-solo | @tbl-git-solo-cheat-sheet |
+| | @sec-git-teams | @tbl-git-teams-cheat-sheet |
+| | @sec-ai-coding | @tbl-ai-cheat-sheet |
+| III. Data in hand | @sec-acquisition | @tbl-acquisition-cheat-sheet |
+| | @sec-apis | @tbl-apis-cheat-sheet |
+| | @sec-wrangling | @tbl-wrangling-cheat-sheet |
+| | @sec-types | @tbl-types-cheat-sheet |
+| | @sec-joins | @tbl-joins-cheat-sheet |
+| | @sec-databases | @tbl-databases-cheat-sheet |
+| | @sec-graphics | @tbl-graphics-cheat-sheet |
+| | @sec-missing | @tbl-missing-cheat-sheet |
+| | @sec-deident-practice | @tbl-deident-cheat-sheet |
+| IV. Documents and environments | @sec-quarto | @tbl-quarto-cheat-sheet |
+| | @sec-renv | @tbl-renv-cheat-sheet |
+| | @sec-docker | @tbl-docker-cheat-sheet |
+| | @sec-zzcollab | @tbl-zzcollab-cheat-sheet |
+| | @sec-targets | @tbl-targets-cheat-sheet |
+| | @sec-cloud | @tbl-cloud-cheat-sheet |
+| V. Analysis practice | @sec-analysis-plan | @tbl-sap-cheat-sheet |
+| | @sec-testing | @tbl-testing-cheat-sheet |
+| VI. Industry | @sec-cdisc | @tbl-adam-card |
+| | @sec-sas | @tbl-sas-cheat-sheet |
+| VII. Analysis to audience | @sec-penguins | @tbl-penguins-cheat-sheet |
+| | @sec-adni | @tbl-adni-cheat-sheet |
+| | @sec-ethics | @tbl-ethics-cheat-sheet |
+| | @sec-communicating | @tbl-comm-cheat-sheet |
+| | @sec-federal | @tbl-federal-cheat-sheet |
+| VIII. Capstone | @sec-synthesis | @tbl-synthesis-cheat-sheet |
+| Appendix | @sec-rmd-migration | @tbl-rmd-cheat-sheet |
+
+: Where each chapter's cheat sheet is. The tables themselves are
+not reproduced here. {#tbl-cheat-sheet-index}
+
+The cheat sheets are most useful in the second quarter and after
+the course, when the question is no longer how a tool works but
+which command, and which check, you used the last time. A reader
+looking for a term rather than a command should use the glossary
+(@sec-glossary) instead.

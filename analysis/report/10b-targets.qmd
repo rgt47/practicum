@@ -127,7 +127,7 @@ partly speed, but mostly trust: when `targets` reports that a
 target is up to date, it reflects the current code and data,
 which a hand re-run cannot promise.
 
-The organizing idea is the **directed acyclic graph** (DAG). Each
+The organizing idea is the [**directed acyclic graph**](F-glossary.qmd#gloss-dag) (DAG). Each
 step is a node; an arrow from step A to step B means B uses A's
 output. 'Directed' because dependencies have a direction;
 'acyclic' because a step cannot, even indirectly, depend on

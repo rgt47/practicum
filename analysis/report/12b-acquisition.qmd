@@ -369,7 +369,7 @@ export (@sec-ai-governance).
 ### Pathologies that do not announce themselves {#sec-acquisition-pathologies}
 
 Two more properties of this file are invisible on screen. Its first
-three bytes are a UTF-8 **byte-order mark** (BOM), and every line
+three bytes are a UTF-8 [**byte-order mark**](F-glossary.qmd#gloss-byte-order-mark) (BOM), and every line
 ends in a carriage return and a line feed (CRLF), the Windows
 convention. @sec-shell shows both at the byte level. What they do
 depends on the reader and on the machine, and the claims commonly

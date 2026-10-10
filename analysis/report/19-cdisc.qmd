@@ -202,7 +202,7 @@ The separation is the book's raw and derived data rule
 
 ## SDTM: the data as collected {#sec-cdisc-sdtm}
 
-SDTM organizes a trial's observations into **domains**, each a
+SDTM organizes a trial's observations into [**domains**](F-glossary.qmd#gloss-domain), each a
 dataset on one topic. The ones you will meet first are `DM`
 (demographics, one row per subject), `EX` (exposure, one row per
 dose or dosing interval), `DS` (disposition, one row per
@@ -376,7 +376,7 @@ censoring codes are.
 
 ### Analysis sets and the estimand
 
-The SAP pre-specifies which **analysis set** each analysis uses,
+The SAP pre-specifies which [**analysis set**](F-glossary.qmd#gloss-analysis-set) each analysis uses,
 and ADSL implements the choice as flags. The intention-to-treat
 (ITT) set, or full analysis set (FAS), includes every randomized
 subject, analyzed as randomized (`ITTFL`, `FASFL`). A modified ITT
@@ -761,7 +761,7 @@ Until the late 2010s, almost all ADaM work in industry was done in
 SAS (@sec-sas). Since about 2022, the year `admiral`
 [@mancini2026admiral] first reached CRAN (the Comprehensive R
 Archive Network), a cross-company collaboration called the
-**pharmaverse** has produced R packages for each step of the
+[**pharmaverse**](F-glossary.qmd#gloss-pharmaverse) has produced R packages for each step of the
 pipeline: `admiral` for ADaM derivations, `metacore` and
 `metatools` to read and apply specifications, and `xportr` to
 write the SAS transport (XPT) files the FDA requires. At a sponsor
@@ -838,7 +838,7 @@ pkg_ref('survival') |>
 ### Double programming
 
 The standard validation of an ADaM dataset or a table in industry
-is **double programming**: a second programmer derives the same
+is [**double programming**](F-glossary.qmd#gloss-double-programming): a second programmer derives the same
 output independently from the specification, without reading the
 first programmer's code, and the two outputs are compared value by
 value. Any difference is investigated until both agree or the

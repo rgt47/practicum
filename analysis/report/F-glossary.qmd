@@ -3,304 +3,560 @@
 Terms are defined as this book uses them. Where a term has a
 broader meaning elsewhere, the definition here is the working
 one, and the chapter cross-reference is where it is developed.
+Entries are alphabetical within each heading. A term set in bold
+in a chapter links to its entry here.
 
 ## Reproducibility and compendia
 
-**Methods reproducibility.** The property that another analyst,
-given your code, data, and environment, obtains your numbers.
-Distinct from replication, which asks whether the finding holds
-in new data. See @sec-why.
+[**Five Pillars.**]{#gloss-five-pillars} The layered stack this
+book treats as the minimum for a reproducible project:
+Dockerfile, `renv.lock`, `.Rprofile`, source code, and data. See
+@sec-zzcollab.
 
-**Replication.** Repeating a study with new data to see whether
-the finding recurs. A reproducible analysis can be replicated;
-an irreproducible one cannot even be checked. See @sec-why.
+[**Methods reproducibility.**]{#gloss-methods-reproducibility}
+The property that another analyst, given your code, data, and
+environment, obtains your numbers. Distinct from replication,
+which asks whether the finding holds in new data. See @sec-why.
 
-**Research compendium.** A single directory holding the code,
-data, environment specification, and narrative for one study,
-organized by convention so that a stranger can navigate it.
-See @sec-rrtools.
+[**Provenance.**]{#gloss-provenance} The record of where a data
+object came from and what was done to it. A query, a script, and
+a dated extraction note are provenance; a file named
+`final_v3.csv` is not.
 
-**Provenance.** The record of where a data object came from and
-what was done to it. A query, a script, and a dated extraction
-note are provenance; a file named `final_v3.csv` is not.
+[**Replication.**]{#gloss-replication} Repeating a study with new
+data to see whether the finding recurs. A reproducible analysis
+can be replicated; an irreproducible one cannot even be checked.
+See @sec-why.
 
-**Five Pillars.** The layered stack this book treats as the
-minimum for a reproducible project: Dockerfile, `renv.lock`,
-`.Rprofile`, source code, and data. See @sec-zzcollab.
+[**Research compendium.**]{#gloss-research-compendium} A single
+directory holding the code, data, environment specification, and
+narrative for one study, organized by convention so that a
+stranger can navigate it. See @sec-rrtools.
 
 ## Environment and dependencies
 
-**Library path.** The ordered list of directories R searches for
-installed packages, returned by `.libPaths()`. R takes the first
-match and installs into the first entry. See @sec-workstation.
+[**Apptainer.**]{#gloss-apptainer} A container runtime (formerly
+Singularity) used on shared HPC systems, where Docker is usually
+unavailable because it requires root. It runs unprivileged and
+can build its image from a Docker image. See @sec-cloud-hpc.
 
-**`renv`.** A package that gives a project its own library and
-records exact package versions in a lockfile. See @sec-renv.
+[**Docker image.**]{#gloss-docker-image} A built, immutable
+filesystem containing an operating system, system libraries, and
+R. A container is a running instance of an image. See
+@sec-docker.
 
-**Lockfile.** `renv.lock`, the file recording every package
-version a project uses. It is the artifact committed to version
-control; the library itself is not. See @sec-renv.
+[**Layer caching.**]{#gloss-layer-caching} Docker's reuse of
+unchanged build steps. Slow, stable layers belong early in a
+Dockerfile and fast-changing source late, so that editing the
+manuscript does not trigger a package reinstall. See @sec-docker.
 
-**`snapshot()` and `restore()`.** The two halves of the `renv`
-cycle. `snapshot()` writes the current library state into the
-lockfile; `restore()` rebuilds a library to match a lockfile.
+[**Library path.**]{#gloss-library-path} The ordered list of
+directories R searches for installed packages, returned by
+`.libPaths()`. R takes the first match and installs into the
+first entry. See @sec-workstation.
 
-**Docker image.** A built, immutable filesystem containing an
-operating system, system libraries, and R. A container is a
-running instance of an image. See @sec-docker.
+[**Lockfile.**]{#gloss-lockfile} `renv.lock`, the file recording
+every package version a project uses. It is the artifact
+committed to version control; the library itself is not. See
+@sec-renv.
 
-**Layer caching.** Docker's reuse of unchanged build steps. Slow,
-stable layers belong early in a Dockerfile and fast-changing
-source late, so that editing the manuscript does not trigger a
-package reinstall. See @sec-docker.
+[**`renv`.**]{#gloss-renv} A package that gives a project its own
+library and records exact package versions in a lockfile. See
+@sec-renv.
 
-**Apptainer.** A container runtime used on shared HPC systems,
-where Docker is usually unavailable because it requires root.
-See @sec-cloud.
+[**`snapshot()` and `restore()`.**]{#gloss-snapshot-restore} The
+two halves of the `renv` cycle. `snapshot()` writes the current
+library state into the lockfile; `restore()` rebuilds a library
+to match a lockfile.
 
 ## Version control
 
-**Commit.** A recorded snapshot of the project with a message
-explaining why the change was made. See @sec-git-solo.
+[**Branch.**]{#gloss-branch} A named line of development that can
+diverge from `main` and later be merged back. See @sec-git-solo.
 
-**Branch.** A named line of development that can diverge from
-`main` and later be merged back. See @sec-git-solo.
+[**Commit.**]{#gloss-commit} A recorded snapshot of the project
+with a message explaining why the change was made. See
+@sec-git-solo.
 
-**Merge conflict.** The state where two branches changed the same
-lines and Git cannot decide which to keep. Resolved by editing
-the marked region and committing. See @sec-git-teams.
+[**Continuous integration (CI).**]{#gloss-continuous-integration}
+Automated rebuilding and testing of the project on a fresh
+machine at every push, which proves the analysis runs from what
+is in the repository rather than from the state of anyone's
+laptop. See @sec-ci.
 
-**Pull request.** A proposal to merge a branch, reviewed by a
-colleague and checked by CI before it lands. See @sec-git-teams.
+[**Git.**]{#gloss-git} The distributed version-control system
+this book uses. It records the project's history as a sequence of
+commits, each recoverable, and GitHub hosts a shared copy. See
+@sec-git-solo.
 
-**Tag.** A permanent, human-readable name for a specific commit,
-used here to mark submission and analysis-plan versions.
+[**Merge conflict.**]{#gloss-merge-conflict} The state where two
+branches changed the same lines and Git cannot decide which to
+keep. Resolved by editing the marked region and committing. See
+@sec-git-teams.
 
-**Continuous integration (CI).** Automated rebuilding and testing
-of the project on a fresh machine at every push, which proves the
-analysis runs from what is in the repository rather than from the
-state of anyone's laptop. See @sec-ci.
+[**Pull request.**]{#gloss-pull-request} A proposal to merge a
+branch, reviewed by a colleague and checked by CI before it
+lands. See @sec-git-teams.
+
+[**Tag.**]{#gloss-tag} A permanent, human-readable name for a
+specific commit, used here to mark submission and analysis-plan
+versions. See @sec-git-solo-tags.
 
 ## Reporting
 
-**Chunk.** A block of executable code in a Quarto or R Markdown
-document. A fenced block without braces is displayed but not
-executed. See @sec-quarto.
+[**Chunk.**]{#gloss-chunk} A block of executable code in a Quarto
+or R Markdown document. A fenced block without braces is
+displayed but not executed. See @sec-quarto.
 
-**`freeze`.** A Quarto setting that caches computed output and
-re-executes only when the source changes.
+[**Cross-reference.**]{#gloss-cross-reference} A link such as
+`@fig-name` that resolves to a numbered figure, table, or
+section. An unresolved cross-reference is a build warning, not a
+silent failure.
 
-**Cross-reference.** A link such as `@fig-name` that resolves to a
-numbered figure, table, or section. An unresolved cross-reference
-is a build warning, not a silent failure.
+[**Float.**]{#gloss-float} A figure or table that LaTeX may move
+away from where it is declared, to avoid awkward white space and
+bad page breaks. See @sec-rmd-workflow-floats.
 
-**`spin` and `purl`.** Complementary `knitr` functions. `spin()`
-turns an annotated R script into a document; `purl()` extracts
-the code from a document back into a script. See
-@sec-rmd-workflow.
+[**`freeze`.**]{#gloss-freeze} A Quarto setting that caches
+computed output and re-executes only when the source changes.
+See @sec-quarto-freeze.
 
-**Parameterized report.** A document taking parameters at render
-time, so that one source produces a report per cohort or site.
-See @sec-quarto.
+[**Parameterized report.**]{#gloss-parameterized-report} A
+document taking parameters at render time, so that one source
+produces a report per cohort or site. See @sec-quarto-params.
+
+[**Quarto.**]{#gloss-quarto} The publishing system this book uses
+to weave prose and executed code into HTML, PDF, and Word
+documents, websites, and books. The successor to R Markdown. See
+@sec-quarto.
+
+[**`spin` and `purl`.**]{#gloss-spin-purl} Complementary `knitr`
+functions. `spin()` turns an annotated R script into a document;
+`purl()` extracts the code from a document back into a script.
+See @sec-rmd-workflow.
 
 ## Data wrangling
 
-**Tidy data.** A layout in which each variable is a column, each
-observation a row, and each type of observational unit a table.
+[**Anti-join audit.**]{#gloss-anti-join-audit} Using
+`anti_join()` to list the rows that failed to match, as a check
+on a join rather than a step in the pipeline. See @sec-joins.
+
+[**Byte-order mark (BOM).**]{#gloss-byte-order-mark} Invisible
+bytes at the start of a text file marking its encoding. Whether
+it survives into the first column's name depends on the reader
+and the locale, so a script can work on a laptop and fail in a
+container. See @sec-acquisition-pathologies.
+
+[**Factor.**]{#gloss-factor} R's type for a categorical variable,
+storing a fixed set of levels. Character is the safer type
+through reading, cleaning, and joining; factor is correct at
+modeling and plotting. See @sec-types.
+
+[**Join.**]{#gloss-join} Combining tables on a key. `inner_join`
+keeps matched rows only; `left_join` keeps all rows of the left
+table; `full_join` keeps all rows of both. `semi_join` and
+`anti_join` filter the left table by presence in the right
+without adding columns. See @sec-joins.
+
+[**Key.**]{#gloss-key} The column or columns identifying a row
+uniquely in a table. Verifying key uniqueness before a join is
+the single most useful check in this book. See @sec-joins.
+
+[**Level and reference level.**]{#gloss-reference-level} The
+permitted values of a factor, and the one against which model
+coefficients are contrasted. The reference level should be
+chosen deliberately, not inherited from alphabetical order. See
+@sec-types.
+
+[**Long and wide format.**]{#gloss-long-wide-format} Wide holds
+one row per subject with repeated measures across columns; long
+holds one row per subject-visit. Plotting and mixed models
+generally want long; within-subject differences are easier wide.
 See @sec-wrangling.
 
-**Long and wide format.** Wide holds one row per subject with
-repeated measures across columns; long holds one row per
-subject-visit. Plotting and mixed models generally want long;
-within-subject differences are easier wide. See @sec-wrangling.
+[**Many-to-many relationship.**]{#gloss-many-to-many} A join in
+which the key repeats on both sides, producing the product of the
+matches. Usually a key error rather than an intention, which is
+why dplyr warns. See @sec-joins.
 
-**Pivot.** The reshaping operation between the two,
-`pivot_longer()` and `pivot_wider()`.
+[**Pipe.**]{#gloss-pipe} An operator that passes the result of one
+step to the next, so a transformation reads left to right. R's
+native pipe `|>` sends the value on its left as the first
+argument of the function on its right; the shell's `|` sends one
+command's output to the next command's input. See
+@sec-shell-pipes.
 
-**Factor.** R's type for a categorical variable, storing a fixed
-set of levels. Character is the safer type through reading,
-cleaning, and joining; factor is correct at modeling and
-plotting. See @sec-types.
+[**Pivot.**]{#gloss-pivot} The reshaping operation between long
+and wide format, `pivot_longer()` and `pivot_wider()`. See
+@sec-wrangling-shapes.
 
-**Level and reference level.** The permitted values of a factor,
-and the one against which model coefficients are contrasted. The
-reference level should be chosen deliberately, not inherited from
-alphabetical order. See @sec-types.
+[**Tidy data.**]{#gloss-tidy-data} A layout in which each variable
+is a column, each observation a row, and each type of
+observational unit a table. See @sec-wrangling.
 
-**Tidy evaluation.** The mechanism letting a function accept a
-bare column name. `{{ col }}` embraces an argument;
-`.data[[name]]` takes a column name as a string. See
-@sec-wrangling.
-
-**Key.** The column or columns identifying a row uniquely in a
-table. Verifying key uniqueness before a join is the single most
-useful check in this book. See @sec-joins.
-
-**Join.** Combining tables on a key. `inner_join` keeps matched
-rows only; `left_join` keeps all rows of the left table;
-`full_join` keeps all rows of both. `semi_join` and `anti_join`
-filter the left table by presence in the right without adding
-columns. See @sec-joins.
-
-**Many-to-many relationship.** A join in which the key repeats on
-both sides, producing the product of the matches. Usually a key
-error rather than an intention, which is why dplyr warns.
-
-**Anti-join audit.** Using `anti_join()` to list the rows that
-failed to match, as a check on a join rather than a step in the
-pipeline.
+[**Tidy evaluation.**]{#gloss-tidy-evaluation} The mechanism
+letting a function accept a bare column name. `{{ col }}`
+embraces an argument; `.data[[name]]` takes a column name as a
+string. See @sec-wrangling.
 
 ## Missing data
 
-**MCAR, MAR, MNAR.** Missing completely at random, missing at
-random given observed variables, and missing not at random. The
-third cannot be tested from the data and requires sensitivity
-analysis. See @sec-missing.
+[**Complete-case analysis.**]{#gloss-complete-case-analysis}
+Dropping rows with any missing value in the model variables. Its
+regression coefficients are unbiased when missingness does not
+depend on the outcome given the covariates, whatever the
+mechanism label, and it always discards information. See
+@sec-missing-complete-case.
 
-**Complete-case analysis.** Dropping rows with any missing value
-in the model variables. Valid under MCAR, and it discards
-information and can bias estimates otherwise.
+[**Delta adjustment.**]{#gloss-delta-adjustment} A sensitivity
+analysis shifting imputed values by a stated amount to probe
+departures from MAR. See @sec-missing-trials.
 
-**Mean imputation.** Replacing missing values with the column
-mean. It shrinks the variance and understates uncertainty, and
-this book treats it as an antipattern. See @sec-missing.
+[**Fraction of missing information (FMI).**]{#gloss-fmi} The share
+of the variance of an estimate attributable to missingness,
+reported alongside pooled results.
 
-**Multiple imputation.** Generating several completed datasets,
-fitting the model in each, and pooling. The between-dataset
-variation is the uncertainty single imputation discards.
+[**Last observation carried forward (LOCF).**]{#gloss-locf} Single
+imputation that holds a dropout at the last observed value. The
+assumption is biologically implausible for most diseases, and
+this book treats it as an antipattern. See @sec-missing-single.
 
-**Rubin's rules.** The formulas combining within- and
-between-imputation variance into one standard error.
+[**MCAR, MAR, MNAR.**]{#gloss-mcar-mar-mnar} Missing completely at
+random, missing at random given observed variables, and missing
+not at random. The third cannot be tested from the data and
+requires sensitivity analysis. See @sec-missing-mechanisms.
 
-**Fraction of missing information (FMI).** The share of the
-variance of an estimate attributable to missingness, reported
-alongside pooled results.
+[**Mean imputation.**]{#gloss-mean-imputation} Replacing missing
+values with the column mean. It understates the spread of the
+filled variable and can bias coefficients, and this book treats
+it as an antipattern. See @sec-missing-single.
 
-**Delta adjustment.** A sensitivity analysis shifting imputed
-values by a stated amount to probe departures from MAR.
+[**MMRM.**]{#gloss-mmrm} Mixed model for repeated measures: a
+likelihood analysis of all observed visits with an unstructured
+covariance across visits. It imputes nothing and is valid under
+MAR; the standard primary analysis for a repeated continuous
+outcome in a trial. See @sec-missing-trials.
+
+[**Multiple imputation.**]{#gloss-multiple-imputation} Generating
+several completed datasets, fitting the model in each, and
+pooling. The between-dataset variation is the uncertainty single
+imputation discards. See @sec-missing-mi.
+
+[**Rubin's rules.**]{#gloss-rubins-rules} The formulas combining
+within- and between-imputation variance into one standard error.
+See @sec-missing-mi.
+
+[**Tipping-point analysis.**]{#gloss-tipping-point-analysis} A
+sensitivity analysis that increases a delta adjustment until the
+conclusion changes, and asks whether that departure from MAR is
+clinically plausible. With a shift per arm, the tipping point is
+a boundary in two dimensions. See @sec-missing-trials.
+
+## Trials and analysis plans
+
+[**Analysis set.**]{#gloss-analysis-set} The subjects an analysis
+includes, such as the intention-to-treat (full analysis) set or
+the per-protocol set. Pre-specified in the SAP and implemented as
+ADSL flags. See @sec-cdisc-adam.
+
+[**CONSORT.**]{#gloss-consort} Consolidated Standards of Reporting
+Trials, the reporting guideline for randomized trials. Its flow
+diagram reports every exclusion and loss with a count. See
+@sec-missing-further.
+
+[**Data lock and unblinding.**]{#gloss-data-lock} The point after
+which the dataset does not change and treatment assignment
+becomes known. Everything pre-specified before it carries the
+study's inferential authority. See @sec-analysis-plan.
+
+[**Estimand.**]{#gloss-estimand} A precise statement of what is
+being estimated, given by the five ICH E9(R1) attributes:
+population, treatment conditions, variable, intercurrent events
+with their strategies, and population-level summary. See
+@sec-analysis-plan-estimands.
+
+[**Intercurrent event.**]{#gloss-intercurrent-event} An event
+after treatment starts that changes the interpretation or the
+existence of the outcome, such as nonadherence or death. Each
+needs a stated strategy (treatment policy, composite,
+hypothetical, while on treatment, or principal stratum). See
+@sec-analysis-plan-estimands.
+
+[**Minimum clinically important difference
+(MCID).**]{#gloss-mcid} The smallest effect that would matter to
+patients or clinicians, fixed in the SAP. An interval is read
+against both zero and the MCID to say what it rules out. See
+@sec-communicating-null.
+
+[**SAP.**]{#gloss-sap} Statistical analysis plan. Drafted without
+data access, tagged in version control, and amended only with a
+dated new version. See @sec-analysis-plan.
 
 ## Clinical data standards
 
-**CRF.** Case report form, the instrument by which site staff
-record data. See @sec-cdisc.
+[**ADaM.**]{#gloss-adam} Analysis Data Model, the analysis-ready
+layer the statistician builds from SDTM, each value traceable
+back to it. See @sec-cdisc-adam.
 
-**SDTM.** Study Data Tabulation Model, the CDISC standard for
-collected data, one row per observation. Immutable once locked;
-the statistician reads it and does not edit it. See @sec-cdisc.
+[**ADSL, ADTTE, ADAE.**]{#gloss-adsl} The subject-level,
+time-to-event, and adverse-event ADaM datasets. See
+@sec-cdisc-worked.
 
-**ADaM.** Analysis Data Model, the analysis-ready layer the
-statistician builds from SDTM, each value traceable back to it.
+[**CRF.**]{#gloss-crf} Case report form, the instrument by which
+site staff record data. See @sec-cdisc.
 
-**ADSL, ADTTE, ADAE.** The subject-level, time-to-event, and
-adverse-event ADaM datasets.
+[**Define-XML, aCRF, SDRG, ADRG.**]{#gloss-define-xml} The
+metadata and documentation accompanying a submission: the
+machine-readable data definition, the annotated CRF, and the
+study and analysis data reviewer's guides.
 
-**TLF.** Tables, listings, and figures: the outputs of the
-statistical analysis, assembled into the clinical study report.
+[**Domain.**]{#gloss-domain} An SDTM dataset on one topic, such as
+`DM` (demographics), `AE` (adverse events), or `LB` (laboratory
+results). See @sec-cdisc-sdtm.
 
-**Define-XML, aCRF, SDRG, ADRG.** The metadata and documentation
-accompanying a submission: the machine-readable data definition,
-the annotated CRF, and the study and analysis data reviewer's
-guides.
+[**Double programming.**]{#gloss-double-programming} Industry's
+standard validation: a second programmer derives the same output
+independently from the specification, and the two are compared
+value by value. See @sec-cdisc-industry.
 
-**Transport file (XPT).** The SAS transport format, version 5,
-required for regulatory submission and the durable interchange
-format between R and SAS. Each crossing can truncate variable
-names and lose labels, so each deserves a check. See @sec-sas.
+[**Pharmaverse.**]{#gloss-pharmaverse} A cross-company collection
+of R packages for the clinical reporting pipeline, among them
+`admiral`, `metacore`, `metatools`, and `xportr`. See
+@sec-cdisc-industry.
 
-**Data lock and unblinding.** The point after which the dataset
-does not change and treatment assignment becomes known.
-Everything pre-specified before it carries the study's
-inferential authority. See @sec-analysis-plan.
+[**SDTM.**]{#gloss-sdtm} Study Data Tabulation Model, the CDISC
+standard for collected data, one row per observation. Immutable
+once locked; the statistician reads it and does not edit it. See
+@sec-cdisc-sdtm.
 
-**Estimand.** A precise statement of what is being estimated,
-including the population, endpoint, and handling of intercurrent
-events.
+[**TLF.**]{#gloss-tlf} Tables, listings, and figures: the outputs
+of the statistical analysis, assembled into the clinical study
+report. See @sec-cdisc-industry.
 
-**SAP.** Statistical analysis plan. Drafted without data access,
-tagged in version control, and amended only with a dated new
-version. See @sec-analysis-plan.
+[**Transport file (XPT).**]{#gloss-transport-file} The SAS
+transport format, version 5, required for regulatory submission
+and the durable interchange format between R and SAS. Each
+crossing can truncate variable names and lose labels, so each
+deserves a check. See @sec-sas.
 
-## Privacy
+## Prediction and inference
 
-**PHI.** Protected health information, the eighteen identifier
-categories under the HIPAA Privacy Rule. See
+[**AUC.**]{#gloss-auc} Area under the receiver operating
+characteristic curve: the probability that a randomly chosen
+case receives a higher predicted risk than a randomly chosen
+non-case. A measure of discrimination, reported with an interval.
+See @sec-adni-model.
+
+[**Cross-validation.**]{#gloss-cross-validation} Estimating
+out-of-sample performance by repeatedly fitting on part of the
+data and evaluating on the held-out rest. When a participant
+contributes several rows, folds must be assigned by participant.
+See @sec-adni-model.
+
+[**Data leakage.**]{#gloss-data-leakage} Information from the
+evaluation data reaching the model during fitting, for example
+the same participant in training and test folds. It makes
+performance look better than any new data will confirm. See
+@sec-adni-model.
+
+[**MCI.**]{#gloss-mci} Mild cognitive impairment, a heterogeneous
+state between normal cognition and dementia; the ADNI case study
+predicts conversion from MCI to Alzheimer's disease. See
+@sec-adni-question.
+
+[**Target trial.**]{#gloss-target-trial} The hypothetical
+randomized trial that would answer a causal question. Target-trial
+emulation designs an observational analysis to mimic it, above
+all by aligning eligibility, assignment, and the start of
+follow-up. See @sec-ethics-causal.
+
+## Privacy and data governance
+
+[**Data use agreement (DUA).**]{#gloss-dua} A contract under which
+data are received, commonly forbidding re-identification,
+contact, and redistribution. Its terms bind even after
+de-identification. See @sec-deident-obligations and
+@sec-adni-dua.
+
+[**Date shifting.**]{#gloss-date-shifting} Offsetting every date
+for a patient by a constant, preserving within-patient intervals
+while destroying calendar time. See @sec-deident-transformations.
+
+[**Expert Determination.**]{#gloss-expert-determination} The HIPAA
+de-identification method in which a qualified expert certifies,
+using accepted methods, that the risk of re-identification is very
+small. More flexible than Safe Harbor and more involved. See
+@sec-deident-pathways.
+
+[**HIPAA.**]{#gloss-hipaa} The Health Insurance Portability and
+Accountability Act. Its Privacy Rule governs protected health
+information and defines the de-identification pathways. See
 @sec-deident.
 
-**Safe Harbor.** The de-identification method that removes those
-eighteen categories. The result is de-identified, not anonymous.
+[**IRB.**]{#gloss-irb} Institutional review board, the committee
+that approves and oversees research with human subjects. Its
+protocol, with any DUA, decides whether an analysis may start.
+See @sec-team-science-intake.
 
-**Quasi-identifier.** A field that is not an identifier alone but
-becomes one in combination, such as ZIP code with date of birth
-and sex.
+[**k-anonymity.**]{#gloss-k-anonymity} The property that every
+combination of quasi-identifier values in a dataset is shared by
+at least $k$ records. Achieved by generalizing and suppressing;
+refinements such as l-diversity address weaknesses it leaves.
+See @sec-deident-risk.
 
-**Date shifting.** Offsetting every date for a patient by a
-constant, preserving within-patient intervals while destroying
-calendar time.
+[**Limited data set.**]{#gloss-limited-data-set} Data with the
+direct identifiers removed but dates, city, state, and ZIP code
+kept. It is still PHI and may be disclosed for research only
+under a DUA. See @sec-deident-pathways.
+
+[**PHI.**]{#gloss-phi} Protected health information: individually
+identifiable health information held by a covered entity, as
+defined by the HIPAA Privacy Rule. See @sec-deident.
+
+[**Quasi-identifier.**]{#gloss-quasi-identifier} A field that is
+not an identifier alone but becomes one in combination, such as
+ZIP code with date of birth and sex. See @sec-deident.
+
+[**Safe Harbor.**]{#gloss-safe-harbor} The HIPAA de-identification
+method that removes eighteen specified categories of identifier,
+with no actual knowledge that the rest could identify anyone. The
+result is de-identified, not anonymous. See @sec-deident-pathways.
+
+## Research ethics
+
+[**Aggregation harm.**]{#gloss-aggregation-harm} Harm from
+assembling individually innocuous disclosures into a whole that
+exposes people, the ethical counterpart of quasi-identifiers. See
+@sec-ethics-aggregation.
+
+[**HARKing.**]{#gloss-harking} Hypothesizing after the results are
+known: presenting a hypothesis formed from the data as if it had
+been stated in advance. A questionable research practice that a
+tagged analysis plan prevents. See @sec-ethics-standards.
+
+[**Overlapping-interval
+fallacy.**]{#gloss-overlapping-interval-fallacy} Concluding that
+two groups do not differ because their confidence intervals
+overlap. The interval for the difference is narrower than the
+two intervals suggest and can exclude zero. See
+@sec-ethics-overlap.
+
+[**Questionable research practices
+(QRPs).**]{#gloss-questionable-research-practices} Practices
+between misconduct and good practice, such as HARKing,
+undisclosed analytic flexibility, and selective reporting. Rarely
+fraud and frequently decisive. See @sec-ethics-standards.
+
+[**Research misconduct.**]{#gloss-research-misconduct} Under the
+federal definition, fabrication, falsification, or plagiarism in
+proposing, performing, reviewing, or reporting research.
+Omitting data without disclosure is falsification. See
+@sec-ethics-standards.
 
 ## Testing
 
-**Unit test.** A test of one function on known input. Fast,
-narrow, and catches helper bugs. See @sec-testing.
+[**End-to-end test.**]{#gloss-end-to-end-test} A test running raw
+data through to final outputs. Slow, broad, and the last line of
+defense.
 
-**Integration test.** A test running the whole pipeline on a small
-synthetic dataset. Catches composition bugs and silent filter and
-join errors, and has the best cost-benefit ratio for analysis
-code.
+[**Integration test.**]{#gloss-integration-test} A test running
+the whole pipeline on a small synthetic dataset. Catches
+composition bugs and silent filter and join errors, and has the
+best cost-benefit ratio for analysis code.
 
-**End-to-end test.** A test running raw data through to final
-outputs. Slow, broad, and the last line of defense.
+[**Mutation testing.**]{#gloss-mutation-testing} Planting
+deliberate bugs (mutants) to see whether the test suite fails on
+them. The share of mutants killed measures how much the suite can
+see. See @sec-testing-worked.
 
-**Snapshot test.** A test comparing output against a recorded
-version, which detects change without asserting correctness.
+[**Snapshot test.**]{#gloss-snapshot-test} A test comparing output
+against a recorded version, which detects change without
+asserting correctness.
 
-**Structural versus correctness assertion.** Checking that a
-result has the right shape, against checking that it holds the
-right values. Only the second is a correctness test.
+[**Structural versus correctness
+assertion.**]{#gloss-structural-correctness-assertion} Checking
+that a result has the right shape, against checking that it holds
+the right values. Only the second is a correctness test. See
+@sec-testing-correctness.
 
-**Tautological test.** A test that passes regardless of whether
-the code is right, such as comparing a function's output to
-itself.
+[**Tautological test.**]{#gloss-tautological-test} A test that
+passes regardless of whether the code is right, such as comparing
+a function's output to itself. See @sec-testing-smells.
+
+[**Unit test.**]{#gloss-unit-test} A test of one function on known
+input. Fast, narrow, and catches helper bugs. See @sec-testing.
+
+## AI-assisted coding
+
+[**Prompt injection.**]{#gloss-prompt-injection} Text in a file,
+web page, or README that an agent reads, written to instruct the
+model. The agent cannot reliably tell it from your instructions,
+so what it reads is untrusted. See @sec-ai-governance.
+
+[**Slopsquatting.**]{#gloss-slopsquatting} Registering a package
+name that models hallucinate, with malicious code, so that an
+unchecked install runs it. Confirm a package exists before
+installing it. See @sec-ai-governance.
 
 ## Graphics
 
-**Aesthetic mapping.** The assignment of a variable to a visual
-property such as position, color, or shape. The grammar of
-graphics requires the variable to be a column, which is why
-plotting usually wants long format. See @sec-graphics.
+[**Aesthetic mapping.**]{#gloss-aesthetic-mapping} The assignment
+of a variable to a visual property such as position, color, or
+shape. The grammar of graphics requires the variable to be a
+column, which is why plotting usually wants long format. See
+@sec-graphics.
 
-**Faceting.** Splitting one plot into small multiples by a
-grouping variable.
+[**Alt text.**]{#gloss-alt-text} A short description of what a
+figure shows, read by screen readers. Required for informative
+images; decorative images take an empty description instead.
 
-**Truncated axis.** A y-axis not beginning at zero, which
-exaggerates a difference without containing a false number. See
-@sec-ethics.
+[**Faceting.**]{#gloss-faceting} Splitting one plot into small
+multiples by a grouping variable. See @sec-graphics.
 
-**Alt text.** A short description of what a figure shows, read by
-screen readers. Required for informative images; decorative
-images take an empty description instead.
+[**Truncated axis.**]{#gloss-truncated-axis} A y-axis not
+beginning at zero, which exaggerates a difference without
+containing a false number. See @sec-ethics-visual.
 
 ## Pipelines
 
-**DAG.** Directed acyclic graph, the dependency structure of a
-pipeline. Editing one node makes everything downstream stale and
-nothing upstream. See @sec-targets.
+[**DAG.**]{#gloss-dag} Directed acyclic graph. In a pipeline, the
+dependency structure: editing one node makes everything
+downstream stale and nothing upstream (@sec-targets-dag). In
+causal inference, a diagram of assumed causal structure from
+which an adjustment set is read (@sec-ethics-causal).
 
-**Target.** One node of a `targets` pipeline: a named object with
-declared dependencies, rebuilt only when those change.
+[**Makefile.**]{#gloss-makefile} The file read by `make`, listing
+named targets and the commands that build them. A `zzcollab`
+project's `Makefile` wraps the routine Docker and render
+commands. See @sec-zzcollab-optional.
+
+[**Target.**]{#gloss-target} One node of a `targets` pipeline: a
+named object with declared dependencies, rebuilt only when those
+change. See @sec-targets.
 
 ## Open publishing
 
-**Open educational resource (OER).** A teaching work licensed to
-permit reuse, revision, and redistribution. Licenses forbidding
-derivative works do not qualify.
+[**CC BY.**]{#gloss-cc-by} The Creative Commons Attribution
+license, permitting adaptation and commercial use with credit.
+The standard recommendation for open textbooks.
 
-**CC BY.** The Creative Commons Attribution license, permitting
-adaptation and commercial use with credit. The standard
-recommendation for open textbooks.
+[**dbGaP.**]{#gloss-dbgap} The NIH Database of Genotypes and
+Phenotypes, a controlled-access repository for studies that pair
+genotype with phenotype. The wrong home for general clinical
+data. See @sec-federal-repository.
 
-**DOI.** Digital object identifier, a permanent citable handle
-for a deposited artifact. See @sec-federal.
+[**Deposition.**]{#gloss-deposition} Placing data or code in a
+repository that guarantees persistence, as distinct from hosting
+it on a personal page or a lab server. See @sec-federal.
 
-**Deposition.** Placing data or code in a repository that
-guarantees persistence, as distinct from hosting it on a personal
-page or a lab server.
+[**DMSP.**]{#gloss-dmsp} Data Management and Sharing Plan, required
+by NIH with each application that will generate scientific data
+and approved as a term of the award. It states what will be
+shared, where, and when. See @sec-federal-dmsp.
+
+[**DOI.**]{#gloss-doi} Digital object identifier, a permanent
+citable handle for a deposited artifact. See @sec-federal.
+
+[**Open educational resource (OER).**]{#gloss-oer} A teaching work
+licensed to permit reuse, revision, and redistribution. Licenses
+forbidding derivative works do not qualify.

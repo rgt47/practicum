@@ -1,0 +1,24 @@
+# Your Toolkit
+
+This part asks what you work with every day and how you keep a
+history of that work. It belongs to the first quarter, and every
+later chapter assumes it: the commands, the editor, and the version
+history introduced here are used without further explanation from
+Part III onward.
+
+- @sec-shell teaches the Unix shell: moving around the filesystem,
+  inspecting a raw file before R reads it, and composing pipelines.
+- @sec-workstation installs R, an IDE, Quarto, and Git, and verifies
+  the machine with a checklist.
+- @sec-git-solo introduces Git and GitHub for a single analyst who
+  wants a recoverable history.
+- @sec-git-teams extends that history to a team: branches, pull
+  requests, review, and conflicts.
+- @sec-ai-coding sets out how to prompt language models and coding
+  agents, how to check what they produce, and what may be sent to
+  them, before you rely on them in the chapters that follow.
+
+If the quiz at the start of a chapter is easy, skip to the next. A
+reader who already uses Git daily may move quickly through
+@sec-git-solo, but should still read @sec-ai-governance before
+sending any project file to a model.

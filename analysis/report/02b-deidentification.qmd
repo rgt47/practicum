@@ -107,7 +107,7 @@ that remain, as the Weld records were.
 
 ### Quasi-identifiers
 
-A **quasi-identifier** is a variable that identifies no one alone
+A [**quasi-identifier**](F-glossary.qmd#gloss-quasi-identifier) is a variable that identifies no one alone
 but contributes to identification in combination: age, sex, ZIP
 code, admission date, occupation, a rare diagnosis. Sweeney
 estimated from 1990 census data that 87% of the United States
@@ -164,7 +164,7 @@ is the authoritative statement of both. A third pathway, the
 limited data set, does not de-identify the data at all, and it is
 the one a biostatistician meets most often.
 
-**Safe Harbor** (45 CFR 164.514(b)(2), in Title 45 of the Code of
+[**Safe Harbor**](F-glossary.qmd#gloss-safe-harbor) (45 CFR 164.514(b)(2), in Title 45 of the Code of
 Federal Regulations) removes eighteen specified
 categories of identifier and adds one condition: the covered
 entity must have no actual knowledge that the remaining
@@ -175,7 +175,7 @@ may remove information the analysis needs, and it does not
 certify that re-identification is impossible, only that the
 eighteen categories are gone.
 
-**Expert Determination** (164.514(b)(1)) engages a qualified
+[**Expert Determination**](F-glossary.qmd#gloss-expert-determination) (164.514(b)(1)) engages a qualified
 statistician to certify, using accepted methods, that the risk of
 re-identification is very small. It is more flexible and can
 retain more analytic detail, but it requires documented
@@ -185,7 +185,7 @@ that keep detail Safe Harbor forbids, such as per-patient date
 shifting, belong here: they are defensible only when an expert
 has assessed the risk of the data as released.
 
-A **limited data set** (45 CFR 164.514(e)) removes the direct
+A [**limited data set**](F-glossary.qmd#gloss-limited-data-set) (45 CFR 164.514(e)) removes the direct
 identifiers (names, street address, contact numbers, medical
 record and other account numbers, and the like) but may keep
 dates, city, state, and five-digit ZIP code. It is still

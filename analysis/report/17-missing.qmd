@@ -159,16 +159,16 @@ reasons.
 
 - A case report form (CRF) is lost in the mail. Nothing about the
   patient or the measurement made the loss more likely. This is
-  *missing completely at random* (**MCAR**).
+  *missing completely at random* ([**MCAR**](F-glossary.qmd#gloss-mcar-mar-mnar)).
 - An older patient misses the visit, as older patients in the trial
   often do. Among patients of the same age, those who miss the visit
   fare no differently from those who attend. Missingness depends
   only on something recorded, so this is *missing at random*
-  (**MAR**).
+  ([**MAR**](F-glossary.qmd#gloss-mcar-mar-mnar)).
 - A patient whose symptoms worsened stops coming, and the absence is
   itself the bad news. Even among patients alike on everything
   recorded, missingness depends on the value that was not seen. This
-  is *missing not at random* (**MNAR**).
+  is *missing not at random* ([**MNAR**](F-glossary.qmd#gloss-mcar-mar-mnar)).
 
 The HF-HOME patients who moved out of state sit in the second story
 if moving is unrelated to how they fared; they move to the third if,
@@ -721,7 +721,7 @@ own coefficient, both remain antipatterns.
 
 ### Carrying values forward, and regression without noise
 
-**Last observation carried forward (LOCF)** assumes that a patient
+[**Last observation carried forward (LOCF)**](F-glossary.qmd#gloss-locf) assumes that a patient
 who drops out stays at the last observed value, which is
 biologically implausible for most diseases. The National Research
 Council report on missing data in trials recommends against single
@@ -961,7 +961,7 @@ conclusion against departures from it.
 ### Repeated continuous outcomes: the mixed model
 
 For a continuous outcome measured at several visits, the standard
-primary analysis is a mixed model for repeated measures (**MMRM**):
+primary analysis is a mixed model for repeated measures ([**MMRM**](F-glossary.qmd#gloss-mmrm)):
 a likelihood analysis of all observed visits, with arm, visit, their
 interaction, and baseline covariates as fixed effects, and an
 unstructured covariance across visits. It imputes nothing. Patients
@@ -1046,7 +1046,7 @@ imp_delta <- mice(trial, m = 25, post = post, seed = 1,
                   printFlag = FALSE)
 ```
 
-A **tipping-point analysis** varies $\delta$ until the conclusion
+A [**tipping-point analysis**](F-glossary.qmd#gloss-tipping-point-analysis) varies $\delta$ until the conclusion
 changes, and asks whether that $\delta$ is clinically plausible.
 When each arm gets its own shift, the tipping point becomes a
 boundary in two dimensions, $(\delta_{\text{control}},
@@ -1393,11 +1393,11 @@ measure.
    MNAR, and biased when it does, which can happen under MAR.
    Because MAR cannot be tested against MNAR, sensitivity analysis
    is expected under any primary assumption.
-2. **Complete-case analysis** drops the ~12% of rows with missing
+2. [**Complete-case analysis**](F-glossary.qmd#gloss-complete-case-analysis) drops the ~12% of rows with missing
    data, reducing the effective sample size; its coefficient
    estimates are unbiased if missingness does not depend on the
    outcome given the covariates, whatever the mechanism label, and
-   biased if it does. **Mean imputation** replaces missing values
+   biased if it does. [**Mean imputation**](F-glossary.qmd#gloss-mean-imputation) replaces missing values
    with the sample mean. It understates the spread of the filled
    variable and can bias coefficients, but its standard errors are
    not reliably too narrow: for a missing predictor the filled rows
@@ -1405,7 +1405,7 @@ measure.
    shows its standard error is the widest of the three methods. It
    is wrong in either direction, except for a baseline covariate in
    a randomized trial, where it leaves the treatment effect
-   unbiased. **Multiple imputation** produces $M$ plausible
+   unbiased. [**Multiple imputation**](F-glossary.qmd#gloss-multiple-imputation) produces $M$ plausible
    completed datasets, fits the model on each, and pools with
    Rubin's rules; the pooled standard error correctly reflects both
    within- and between-imputation uncertainty.

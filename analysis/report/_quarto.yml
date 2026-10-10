@@ -35,13 +35,13 @@ book:
     - conventions.qmd
     - 00-intro.qmd
 
-    - part: 'Why and With Whom'
+    - part: part-1.qmd
       chapters:
         - 01-why.qmd
         - 03-team-science.qmd
         - 02b-deidentification.qmd
 
-    - part: 'Your Toolkit'
+    - part: part-2.qmd
       chapters:
         - 04b-shell.qmd
         - 04-workstation.qmd
@@ -49,7 +49,7 @@ book:
         - 05b-git-teams.qmd
         - 21-ai-coding.qmd
 
-    - part: 'Data in Hand'
+    - part: part-3.qmd
       chapters:
         - 12b-acquisition.qmd
         - 12c-apis.qmd
@@ -61,7 +61,7 @@ book:
         - 17-missing.qmd
         - 02c-deident-practice.qmd
 
-    - part: 'Documents and Environments'
+    - part: part-4.qmd
       chapters:
         - 11-quarto.qmd
         - 08-renv.qmd
@@ -70,17 +70,17 @@ book:
         - 10b-targets.qmd
         - 06-cloud.qmd
 
-    - part: 'Analysis Practice'
+    - part: part-5.qmd
       chapters:
         - 18-analysis-plan.qmd
         - 20-testing.qmd
 
-    - part: 'Industry'
+    - part: part-6.qmd
       chapters:
         - 19-cdisc.qmd
         - 22-sas.qmd
 
-    - part: 'Analysis to Audience'
+    - part: part-7.qmd
       chapters:
         - 23-penguins.qmd
         - 24-adni.qmd
@@ -88,7 +88,7 @@ book:
         - 25b-communicating.qmd
         - 25c-federal.qmd
 
-    - part: 'Capstone'
+    - part: part-8.qmd
       chapters:
         - 25-synthesis.qmd
 
@@ -102,6 +102,7 @@ book:
     - G-instructor-guide.qmd
     - H-tooling.qmd
     - I-rmd-migration.qmd
+    - J-cheat-sheets.qmd
     - credits.qmd
     - colophon.qmd
 
@@ -133,7 +134,7 @@ format:
   pdf:
     pdf-engine: xelatex
     documentclass: scrbook
-    classoption: [11pt]
+    classoption: [11pt, openany]
     callout-appearance: simple
     toc: true
     toc-depth: 2

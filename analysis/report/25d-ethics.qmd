@@ -197,7 +197,7 @@ the full text; the middle column is a summary, not a quotation.
 
 ### Misconduct and questionable practices
 
-**Research misconduct** has a federal definition: fabrication,
+[**Research misconduct**](F-glossary.qmd#gloss-research-misconduct) has a federal definition: fabrication,
 falsification, or plagiarism in proposing, performing, or reviewing
 research, or in reporting its results [@ostp2000misconduct].
 Fabrication is making up data or results; falsification is
@@ -211,7 +211,7 @@ estimate, without disclosure, is falsification, however it is
 labeled in the code.
 
 Between misconduct and good practice lies a wider band of
-**questionable research practices** (QRPs), which surveys of
+[**questionable research practices**](F-glossary.qmd#gloss-questionable-research-practices) (QRPs), which surveys of
 researchers find to be common [@john2012measuring]. They are rarely
 fraud and frequently decisive:
 
@@ -282,7 +282,7 @@ plan rather than a better model.
 
 ## Aggregation harm {#sec-ethics-aggregation}
 
-The OkCupid release is **aggregation harm**, the same phenomenon
+The OkCupid release is [**aggregation harm**](F-glossary.qmd#gloss-aggregation-harm), the same phenomenon
 that @sec-deident treats formally as quasi-identifiers, arriving
 from the other direction. There, no single ordinary variable
 identifies anyone but their conjunction can. Here, no single
@@ -452,7 +452,7 @@ openly, and let the verb in the conclusion match what the design
 and its stated assumptions support. Two tools make the assumptions
 explicit.
 
-A **directed acyclic graph** (DAG) draws the assumed causal
+A [**directed acyclic graph**](F-glossary.qmd#gloss-dag) (DAG) draws the assumed causal
 structure: nodes are variables, arrows are direct causal effects,
 and the adjustment set a design needs can be read off the graph
 [@greenland1999causal]. @fig-ethics-dag draws the exercise example.
@@ -482,7 +482,7 @@ flowchart LR
   H --> C
 ```
 
-**Target-trial emulation** asks what randomized trial you would run
+[**Target-trial emulation**](F-glossary.qmd#gloss-target-trial) asks what randomized trial you would run
 if you could, and then designs the observational analysis to
 emulate it, component by component: eligibility criteria, treatment
 strategies, assignment, the start and end of follow-up, the outcome,

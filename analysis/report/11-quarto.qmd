@@ -761,7 +761,7 @@ emailed and goes stale.
 ## Float placement in PDF {#sec-rmd-workflow-floats}
 
 The frustration: you cite a figure in your prose and it appears
-two pages later. LaTeX treats figures and tables as **floats**
+two pages later. LaTeX treats figures and tables as [**floats**](F-glossary.qmd#gloss-float)
 and moves them to avoid awkward white space and bad page breaks.
 For a paper, let it; readers expect floating figures. For a report
 meant to be read top to bottom, force placement where the figure
