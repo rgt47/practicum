@@ -1,0 +1,17 @@
+# Analysis Practice
+
+This part asks how you show that an analysis was planned in advance
+and that the code computes what it claims. It belongs to the second
+quarter. The previous part made the analysis rebuildable; this one
+makes it defensible, which is a different property: an analysis can
+rebuild perfectly and still answer a question nobody specified.
+
+- @sec-analysis-plan states the estimand, writes the statistical
+  analysis plan and the data management and sharing plan, and uses
+  a Git tag to show that the plan preceded the data.
+- @sec-testing writes `tinytest` tests that assert values rather
+  than shapes, and runs them on every push with GitHub Actions.
+
+If the quiz at the start of a chapter is easy, skip to the next.
+Both chapters are on the one-quarter core path, and the case
+studies in Part VII and the capstone assume them.

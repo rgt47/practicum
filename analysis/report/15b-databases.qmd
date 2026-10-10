@@ -1,5 +1,19 @@
 # Databases and SQL for Biostatisticians {#sec-databases}
 
+Your principal investigator (PI) hands you warehouse credentials,
+not a CSV file. The data you need sit in an institutional
+database, behind a login, and you reach them by writing a query.
+The query runs, returns a tidy table, and gives no sign of what
+it did wrong: a join that silently dropped a patient with no
+match, or one that counted a duplicated laboratory row twice, or
+a filter built by pasting text into SQL that returned every
+patient instead of one. The database does not warn you about any
+of these. The habits of @sec-joins, a stated row count checked
+against the actual one, apply here unchanged, and this chapter
+adds the two that are specific to databases: parameterized
+queries, and a dated extract that records what the warehouse
+returned on the day you asked.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
@@ -12,291 +26,713 @@
 ```
 :::
 
-::: {.callout-note}
-## Why this chapter exists
+```{r}
+#| label: databases-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-Clinical data rarely arrive as a tidy CSV. They live in a
-REDCap project, an institutional data warehouse, or an
-electronic health record extract, and the biostatistician
-reaches them through a query rather than a file. The
-survey of peer programs (@sec-peer-survey) found
-relational databases and SQL taught as a core skill in
-several of the comparison courses, among them Berkeley
-STAT 243 [@berkeley-stat243-2024], UNC BIOS 735
-[@unc-bios735-2024], Michigan [@umich-biostat615-2024],
-Minnesota [@umn-biostat-2024], and the Johns Hopkins
-statistical-computing sequence [@hopkins-biostat776-2024],
-as well as in both Software and Data Carpentry. This
-chapter brings the Practicum to parity.
+```{r}
+#| label: fig-databases-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: querying a database is part of
+#|   the Acquire stage, which brings raw data into the project and
+#|   records how they were obtained."
+#| fig-alt: !expr pipeline_alt('acquire')
+pipeline_diagram('acquire')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 30 minutes.
+
+**You'll need.** @sec-joins for join cardinality and the join
+checklist, and @sec-acquisition for the raw-data rule. The code
+uses:
+
+```r
+library(DBI)
+library(RSQLite)
+library(dplyr)
+library(dbplyr)
+library(glue)
+```
+
+The DuckDB and Parquet subsection also uses `duckdb` and `arrow`,
+and runs only if both are installed.
+
+**You'll be able to.**
+
+- Load tables into a database from R and query them with SQL and
+  with `dbplyr`, and state where each step of the query runs.
+- Audit keys in SQL for duplicates and orphans before a join, and
+  predict the row count of the join.
+- Write parameterized queries, and explain how a pasted query
+  string returns the wrong rows without an error.
+- Extract an analytic dataset as a dated file with its query and
+  checksum, so that the extract is reproducible.
+
+**Outline.**
+
+- [Connecting to a database](#sec-databases-connect)
+- [Querying with SQL and dbplyr](#sec-databases-query)
+- [Joins in SQL fail as joins in R do](#sec-databases-joins)
+- [Parameterized queries](#sec-databases-params)
+- [When to push and when to pull](#sec-databases-push)
+- [Worked example: a reproducible extract](#sec-databases-worked)
 :::
 
-## Prerequisites
-
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-15b.
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-15b.
 
 1. What is the difference between querying a table with
-   `DBI::dbGetQuery()` and reading a whole table into
-   memory with `dbReadTable()`, and why does the
-   distinction matter for a ten-million-row table?
-2. In the `dbplyr` model of database access, what does a
-   pipeline of `dplyr` verbs actually do before you call
-   `collect()`, and where does the computation happen?
-3. Why is it preferable, for reproducibility, to record
-   the SQL query that produced an analytic dataset rather
-   than to save the extracted CSV alone?
+   `DBI::dbGetQuery()` and reading a whole table into memory with
+   `dbReadTable()`, and why does the distinction matter for a
+   ten-million-row table?
+2. In the `dbplyr` model of database access, what does a pipeline
+   of `dplyr` verbs actually do before you call `collect()`, and
+   where does the computation happen?
+3. Why is it preferable, for reproducibility, to record the SQL
+   query that produced an analytic dataset rather than to save the
+   extracted CSV alone?
+:::
 
-## Learning objectives
+## Connecting to a database {#sec-databases-connect}
 
-By the end of this chapter you should be able to:
+Clinical data rarely arrive as a file. They live in a REDCap
+(Research Electronic Data Capture) project, an institutional data
+warehouse, or an extract of the electronic health record (EHR),
+and they are usually too large, too sensitive, or too frequently
+updated to be handed around as flat files. Querying at the source
+has three advantages: you pull only the rows and columns you need,
+you leave the authoritative copy untouched, and the query itself
+records how your analytic dataset was derived. This chapter
+teaches the subset of SQL (Structured Query Language) and of the
+R tooling that covers those needs; schema design, indexing, and
+transactions belong to a database text and to your
+data-engineering colleagues. The generic tour of `DBI` and
+`dbplyr` is in R for Data Science [@wickham2023r4ds, ch. 21].
 
-- Connect to a database from R with `DBI` and an
-  appropriate backend driver (`RSQLite`, `duckdb`,
-  `RPostgres`).
-- Write basic `SELECT` queries with filtering, joining,
-  grouping, and aggregation.
-- Express the same query with `dbplyr` using familiar
-  `dplyr` verbs, and inspect the SQL it generates.
-- Distinguish lazy from eager evaluation and use
-  `collect()` deliberately.
-- Reason about when to push work to the database and when
-  to pull data into R.
+### A database built from the running study
 
-## Orientation
+The `DBI` package (database interface) defines one set of
+functions for every database; a driver package supplies the
+connection to a particular engine. For teaching, `RSQLite` gives a
+complete SQL database in memory, with no server to configure. The
+same code works against PostgreSQL (`RPostgres`), DuckDB
+(`duckdb`), or SQL Server (`odbc`) by changing only the
+`dbConnect()` line.
 
-A database is a store that lets many users query structured
-data efficiently and safely. For the biostatistician, the
-practical point is that the data are usually too large, too
-sensitive, or too frequently updated to be handed around as
-flat files. Querying at the source has, we would note, three
-advantages: you pull only the rows and columns you need, you
-leave the authoritative copy untouched, and you record, in the
-query itself, exactly how your analytic dataset was derived.
-
-This chapter is not a database course. It teaches the subset
-of SQL and the `DBI`/`dbplyr` tooling that covers the
-recurring needs of applied biostatistics: connect, filter,
-join, aggregate, and extract. The deeper matters of schema
-design, indexing, and transaction management belong to a
-database text, and to your data-engineering colleagues.
-
-## The statistician's contribution {#sec-databases-human}
-
-The core of SQL is small enough to learn in a day. What
-matters more is where you draw the line between the
-database's work and R's:
-
-**Query at the source, extract deliberately.** The
-temptation is to pull the whole table into R and work
-there, because R is where you are comfortable. On a small
-table this is harmless. On a large one it is slow,
-memory-hungry, and it obscures the derivation. Push the
-filtering and aggregation to the database; pull only the
-analytic dataset.
-
-**The query is the provenance.** A CSV named
-`analytic_data_final_v3.csv` records nothing about how it
-was made. The SQL that produced it records everything.
-Keep the query in the compendium, under version control,
-and treat the extracted file as a build product in the
-manner of @sec-wrangling's raw-data rule.
-
-**Beware the silent row multiplication.** A join in SQL
-inflates rows exactly as a join in `dplyr` does, and the
-database will not warn you. The verification habit from
-@sec-joins, count the rows and check against
-expectation, applies with equal force here.
-
-**Respect the boundary between analyst and warehouse.**
-You usually have read-only access to an institutional
-warehouse, and that is correct. You are a consumer of the
-data, not its custodian. Do not write back; extract, and
-do your derivations in your own space.
-
-These judgments are what make database-backed analysis
-reproducible and safe.
-
-## Connecting with DBI
-
-The `DBI` package provides a backend-independent interface;
-a driver package supplies the connection to a specific
-database engine. For teaching we use `RSQLite`, which
-gives a complete SQL database in a single file or in
-memory, with no server to configure. The same code works
-against PostgreSQL (`RPostgres`), DuckDB (`duckdb`), or
-SQL Server (`odbc`) by changing only the `dbConnect` line.
-
-To make the example self-contained, we create an in-memory
-database and populate it with a tiny clinical schema: a
-one-row-per-patient demographics table and a
-one-row-per-visit table of blood-pressure measurements.
+The chunk below loads four HF-HOME tables into an in-memory
+database: one row per patient in `randomization` and `outcomes`,
+one row per contact in `visits`, and one row per visit and test in
+`labs`. The tables are read with `patient_id` as character, so
+that the leading zeros survive the trip into the database.
 
 ```{r}
 #| label: db-setup
 #| message: false
 library(DBI)
-library(RSQLite)
 library(dplyr)
 library(dbplyr)
 
-con <- dbConnect(RSQLite::SQLite(), ":memory:")
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+read_hf <- function(file) {
+  readr::read_csv(file.path(hf_dir, file),
+                  col_types = readr::cols(patient_id = "c",
+                                          .default = "?"))
+}
 
-demographics <- data.frame(
-  patient_id = 1:5,
-  age        = c(64, 71, 58, 66, 73),
-  arm        = c("Active", "Placebo", "Active", "Placebo", "Active")
-)
+con <- dbConnect(RSQLite::SQLite(), ":memory:",
+                 extended_types = TRUE)
 
-visits <- data.frame(
-  patient_id = c(1, 1, 2, 3, 3, 3, 4, 5),
-  visit      = c(1, 2, 1, 1, 2, 3, 1, 1),
-  sbp        = c(140, 138, 150, 145, 143, 141, 139, 152)
-)
-
-dbWriteTable(con, "demographics", demographics)
-dbWriteTable(con, "visits", visits)
+dbWriteTable(con, "randomization", read_hf("randomization.csv"))
+dbWriteTable(con, "outcomes", read_hf("outcomes.csv"))
+dbWriteTable(con, "visits", read_hf("visits.csv"))
+dbWriteTable(con, "labs", read_hf("labs.csv"))
 
 dbListTables(con)
 ```
 
-In a real setting the `dbConnect` call would name a
-server, a database, and credentials, ideally drawn from an
-environment variable or a `config` file rather than
-written into the script:
+`extended_types = TRUE` makes `RSQLite` store and return dates as
+`Date` values; without it, a date column comes back as a number of
+days.
+
+### Credentials and the warehouse boundary
+
+Against a real warehouse, the `dbConnect()` call names a server, a
+database, and an account. The credentials never appear in the
+script (display-only; the server is hypothetical):
 
 ```r
 con <- dbConnect(
   RPostgres::Postgres(),
   host     = "warehouse.example.edu",
   dbname   = "clinical",
-  user     = Sys.getenv("DB_USER"),
-  password = Sys.getenv("DB_PASS")
+  user     = Sys.getenv("WAREHOUSE_USER"),
+  password = keyring::key_get("warehouse",
+                              Sys.getenv("WAREHOUSE_USER"))
 )
 ```
 
-## Querying with SQL
+`keyring` stores the password in the operating system's credential
+store, and `Sys.getenv()` reads the user name from `.Renviron`,
+which stays out of Git. Where your institution offers single
+sign-on (SSO) or Kerberos authentication to the warehouse, prefer
+it, because then no password exists in your files at all.
 
-The `SELECT` statement is the workhorse. It names the
-columns, the source table, and optional filtering,
-joining, grouping, and ordering. Here we ask for the mean
-systolic blood pressure and the number of visits per
-treatment arm, joining the two tables on `patient_id`.
+You usually have read-only access to a warehouse, and that is
+correct: you are a consumer of the data, not its custodian. Do not
+write back. Extract, and do your derivations in your own project.
+
+::: {.callout-warning title='Pitfall'}
+**A password typed into a script is published by the next
+commit.** Removing it in a later commit does not remove it from
+the repository's history, and a pushed history may already have
+been cloned. Treat any credential that reached Git as compromised:
+ask for it to be rotated, then fix the script.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague's script begins
+`dbConnect(..., password = "Spring2026!")`. The repository is
+private. What do you recommend, and why is 'it is private' not
+enough?
+
+**Answer.** Move the password to the operating system's credential
+store with `keyring`, or to SSO if the warehouse supports it, and
+have the password rotated. A private repository is readable by
+every collaborator, every clone, every backup, and anyone who is
+later given access; the history keeps the password after the line
+is deleted. The fix is not complete until the old password no
+longer works.
+:::
+
+## Querying with SQL and dbplyr {#sec-databases-query}
+
+### A first `SELECT`
+
+A `SELECT` statement names the columns, the source tables, and
+optional filtering, joining, grouping, and ordering. The query
+below counts patients and 30-day events by arm.
 
 ```{r}
 #| label: db-sql
 dbGetQuery(con, "
-  SELECT d.arm,
-         COUNT(*)     AS n_visits,
-         AVG(v.sbp)   AS mean_sbp
-  FROM visits AS v
-  JOIN demographics AS d
-    ON v.patient_id = d.patient_id
-  GROUP BY d.arm
+  SELECT r.arm,
+         COUNT(*)           AS n_randomized,
+         SUM(o.ascertained) AS n_ascertained,
+         SUM(o.event_30d)   AS n_events,
+         AVG(o.event_30d)   AS risk
+  FROM randomization AS r
+  JOIN outcomes AS o
+    ON r.patient_id = o.patient_id
+  GROUP BY r.arm
 ")
 ```
 
-The clauses read in the order the database applies them:
-`FROM` and `JOIN` assemble the rows, `WHERE` (absent here)
-filters them, `GROUP BY` partitions them, the aggregate
-functions summarize each partition, and `SELECT` names
-what comes back. `dbGetQuery()` returns the result as an
-ordinary data frame, which is what you want for a small
-summary. For a large intermediate result you would not use
-it, for the reason discussed next.
+The clauses run in a different order from the one in which they
+are written: `FROM` and `JOIN` assemble the rows, `WHERE` (absent
+here) filters them, `GROUP BY` partitions them, the aggregate
+functions summarize each partition, and `SELECT` names what comes
+back. `dbGetQuery()` returns the result as an ordinary data frame,
+which is what you want for a small summary.
 
-## Querying with dbplyr
+::: {.callout-warning title='Pitfall'}
+**SQL aggregates skip missing values without saying so.** `AVG()`
+above divides by the ascertained patients only, because the 163
+unascertained outcomes are `NULL`. In R, `mean()` on the same
+column returns `NA` and forces a decision; in SQL the decision has
+already been made, and it changes the denominator. `COUNT(*)`
+counts rows, `COUNT(column)` counts non-missing values, and the
+two disagree exactly when values are missing. State which
+denominator the analysis plan wants (@sec-missing) and count it
+explicitly.
+:::
 
-Writing SQL by hand is a skill worth having, but for most
-extractions you can stay in `dplyr`. The `dbplyr` package
-translates a `dplyr` pipeline into SQL, sends it to the
-database, and leaves the result there until you ask for
-it. A reference to a database table behaves almost exactly
-like a tibble.
+### The same query through `dbplyr`
+
+For most extractions you can stay in `dplyr`. The `dbplyr` package
+translates a pipeline into SQL, sends it to the database, and
+leaves the result there until you ask for it.
 
 ```{r}
 #| label: db-dbplyr
-visits_tbl <- tbl(con, "visits")
-demo_tbl   <- tbl(con, "demographics")
-
-summary_q <- visits_tbl |>
-  inner_join(demo_tbl, by = "patient_id") |>
+summary_q <- tbl(con, "randomization") |>
+  inner_join(tbl(con, "outcomes"), by = "patient_id") |>
   group_by(arm) |>
-  summarize(n_visits = n(),
-            mean_sbp = mean(sbp, na.rm = TRUE))
+  summarize(n_randomized  = n(),
+            n_ascertained = sum(ascertained, na.rm = TRUE),
+            n_events      = sum(event_30d, na.rm = TRUE),
+            risk          = mean(event_30d, na.rm = TRUE))
 
 summary_q
 ```
 
-The object `summary_q` is *lazy*: no computation has yet
-crossed into R. The pipeline has been recorded, and when
-printed it shows only a preview fetched from the database.
-To see the SQL that `dbplyr` generated, ask for it:
+`summary_q` is *lazy*: the pipeline has been recorded, and the
+printout is a preview fetched from the database. `show_query()`
+prints the SQL that `dbplyr` generated, and `collect()` brings the
+result into R.
 
 ```{r}
 #| label: db-showquery
 summary_q |> show_query()
 ```
 
-The generated SQL is the same query we wrote by hand,
-which is the point: `dbplyr` lets you think in `dplyr` and
-still push the work to the database. When you are ready to
-bring the result into R, for plotting, modeling, or
-anything the database cannot do, call `collect()`.
-
 ```{r}
 #| label: db-collect
-analytic <- summary_q |> collect()
-analytic
+by_arm <- summary_q |> collect()
+by_arm
 ```
 
-Everything up to `collect()` ran in the database. Only the
-small summary crossed into memory. This is the pattern to
-internalize: filter and aggregate lazily against the table,
-then `collect()` the modest result. The verification habit
-still applies, so we check that the row count matches what a
-per-arm summary should give.
+`na.rm = TRUE` in the pipeline changes nothing in the SQL; it
+acknowledges that SQL removes missing values whether you ask or
+not, and `dbplyr` warns when you leave it out.
+
+::: {.callout-tip title='Verification'}
+The hand-written query and the `dbplyr` pipeline should agree
+exactly, and the arm totals should add up to the randomization
+table.
 
 ```{r}
 #| label: db-verify
-stopifnot(nrow(analytic) == n_distinct(demographics$arm))
+by_hand <- dbGetQuery(con, "
+  SELECT r.arm, COUNT(*) AS n_randomized,
+         SUM(o.event_30d) AS n_events
+  FROM randomization AS r
+  JOIN outcomes AS o ON r.patient_id = o.patient_id
+  GROUP BY r.arm
+")
+stopifnot(
+  all.equal(arrange(by_hand, arm),
+            select(arrange(by_arm, arm), arm, n_randomized,
+                   n_events),
+            check.attributes = FALSE),
+  sum(by_arm$n_randomized) ==
+    dbGetQuery(con, "SELECT COUNT(*) AS n FROM randomization")$n
+)
 ```
-
-```{r}
-#| label: db-disconnect
-#| echo: false
-dbDisconnect(con)
-```
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: where does the work happen?
-
-**Question.** You write
-`tbl(con, "labs") |> filter(test == "HbA1c") |> summarize(m = mean(value))`
-against a table of fifty million laboratory results, then
-call `collect()`. How much data crosses from the database
-into R, and what would have happened had you called
-`collect()` before the `filter`?
-
-**Answer.**
-
-With `collect()` at the end, only the single summarized
-value crosses into R: the database does the filtering and
-the averaging, and returns one number. Had you called
-`collect()` first, all fifty million rows would have been
-pulled into memory before R did any work, which on most
-laptops would exhaust RAM and fail. The rule is to
-`collect()` as late as possible, after the database has
-reduced the data to the size you actually need.
-
 :::
 
-## When to push, when to pull
+### Translating between SQL and `dplyr`
 
-@fig-collect-boundary is the whole idea of this chapter
-in one picture: `collect()` is a boundary, everything to
-its left runs in the database on the full data, and
-everything to its right runs in R on whatever crossed.
+Most SQL you will read maps clause by clause onto a `dplyr` verb.
+@tbl-sql-dplyr is the translation card; `show_query()` is the way
+to check any row of it against your own database.
+
+| SQL | `dplyr` | Note |
+|---|---|---|
+| `SELECT a, b` | `select(a, b)` | |
+| `SELECT DISTINCT a` | `distinct(a)` | |
+| `WHERE x > 1` | `filter(x > 1)` | |
+| `GROUP BY g` with `COUNT(*)`, `AVG(x)` | `group_by(g) \|> summarize(n(), mean(x))` | SQL drops `NULL` from `AVG()` |
+| `HAVING COUNT(*) > 1` | `summarize()` then `filter(n > 1)` | Filters groups, not rows |
+| `ORDER BY x DESC` | `arrange(desc(x))` | A table has no order without it |
+| `LIMIT 10` | `head(10)` | |
+| `JOIN ... ON` | `inner_join(by = )` | |
+| `LEFT JOIN ... ON` | `left_join(by = )` | |
+| `LEFT JOIN ... WHERE y.key IS NULL` | `anti_join(by = )` | The SQL anti-join |
+| `CASE WHEN ... THEN ... END` | `case_when()` | |
+| `ROW_NUMBER() OVER (PARTITION BY g ORDER BY t)` | `group_by(g) \|> window_order(t) \|> mutate(row_number())` | `window_order()` exists only in `dbplyr` |
+
+: SQL clauses and their `dplyr` equivalents. {#tbl-sql-dplyr}
+
+### Exercises
+
+1. Write a SQL query that returns, for each arm, the number of
+   patients whose first event was a death and the number whose
+   first event was a readmission. Compute the same counts in R from
+   `outcomes.csv` and confirm they agree.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-15b-1
+sql_first <- dbGetQuery(con, "
+  SELECT r.arm, o.first_event, COUNT(*) AS n
+  FROM randomization AS r
+  JOIN outcomes AS o ON r.patient_id = o.patient_id
+  WHERE o.first_event IN ('death', 'readmission')
+  GROUP BY r.arm, o.first_event
+  ORDER BY r.arm, o.first_event
+")
+sql_first
+
+r_first <- read_hf("randomization.csv") |>
+  inner_join(read_hf("outcomes.csv"), by = "patient_id",
+             relationship = "one-to-one") |>
+  filter(first_event %in% c("death", "readmission")) |>
+  count(arm, first_event) |>
+  arrange(arm, first_event)
+stopifnot(all.equal(sql_first, as.data.frame(r_first),
+                    check.attributes = FALSE))
+```
+
+The `WHERE` clause runs before `GROUP BY`, so the unascertained
+patients (whose `first_event` is missing) and the patients with no
+event never reach the count. A key that is computed twice, once in
+each language, is the check.
+:::
+
+2. Express the query from exercise 1 with `dbplyr`, print the SQL
+   it generates with `show_query()`, and name one difference from
+   your hand-written version.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-15b-2
+first_q <- tbl(con, "randomization") |>
+  inner_join(tbl(con, "outcomes"), by = "patient_id") |>
+  filter(first_event %in% c("death", "readmission")) |>
+  count(arm, first_event) |>
+  arrange(arm, first_event)
+
+first_q |> show_query()
+stopifnot(all.equal(collect(first_q), as_tibble(sql_first),
+                    check.attributes = FALSE))
+```
+
+`dbplyr` writes the join as a subquery and selects every column of
+both tables inside it, where the hand-written version selects only
+what it needs. The database's planner usually makes the two
+equally fast; the generated version is longer, and `show_query()`
+means it is never hidden.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You write
+`tbl(con, "labs") |> filter(test_code == "NTPROBNP") |> summarize(m = mean(value, na.rm = TRUE))`
+against a warehouse table of fifty million laboratory results,
+then call `collect()`. How much data crosses into R, and what
+would have happened had you called `collect()` before the
+`filter()`?
+
+**Answer.** One number crosses: the database filters and averages,
+and returns a one-row result. Had you called `collect()` first, all
+fifty million rows would have been pulled into memory before R did
+any work, which on most laptops exhausts memory and fails. Collect
+as late as possible, after the database has reduced the data to
+the size you need.
+:::
+
+## Joins in SQL fail as joins in R do {#sec-databases-joins}
+
+A join in SQL drops and multiplies rows exactly as a join in
+`dplyr` does, with one difference that makes it worse: SQL has no
+`relationship` argument and no many-to-many warning. The
+HF-HOME `labs` table carries the two planted defects that
+@sec-joins taught you to look for, and both pass through SQL
+without a message.
+
+### Auditing the keys
+
+Run the audits in the database, before the join. The first query
+looks for a key that should be unique and is not; the second is
+the SQL anti-join, which lists lab patients with no randomization
+record.
+
+```{r}
+#| label: db-key-audit
+dbGetQuery(con, "
+  SELECT visit_id, test_code, COUNT(*) AS n,
+         MIN(value) AS min_value, MAX(value) AS max_value
+  FROM labs
+  GROUP BY visit_id, test_code
+  HAVING COUNT(*) > 1
+")
+
+dbGetQuery(con, "
+  SELECT DISTINCT l.patient_id
+  FROM labs AS l
+  LEFT JOIN randomization AS r ON l.patient_id = r.patient_id
+  WHERE r.patient_id IS NULL
+")
+```
+
+Two visit-test pairs repeat. The first is an exact duplicate (the
+minimum and maximum agree); the second is a potassium result that
+was re-run with a different value, which no rule in the data can
+resolve. Patient `2433` has laboratory results and was never
+randomized.
+
+### Two errors that nearly cancel
+
+Now the join a reader of the warehouse would write: the discharge
+NT-proBNP (N-terminal pro-B-type natriuretic peptide) result for
+every randomized patient. There should be one row per patient.
+
+```{r}
+#| label: db-join-count
+n_patients <- dbGetQuery(con, "
+  SELECT COUNT(*) AS n FROM randomization")$n
+
+discharge_bnp <- dbGetQuery(con, "
+  SELECT r.patient_id, r.arm, l.value
+  FROM labs AS l
+  JOIN visits AS v        ON l.visit_id = v.visit_id
+  JOIN randomization AS r ON v.patient_id = r.patient_id
+  WHERE l.test_code = 'NTPROBNP'
+    AND v.visit_type = 'discharge'
+")
+
+c(patients = n_patients, rows = nrow(discharge_bnp))
+```
+
+The inner join dropped patient `2433`, whose visit is not in
+`visits`, and kept the duplicated row for patient `0373`. One row
+lost and one row gained leave a count that is off by one, which
+is easy to dismiss as close enough. The assertion does not
+dismiss it:
+
+```{r}
+#| label: db-join-assert
+#| error: true
+stopifnot(nrow(discharge_bnp) == n_patients,
+          !anyDuplicated(discharge_bnp$patient_id))
+```
+
+::: {.callout-warning title='Pitfall'}
+**A join that drops one row and duplicates another returns a
+count that looks right.** Here the errors leave the count off by
+one; on another extract they cancel exactly, and `nrow()` alone
+then passes. Check uniqueness of the key (`HAVING COUNT(*) > 1`)
+and coverage in both directions (the `LEFT JOIN ... IS NULL`
+anti-join) as separate audits, not only the final count. These
+are the first three rows of @tbl-join-checklist, written in SQL.
+:::
+
+The fix belongs in the query, with its rule stated: here,
+`SELECT DISTINCT` removes the exact duplicate, and an explicit
+anti-join records the orphan in a log rather than dropping it
+silently. The conflicting potassium pair needs a rule from the
+data manager, not from you.
+
+::: {.callout-tip title='Verification'}
+Deduplicate the exact duplicate in SQL, and confirm that the
+result has one row per randomized patient.
+
+```{r}
+#| label: db-join-verify
+discharge_bnp <- dbGetQuery(con, "
+  SELECT DISTINCT r.patient_id, r.arm, l.value
+  FROM labs AS l
+  JOIN visits AS v        ON l.visit_id = v.visit_id
+  JOIN randomization AS r ON v.patient_id = r.patient_id
+  WHERE l.test_code = 'NTPROBNP'
+    AND v.visit_type = 'discharge'
+")
+stopifnot(nrow(discharge_bnp) == n_patients,
+          !anyDuplicated(discharge_bnp$patient_id))
+```
+
+`SELECT DISTINCT` is safe here only because the duplicate is
+exact. Applied to the potassium pair it would keep both rows,
+because their values differ, and the assertion would catch that
+too.
+:::
+
+### Exercises
+
+3. Write one SQL query that classifies every duplicated visit-test
+   pair in `labs` as `exact` (all rows have the same value) or
+   `conflicting`. Confirm the classification in R with `dplyr`.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-15b-3
+dup_sql <- dbGetQuery(con, "
+  SELECT visit_id, test_code, COUNT(*) AS n,
+         CASE WHEN MIN(value) = MAX(value) THEN 'exact'
+              ELSE 'conflicting' END AS kind
+  FROM labs
+  GROUP BY visit_id, test_code
+  HAVING COUNT(*) > 1
+  ORDER BY visit_id
+")
+dup_sql
+
+dup_r <- read_hf("labs.csv") |>
+  group_by(visit_id, test_code) |>
+  filter(n() > 1) |>
+  summarize(n = n(),
+            kind = if_else(min(value) == max(value), "exact",
+                           "conflicting"),
+            .groups = "drop") |>
+  arrange(visit_id)
+stopifnot(all.equal(dup_sql, as.data.frame(dup_r),
+                    check.attributes = FALSE))
+```
+
+`HAVING` filters the groups after aggregation, which is why it,
+and not `WHERE`, finds the duplicates. The classification decides
+the fix: an exact duplicate can be removed by rule, and a
+conflicting one goes back to the data manager with both values.
+:::
+
+4. Using a window function (in SQL or through `dbplyr`'s
+   `window_order()`), find each patient's first home-health visit
+   day, and count, by arm, the patients whose first home-health
+   visit fell on days 1 to 7. Check your counts against an
+   in-memory `dplyr` computation on `visits.csv`.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-15b-4
+first_hh <- tbl(con, "visits") |>
+  filter(visit_type == "home_health") |>
+  group_by(patient_id) |>
+  window_order(visit_day) |>
+  mutate(k = row_number()) |>
+  ungroup() |>
+  filter(k == 1) |>
+  inner_join(tbl(con, "randomization"), by = "patient_id") |>
+  group_by(arm) |>
+  summarize(n_within_7 = sum(if_else(visit_day <= 7, 1L, 0L),
+                             na.rm = TRUE)) |>
+  arrange(arm) |>
+  collect()
+first_hh
+
+in_memory <- read_hf("visits.csv") |>
+  filter(visit_type == "home_health") |>
+  group_by(patient_id) |>
+  summarize(first_day = min(visit_day)) |>
+  inner_join(read_hf("randomization.csv"), by = "patient_id",
+             relationship = "one-to-one") |>
+  group_by(arm) |>
+  summarize(n_within_7 = sum(first_day <= 7)) |>
+  arrange(arm)
+stopifnot(all.equal(first_hh, in_memory,
+                    check.attributes = FALSE))
+```
+
+A database table has no inherent row order, so `window_order()`
+states it; omit it and `row_number()` numbers the rows in whatever
+order the engine reached them, with no warning. In memory,
+`min()` gives the same answer without a window, which is the
+independent check.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** SQL has no `relationship = "many-to-one"`. What do
+you write instead, and where in the script does it go?
+
+**Answer.** An audit query before the join (`GROUP BY key HAVING
+COUNT(*) > 1` on the side that should be unique, and a
+`LEFT JOIN ... WHERE key IS NULL` anti-join in each direction that
+matters), and a `stopifnot()` on the row count and on key
+uniqueness after the result reaches R. The audits go before the
+join so that a failure names the bad keys; the assertion goes
+after, so that nothing downstream runs on a multiplied table.
+:::
+
+## Parameterized queries {#sec-databases-params}
+
+A query often needs a value from outside: a site, a date range, a
+list of patient identifiers. The tempting way to supply it is to
+paste the value into the query string. The safe way is a
+parameter, which the database driver passes separately from the
+SQL text, so that the value can never be read as SQL.
+
+```{r}
+#| label: db-injection
+requested <- "0001' OR '1' = '1"
+
+pasted <- paste0("SELECT patient_id, arm FROM randomization ",
+                 "WHERE patient_id = '", requested, "'")
+nrow(dbGetQuery(con, pasted))
+
+nrow(dbGetQuery(con,
+  "SELECT patient_id, arm FROM randomization WHERE patient_id = ?",
+  params = list(requested)))
+
+dbGetQuery(con,
+  "SELECT patient_id, arm FROM randomization WHERE patient_id = ?",
+  params = list("0001"))
+```
+
+The pasted query returned every randomized patient: the quote
+inside `requested` closed the string, and `OR '1' = '1'` made the
+condition true for every row. The parameterized query looked for a
+patient whose identifier is that whole odd string, and found none.
+
+::: {.callout-warning title='Pitfall'}
+**A pasted query string can return the wrong rows without an
+error.** The input above was deliberate, the classic SQL
+injection; the common accident is a site name or a free-text
+value that contains an apostrophe, which either breaks the query
+or changes what it selects. Pass values with `params =` in
+`dbGetQuery()`, or build the SQL with `glue::glue_sql()`, never
+with `paste0()` or `sprintf()`.
+:::
+
+`glue::glue_sql()` quotes each value for the connected database,
+and the `*` suffix expands a vector into an `IN` list:
+
+```{r}
+#| label: db-glue-sql
+site <- "Site A"
+ids  <- c("0001", "0002", "0003")
+glue::glue_sql("SELECT * FROM randomization WHERE site = {site}",
+               .con = con)
+glue::glue_sql("SELECT * FROM randomization
+                WHERE patient_id IN ({ids*})", .con = con)
+```
+
+::: {.callout-important title='LLM prompt'}
+Use a model to draft a query from the schema, never from the data
+or the connection.
+
+> **Context.** A SQLite database has four tables. `randomization`
+> and `outcomes` have one row per `patient_id` (character, leading
+> zeros); `visits` has one row per `visit_id`, with `patient_id`,
+> `visit_type`, and `visit_day`; `labs` has one row per
+> `visit_id` and `test_code`, with `value`. Here are the column
+> names and types: [output of `str()` on a synthetic row of each
+> table].
+>
+> **Constraints.** Write the query twice, in SQL and with
+> `dbplyr`. Take the site as a parameter (`?` with `params =`),
+> not a pasted string. Use an inner join only where I say
+> unmatched rows should be dropped. Do not use `SELECT DISTINCT`
+> to remove duplicates.
+>
+> **Criteria.** Before writing code, state the expected
+> relationship of each join and the number of rows the result
+> should have per patient. I want discharge creatinine by arm for
+> one site.
+
+*Failure mode.* Models write an inner join where a left join was
+needed, drop the anti-join audit, and reach for `SELECT DISTINCT`
+to make a count come out right, which hides a conflicting
+duplicate. Models also echo back connection strings and passwords
+you paste, into a chat log you do not control. *Check.* Run the
+key audits of @sec-databases-joins first, then the query, and
+assert the row count you were promised. Send the schema and
+synthetic rows; never paste credentials, connection strings, or
+patient rows into a prompt (@sec-ai-governance).
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A Shiny dashboard lets a coordinator type a site
+name, and the server builds
+`paste0("... WHERE site = '", input$site, "'")`. It has worked for
+a year. Why is it still wrong?
+
+**Answer.** It has worked because no one has typed a quote. A
+site called 'St. Mary's' breaks the query, and a crafted input
+can select or, with write access, change any row. The year of
+success is evidence about the inputs so far, not about the code.
+Rewrite it with `params =` or `glue_sql()`.
+:::
+
+## When to push and when to pull {#sec-databases-push}
+
+@fig-collect-boundary is the central idea of this chapter in one
+picture: `collect()` is a boundary, everything to its left runs in
+the database on the full data, and everything to its right runs in
+R on whatever crossed.
 
 ```{mermaid}
 %%| echo: false
@@ -326,329 +762,278 @@ flowchart LR
   CO --> IT
 ```
 
-The database is good at set operations on large data:
-filtering, joining, grouping, aggregating. R is good at
-everything else: modeling, plotting, iteration, anything
-statistical. The dividing line is `collect()`. Push the
-data-reduction work to the database; pull the reduced
-result into R for the analysis. A useful test: if a step
-makes the data smaller (a filter, an aggregate), it
-usually belongs before `collect()`; if a step needs the
-full statistical machinery of R (fitting a mixed model,
-drawing a figure), it belongs after.
+The database is good at set operations on large data: filtering,
+joining, grouping, aggregating. R is good at modeling, plotting,
+iteration, and anything else statistical. A useful test: if a step
+makes the data smaller, it usually belongs before `collect()`; if
+it needs R's statistical machinery (fitting a mixed model, drawing
+a figure), it belongs after.
 
-Two cautions. First, not every R function has a SQL
-translation; `dbplyr` will tell you when it cannot
-translate a verb, and then you must either rewrite it or
-`collect()` earlier. Second, a query that is cheap to
-write can be expensive to run; on a shared warehouse, a
-careless cross-join can inconvenience every other user, so
-test on a `LIMIT`-ed subset before running the full
-extraction.
+Two cautions. Not every R function has a SQL translation; `dbplyr`
+says when it cannot translate a call, and you then rewrite it or
+collect earlier. And a query that is cheap to write can be
+expensive to run: on a shared warehouse, a careless cross-join
+slows every other user, so test on a `LIMIT`-ed subset first.
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: is a query a reproducible input?
+### DuckDB and Parquet for larger-than-memory data
 
-**Question.** Your analysis begins by running a SQL query
-against the hospital warehouse. The query is committed to
-the repository. Is the analysis reproducible?
-
-**Answer.**
-
-The *code* is. The analysis is not, and the difference is
-the point of this section.
-
-A committed query guarantees that anyone can see how the
-extract was defined. It guarantees nothing about what the
-extract contained, because the warehouse is a moving
-target. Records get corrected. Late-arriving lab results
-appear. A patient withdraws consent and their rows are
-purged. Run the identical query six months later and you
-get a different table, with no error and no indication
-that anything changed.
-
-This is unlike every other input the book discusses. A CSV
-in `data/raw/` is a fixed artifact; a query is an
-*instruction* whose result depends on when it ran.
-
-The remedy is to treat the extract as the raw data rather
-than the query. Run the query once, deliberately, and
-write the result to a dated file. Record alongside it the
-query text, the timestamp, and the database version or
-snapshot identifier if the warehouse offers one. That file
-is what the analysis reads, and it is what gets archived.
-
-The query remains in the repository as provenance, which
-is exactly the role @sec-acquisition gives an acquisition
-script. Same pattern, different source.
-:::
-
-## Reproducibility of the extraction
-
-The analytic dataset is a build product, and the query is
-its recipe. Keep the query in the compendium as a `.sql`
-file or an R script, so that the derivation is
-version-controlled and re-runnable. Record the date of
-extraction and, where the warehouse supports it, the data
-snapshot or freeze identifier, because a warehouse is a
-living system and today's query may return different rows
-next month. The pattern mirrors the raw-data discipline of
-@sec-wrangling: the query and its output date are the audit
-trail that lets a reviewer reconstruct exactly which rows
-your analysis rested on.
-
-## Collaborating with an LLM on databases
-
-LLMs write competent SQL and `dbplyr`. The traps, in our
-experience, are correctness on joins and the silent scale of
-a query.
-
-**Prompt 1: drafting a query.** Describe the tables, their
-keys, and the summary you want, and ask for both the SQL
-and the `dbplyr` equivalent.
-
-*What to watch for.* The join key and the join type. An
-LLM will readily write an inner join where you needed a
-left join, dropping patients with no visits. State the
-cardinality you expect.
-
-*Verification.* Run against a `LIMIT`-ed subset; count the
-rows; confirm the count matches the expected number of
-groups or patients.
-
-**Prompt 2: translating hand-written SQL to `dbplyr`.**
-Paste a `SELECT` statement and ask for the `dplyr`
-pipeline that generates it.
-
-*What to watch for.* Aggregations and `GROUP BY`
-translate cleanly; window functions and correlated
-subqueries less so. Compare `show_query()` on the result
-against the original.
-
-*Verification.* Confirm the two produce identical results
-on a small table before trusting the translation on the
-full one.
-
-## Principle in use
-
-Three habits keep the extraction defensible:
-
-1. **Query at the source; `collect()` late.** Push
-   filtering and aggregation to the database; pull only the
-   analytic result into R.
-2. **The query is the provenance.** Version-control the
-   SQL that produced the analytic dataset; treat the
-   extract as a build product with a recorded date.
-3. **Verify joins in SQL as in R.** Count the rows; a
-   silent many-to-many inflates the data in a database
-   exactly as it does in `dplyr`.
-
-## Exercises
-
-1. Create an in-memory SQLite database with the
-   `demographics` and `visits` tables from this chapter.
-   Write a SQL query that returns, per patient, the number
-   of visits and the change in systolic blood pressure
-   from the first to the last visit.
-2. Express the same query with `dbplyr`. Use
-   `show_query()` to inspect the generated SQL and compare
-   it to your hand-written version.
-3. Add a third table, `labs`, with columns `patient_id`,
-   `test`, and `value`. Write a `dbplyr` pipeline that
-   returns the mean HbA1c per treatment arm, joining all
-   three tables. Verify the row count.
-4. Deliberately write a query that produces a
-   many-to-many join between `visits` and a table with
-   duplicate `patient_id` values. Observe the inflated row
-   count and explain it.
-**On your own machine.** No answer key; the interesting part
-is the measurement, which depends on your hardware.
-
-5. Using the `duckdb` backend instead of `RSQLite`, read a
-   large CSV file directly with `duckdb`'s
-   `read_csv_auto` and run an aggregation without ever
-   loading the file into R. Compare the memory use to
-   `readr::read_csv()` followed by `dplyr`.
-
-::: {.callout-tip icon=false collapse=true}
-## Solutions to exercises 1 to 4
-
-The chapter's connection was closed, so these open a fresh
-one and rebuild the two tables.
+When the data are files rather than a server, and too large to
+read into R comfortably, the default as of 2026 is DuckDB, an
+in-process analytical database, reading Parquet, a compressed
+columnar file format that `arrow` [@richardson2026arrow] writes.
+DuckDB queries the file where it lies and reads only the columns a
+query uses. The chunk below runs only if `duckdb` and `arrow` are
+installed.
 
 ```{r}
-#| label: soln-15b-setup
+#| label: db-duckdb
 #| message: false
-con2 <- dbConnect(RSQLite::SQLite(), ":memory:")
-dbWriteTable(con2, "demographics", demographics)
-dbWriteTable(con2, "visits", visits)
+#| eval: !expr requireNamespace("duckdb", quietly = TRUE) && requireNamespace("arrow", quietly = TRUE)
+labs_parquet <- file.path(tempdir(), "labs.parquet")
+arrow::write_parquet(read_hf("labs.csv"), labs_parquet)
+
+duck <- dbConnect(duckdb::duckdb())
+dbGetQuery(duck, glue::glue_sql("
+  SELECT test_code, COUNT(*) AS n, MEDIAN(value) AS median_value
+  FROM read_parquet({labs_parquet})
+  GROUP BY test_code
+  ORDER BY test_code
+", .con = duck))
+dbDisconnect(duck, shutdown = TRUE)
 ```
 
-**1. Visit count and first-to-last change, in SQL.**
+The same `DBI` and `dbplyr` code works against the DuckDB
+connection; only the `dbConnect()` line and the file-reading
+function differ. The counts include the two duplicated rows and
+the orphan patient, because a file format fixes nothing about the
+data in it.
 
-```{r}
-#| label: soln-15b-1
-dbGetQuery(con2, "
-  SELECT patient_id,
-         COUNT(*) AS n_visits,
-         MAX(CASE WHEN r_last  = 1 THEN sbp END) -
-         MAX(CASE WHEN r_first = 1 THEN sbp END) AS sbp_change
-  FROM (
-    SELECT patient_id, visit, sbp,
-           ROW_NUMBER() OVER (PARTITION BY patient_id
-                              ORDER BY visit)      AS r_first,
-           ROW_NUMBER() OVER (PARTITION BY patient_id
-                              ORDER BY visit DESC) AS r_last
-    FROM visits
-  )
-  GROUP BY patient_id
-")
-```
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You need the median NT-proBNP by site from a
+40-gigabyte lab extract delivered as Parquet files, on a laptop
+with 16 gigabytes of memory. Where does each step run?
 
-The window functions number each patient's visits from
-both ends, so the first and last rows can be picked out
-inside a single aggregation. Patients with one visit get a
-change of zero, which is correct and worth noticing: it is
-not the same as missing, and a real analysis should decide
-which it wants.
-
-**2. The same query through `dbplyr`, and its SQL.**
-
-```{r}
-#| label: soln-15b-2
-#| warning: false
-q <- tbl(con2, "visits") |>
-  group_by(patient_id) |>
-  window_order(visit) |>
-  mutate(first_sbp = first(sbp), last_sbp = last(sbp)) |>
-  ungroup() |>
-  group_by(patient_id) |>
-  summarize(n_visits = n(),
-            sbp_change = max(last_sbp) - max(first_sbp))
-
-q |> collect()
-q |> show_query()
-```
-
-Two things are worth extracting from this.
-
-`first()` and `last()` are *window* functions, so they
-belong in `mutate()` and not in `summarize()`. Writing
-`summarize(sbp_change = last(sbp) - first(sbp))` looks
-natural and fails, because a window function needs the
-rows it is ordered over and an aggregate has already
-collapsed them. The two-step form computes the values per
-row, then aggregates.
-
-`window_order()` has no dplyr equivalent in memory, where
-`first()` and `last()` simply follow row order. A database
-table has no inherent order, so it must be stated. Omit it
-and the answer is whichever row the engine happened to
-reach first, with no warning.
-
-The generated SQL is more verbose than the hand-written
-version and computes the same thing. Which to prefer is a
-maintenance question, not a performance one: the `dbplyr`
-version stays readable to someone who knows dplyr and not
-SQL, and `show_query()` means the SQL is never hidden.
-
-**3. A third table, and a three-way join.**
-
-```{r}
-#| label: soln-15b-3
-labs <- data.frame(
-  patient_id = c(1, 1, 2, 3, 3, 4, 5),
-  test       = "HbA1c",
-  value      = c(7.1, 6.8, 8.2, 7.5, 7.3, 6.9, 8.0)
-)
-dbWriteTable(con2, "labs", labs)
-
-result <- tbl(con2, "labs") |>
-  filter(test == "HbA1c") |>
-  inner_join(tbl(con2, "visits") |>
-               distinct(patient_id), by = "patient_id") |>
-  inner_join(tbl(con2, "demographics"), by = "patient_id") |>
-  group_by(arm) |>
-  summarize(mean_hba1c = mean(value, na.rm = TRUE),
-            n_labs = n(), .groups = "drop") |>
-  collect()
-
-result
-stopifnot(nrow(result) == n_distinct(demographics$arm))
-```
-
-Note the `distinct(patient_id)` on `visits`. Without it
-the join multiplies each lab result by that patient's
-visit count, and the mean silently becomes a
-visit-weighted average rather than a lab-weighted one. The
-row-count assertion would not catch that, because the
-result still has one row per arm. Exercise 4 is the same
-error made visible.
-
-**4. A deliberate many-to-many, and why the count inflates.**
-
-```{r}
-#| label: soln-15b-4
-# demographics with a duplicated patient, as a re-consent
-# appended rather than replacing the original row
-demo_dup <- rbind(demographics,
-                  data.frame(patient_id = 1, age = 65,
-                             arm = "Active"))
-dbWriteTable(con2, "demo_dup", demo_dup)
-
-n_before <- tbl(con2, "visits") |> count() |> pull(n)
-n_after  <- tbl(con2, "visits") |>
-  inner_join(tbl(con2, "demo_dup"), by = "patient_id") |>
-  count() |> pull(n)
-
-c(visits = n_before, after_join = n_after)
-```
-
-```{r}
-#| label: soln-15b-disconnect
-#| echo: false
-dbDisconnect(con2)
-```
-
-Patient 1 has two visits and now two demographics rows, so
-those two visits become four. The join did not fail and
-issued no warning; SQL has no equivalent of dplyr's
-`relationship` argument. The only defense is to check the
-key before joining, which is why the chapter's own
-pipeline asserts uniqueness rather than trusting it.
+**Answer.** Filter to NT-proBNP, join to the site table, and
+compute the median per site in DuckDB, which reads the Parquet
+files in pieces and needs only the columns the query names. Only
+the per-site medians, a few rows, cross into R. Reading the files
+into R first with `arrow::read_parquet()` would try to hold the
+whole extract in memory.
 :::
+
+## Worked example: a reproducible extract {#sec-databases-worked}
+
+A committed query records how an extract was defined. It does not
+record what the extract contained, because a warehouse changes:
+records are corrected, late lab results arrive, a patient
+withdraws consent and their rows are purged. Run the same query
+six months later and you get a different table, with no error.
+So treat the extract, not the query, as the raw data
+(@sec-apis): run the query once, deliberately, write the
+result to a dated file, and keep the query text and a checksum of
+the file beside it. The analysis reads the file; the query stays
+as provenance.
+
+```{r}
+#| label: db-extract
+extract_dir <- file.path(tempdir(), "extract")
+dir.create(extract_dir, showWarnings = FALSE)
+
+query <- "
+SELECT r.patient_id, r.site, r.ef_stratum, r.arm,
+       o.ascertained, o.event_30d
+FROM randomization AS r
+LEFT JOIN outcomes AS o ON r.patient_id = o.patient_id
+"
+writeLines(query, file.path(extract_dir, "analytic.sql"))
+
+analytic <- dbGetQuery(con, query)
+stopifnot(nrow(analytic) == n_patients,
+          !anyDuplicated(analytic$patient_id))
+
+extracted_on <- format(Sys.Date())
+csv_path <- file.path(extract_dir,
+                      paste0("analytic-", extracted_on, ".csv"))
+readr::write_csv(analytic, csv_path)
+
+writeLines(c(
+  paste("extracted_on:", extracted_on),
+  "source: HF-HOME teaching database (SQLite, in memory)",
+  "query: analytic.sql",
+  paste("rows:", nrow(analytic)),
+  paste("md5:", unname(tools::md5sum(csv_path)))
+), file.path(extract_dir, "analytic-provenance.txt"))
+
+list.files(extract_dir)
+```
+
+The query is a left join from `randomization`, so every randomized
+patient appears whatever `outcomes` holds, and the assertions run
+before the file is written. On a real warehouse, add the
+warehouse's snapshot or refresh identifier to the provenance file
+if it publishes one.
+
+::: {.callout-tip title='Verification'}
+Read the extract back as the analysis will, and confirm that it is
+the file the provenance record describes.
+
+```{r}
+#| label: db-extract-verify
+provenance <- readLines(file.path(extract_dir,
+                                  "analytic-provenance.txt"))
+back <- readr::read_csv(csv_path, show_col_types = FALSE,
+                        col_types = readr::cols(patient_id = "c"))
+stopifnot(
+  nrow(back) == n_patients,
+  !anyDuplicated(back$patient_id),
+  paste("md5:", unname(tools::md5sum(csv_path))) %in% provenance
+)
+provenance
+```
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Your analysis begins by running a SQL query against
+the hospital warehouse, and the query is committed. Is the
+analysis reproducible?
+
+**Answer.** The code is; the analysis is not. A committed query is
+an instruction whose result depends on when it ran, unlike a file
+in `data/raw/`. The dated extract with its query, row count, and
+checksum is what makes the analysis reproducible, and it is the
+file that gets archived. This is the role @sec-apis gives
+an acquisition script: same pattern, different source.
+:::
+
+```{r}
+#| label: db-disconnect
+#| echo: false
+dbDisconnect(con)
+```
+
+## Rules of thumb
+
+1. **Habit 6: count before and after every join, in SQL too.**
+   SQL has no `relationship` argument; audit uniqueness and
+   coverage with `HAVING` and an anti-join, and assert the count
+   after the result reaches R.
+2. **Habit 2: raw data are evidence.** The dated extract is the
+   raw data and the query is its provenance; the analysis reads the
+   file, never the live warehouse.
+3. **Habit 8: a bug that produces a plausible number is the
+   expensive kind.** A pasted query string and a silently skipped
+   `NULL` both return a tidy table; parameterize, and count the
+   denominator explicitly.
+
+## Cumulative practice
+
+5. *Cumulative (uses @sec-joins).* Walk @tbl-join-checklist in SQL
+   for the join of `labs` to `visits` to `randomization` in this
+   chapter's database: write each audit as a query, predict the
+   row count of the join for the day-30 clinic creatinine, run it,
+   and assert the prediction in R.
+6. *On your own work (no key).* Take a database you query, or a
+   DuckDB file built from data you have. Replace one pasted query
+   string with a parameterized one, and write the extract it feeds
+   to a dated file with its query and checksum.
+
+::: {.callout-note collapse='true' title='Solution to exercise 5'}
+```{r}
+#| label: soln-15b-5
+con <- dbConnect(RSQLite::SQLite(), ":memory:",
+                 extended_types = TRUE)
+dbWriteTable(con, "randomization", read_hf("randomization.csv"))
+dbWriteTable(con, "visits", read_hf("visits.csv"))
+dbWriteTable(con, "labs", read_hf("labs.csv"))
+
+dups <- dbGetQuery(con, "
+  SELECT l.visit_id, COUNT(*) AS n
+  FROM labs AS l JOIN visits AS v ON l.visit_id = v.visit_id
+  WHERE l.test_code = 'CREAT' AND v.visit_type = 'clinic_day30'
+  GROUP BY l.visit_id HAVING COUNT(*) > 1")
+orphans <- dbGetQuery(con, "
+  SELECT DISTINCT v.patient_id
+  FROM visits AS v
+  LEFT JOIN randomization AS r ON v.patient_id = r.patient_id
+  WHERE r.patient_id IS NULL")
+expected <- dbGetQuery(con, "
+  SELECT COUNT(*) AS n FROM visits
+  WHERE visit_type = 'clinic_day30'")$n
+
+day30_creat <- dbGetQuery(con, "
+  SELECT r.patient_id, r.arm, l.value
+  FROM labs AS l
+  JOIN visits AS v        ON l.visit_id = v.visit_id
+  JOIN randomization AS r ON v.patient_id = r.patient_id
+  WHERE l.test_code = 'CREAT' AND v.visit_type = 'clinic_day30'")
+
+c(duplicates = nrow(dups), orphans = nrow(orphans),
+  expected = expected, rows = nrow(day30_creat))
+stopifnot(nrow(dups) == 0, nrow(orphans) == 0,
+          nrow(day30_creat) == expected,
+          !anyDuplicated(day30_creat$patient_id))
+dbDisconnect(con)
+```
+
+The prediction is one row per day-30 clinic visit, because no
+creatinine at that visit is duplicated and every patient in
+`visits` was randomized. The orphan `2433` has a lab row but no
+visit, so it cannot enter a join that goes through `visits`; the
+anti-join that finds it is the one from `labs` to `randomization`
+in @sec-databases-joins. Not every patient has a day-30 visit, so
+the count is smaller than the number randomized, and that is the
+expected value, not a defect.
+:::
+
+## Cheat sheet
+
+| Task | Code |
+|---|---|
+| Connect in memory | `dbConnect(RSQLite::SQLite(), ":memory:", extended_types = TRUE)` |
+| Connect to DuckDB | `dbConnect(duckdb::duckdb())` |
+| Load a data frame | `dbWriteTable(con, "name", df)` |
+| List tables | `dbListTables(con)` |
+| Run SQL, get a data frame | `dbGetQuery(con, "SELECT ...")` |
+| Pass a value safely | `dbGetQuery(con, "... WHERE id = ?", params = list(id))` |
+| Build SQL with quoting | `glue::glue_sql("... IN ({ids*})", .con = con)` |
+| Lazy table | `tbl(con, "name")` |
+| See the generated SQL | `show_query(q)` |
+| Bring the result into R | `collect(q)` |
+| Find duplicated keys | `GROUP BY key HAVING COUNT(*) > 1` |
+| Find orphans | `LEFT JOIN y ON x.key = y.key WHERE y.key IS NULL` |
+| Query a Parquet file | `SELECT ... FROM read_parquet('file.parquet')` in DuckDB |
+| Keep credentials out of code | `keyring::key_get()`, `Sys.getenv()` |
+| Close the connection | `dbDisconnect(con)` |
+
+: Databases from R at a glance. {#tbl-databases-cheat-sheet}
 
 ## Further reading
 
-- The `DBI` documentation at `dbi.r-dbi.org`, the
-  interface reference.
-- The `dbplyr` documentation at `dbplyr.tidyverse.org`,
-  including the list of translatable verbs.
-- [@wickham2023r4ds], the databases chapter, applied
-  introduction to `DBI` and `dbplyr`.
-- The DuckDB documentation at `duckdb.org`, for
-  file-backed analytical queries without a server.
+- [@wickham2023r4ds] Chapter 21, databases with `DBI` and
+  `dbplyr`.
+- The `DBI` and `dbplyr` documentation, at `dbi.r-dbi.org` and
+  `dbplyr.tidyverse.org`, including the list of translated
+  functions.
+- The DuckDB documentation at `duckdb.org`, for querying CSV and
+  Parquet files without a server.
 
 ## Prerequisites answers {#sec-quiz-answers-15b}
 
-1. `dbGetQuery()` sends a query and returns only its
-   result; a `SELECT` with filtering and aggregation
-   returns a small summary regardless of table size.
-   `dbReadTable()` reads an entire table into memory, so
-   on a ten-million-row table it pulls all ten million
-   rows across, which is slow and may exhaust memory. Use
-   `dbGetQuery()` (or lazy `dbplyr`) to let the database do
-   the reduction.
-2. A `dbplyr` pipeline builds up a query lazily: each verb
-   adds to a SQL statement that has not yet run. No
-   computation crosses into R until you call `collect()`
-   (or print, which fetches a preview). The computation
-   happens in the database; R receives only the collected
-   result.
-3. The extracted CSV records the rows but not their
-   derivation. The SQL query records exactly which tables,
-   filters, joins, and aggregations produced the analytic
-   dataset, so a reviewer can reconstruct or re-run it.
-   A warehouse is also a living system, so pairing the
-   query with an extraction date documents the snapshot the
-   analysis rested on.
+1. `dbGetQuery()` sends a query and returns only its result; a
+   `SELECT` with filtering and aggregation returns a small summary
+   regardless of table size. `dbReadTable()` reads an entire table
+   into memory, so on a ten-million-row table it pulls all ten
+   million rows across, which is slow and may exhaust memory. Use
+   `dbGetQuery()` (or lazy `dbplyr`) to let the database do the
+   reduction.
+2. A `dbplyr` pipeline builds a query lazily: each verb adds to a
+   SQL statement that has not yet run. No computation crosses into
+   R until you call `collect()` (or print, which fetches a
+   preview). The computation happens in the database; R receives
+   only the collected result.
+3. The extracted CSV records the rows but not their derivation.
+   The SQL query records which tables, filters, joins, and
+   aggregations produced the analytic dataset, so a reviewer can
+   reconstruct or re-run it. A warehouse is also a living system,
+   so pairing the query with a dated extract and its checksum
+   documents the snapshot the analysis rested on.

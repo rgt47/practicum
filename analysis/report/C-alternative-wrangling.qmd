@@ -20,7 +20,7 @@ a separate investment. This appendix does not claim to make
 you fluent, only literate.
 :::
 
-## Four paradigms
+## Five paradigms
 
 | Paradigm     | Strength                                    | Typical use                                 |
 | ------------ | ------------------------------------------- | ------------------------------------------- |
@@ -28,7 +28,7 @@ you fluent, only literate.
 | tidyverse    | readable pipelines; coherent ecosystem      | most applied biostatistics, this book       |
 | `data.table` | fastest; memory-efficient; terse            | large data, production pipelines, pharma    |
 | `arrow`      | lazy; Parquet; Python interop               | columnar data, cross-language projects      |
-| `polars`     | fast, Python-inspired; young                | experimental as of 2026                     |
+| `polars`     | fast, Python-inspired; young                | experimental as of early 2026               |
 
 ## base R wrangling
 
@@ -74,9 +74,11 @@ high-performance alternative. Its
 syntax is a compressed `DT[i, j, by]` form that takes
 roughly a week to become fluent in but is dramatically
 faster than base or dplyr on any dataset above a few
-million rows. All modern clinical-trials R packages
-(`admiral`, `pharmaverseadam`) use `data.table` internally;
-so does `tidymodels` for its cross-validation machinery.
+million rows. It is common in industry code and inside a
+number of CRAN packages. The pharmaverse is not among
+them: `admiral` and its companions are built on `dplyr`,
+`tidyr`, and `purrr`, so `data.table` fluency is not a
+prerequisite for reading them.
 
 The three mental pieces:
 
@@ -121,12 +123,15 @@ which speeds subsequent joins on that key. Third, the
 function across many columns at once, as in
 `dt[, lapply(.SD, mean), by = sex, .SDcols = is.numeric]`;
 it is the `data.table` analog of `across()`. Fourth, a
-gotcha worth internalizing early: `data.table` returns a
-`data.table` when you subset with `[`, where a
-`data.frame` would sometimes drop to a vector. The
-`drop = TRUE` surprise that catches base-R users does not
-arise, which is a mercy, but code that assumed a vector
-will need adjusting.
+gotcha worth internalizing early: what `j` returns
+decides the class of the result. A bare column name,
+`dt[, age]`, returns a vector, just as `df$age` does;
+wrapping it in `.()` or passing a character vector,
+`dt[, .(age)]` or `dt[, 'age']`, returns a one-column
+`data.table`. Selecting rows alone, `dt[age >= 18]`,
+always returns a `data.table`. Code that needs one or the
+other should ask for it explicitly rather than rely on
+which form a colleague happened to write.
 
 ## Side-by-side: eight common operations
 
@@ -139,7 +144,7 @@ will need adjusting.
 | Sort                           | `df \|> arrange(age)`                             | `dt[order(age)]`                          | `df[order(df$age), ]`                       |
 | Rename                         | `df \|> rename(new = old)`                        | `setnames(dt, 'old', 'new')`              | `names(df)[names(df) == 'old'] <- 'new'`    |
 | Inner join                     | `inner_join(x, y, by = 'id')`                     | `x[y, on = 'id', nomatch = NULL]`         | `merge(x, y, by = 'id')`                    |
-| Pivot wide to long             | `pivot_longer(df, cols = v1:v3)`                  | `melt(dt, measure.vars = v1:v3)`          | `reshape(df, direction = 'long', ...)`      |
+| Pivot wide to long             | `pivot_longer(df, cols = v1:v3)`                  | `melt(dt, measure.vars = patterns('^v'))` | `reshape(df, direction = 'long', ...)`      |
 
 ## `arrow`
 
@@ -190,8 +195,9 @@ overhead exceeds the benefit.
 ## `polars` for R
 
 `polars` is a Rust-based data-frame library, originally
-Python-first, with an R binding released in 2023. As of
-April 2026 the R binding is usable but not mature enough
+Python-first, with a younger R binding. As of early 2026
+the R binding is usable but
+not mature enough
 to recommend as a default. It is worth tracking for the
 combination of `data.table`-level speed with a syntax
 that is closer to dplyr.
@@ -205,7 +211,7 @@ df$filter(pl$col('mpg') > 20)$select('mpg', 'hp')
 
 For now, prefer `data.table` if you need speed or
 `arrow` if you need lazy evaluation and Parquet. Revisit
-`polars` in 2027.
+`polars` as its R binding matures.
 
 ## When to reach for each
 
@@ -235,11 +241,13 @@ possible. The comparison, not the number, is the point.
    rewrite it three ways: in `data.table`, in base R, and
    with `arrow` against a Parquet file. Time all three on
    a 1-million-row version of the data.
-2. Read the source of one function in `admiral` (a
-   pharmaverse ADaM package). Identify the `data.table`
-   idioms used (`:=`, `.SD`, `keyby`). Write a one-
-   paragraph summary of what the function does in plain
-   English.
+2. Find an installed package that imports `data.table`
+   (`tools::dependsOnPkgs('data.table')` lists them) and
+   read the source of one of its functions. Identify the
+   `data.table` idioms used (`:=`, `.SD`, `keyby`). Write
+   a one-paragraph summary of what the function does in
+   plain English. For contrast, read one `admiral`
+   derivation and note that it is written in `dplyr`.
 3. Install `arrow`. Write a 10-million-row `data.frame`
    as Parquet. Read it back with `open_dataset()` and run
    a `dplyr`-style aggregation. Compare wall-clock time

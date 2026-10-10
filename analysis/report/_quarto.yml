@@ -1,6 +1,7 @@
 project:
   pre-render:
     - ../../tools/us-spelling
+    - ../../tools/check-entities.sh
   type: book
   output-dir: _book
 
@@ -34,62 +35,61 @@ book:
     - conventions.qmd
     - 00-intro.qmd
 
-    - part: 'Reproducibility Mindset'
+    - part: part-1.qmd
       chapters:
         - 01-why.qmd
-        - 02b-deidentification.qmd
         - 03-team-science.qmd
+        - 02b-deidentification.qmd
 
-    - part: 'Data Science Workstation'
+    - part: part-2.qmd
       chapters:
-        - 04-workstation.qmd
         - 04b-shell.qmd
+        - 04-workstation.qmd
         - 05-git-solo.qmd
         - 05b-git-teams.qmd
-        - 06-cloud.qmd
+        - 21-ai-coding.qmd
 
-    - part: 'Reproducible Infrastructure'
-      chapters:
-        - 07-rrtools.qmd
-        - 08-renv.qmd
-        - 09-docker.qmd
-        - 10-zzcollab.qmd
-        - 10b-targets.qmd
-
-    - part: 'Reproducible Reporting'
-      chapters:
-        - 11-quarto.qmd
-        - 12-rmd-workflow.qmd
-
-    - part: 'Data Wrangling and Graphics'
+    - part: part-3.qmd
       chapters:
         - 12b-acquisition.qmd
+        - 12c-apis.qmd
         - 13-wrangling.qmd
         - 14-types.qmd
         - 15-joins.qmd
         - 15b-databases.qmd
         - 16-graphics.qmd
         - 17-missing.qmd
+        - 02c-deident-practice.qmd
 
-    - part: 'Analysis Practice'
+    - part: part-4.qmd
+      chapters:
+        - 11-quarto.qmd
+        - 08-renv.qmd
+        - 09-docker.qmd
+        - 10-zzcollab.qmd
+        - 10b-targets.qmd
+        - 06-cloud.qmd
+
+    - part: part-5.qmd
       chapters:
         - 18-analysis-plan.qmd
-        - 19-cdisc.qmd
         - 20-testing.qmd
-        - 20b-ci.qmd
-        - 21-ai-coding.qmd
+
+    - part: part-6.qmd
+      chapters:
+        - 19-cdisc.qmd
         - 22-sas.qmd
 
-    - part: 'Case Studies'
+    - part: part-7.qmd
       chapters:
         - 23-penguins.qmd
         - 24-adni.qmd
-        - 25b-communicating.qmd
-
-    - part: 'Obligations and Synthesis'
-      chapters:
-        - 25c-federal.qmd
         - 25d-ethics.qmd
+        - 25b-communicating.qmd
+        - 25c-federal.qmd
+
+    - part: part-8.qmd
+      chapters:
         - 25-synthesis.qmd
 
     - references.qmd
@@ -99,6 +99,10 @@ book:
     - D-peer-survey.qmd
     - E-lab-software.qmd
     - F-glossary.qmd
+    - G-instructor-guide.qmd
+    - H-tooling.qmd
+    - I-rmd-migration.qmd
+    - J-cheat-sheets.qmd
     - credits.qmd
     - colophon.qmd
 
@@ -125,11 +129,13 @@ format:
     toc-depth: 3
     anchor-sections: true
     smooth-scroll: true
+    reference-location: margin
 
   pdf:
     pdf-engine: xelatex
     documentclass: scrbook
-    classoption: [11pt]
+    classoption: [11pt, openany]
+    callout-appearance: simple
     toc: true
     toc-depth: 2
     code-annotations: below
@@ -156,6 +162,10 @@ format:
         \renewcommand{\includegraphics}[2][]{%
           \origincludegraphics[#1,max width=\linewidth,%
             max height=0.75\textheight,keepaspectratio]{#2}}
+        % Tables wrap heavily on a 4.9in text block; a smaller face
+        % keeps most rows on one line.
+        \usepackage{etoolbox}
+        \AtBeginEnvironment{longtable}{\small}
     include-before-body:
       text: |
         \begin{titlepage}
@@ -167,6 +177,10 @@ format:
         \restoregeometry
         \end{titlepage}
         \cleardoublepage
+
+filters:
+  - at: pre-ast
+    path: _filters/pdf-answers.lua
 
 bibliography: references.bib
 csl: https://www.zotero.org/styles/apa

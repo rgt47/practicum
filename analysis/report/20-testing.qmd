@@ -1,4 +1,17 @@
-# Testing Data Analysis Workflows {#sec-testing}
+# Testing and Continuous Integration {#sec-testing}
+
+Your script reads a length-of-stay column from an institutional
+warehouse, and one quarter the warehouse begins reporting it in
+seconds where it previously reported days. Nothing errors. The
+column is still numeric, the join still succeeds, the model still
+fits, and every downstream number is wrong by a factor of 86,400.
+No amount of rereading your code will find the problem, because
+your code is not what changed. A one-line test asserting that
+length of stay falls in a plausible range fails on the first run
+after the change; this chapter is about writing that line, about
+finding out whether the tests you already have would notice
+anything at all, and about running them, through continuous
+integration, on a clean machine every time the code changes.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -14,191 +27,118 @@ Programming* (1970)
 ```
 :::
 
-::: {.callout-note}
-## Sources
+```{r}
+#| label: testing-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-Adapted from author's lecture notes and supporting
-materials for a graduate practicum in biostatistics.
+```{r}
+#| label: fig-testing-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: tests belong to the Analyze
+#|   stage, beside the code they check, and continuous integration
+#|   runs them again, with the rendered report, on a clean machine
+#|   every time the code or the data change."
+#| fig-alt: !expr pipeline_alt('analyze')
+pipeline_diagram('analyze')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 45 minutes.
+
+**You'll need.** @sec-wrangling for the `dplyr` verbs,
+@sec-types for dates and coded values, @sec-renv for the
+lockfile, @sec-quarto for rendering, and @sec-git-teams for pull
+requests. The code uses:
+
+```r
+library(tinytest)
+library(palmerpenguins)
+```
+
+and calls `dplyr`, `tidyr`, and `janitor` with their namespaces.
+The CI chunks run R in fresh processes and need only `tinytest`
+and `knitr` installed.
+
+**You'll be able to.**
+
+- Write `tinytest` unit tests that assert values, boundaries, and
+  errors, not only the shape of the output.
+- Build a small fixture that exercises every branch of a cleaning
+  function, and pair it with an integration test on the real file.
+- Show that a test suite would catch a bug by planting one
+  (mutation testing).
+- Read and write a GitHub Actions workflow that restores
+  `renv.lock`, runs the tests with an exit status that fails the
+  job, and renders the report.
+- Find the cause of a red run from the first error in its log, and
+  fix it in the lockfile rather than in the workflow.
+- Harden a workflow: actions pinned by commit, a `permissions:`
+  block, and no long-lived credentials.
+
+**Outline.**
+
+- [Why test an analysis](#sec-testing-why)
+- [Unit tests with tinytest](#sec-testing-unit)
+- [Structure versus correctness](#sec-testing-correctness)
+- [Test smells](#sec-testing-smells)
+- [Worked example: testing the HF-HOME CRF cleaner](#sec-testing-worked)
+- [Running tests in continuous integration](#sec-testing-ci)
+- [What CI proves](#sec-ci)
+- [Anatomy of a workflow](#sec-ci-anatomy)
+- [Reading a failing run](#sec-ci-reading)
+- [Securing the workflow](#sec-ci-security)
+- [For testthat readers](#sec-testing-testthat)
 :::
 
-## Prerequisites
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-20.
 
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-20.
-
-1. Why would you test a one-off data analysis script
-   that will only ever run on a single dataset?
-2. What is the difference between a unit test, an
-   integration test, and an end-to-end test in the
-   context of a data analysis pipeline?
-3. What does `tinytest::expect_equal_to_reference()`
-   capture, and when is a reference test preferable to a
-   direct value-comparison test?
-
-## Learning objectives
-
-By the end of this chapter you should be able to:
-
-- Write unit tests for analytic helper functions
-  with `tinytest`.
-- Add an integration test that exercises the full
-  data pipeline on a small synthetic dataset.
-- Use `expect_equal_to_reference()` to capture complex
-  outputs (printed objects, summary tables).
-- Run the test suite locally via
-  `tinytest::test_all()` and in CI via GitHub
-  Actions.
-- Identify test smells (tests that pass for the
-  wrong reason, tests that hide bugs, flaky tests).
-- Apply visual regression testing to ggplot output
-  via `vdiffr`.
-
-## Orientation
-
-Analysis code rarely gets tested, and the reason is a
-respectable one. Software is written to run on inputs its
-author has never seen; an analysis script is written to run on
-one dataset, once, and then to be thrown away. Testing
-something that runs once against known data can look like
-ceremony.
-
-The reasoning has two holes. The first is that the script does
-not run once. It runs every time a data extract is refreshed,
-an exclusion is revised, or a reviewer asks for a sensitivity
-analysis. By then its author has forgotten which of its
-branches were ever exercised. The second is more serious: the
-claim 'it runs on one known dataset' is doing no work, because
-the failures that matter in analysis code do not stop it
-running. A filter that removes the wrong rows, a join that
-duplicates a patient, a unit conversion applied twice, all
-produce output. The question a test answers is not 'did it
-run' but 'would I have noticed if it were wrong', and for most
-analysis scripts the honest answer is no.
-
-We bring in this chapter the habits of software engineering to
-bear on that question.
-
-The framework used in this chapter is `tinytest`,
-because it is what projects scaffolded with `zzcollab`
-ship with and what the rest of this book assumes. It has
-no dependencies of its own, which matters when the point
-of the surrounding chapters is to pin an environment;
-each test file runs on its own; and the assertion
-vocabulary is small enough to hold in your head.
-
-::: {.callout-note}
-## A note on testthat
-
-`testthat` is the framework you are most likely to meet
-elsewhere, and the one the companion volume uses in the
-package-development context. The discipline this chapter
-teaches, testing statistical content rather than plumbing,
-is identical under either, and most of the translation is
-mechanical. Three differences are worth knowing before you
-read `testthat` code:
-
-- **There is no wrapper.** `testthat` groups assertions
-  inside `test_that("description", { ... })`. In
-  `tinytest` each `expect_*()` call is itself a test, and
-  the description goes in an `info=` argument. Files stay
-  flatter, and a failure reports the file and line rather
-  than a block name.
-- **The vocabulary is smaller.** `tinytest` has no
-  `expect_named()`, `expect_setequal()`, `expect_type()`
-  or `expect_s3_class()`. Use `expect_equal(names(x), ...)`,
-  `expect_equal(sort(a), sort(b))`,
-  `expect_equal(typeof(x), ...)` and `expect_inherits()`.
-  This is a feature rather than a gap: each is a plain
-  comparison whose failure output shows the two values.
-- **Snapshots work differently.**
-  `expect_equal_to_reference()` stores an `.rds` of the
-  object rather than printed text.
-
-Where a project already depends on `testthat`, stay with
-it. Mixing frameworks in one suite buys nothing.
+1. Why would you test a one-off data analysis script that will
+   only ever run on a single dataset?
+2. What is the difference between a unit test, an integration
+   test, and an end-to-end test in the context of a data analysis
+   pipeline?
+3. What is continuous integration, and why is 'it renders on my
+   machine' an insufficient guarantee that a collaborator can
+   reproduce your analysis?
 :::
 
-## The statistician's contribution {#sec-testing-human}
+## Why test an analysis {#sec-testing-why}
 
-Writing a test is five minutes of work. Writing a test
-that would actually fail if the code were wrong is the
-part that requires thought:
+Analysis code rarely gets tested, and the reason is a respectable
+one. Software is written to run on inputs its author has never
+seen; an analysis script is written to run on one dataset, once.
+The reasoning has two holes. The script does not run once: it runs
+every time an extract is refreshed, an exclusion is revised, or a
+reviewer asks for a sensitivity analysis, and by then its author
+has forgotten which branches were ever exercised. And the failures
+that matter in analysis code do not stop it running. A filter that
+removes the wrong rows, a join that duplicates a patient, a unit
+conversion applied twice: all produce output. The question a test
+answers is not 'did it run' but 'would I have noticed if it were
+wrong', and for most analysis scripts the honest answer is no.
 
-**Test the statistical content, not just the
-plumbing.** A test that 'returns a tibble of the
-right shape' is a structural check, not a test of
-correctness. A test that the regression coefficient
-on a known synthetic dataset matches the closed-form
-answer is a test of correctness.
+Three ordinary occasions make the case concrete
+(@tbl-testing-occasions).
 
-**Edge cases are where bugs live.** Empty input,
-single observation, all-NA, perfect collinearity,
-boundary value (zero variance, all-zero counts,
-class with one observation). Test these
-deliberately.
+| Occasion | What changes | What the test asserts |
+|---|---|---|
+| Refactoring | Your code, on purpose: `base::merge()` becomes a `dplyr` join | The output is identical to a saved baseline |
+| Upstream drift | The data, silently: days become seconds | Values fall in plausible ranges; codes are in the codebook |
+| Documentation | Nobody's memory of the intent | Given input X, the function returns Y, and a false claim fails the build |
 
-**Test the pipeline, not just the helpers.** Unit
-tests catch helper-function bugs. Integration tests
-on synthetic data catch pipeline bugs, including
-ones where helpers work individually but the
-composition fails.
+: Three occasions a test pays for itself. {#tbl-testing-occasions}
 
-**Don't test what you don't trust.** Mocking out a
-function call inside a test of that function makes
-the test tautological. The test passes because you
-made it pass, not because the code is correct.
-
-These judgments are what make tests useful rather
-than performative.
-
-## Why test analyses?
-
-The Orientation argued the general case. Three specific
-occasions make it concrete, and each is a moment that
-arrives in ordinary projects rather than unusual ones.
-
-The first is **refactoring**. You restructure a cleaning
-script to use `dplyr` where it previously used
-`base::merge`, and the output should be identical. Note
-what is peculiar about this situation: you have a
-precise expectation, you have no way to check it by
-looking, and the consequence of being wrong is a
-silently different cohort. A test that compares the
-output against a saved baseline settles the question in
-a second, and without one the honest position after a
-refactor is that you do not know whether it changed
-anything.
-
-The second is **upstream drift**, and it is the case
-tests catch that nothing else does. Your script reads an
-extract from an institutional warehouse, and one quarter
-the warehouse begins reporting a duration in seconds
-where it previously reported days. Nothing errors. The
-column is still numeric, the join still succeeds, the
-model still fits, and every downstream number is wrong
-by a factor of 86,400. A test asserting that the column
-falls in a plausible range catches this on the first run
-after the change; no amount of reading your own code
-ever will, because your code is not what changed.
-
-The third is **documentation**. A test of the form
-'given input X, this function returns Y' is a statement
-about intent that cannot rot, because it is executed.
-Comments drift away from the code they describe;
-assertions cannot, since a false one fails the build.
-
-Against these the cost is a few minutes per test,
-weighed against a silent miscalculation in something you
-have published under your name.
-
-Tests come in layers, and the layers catch different
-failures. @fig-test-layers is the shape, with the
-important qualification that the pyramid familiar from
-software engineering is somewhat flatter for analysis
-code: the integration layer, a small synthetic dataset
-run through the whole pipeline, does more work here than
-it does in most applications.
+Tests come in layers that catch different failures
+(@fig-test-layers). For analysis code the pyramid familiar from
+software engineering is flatter: the integration layer, a small
+synthetic dataset run through the whole pipeline, does more work
+here than in most applications.
 
 ```{mermaid}
 %%| echo: false
@@ -222,54 +162,38 @@ flowchart TD
   U --> I --> E
 ```
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: what would you have tested?
-
+::: {.callout-note collapse='true' title='Check'}
 **Question.** A cleaning script filters to adults with
-`filter(age >= 18)`. Six months later someone discovers
-the export encodes unknown age as `-1`, so those rows were
-silently dropped as minors. Which layer of the diagram
-would have caught it, and what would the test have
-asserted?
+`filter(age >= 18)`. Six months later someone discovers that the
+export encodes unknown age as `-1`, so those rows were silently
+dropped as minors. Which layer would have caught it, and what would
+the test have asserted?
 
-**Answer.**
-
-The integration layer, and only if the synthetic dataset
-contained a `-1`.
-
-That qualification is the whole lesson. A unit test on the
-filter would pass: given ages 17, 25 and 40, it correctly
-keeps two. The function is not broken. The *data* violated
-an assumption the function never stated, and no test of
-the function alone can see that.
-
-An integration test catches it if the synthetic fixture
-exercises the case, which is why the guidance says the
-fixture should exercise every branch, including the
-branches you do not think exist. A fixture built from
-plausible values only would miss it too.
-
-There are two assertions worth writing, and they fail at
-different times. One on the input, asserting that `age`
-falls in a plausible range before the filter runs, which
-fails the day the export changes. One on the output,
-asserting that the number of rows dropped is what the
-codebook predicts, which fails the day the meaning
-changes.
-
-The first is a claim about the data; the second is a claim
-about your understanding of it. Analysis pipelines mostly
-break for the second reason, and mostly get tested only
-for the first.
+**Answer.** The integration layer, and only if the synthetic
+dataset contained a `-1`. A unit test of the filter passes: given
+ages 17, 25, and 40 it correctly keeps two. The function is not
+broken; the *data* violated an assumption the function never
+stated. Two assertions are worth writing, and they fail at
+different times. One on the input, that `age` falls in a plausible
+range before the filter runs, fails the day the export changes.
+One on the output, that the number of rows dropped is what the
+codebook predicts, fails the day the meaning changes. The first is
+a claim about the data; the second is a claim about your
+understanding of it.
 :::
 
-## Unit tests with tinytest
+## Unit tests with tinytest {#sec-testing-unit}
+
+The book uses `tinytest`. It has no dependencies of its own, which
+matters when the surrounding chapters are about pinning an
+environment; each test file runs on its own; and its assertion
+vocabulary is small enough to hold in your head. If you will work
+in a `testthat` project, @sec-testing-testthat translates.
 
 For a function in `R/clean.R`:
 
 ```{r}
 #| label: test-age-group-fn
-# R/clean.R
 #' Compute age groups from numeric age
 #' @param age numeric vector
 age_group <- function(age) {
@@ -308,37 +232,110 @@ expect_error(age_group("twenty"),
              info = "non-numeric input is rejected")
 ```
 
-Each `expect_*()` call is one test. There is no
-enclosing block, which is the most visible difference
-from `testthat`: the `info=` string does the work
-`test_that()`'s description does, and a failure reports
-the file and line number alongside it.
+Each `expect_*()` call is one test, and its `info=` string says
+what it checks; a failure reports the file and line beside it. The
+tests above follow the rule that edge cases are where bugs live:
+boundaries, missing values, and the wrong type. For other
+functions the list includes empty input, a single observation, a
+group with one member, zero variance, and perfect collinearity.
 
-Run all tests:
+Run every test file from the project root, or a package's tests
+by name (display-only; both need a project with an
+`inst/tinytest/` directory):
 
 ```r
-tinytest::test_all()          # from the project root
-# or, for a package:
+tinytest::test_all()
 tinytest::test_package("practicum")
 ```
 
-The layout `tinytest` expects is `inst/tinytest/` for the
-test files and a one-line `tests/tinytest.R` that runs
-them, which is what `zzcollab` scaffolds. Shipping tests
-under `inst/` has a consequence worth knowing: they are
-installed with the package, so a user who has your
-compendium can run its test suite without your source
-tree. For an analysis whose credibility rests on being
+`tinytest` expects the test files in `inst/tinytest/` and a
+one-line `tests/tinytest.R` that runs them, which is the layout
+`tinytest::setup_tinytest()` creates and the one `zzcollab`
+scaffolds. Tests under `inst/` are installed with the package, so
+someone who has your compendium can run its tests without your
+source tree. For an analysis whose credibility rests on being
 checkable by someone else, that is the right default.
 
-## Integration tests on synthetic data
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Written as `expect_true(is.na(age_group(NA)))`, the
+`NA` test errors instead of passing. What does that tell you about
+the function, beyond the test?
 
-Unit tests catch helper-function bugs. They do not
-catch bugs where the helpers work individually but
-the pipeline composition fails.
+**Answer.** Bare `NA` is logical, and `cut()` requires a numeric
+argument, so `age_group(NA)` stops with `'x' must be numeric`. The
+same input arises in production: a column that is empty in every
+row is read by `read.csv()` as logical, and the function then fails
+on it. The test has found a real input the function does not
+handle, which is what a test is for.
+:::
 
-Integration tests run the full pipeline on a small
-synthetic dataset:
+### Exercises
+
+1. `age_group()` is tested for typical ages, boundaries, `NA`, and
+   non-numeric input. One gap remains: what the function does with
+   an age outside the range the breaks cover. Find the behavior,
+   decide whether it is the behavior you want, and write the test
+   that pins whichever answer you choose.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-20-1
+as.character(age_group(c(-5, 0, 200)))
+```
+
+A negative age returns `NA`, because the breaks begin at 0 and
+`cut()` places anything below the first break outside every
+interval. An age of 200 is absorbed into `65+`, because the last
+break is `Inf`. The asymmetry is the finding: an impossible age at
+the top of the range is silently accepted, and an impossible age
+at the bottom becomes the same `NA` a genuinely missing age
+produces. Pinning the current behavior:
+
+```{r}
+#| label: soln-20-1b
+expect_true(is.na(age_group(-5)),
+            info = "age below the first break gives NA")
+```
+
+Preferring an error instead, the test comes first and the function
+changes to satisfy it:
+
+```{r}
+#| label: soln-20-1c
+age_group_strict <- function(age) {
+  stopifnot(is.numeric(age))
+  if (any(age < 0, na.rm = TRUE))
+    stop("negative age")
+  cut(age, breaks = c(0, 18, 40, 65, Inf), right = FALSE,
+      labels = c("under-18", "18-39", "40-64", "65+"))
+}
+
+expect_error(age_group_strict(-5), pattern = "negative age",
+             info = "negative age is rejected")
+expect_equal(as.character(age_group_strict(30)), "18-39",
+             info = "a valid age still bins correctly")
+```
+
+Either is defensible. Leaving the behavior untested is not,
+because then it is not a decision at all, only whatever `cut()`
+happened to do.
+:::
+
+## Structure versus correctness {#sec-testing-correctness}
+
+A test that the result 'is a tibble of the right shape' is a
+structural check, not a test of correctness. A test that a
+regression coefficient on a known synthetic dataset equals the
+closed-form answer, or that a cell survives the pipeline unchanged,
+is a test of correctness. Write both, and do not mistake the first
+for the second.
+
+### Integration tests on synthetic data
+
+Unit tests catch helper bugs. They do not catch bugs where the
+helpers work individually and their composition fails. An
+integration test runs the whole pipeline on a small synthetic
+dataset:
 
 ```{r}
 #| label: test-integration
@@ -371,9 +368,6 @@ raw <- tibble::tibble(
 
 clean <- run_pipeline(raw)
 
-# structural assertions. tinytest has no expect_s3_class or
-# expect_named, and does not need them: both are ordinary
-# comparisons, and a failure prints the two values.
 expect_inherits(clean, "tbl_df", info = "returns a tibble")
 expect_equal(names(clean),
              c("patient_id", "age_group", "sex",
@@ -384,36 +378,57 @@ expect_equal(names(clean),
 expect_equal(nrow(clean), 5,
              info = "patient 4 excluded; patient 3 has one NA bp")
 
-# specific values
 expect_equal(clean$bp[clean$patient_id == 1 & clean$visit == 1],
              120,
              info = "a known cell survives the pipeline unchanged")
 ```
 
-The synthetic dataset is small (4 patients, 2
-visits) but exercises each cleaning rule: age
-exclusion (patient 4), missing values (patient 3
-visit 2). A test that runs in a fraction of a second
-covers the pipeline's logic.
+The dataset has four patients and two visits, but it exercises
+each cleaning rule: the age exclusion (patient 4) and a missing
+value (patient 3, visit 2). The rule generalizes: for each filter,
+derivation, pivot, and recode, the fixture has at least one row
+that exercises it, including the branches you do not think exist.
 
-For each cleaning rule (filter, derive, pivot,
-recode), the synthetic dataset should have at least
-one row that exercises it.
+### Reference tests
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: structural vs. correctness
+For an output that is tedious to assert literally, compare it with
+a stored reference. The first run writes the object to a file and
+passes; later runs compare against it.
 
-**Question.** Your test asserts
-`expect_equal(nrow(result), 100)`. The test passes.
-Does this mean the result is correct?
+```{r}
+#| label: test-reference
+ref_file <- file.path(tempdir(), "lm-coefs.rds")
+unlink(ref_file)
+fit <- lm(mpg ~ wt + hp, data = mtcars)
 
-**Answer.**
+refit <- lm(mpg ~ wt + hp, data = mtcars[-1, ])
 
-No. The test asserts only that the result has 100
-rows. It says nothing about which rows, what
-values, or whether the right rows were filtered.
-A bug that produces 100 rows of the wrong patients
-passes the test silently. To test correctness:
+c(first_run = expect_equal_to_reference(coef(fit), ref_file),
+  later_run = expect_equal_to_reference(coef(fit), ref_file),
+  changed   = expect_equal_to_reference(coef(refit), ref_file))
+```
+
+When a reference test fails, you decide whether the change is
+intended (delete the file and regenerate it) or a regression. The
+stored object is compared by value, so a coefficient that changed
+fails and a `print` method that gained a blank line does not.
+Inspect the reference once when it is first written, because the
+first run accepts whatever the code produced.
+
+| Use a reference test when | Avoid it when |
+|---|---|
+| The output is complex and tedious to assert literally | The output changes for trivial reasons: an unseeded random draw, the locale, an unstable sort |
+| The question is 'is this what was reviewed' | The stored object is too large to inspect when it changes, so 'accept or investigate' becomes a coin toss |
+
+: When a reference test helps. {#tbl-testing-reference}
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Your test asserts `expect_equal(nrow(result), 100)`,
+and it passes. Does this mean the result is correct?
+
+**Answer.** No. It says nothing about which rows, what values, or
+whether the right rows were filtered; 100 rows of the wrong
+patients pass. Add assertions on content:
 
 ```{r}
 #| label: test-structural-vs-correct
@@ -427,430 +442,20 @@ expect_equal(sort(result$patient_id),      # correctness
 expect_equal(result$age, expected_ages)
 ```
 
-The combination tests structure *and* content. The
-structural test alone is a false positive
-generator. This pattern, 'looks right at the
-surface, wrong underneath', is the most common
-testing failure mode in data analysis.
-
+'Looks right at the surface, wrong underneath' is the most common
+testing failure in data analysis, and a structural test alone is
+built to miss it.
 :::
 
-## Reference tests
-
-For complex outputs that are hard to assert
-literally, compare against a stored reference:
-
-```r
-fit <- lm(mpg ~ wt + hp, data = mtcars)
-expect_equal_to_reference(coef(fit), "ref/mtcars-coefs.rds",
-                          info = "coefficients unchanged")
-
-expect_equal_to_reference(summary(fit)$r.squared,
-                          "ref/mtcars-r2.rds")
-```
-
-On first run the object is written to the named file and
-the test passes trivially. On subsequent runs the value is
-compared against it; if it differs the test fails, and you
-decide whether the change is intended (delete the file and
-regenerate) or a regression.
-
-One difference from `testthat` is worth understanding
-rather than glossing. `expect_snapshot()` captures
-*printed output* as text, so it also detects changes in
-formatting. `expect_equal_to_reference()` stores the
-*object*, so it compares values and ignores how they
-print. For analysis code the object comparison is usually
-what you want: a coefficient that changed matters, and a
-`print` method that gained a blank line does not.
-
-Reference tests are useful when:
-
-- Output is complex and tedious to assert literally.
-- Output is human-readable formatting (tables,
-  printed summaries, plot text).
-- You care more about 'is this what was reviewed' than
-  'is this exactly the right value'.
-
-Snapshots are not useful when:
-
-- Output changes for trivial reasons (random seed,
-  system locale, an unstable sort). These produce false
-  positives.
-- The stored object is too large to inspect when it
-  changes, which makes 'accept or investigate' a coin
-  toss.
-
-## Visual regression testing with vdiffr
-
-For ggplot output, `vdiffr` saves an SVG of the
-rendered plot and compares on subsequent runs:
-
-```r
-library(vdiffr)
-
-fit <- lm(mpg ~ wt, data = mtcars)
-p <- ggplot(broom::augment(fit), aes(.fitted, .resid)) +
-      geom_point() +
-      geom_hline(yintercept = 0)
-expect_doppelganger("regression-residual-plot", p)
-```
-
-vdiffr handles cross-platform rendering issues
-(font differences, anti-aliasing) better than raw
-image comparison. Useful for catching unintended
-changes to plot code (an axis label change, a
-geom swap).
-
-Note that `vdiffr` is built on `testthat` and expects to
-run inside it, so this is the one place in the chapter
-where the two frameworks do not substitute for each
-other. If visual regression matters to a project, that is
-a reason to use `testthat` there; `tinysnapshot` is the
-`tinytest`-native alternative and is younger.
-
-## Continuous integration
-
-`usethis::use_github_action("check-standard")` sets
-up GitHub Actions to run `R CMD check` on every
-push and pull request, on multiple OS / R-version
-combinations. (Older material calls this
-`use_github_action_check_standard()`, a function
-`usethis` has since removed in favor of naming the
-workflow as an argument.) For a non-package analysis
-project, the equivalent is a workflow that runs tests:
-
-```yaml
-# .github/workflows/test.yaml
-name: tests
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: r-lib/actions/setup-r@v2
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          packages: |
-            local::.
-            any::tinytest
-      - name: Run tests
-        run: Rscript -e 'tinytest::test_all()'
-```
-
-Push the workflow; on every commit, GitHub runs the
-tests and reports pass/fail. Regressions caught at
-push time are far cheaper to fix than regressions
-caught in production.
-
-## Test smells
-
-Common patterns that look like tests but produce
-false confidence:
-
-**Tautological tests.**
-
-```{r}
-#| label: test-antipattern-tautology
-# foo ignores its argument and always returns 42. It is wrong for
-# every input, and the test below still passes.
-foo <- function(x) 42
-
-expect_equal(foo(1), foo(1),      # always passes
-             info = "foo works")
-```
-
-The test cannot fail because it tests `foo()` against
-itself. Useless.
-
-**Tests that mock the tested function.**
-
-```r
-fit_model <- function(d) list()          # stub, for the test
-expect_equal(typeof(fit_model(d)), "list")
-```
-
-You replaced the function under test with a stub; the
-test passes because the stub returns a list, not because
-`fit_model` works. `tinytest` has no mocking facility,
-which makes this smell harder to write by accident than
-it is under `testthat`'s `with_mocked_bindings()`.
-
-**Brittle snapshots.**
-
-```r
-expect_equal_to_reference(do_thing(today()),
-                          "ref/do_thing.rds")   # date in output
-```
-
-The stored object includes the current date, so the test
-fails every day after the first. Either take the date out
-of the returned object or compare the parts that should be
-stable, which usually means asserting on specific fields
-rather than on the whole object.
-
-**Overly permissive tolerances.**
-
-```{r}
-#| label: test-antipattern-tolerance
-result <- 0.9                                # nowhere near 0.5
-
-expect_equal(result, 0.5, tolerance = 0.5)   # passes for any value
-```
-
-A 100% tolerance is no test.
-
-**Tests that test the test framework, not the
-code.**
-
-```{r}
-#| label: test-antipattern-vacuous
-expect_true(TRUE)
-```
-
-These are placeholders that should be filled in.
-Watch for them in code reviews.
-
-## Worked example: testing a cleaning pipeline
-
-```{r}
-#| label: test-worked-cleaning
-#| message: false
-# R/cleaning.R
-clean_visits <- function(raw) {
-  raw |>
-    janitor::clean_names() |>
-    dplyr::filter(age >= 18) |>
-    tidyr::pivot_longer(
-      cols = dplyr::starts_with("bp_"),
-      names_to = "visit",
-      names_prefix = "bp_v",
-      values_to = "bp"
-    ) |>
-    dplyr::filter(!is.na(bp))
-}
-
-# inst/tinytest/test-cleaning.R
-# In the package this line loads the function above; here it is
-# already in scope, so the tests run as written.
-# source("../../R/cleaning.R")
-
-# the age filter
-raw <- tibble::tibble(
-  patient_id = 1:3,
-  age        = c(25, 17, 30),
-  bp_v1      = c(120, 110, 130),
-  bp_v2      = c(122, 112, 128)
-)
-result <- clean_visits(raw)
-expect_equal(sort(unique(result$patient_id)), c(1, 3),
-             info = "cleaning excludes minors")
-
-# the NA filter
-raw <- tibble::tibble(
-  patient_id = c(1, 1, 2),
-  age        = c(25, 25, 30),
-  bp_v1      = c(120, NA, 130),
-  bp_v2      = c(NA,  118, 128)
-)
-result <- clean_visits(raw)
-expect_equal(nrow(result), 4,
-             info = "6 cells, 2 NA, so 4 rows survive")
-expect_true(all(!is.na(result$bp)),
-            info = "no NA blood pressures remain")
-
-# the reshape
-raw <- tibble::tibble(
-  patient_id = 1,
-  age        = 25,
-  bp_v1      = 120,
-  bp_v2      = 118
-)
-result <- clean_visits(raw)
-expect_equal(sort(names(result)),
-             sort(c("patient_id", "age", "visit", "bp")),
-             info = "long format has the expected columns")
-expect_equal(nrow(result), 2,
-             info = "one patient with two visits gives two rows")
-```
-
-The tests cover: the age filter, the NA filter, the
-pivot. Each test is a single named scenario; each
-asserts specific values, not just structure.
-Running the test suite catches any regression to
-the cleaning logic.
-
-## Collaborating with an LLM on tests
-
-LLMs draft tests well; the judgment about what to
-test needs human input.
-
-**Prompt 1: drafting tests.** Paste the function and
-ask: 'write `tinytest` tests covering happy path,
-edge cases, and error handling. Make the assertions
-specific to values, not just structure.'
-
-*What to watch for.* Default LLM tests tend to be
-shape-checks. Push for value-checks. Edge cases:
-empty, NA, single observation, type mismatch.
-
-*Verification.* Introduce a bug into the function
-and re-run the tests. If the bug is caught, the
-tests are useful. If not, add a more specific
-test.
-
-**Prompt 2: integration test on synthetic data.**
-Describe the pipeline; ask the LLM to generate a
-small synthetic dataset that exercises every
-branch.
-
-*What to watch for.* The LLM may generate a dataset
-that exercises the happy path but not the edges.
-Verify each branch (filter rules, missing-data
-paths, factor levels) is covered.
-
-*Verification.* Add a deliberate bug to one branch;
-the test should fail. If it does not, the synthetic
-data does not exercise that branch.
-
-**Prompt 3: diagnosing a flaky test.** Paste the
-test and the failure; ask: 'what's the source of
-non-determinism?'
-
-*What to watch for.* Common causes: random number
-generation without seed, parallel processing
-without seed-aware RNG, system-time-dependent
-output, locale issues. The LLM should know these.
-
-*Verification.* Apply the fix and run the test
-multiple times. If it stops being flaky, fixed.
-
-## Principle in use
-
-Three habits separate a suite that catches bugs from one
-that reports green:
-
-1. **Test the math, not just the shape.**
-   Structural checks alone produce false confidence.
-2. **Integration tests on synthetic data.** A
-   20-line synthetic dataset that exercises every
-   branch catches pipeline bugs that unit tests
-   miss.
-3. **CI as a tripwire.** GitHub Actions running
-   tests on every push catches regressions at the
-   commit, not at the publication.
-
-## Exercises
-
-1. `age_group()` earlier in this chapter is tested
-   for typical ages, boundaries, `NA`, and
-   non-numeric input. One gap remains: what the
-   function does with an age outside the range the
-   breaks cover. Find the behavior, decide whether
-   it is the behavior you want, and write the test
-   that pins whichever answer you choose.
-2. Write a `summarize_species()` function returning
-   mean body mass and count per species from
-   `palmerpenguins::penguins`. Give it one
-   structural test and one correctness test, and say
-   in a comment which is which and why the
-   structural one is insufficient on its own.
-3. Take the tautological test from this chapter,
-   `expect_equal(foo(1), foo(1))`, and replace it
-   with an assertion that fails against
-   `foo <- function(x) 42` while passing against a
-   correct implementation.
-
-**On your own project.** No answer key; these need code,
-a repository, or a colleague you supply.
-
-4. Add unit tests for two functions from an
-   existing analysis of yours. Aim for at least: a
-   happy-path test, an edge-case test, and an
-   error-path test.
-5. Write an integration test: a 20-line synthetic
-   dataset that exercises every branch of your
-   pipeline. Run the full pipeline in under a
-   second.
-6. Set up GitHub Actions with a workflow that runs
-   `tinytest::test_all()` on every push. Push and
-   verify the workflow runs green.
-7. Introduce a deliberate bug into your pipeline.
-   Verify the test suite catches it. If it does
-   not, add a test that does.
-8. Apply `vdiffr::expect_doppelganger` to one of
-   your project's plots. Modify the plot's theme
-   slightly; verify the test fails and you can
-   accept or reject the change.
-9. Review a colleague's test suite rather than their
-   code. For each test, decide whether it checks
-   statistical content or only structure, and find
-   at least one test that would pass even if the
-   function under test were subtly wrong. Propose the
-   value-level assertion that would catch the bug,
-   and deliver the review in writing as a
-   pull-request comment (@sec-git-teams).
-
-::: {.callout-tip icon=false collapse=true}
-## Solutions to exercises 1 to 3
-
-**1. What happens outside the range of the breaks.**
-
-```{r}
-#| label: soln-20-1
-as.character(age_group(c(-5, 0, 200)))
-```
-
-A negative age returns `NA`. The breaks begin at 0, and
-`cut()` places anything below the first break outside every
-interval. An age of 200 is absorbed into `65+`, because
-the last break is `Inf`.
-
-The asymmetry is the finding. An impossible age at the top
-of the range is silently accepted as plausible; an
-impossible age at the bottom becomes `NA`, which is the
-same value a genuinely missing age produces. Downstream,
-a data-entry error of `-5` is indistinguishable from an
-age nobody recorded.
-
-Whether that is acceptable is a judgment, and the test
-should pin whichever judgment you make. Pinning the
-current behavior:
-
-```{r}
-#| label: soln-20-1b
-expect_true(is.na(age_group(-5)),
-            info = "age below the first break gives NA")
-```
-
-Preferring an error instead, the test comes first and the
-function changes to satisfy it:
-
-```{r}
-#| label: soln-20-1c
-age_group_strict <- function(age) {
-  stopifnot(is.numeric(age))
-  if (any(age < 0, na.rm = TRUE))
-    stop("negative age")
-  cut(age, breaks = c(0, 18, 40, 65, Inf), right = FALSE,
-      labels = c("under-18", "18-39", "40-64", "65+"))
-}
-
-expect_error(age_group_strict(-5), pattern = "negative age",
-             info = "negative age is rejected")
-expect_equal(as.character(age_group_strict(30)), "18-39",
-             info = "a valid age still bins correctly")
-```
-
-Either is defensible. What is not defensible is leaving
-the behavior untested, because then it is not a decision
-at all, only whatever `cut()` happened to do.
-
-**2. A structural test and a correctness test.**
-
+### Exercises
+
+2. Write a `summarize_species()` function returning mean body mass
+   and count per species from `palmerpenguins::penguins`. Give it
+   one structural test and one correctness test, and say in a
+   comment which is which and why the structural one is
+   insufficient on its own.
+
+::: {.callout-note collapse='true' title='Solution'}
 ```{r}
 #| label: soln-20-2
 #| message: false
@@ -882,15 +487,78 @@ expect_equal(out$n[out$species == "Adelie"],
              info = "correctness: n counts non-missing")
 ```
 
-The structural test is worth keeping, because a change in
-column names breaks callers. It is insufficient because
-every assertion in it would still pass if `mean()` were
-replaced by `median()`. Only the second test would fail,
-and only because it recomputes the answer a different way
-rather than comparing the function to itself.
+The structural test is worth keeping, because a change in column
+names breaks callers. It is insufficient because every assertion
+in it would still pass if `mean()` were replaced by `median()`.
+Only the second test would fail, and only because it recomputes
+the answer a different way rather than comparing the function with
+itself.
+:::
 
-**3. Replacing the tautology.**
+## Test smells {#sec-testing-smells}
 
+Some tests look like tests and produce only confidence. Two run
+below; @tbl-testing-smells lists the common kinds.
+
+```{r}
+#| label: test-antipattern-tautology
+# foo ignores its argument and always returns 42. It is wrong for
+# every input, and the test below still passes.
+foo <- function(x) 42
+
+expect_equal(foo(1), foo(1),      # always passes
+             info = "foo works")
+```
+
+```{r}
+#| label: test-antipattern-tolerance
+result <- 0.9                                # nowhere near 0.5
+
+expect_equal(result, 0.5, tolerance = 0.5)   # passes for 0 to 1
+```
+
+The tolerance example passes for any value from 0 to 1. With an
+expected value no larger than the tolerance, `all.equal()`, which
+`expect_equal()` uses, compares the absolute difference, so a
+tolerance of 0.5 around 0.5 accepts every proportion there is.
+
+| Smell | Example | Why it misleads | Fix |
+|---|---|---|---|
+| Tautology | `expect_equal(foo(1), foo(1))` | Compares the function with itself | Compare with a value computed another way |
+| Mocking the code under test | A stub `fit_model <- function(d) list()` inside the test | Tests the stub, not the function | Test the real function on a small input |
+| Brittle reference | `expect_equal_to_reference(do_thing(Sys.Date()), ...)` | Fails every day after the first, so failures stop being read | Remove the date, or compare stable fields |
+| Permissive tolerance | `expect_equal(x, 0.5, tolerance = 0.5)` | Accepts any proportion | Set the tolerance from the computation's real precision |
+| Placeholder | `expect_true(TRUE)` | Tests nothing | Write the test or delete the line |
+| Prefixed expectation | `tinytest::expect_equal(x, y)` in a test file | Not collected: the file reports zero tests, with only a message | Call `expect_equal()` without the prefix |
+| Shape only | `expect_equal(nrow(out), 100)` | Passes on the wrong rows | Assert values (@sec-testing-correctness) |
+
+: Test smells. Watch for them in code review. {#tbl-testing-smells}
+
+`tinytest` has no mocking facility, which makes the second smell
+harder to write by accident than under `testthat`'s
+`with_mocked_bindings()`.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague's test is
+`expect_equal(risk_difference(d), risk_difference(d), tolerance = 1e-8)`.
+They point out that the tolerance is tight. Is the test any good?
+
+**Answer.** No. It is a tautology with a tight tolerance: the
+expected value comes from calling the function under test, so it
+passes whatever the function returns. The tolerance is irrelevant.
+The fix is an expected value computed another way, for example
+the difference of two proportions worked out by hand on a
+ten-row fixture.
+:::
+
+### Exercises
+
+3. Replace the tautological test, `expect_equal(foo(1), foo(1))`,
+   with an assertion that fails against `foo <- function(x) 42`
+   while passing against a correct implementation that doubles its
+   argument.
+
+::: {.callout-note collapse='true' title='Solution'}
 ```{r}
 #| label: soln-20-3
 #| error: true
@@ -900,46 +568,1254 @@ expect_equal(foo(1), 2, info = "foo doubles 1")
 expect_equal(foo(3), 6, info = "foo doubles 3")
 ```
 
-The fix is to assert against a value computed
-independently of the function, here by hand. Any assertion
-whose expected value comes from calling the function is
-circular, and no amount of adding cases repairs that.
+The fix is to assert against a value computed independently of the
+function, here by hand. Any assertion whose expected value comes
+from calling the function is circular, and no number of added cases
+repairs that.
 :::
+
+## Worked example: testing the HF-HOME CRF cleaner {#sec-testing-worked}
+
+The HF-HOME CRF (case report form) export,
+`analysis/data/raw_data/hfhome/crf_export.csv`, comes from five
+site systems that each write the same fields differently: Site D
+codes sex as `1` and `2`, Site C writes dates month first, Site E
+has lost the leading zeros of its patient IDs, and the site labels
+vary in case and spacing. The function below puts four fields into
+canonical form. Each site's coding lives in a lookup table passed
+as an argument with a default, so that the codebook is in one place
+and a change to it is a one-line change.
+
+```{r}
+#| label: test-crf-fn
+#' Clean the site-specific fields of the HF-HOME CRF export
+#'
+#' @param raw Data frame read from `crf_export.csv`, every column
+#'   character.
+#' @param site_d_sex Codes Site D uses for sex.
+#' @param date_formats Discharge-date format for each site.
+#' @return A data frame of `patient_id`, `site`, `sex`, and
+#'   `discharge_date` in canonical form.
+clean_crf <- function(raw,
+                      site_d_sex = c("1" = "M", "2" = "F"),
+                      date_formats = c("Site A" = "%Y-%m-%d",
+                                       "Site B" = "%Y-%m-%d",
+                                       "Site C" = "%m/%d/%Y",
+                                       "Site D" = "%d-%b-%Y",
+                                       "Site E" = "%Y%m%d")) {
+  site <- paste("Site", toupper(substring(trimws(raw$site), 6)))
+  sex <- ifelse(site == "Site D", site_d_sex[raw$sex],
+                toupper(substr(raw$sex, 1, 1)))
+  if (!all(sex %in% c("F", "M"))) {
+    stop("unrecognized sex code: ",
+         paste(unique(raw$sex[!sex %in% c("F", "M")]),
+               collapse = ", "))
+  }
+  data.frame(
+    patient_id     = sprintf("%04d", as.integer(raw$patient_id)),
+    site           = site,
+    sex            = unname(sex),
+    discharge_date = as.Date(raw$discharge_date,
+                             format = date_formats[site])
+  )
+}
+```
+
+The test file has two layers. The unit layer is a fixture with one
+row per site, each written the way that site writes it, and
+expected values worked out by hand from the codebook. The
+integration layer cleans the whole export and compares it with two
+independent records of the same patients: sex in the registration
+demographics and the discharge date in the baseline table.
+Agreement between independent sources is a check real trials run,
+and it needs no hand-written expectations.[^locale]
+
+[^locale]: `%b` matches English month abbreviations only in an
+    English locale. On a machine whose `LC_TIME` is set otherwise,
+    Site D's dates parse to `NA`, and the date tests below report
+    it.
+
+```{r}
+#| label: test-crf-tests
+#| eval: false
+# inst/tinytest/test-clean-crf.R
+hf_dir <- Sys.getenv("HFHOME_DIR")
+
+fixture <- data.frame(
+  patient_id     = c("0005", "0001", "0012", "0010", "7"),
+  site           = c("Site A", "site b", "SITE C", " Site D", "Site E "),
+  sex            = c("F", "Male", "f", "2", "M"),
+  discharge_date = c("2024-02-02", "2024-02-01", "02/03/2024",
+                     "05-FEB-2024", "20240209")
+)
+out <- clean_crf(fixture)
+
+expect_equal(out$patient_id, c("0005", "0001", "0012", "0010", "0007"),
+             info = "Site E IDs regain their leading zeros")
+expect_equal(out$site, paste("Site", LETTERS[1:5]),
+             info = "site labels are normalized")
+expect_equal(out$sex, c("F", "M", "F", "F", "M"),
+             info = "every site's sex coding; Site D codes 2 as F")
+expect_equal(out$discharge_date,
+             as.Date(c("2024-02-02", "2024-02-01", "2024-02-03",
+                       "2024-02-05", "2024-02-09")),
+             info = "every site's date format; Site C is month first")
+expect_error(clean_crf(transform(fixture, sex = "X")),
+             pattern = "unrecognized sex code",
+             info = "an unknown sex code stops the cleaning")
+
+crf <- read.csv(file.path(hf_dir, "crf_export.csv"),
+                colClasses = "character", fileEncoding = "UTF-8-BOM")
+demographics <- read.csv(file.path(hf_dir, "demographics.csv"),
+                         colClasses = "character")
+baseline <- read.csv(file.path(hf_dir, "baseline.csv"),
+                     colClasses = "character")
+both <- merge(clean_crf(crf), demographics[c("patient_id", "sex")],
+              by = "patient_id", suffixes = c("", "_demo"))
+both <- merge(both, baseline[c("patient_id", "discharge_date")],
+              by = "patient_id", suffixes = c("", "_base"))
+
+expect_equal(nrow(both), nrow(crf),
+             info = "every CRF patient is found in both sources")
+expect_equal(both$sex, both$sex_demo,
+             info = "sex agrees with the registration record")
+expect_equal(both$discharge_date, as.Date(both$discharge_date_base),
+             info = "discharge date agrees with the baseline table")
+```
+
+In a project this chunk is the file `inst/tinytest/test-clean-crf.R`.
+The chunk below writes it to a temporary file and runs it as
+`tinytest` would, with the data directory passed in an environment
+variable rather than written into the test.
+
+```{r}
+#| label: test-crf-run
+test_file <- file.path(tempdir(), "test-clean-crf.R")
+writeLines(knitr::knit_code$get("test-crf-tests"), test_file)
+hf_env <- list(
+  HFHOME_DIR = normalizePath(file.path("..", "data", "raw_data",
+                                       "hfhome"))
+)
+
+passing <- run_test_file(test_file, verbose = 0, set_env = hf_env)
+passing
+```
+
+Every test passes. That shows the tests agree with the function;
+it does not yet show that they would notice if the function were
+wrong. To find out, plant a bug a reviewer could plausibly miss,
+here Site D's sex codes swapped, and run the same tests again:
+
+```{r}
+#| label: test-crf-mutant
+clean_crf_correct <- clean_crf
+clean_crf <- function(raw) {
+  clean_crf_correct(raw, site_d_sex = c("1" = "F", "2" = "M"))
+}
+
+mutant <- run_test_file(test_file, verbose = 0, set_env = hf_env)
+mutant
+
+clean_crf <- clean_crf_correct
+```
+
+Both layers catch it: the fixture's Site D row, and the comparison
+with the registration record, which disagrees for every Site D
+patient. The swapped function returns a plausible data frame, with
+two sexes in plausible proportions, which is exactly the kind of
+bug that survives inspection (Habit 8).
+
+This check has a name: [**mutation testing**](F-glossary.qmd#gloss-mutation-testing)
+[@demillo1978hints]. Each planted bug is a *mutant*; a test that
+fails on it *kills* it; and the share of mutants killed measures
+how much the suite can see. Tools for other languages generate
+mutants automatically (flipped comparisons, swapped constants,
+deleted lines). By hand, plant one mutant per rule in the codebook,
+starting with the rules whose failure would produce a plausible
+number.
+
+::: {.callout-tip title='Verification'}
+Confirm in code that the suite passes the correct function and
+fails the mutant, so that a later edit to the tests cannot quietly
+make them blind to it.
+
+```{r}
+#| label: test-crf-verify
+stopifnot(tinytest::all_pass(passing), tinytest::any_fail(mutant))
+```
+
+The chunk prints nothing when both hold.
+:::
+
+::: {.callout-important title='LLM prompt'}
+An agentic version: a coding agent writes tests and runs mutants,
+and you review the evidence rather than only the code.
+
+> **Context.** `R/clean_crf.R` cleans the HF-HOME CRF export. The
+> codebook, `analysis/data/raw_data/hfhome/README.md`, lists each
+> site's coding of sex, dates, IDs, and site labels. Existing tests
+> are in `inst/tinytest/`. Run code only against the synthetic
+> HF-HOME files.
+>
+> **Constraints.** Add tests in a new file,
+> `inst/tinytest/test-clean-crf-sites.R`. Do not edit
+> `R/clean_crf.R` or any existing test file, do not skip, delete,
+> or loosen a test, and add no packages. If a test you write fails
+> against the current function, stop and report it; do not change
+> the test to make it pass.
+>
+> **Criteria.** Before writing tests, list each codebook rule and
+> the fixture row that will exercise it. Then, for each rule,
+> create one mutant of `clean_crf()` in a temporary copy, run the
+> suite against it, and report a table of mutant, killed or
+> survived, and the test that killed it.
+
+*Failure mode.* An agent told to make tests pass will weaken them:
+it widens a tolerance, replaces a value check with a shape check,
+or edits the expected value to match the output. That is why the
+instruction forbids touching existing tests, and why the rule that
+tests are off-limits to an agent is part of the book's governance
+rules (@sec-ai-governance). *Check.* Run
+`git diff --stat -- inst/tinytest/ R/` and confirm that only the
+new test file changed; read every `expect_*()` in it for a
+hand-derived expected value; then run one mutant yourself, as in
+the chunk above, and confirm that the suite fails. The codebook
+and synthetic files hold no patient data.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Why does the fixture have one row per site, written
+by hand, rather than five rows sampled from the export?
+
+**Answer.** Every pathology in the export is per site, so a test
+must exercise every site to exercise every branch. Five sampled
+rows can easily miss Site D, whose numeric sex codes are the branch
+most likely to be wrong, and a sample changes when the export
+does. A hand-built row per site exercises each branch on purpose,
+and its expected values come from the codebook rather than from the
+function.
+:::
+
+### Exercises
+
+4. Make a second mutant that parses Site C's dates day first
+   (`"%d/%m/%Y"`). Predict which tests kill it, run the suite, and
+   count how many Site C dates the mutant gets silently wrong,
+   rather than `NA`.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-20-4
+day_first <- eval(formals(clean_crf_correct)$date_formats)
+day_first["Site C"] <- "%d/%m/%Y"
+clean_crf <- function(raw) {
+  clean_crf_correct(raw, date_formats = day_first)
+}
+mutant_c <- run_test_file(test_file, verbose = 0, set_env = hf_env)
+mutant_c
+
+crf <- read.csv(file.path(hf_env$HFHOME_DIR, "crf_export.csv"),
+                colClasses = "character", fileEncoding = "UTF-8-BOM")
+right <- clean_crf_correct(crf)
+wrong <- clean_crf(crf)
+in_c <- right$site == "Site C"
+c(site_c = sum(in_c),
+  became_na = sum(is.na(wrong$discharge_date[in_c])),
+  silently_wrong = sum(!is.na(wrong$discharge_date[in_c]) &
+                         wrong$discharge_date[in_c] !=
+                           right$discharge_date[in_c]))
+clean_crf <- clean_crf_correct
+```
+
+The fixture's date test and the comparison with the baseline table
+both kill the mutant. The counts show why the comparison matters
+more than it seems: dates whose day is above 12 become `NA`, which
+is loud, but every date whose day is 12 or below, and differs from
+its month, parses to a valid date in the wrong month. The third
+count is the one that matters: those dates pass every check except
+a comparison with something independent.
+:::
+
+5. The CRF's `sbp_discharge` column marks a missing value three
+   ways: an empty field, `NA`, and `-99`. Write `clean_sbp()`,
+   which returns numeric systolic blood pressure with every missing
+   code as `NA`, and a test that compares it with
+   `sbp_discharge` in `baseline.csv`.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-20-5
+clean_sbp <- function(x) {
+  x <- trimws(x)
+  x[x %in% c("", "NA", "-99")] <- NA
+  as.numeric(x)
+}
+
+crf_raw <- read.csv(file.path(hf_env$HFHOME_DIR, "crf_export.csv"),
+                    colClasses = "character",
+                    fileEncoding = "UTF-8-BOM",
+                    na.strings = character())
+crf_raw$patient_id <- sprintf("%04d", as.integer(crf_raw$patient_id))
+baseline <- read.csv(file.path(hf_env$HFHOME_DIR, "baseline.csv"),
+                     colClasses = c(patient_id = "character"))
+both <- merge(crf_raw[c("patient_id", "sbp_discharge")],
+              baseline[c("patient_id", "sbp_discharge")],
+              by = "patient_id", suffixes = c("_crf", "_base"))
+
+expect_equal(clean_sbp(both$sbp_discharge_crf),
+             as.numeric(both$sbp_discharge_base),
+             info = "every missing code becomes NA; values unchanged")
+c(missing_crf = sum(is.na(clean_sbp(both$sbp_discharge_crf))),
+  missing_baseline = sum(is.na(both$sbp_discharge_base)))
+```
+
+`na.strings = character()` keeps the raw codes as text, so that the
+function, not `read.csv()`, decides what is missing; with the
+default, `NA` is converted on reading and `-99` is not, and the
+test would no longer exercise the function's handling of either. A
+version that forgot `-99` would leave impossible pressures of -99
+mmHg in the data, which a mean would absorb without complaint; the
+comparison with the baseline table fails on it.
+:::
+
+## Running tests in continuous integration {#sec-testing-ci}
+
+Tests that run only when someone remembers to run them catch
+regressions late. Continuous integration (CI) runs them on every
+push. This section sets up the minimal workflow and shows why its
+exit status matters; the four sections that follow, from
+@sec-ci, cover what a green check proves, how a workflow is
+built, how to read a red run, and how to secure the workflow.
+For an R package,
+`usethis::use_github_action("check-standard")` sets up GitHub
+Actions to run `R CMD check`, which runs the tests, on several
+operating systems and R versions. For an analysis project, the
+equivalent is a workflow that runs the tests. It assumes a
+`DESCRIPTION` file listing the project's dependencies, as a
+research compendium has; without one, replace `local::.` with the
+packages the tests need:
+
+```yaml
+# .github/workflows/test.yaml
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            local::.
+            any::tinytest
+      - name: Run tests
+        run: |
+          Rscript -e 'res <- tinytest::test_all()' \
+            -e 'quit(status = as.integer(tinytest::any_fail(res)))'
+```
+
+::: {.callout-warning title='Pitfall'}
+**A green CI job can contain failing tests.** The second `-e` line
+is not optional. `tinytest::test_all()` reports failures but
+returns normally, so `Rscript` exits with status 0 and the job
+stays green however many tests fail. A CI step fails only on a
+nonzero exit status, so the script must turn 'any test failed'
+into one.
+:::
+
+::: {.callout-tip title='Verification'}
+Run a one-test suite that fails, in a fresh R process as CI would,
+with and without the `quit()` line, and compare the exit statuses.
+
+```{r}
+#| label: test-ci-exit-status
+failing <- file.path(tempdir(), "failing-suite")
+dir.create(failing, showWarnings = FALSE)
+writeLines("expect_equal(1 + 1, 3)",
+           file.path(failing, "test-fail.R"))
+
+r_libs <- paste0("R_LIBS=",
+                 paste(.libPaths(), collapse = .Platform$path.sep))
+rscript <- function(...) {
+  system2(file.path(R.home("bin"), "Rscript"),
+          shQuote(c("--vanilla", ...)), env = r_libs,
+          stdout = FALSE, stderr = FALSE)
+}
+run_suite <- sprintf("res <- tinytest::run_test_dir('%s')", failing)
+
+c(without_quit = rscript("-e", run_suite),
+  with_quit = rscript("-e", run_suite, "-e",
+                      "quit(status = as.integer(tinytest::any_fail(res)))"))
+```
+
+Status 0 is what CI reads as success. Only the version with
+`quit()` reports the failing test as a failure.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A teammate's workflow runs
+`Rscript -e 'tinytest::test_all()'` and has been green for a
+month. What do you know about the tests?
+
+**Answer.** Only that the R process started and `test_all()`
+returned. Without the `quit(status = ...)` line, a run in which
+every test failed also exits with status 0. Open the log of the
+latest run and read the summary line, then add the `quit()` line
+and push a deliberately failing test to see the job turn red.
+:::
+
+## What CI proves {#sec-ci}
+
+You install `janitor` in March to clean column names, the analysis
+renders on your laptop, and you never run `renv::snapshot()`. In
+June you open a pull request, and a red cross appears beside it.
+The log ends with `Error: Process completed with exit code 1.`,
+which tells you nothing; a dozen lines above it is the line that
+tells you everything, `there is no package called 'janitor'`. Your
+laptop remembered the package and the lockfile did not, so without
+the red cross a collaborator would have found out at submission.
+Continuous integration runs the analysis on a machine that is not
+yours, from a clean state, on every push; this section and the
+three after it are about making it check what matters and reading
+what it reports.
+
+Continuous integration (CI) is the practice of building and
+checking a project automatically every time it changes. When you
+push a commit, a fresh machine in the cloud checks out the code,
+reconstructs the environment, runs the tests, and renders the
+report; if anything fails, you are told within minutes. This
+chapter uses GitHub Actions, the CI system built into GitHub,
+because it is free for public repositories and the R community
+maintains ready-made steps for it. Triggers, jobs, and steps on a
+clean machine transfer unchanged to GitLab CI and the other
+systems.
+
+For a statistician the value is specific. A passing test suite
+says the code does what its tests check. A passing CI run says
+more: that the analysis reconstructs from `renv.lock` on a machine
+that is not yours and produces the report. That second guarantee
+is the one that matters when a reviewer, or you in a year, must
+rerun the work. The workflow file is boilerplate and can be
+copied; what it checks, and therefore what a green check entitles
+you to claim, is a decision.
+
+### What a green check is worth
+
+A green check is only as good as what the workflow runs.
+@tbl-ci-checklist lists the four things a workflow for an analysis
+compendium should establish, in the order the steps run.
+
+| Check | Step | What a pass proves | What it does not prove |
+|---|---|---|---|
+| The environment restores | `setup-renv` (`renv::restore()`) | Every package in `renv.lock` installs on a clean machine | That the lockfile lists every package the code uses |
+| The tests pass | `tinytest`, with an exit status | The statistical checks of @sec-testing-correctness and @sec-testing-worked hold on known inputs | Anything the tests do not assert |
+| The report renders | `quarto render` | Every chunk runs from committed files, with no manual step | That the numbers in it are right |
+| No secrets in the repository | Review, and the platform's encrypted secrets | Credentials live outside version control | That printed values are masked; see @sec-ci-security |
+
+: The CI checklist for an analysis compendium. A workflow that
+restores and renders but does not test proves that the report
+compiles, not that it is correct. {#tbl-ci-checklist}
+
+The first row has a gap that the `janitor` story falls into. A
+restore installs what the lockfile lists, so a package the
+lockfile omits does not fail the restore; it fails the first later
+step that loads it. That is why the rows are a stack, not a menu:
+the test and render steps are what discover that the restore was
+incomplete.
+
+Fail loudly and early. Humble and Farley's advice for software
+delivery, 'if it hurts, do it more frequently, and bring the pain
+forward' [@humble2010continuous], applies unchanged to research
+code. The purpose of CI is to surface a break at
+the commit that introduced it, when the cause is one small diff,
+rather than at submission, when the cause is buried in months of
+history. Every step must fail the job when its check fails, not
+warn and continue.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Your workflow restores `renv` and renders the
+report, and the check is green. A collaborator reports that a
+figure differs from yours. What does the green check tell you, and
+what does it not?
+
+**Answer.** It tells you that the analysis reconstructs from
+`renv.lock` on a clean machine and that the report renders, so the
+discrepancy is not a missing package or an uncommitted file. It
+does not tell you the figure is correct, because nothing in the
+workflow tests the figure's content. Suspect an unseeded random
+step, a different data version, or a genuine analytic difference,
+and add a test that pins the figure's underlying numbers so that CI
+catches the change next time.
+:::
+
+### Exercises
+
+6. A workflow restores `renv.lock`, runs a `tinytest` suite whose
+   only test checks that the analytic dataset has the expected
+   columns, and renders the report. For each change below, say
+   which step turns the run red, or whether the run stays green.
+   (a) The code calls `janitor`, which is installed on your laptop
+   but absent from the lockfile. (b) A chunk reads
+   `data/derived/cohort.rds`, a file listed in `.gitignore`. (c)
+   The primary analysis computes a median where the plan specifies
+   a mean. (d) Someone pastes an API token into the workflow file.
+
+::: {.callout-note collapse='true' title='Solution'}
+(a) Not the restore, which succeeds because it installs only what
+the lockfile lists; the run turns red at the first step that loads
+`janitor`, the tests if they call it, otherwise the render. (b) The
+render: the file exists on your machine and not on the runner. (c)
+Nothing; the run stays green, because the only test checks the
+shape of the data, not a value (Habit 9). (d) Nothing; the run
+stays green, and the token is now in the Git history of a
+repository that may be public. Revoke it, then move it to the
+platform's encrypted secrets. Two of the four failures pass every
+step, which is the point of the last column of @tbl-ci-checklist.
+:::
+
+## Anatomy of a workflow {#sec-ci-anatomy}
+
+A GitHub Actions workflow is a YAML (YAML Ain't Markup Language)
+file in `.github/workflows/`. It names the events that trigger it,
+one or more jobs, and the steps within each job. The steps run in
+order on a fresh virtual machine, called a runner, that GitHub
+provisions for the run. @fig-ci-anatomy is the shape before the
+syntax.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-ci-anatomy
+%%| fig-alt: "Flowchart of a CI workflow run. A push to main or a
+%%|   pull request triggers a fresh virtual machine, which then
+%%|   checks out the repository, installs R, runs renv::restore() to
+%%|   prove the lockfile is complete, runs the tests to prove the
+%%|   numbers are right, and runs quarto render to prove the report
+%%|   builds. A decision node asks whether every step exited zero:
+%%|   yes gives a green check, no gives a red cross with a log
+%%|   naming the failing step."
+%%| fig-cap: "The anatomy of a workflow run. The machine is fresh
+%%|   every time, which is what makes the result meaningful: the
+%%|   analysis is rebuilt from what is in the repository rather than
+%%|   from the state of anyone's laptop. Any step that exits
+%%|   non-zero fails the run."
+flowchart TD
+  E["<b>Trigger</b><br/><i>push to main, or<br/>a pull request</i>"]
+  E --> M["<b>Fresh virtual machine</b><br/><i>nothing of yours on it</i>"]
+  M --> S1["checkout the repository"]
+  S1 --> S2["install R"]
+  S2 --> S3["renv::restore()<br/><i>proves the lockfile is complete</i>"]
+  S3 --> S4["run the tests<br/><i>proves the numbers are right</i>"]
+  S4 --> S5["quarto render<br/><i>proves the report builds</i>"]
+  S5 --> P{"all steps<br/>exit zero?"}
+  P -->|"yes"| G["green check"]
+  P -->|"no"| R["red cross,<br/>log names the failing step"]
+```
+
+The workflow below implements the checklist (display-only; it runs
+on GitHub, not in this book):
+
+```yaml
+name: Check analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-renv@v2
+
+      - uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Run tests
+        run: |
+          Rscript -e 'res <- tinytest::test_all()' \
+            -e 'quit(status = as.integer(tinytest::any_fail(res)))'
+
+      - name: Render report
+        run: quarto render
+```
+
+Read it top to bottom. The `on` block runs the workflow on every
+push to `main` and on every pull request. The single job, `check`,
+runs on a fresh Ubuntu runner. Its steps check out the code,
+install R, restore the exact package versions in `renv.lock`,
+install Quarto, run the test suite, and render the report. If any
+step exits with a nonzero status, the job fails and GitHub marks
+the commit with a red cross; if every step exits zero, a green
+check.
+
+### Three details that decide the result
+
+**The runner has only what the workflow installs.** R is there
+because `setup-r` installed it and Quarto because
+`quarto-actions/setup` did; drop the Quarto step and the render
+fails with 'command not found'.
+
+**The test step must fail on a failed test.** The second `-e`
+expression turns 'any test failed' into a nonzero exit status,
+which is the only signal CI reads; without it the job stays green
+however many tests fail, as the demonstration in @sec-testing-ci
+showed.
+
+**Restore the lockfile, not the latest versions.** The
+`r-lib/actions` collection supplies two ways to provide packages,
+and they are alternatives, not companions:
+
+| Step | Installs | CI then tests |
+|---|---|---|
+| `setup-renv` | The exact versions recorded in `renv.lock` | The environment you pinned |
+| `setup-r-dependencies` | Current versions of the packages a `DESCRIPTION` file names | Whatever CRAN offers today |
+
+The minimal workflow of @sec-testing-ci uses
+`setup-r-dependencies`, which suits a package that must work with
+current versions. A compendium with a lockfile wants `setup-renv`,
+and every package
+the tests call, `tinytest` included, must therefore be in the
+lockfile.
+
+::: {.callout-warning title='Pitfall'}
+**`continue-on-error: true` turns a red step green.** The setting
+is sometimes added to a test step 'until the tests are fixed'. The
+step still fails, but the job is reported as passing, so the
+commit gets a green check, branch protection lets the pull request
+merge, and nobody opens the log. Remove the setting and fix or
+delete the failing test instead.
+:::
+
+::: {.callout-tip title='Verification'}
+Before you push, run the two R steps the way CI will, in a fresh
+process from the project root (display-only):
+
+```bash
+Rscript -e 'renv::status()'
+Rscript -e 'res <- tinytest::test_all()' \
+  -e 'quit(status = as.integer(tinytest::any_fail(res)))'
+echo $?
+```
+
+`renv::status()` should report no issues, and the last line should
+print 0. With a failing test planted, it should print 1, as in
+@sec-testing-ci.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A teammate replaces `setup-renv` with
+`setup-r-dependencies` because the restore 'kept failing', and the
+run turns green. What has the green check stopped proving?
+
+**Answer.** That the analysis reproduces with the package versions
+in `renv.lock`. The run now tests whatever versions CRAN serves
+today, so a result that changed because a dependency changed would
+pass without notice, which is the silent regression @sec-renv
+exists to prevent. Find out why the restore failed (usually a
+system library, @sec-ci-reading) and fix that instead.
+:::
+
+### Exercises
+
+7. Add a weekly scheduled run, at 06:00 UTC (Coordinated Universal
+   Time) every Monday, to the workflow above, and explain what a
+   scheduled run catches in a project whose packages are pinned.
+
+::: {.callout-note collapse='true' title='Solution'}
+Add a `schedule` trigger to the `on` block:
+
+```yaml
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'
+```
+
+The five fields are minute, hour, day of month, month, and day of
+week (1 is Monday), in UTC. A pinned lockfile does not mean
+nothing changes: the runner image is updated, archived package
+sources move, and an external data source or URL the report reads
+can disappear. A weekly run finds these on a quiet Monday rather
+than on the day you need to rerun the analysis.
+:::
+
+## Reading a failing run {#sec-ci-reading}
+
+When a run fails, GitHub shows the job's log with the failing step
+expanded. Read it from the first error, not from the bottom: the
+first error is usually the cause, and everything below it is
+consequence. The chunk below reproduces the `janitor` story of
+@sec-ci. It
+builds a two-file test suite in which one file uses `janitor`,
+then runs the CI test step in a fresh R process whose library
+holds `tinytest` and nothing else, as a runner restored from a
+lockfile that omits `janitor` would.
+
+```{r}
+#| label: ci-red-log
+ci_run <- function(args, libs = NULL) {
+  env <- character()
+  if (!is.null(libs)) {
+    empty <- file.path(tempdir(), "ci-empty-lib")
+    dir.create(empty, showWarnings = FALSE)
+    env <- c(paste0("R_LIBS=", libs), paste0("R_LIBS_USER=", empty),
+             paste0("R_LIBS_SITE=", empty))
+  }
+  suppressWarnings(system2(file.path(R.home("bin"), "Rscript"),
+                           shQuote(c("--vanilla", args)), env = env,
+                           stdout = TRUE, stderr = TRUE))
+}
+
+proj <- file.path(tempdir(), "ci-demo")
+dir.create(file.path(proj, "tests"), recursive = TRUE,
+           showWarnings = FALSE)
+writeLines("expect_equal(1 + 1, 2)",
+           file.path(proj, "tests", "test-arith.R"))
+writeLines(c(
+  "library(janitor)",
+  "raw <- data.frame(`Patient ID` = '0001', check.names = FALSE)",
+  "expect_equal(names(clean_names(raw)), 'patient_id')"
+), file.path(proj, "tests", "test-clean.R"))
+
+ci_lib <- file.path(tempdir(), "ci-lib")
+dir.create(ci_lib, showWarnings = FALSE)
+if (!file.exists(file.path(ci_lib, "tinytest"))) {
+  file.symlink(find.package("tinytest"), file.path(ci_lib, "tinytest"))
+}
+
+red_log <- ci_run(c(
+  "-e", sprintf("res <- tinytest::run_test_dir('%s')",
+                file.path(proj, "tests")),
+  "-e", "quit(status = as.integer(tinytest::any_fail(res)))"
+), libs = ci_lib)
+cat(sprintf("%2d  %s", seq_along(red_log), red_log), sep = "\n")
+```
+
+GitHub then appends one line of its own,
+`Error: Process completed with exit code 1.`, marks the step with a
+red cross, and skips the render step. @tbl-ci-log annotates the
+lines.
+
+| Line | Text begins | What it is | Act on it? |
+|---|---|---|---|
+| 1 | `test-arith.R` | A test file that ran and passed | No |
+| 2 | `Error in library(janitor)` | **The first error: the cause** | Yes: the package is not installed on the runner |
+| 3 | `Calls:` | The call stack that led to the error | Only to find which file raised it |
+| 4 | `Execution halted` | R stopping because of line 2 | No |
+| last | `Error: Process completed with exit code 1.` | GitHub's summary of the step | No; it is the same for every failure |
+
+: The red log, line by line. The line people read is the last one,
+and it is the only line that is identical for every failure.
+{#tbl-ci-log}
+
+::: {.callout-tip title='Verification'}
+Confirm that the step failed for the reason the log names, by
+checking the exit status and extracting the first error line:
+
+```{r}
+#| label: ci-red-log-verify
+first_error <- grep("^Error", red_log, value = TRUE)[1]
+stopifnot(attr(red_log, "status") == 1, grepl("janitor", first_error),
+          identical(first_error, red_log[2]))
+first_error
+```
+
+On a real run, search the log for the first line that begins with
+`Error` (or `ERROR`, or `!` for an `rlang` error) in the failing
+step, and read up to three lines around it.
+:::
+
+### The fix belongs in the lockfile
+
+The cause is that `renv.lock` omits a package the code uses, so the
+fix is on your machine: `renv::status()` reports the package as
+used but not recorded, `renv::snapshot()` records it, and you
+commit the lockfile (@sec-renv-honest). The run turns green
+because the environment is now pinned, not because CI was made to
+tolerate it.
+
+::: {.callout-warning title='Pitfall'}
+**Installing the missing package in the workflow makes the run
+green and the analysis irreproducible.** A step such as
+`Rscript -e 'install.packages("janitor")'` before the tests fixes
+the red cross in one line. The runner now has a package the
+lockfile does not record, at whatever version CRAN serves that day,
+and the green check proves exactly what it was meant to disprove:
+that the analysis depends on something outside `renv.lock`. Fix
+the lockfile, never the workflow.
+:::
+
+### Common failures
+
+| Failing step | First error looks like | Usual cause | Fix |
+|---|---|---|---|
+| `setup-renv` | A compiler or `configure` error naming a system library | A package needs a system library the runner lacks | Install it with `apt-get` in a step before `setup-renv` |
+| Tests | `there is no package called 'x'` | Package used but not in `renv.lock` | `renv::snapshot()` locally; commit the lockfile |
+| Tests | `expect_equal` failure with observed and expected values | A statistical check did not hold | Read both values; find the change that moved them |
+| Render | `cannot open the connection`, or `object 'x' not found` | A chunk depends on a file or object made outside the document | Build it in the pipeline, or commit the input if it is raw data |
+| Render | `quarto: command not found` | No Quarto setup step | Add `quarto-dev/quarto-actions/setup` |
+
+: Reading a red run. {#tbl-ci-failures}
+
+The book you are reading is built this way: its workflow,
+`.github/workflows/render-book.yml`, restores its packages,
+provisions R and Python when the book needs them, and renders the
+whole book on every push and pull request, so that a broken chunk
+is caught before it reaches the published site.
+
+::: {.callout-important title='LLM prompt'}
+> **Context.** Below are the failing step of a GitHub Actions log,
+> `.github/workflows/check.yml`, and the output of
+> `git diff main -- renv.lock` for an R analysis compendium that
+> uses `renv` and `tinytest`.
+>
+> **Constraints.** Do not edit the workflow file, add an install
+> step, or change or skip any test. Propose changes only to
+> `renv.lock` (through `renv` commands) or to the analysis code.
+>
+> **Criteria.** Quote the first error line in the log and say which
+> step raised it. Name the cause in one sentence and give the
+> commands that fix it on my machine. State what `renv::status()`
+> and `git diff --stat` should show after the fix.
+
+*Failure mode.* The model proposes the one-line install step of the
+Pitfall above, or `continue-on-error: true`, because either makes
+the run green. *Check.* After the fix, `git diff --stat` should
+list `renv.lock` and nothing under `.github/` or `inst/tinytest/`,
+and the next run should be green. Logs are safe to send when they
+contain only code, package names, and test messages; a test that
+prints data rows puts data in the log (@sec-ai-governance).
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A log shows `Error in library(janitor)` on line 2
+and twenty more errors below it, each saying an object is not
+found. Which do you fix?
+
+**Answer.** Line 2. The later errors are consequences: the objects
+were never created because the code that would have created them
+needed `janitor`. Fixing them one at a time patches symptoms of a
+single cause, and they disappear when the package is in the
+lockfile.
+:::
+
+### Exercises
+
+8. The chunk below runs the render step of a two-chunk document in
+   a fresh process, as CI would. Read the log and identify the
+   cause, why the document renders on its author's machine, and
+   the fix.
+
+```{r}
+#| label: ci-render-log
+render_dir <- file.path(tempdir(), "ci-render")
+dir.create(render_dir, showWarnings = FALSE)
+writeLines(c(
+  "---", "title: Primary analysis", "---", "",
+  "```{r}", "#| label: load-cohort",
+  "cohort <- readRDS('data/derived/cohort.rds')", "```", "",
+  "```{r}", "#| label: primary",
+  "mean(cohort$event_30d, na.rm = TRUE)", "```"
+), file.path(render_dir, "paper.qmd"))
+
+render_log <- ci_run(c("-e", sprintf(paste0(
+  "setwd('%s'); options(cli.unicode = FALSE); ",
+  "knitr::opts_chunk$set(error = FALSE); ",
+  "knitr::knit('paper.qmd', quiet = TRUE)"), render_dir)))
+cat(render_log, sep = "\n")
+```
+
+::: {.callout-note collapse='true' title='Solution'}
+The first error, `cannot open the connection`, does not name the
+file; the backtrace beneath it does: `readRDS()` could not find
+`data/derived/cohort.rds`, in the chunk labeled `load-cohort`.
+The file exists on the author's machine because they built it
+once, by hand or with a script the document does not run, and it
+is a derived file, so it is (correctly) not committed. The fix is
+to make the pipeline build it: run the script that writes it in a
+step before the render, or have the document call that script, so
+that a clean checkout can produce it (Habit 2). Committing the
+`.rds` file instead would make the run green while leaving a build
+product that nobody can regenerate.
+
+```{r}
+#| label: soln-20-8
+stopifnot(attr(render_log, "status") == 1,
+          any(grepl("cohort.rds", render_log, fixed = TRUE)))
+```
+:::
+
+9. A run fails in the `setup-renv` step. Two hundred lines into the
+   log, the first error reads
+   `configure: error: gdal-config not found or not executable.`
+   What failed, and what do you change?
+
+::: {.callout-note collapse='true' title='Solution'}
+A package that links to GDAL (the Geospatial Data Abstraction
+Library), such as `sf`, was being compiled from source, and its
+configure script could not find the GDAL development files on the
+runner. Nothing is wrong with the lockfile. Add a step before
+`setup-renv` that installs the system libraries, for example
+`sudo apt-get install -y libgdal-dev libgeos-dev libproj-dev`, or
+build in the project's Docker image (@sec-docker), which already
+has them. This is the case @sec-renv-docker describes: `renv`
+pins R packages, not the system libraries beneath them.
+:::
+
+## Securing the workflow {#sec-ci-security}
+
+A workflow file is code that runs with access to your repository
+and to any secrets you give it, and it is version-controlled and
+often public. Credentials, tokens, and any protected data belong in
+the platform's encrypted secrets, never in the workflow file; the
+de-identification discipline of @sec-deident applies to the
+pipeline as much as to the data. Three further habits come from
+software supply-chain security, and each is a few lines of YAML.
+
+**Pin actions by commit, not by tag.** `uses: actions/checkout@v4`
+names a tag, and the owner of a repository can move a tag to
+different code. In March 2025 the tags of the widely used
+`tj-actions/changed-files` action were repointed to a malicious
+commit that printed the secrets of the workflows using it into
+their run logs.[^tj-actions] A full 40-character commit SHA (secure
+hash algorithm identifier) cannot be moved.
+
+**Grant the workflow token the least permission that works.** Each
+run receives a `GITHUB_TOKEN` whose default permissions depend on
+repository and organization settings. A `permissions:` block at the
+top of the workflow sets them explicitly; a workflow that only
+reads code and runs checks needs `contents: read`.
+
+**Use OIDC instead of stored cloud keys.** A workflow that uploads
+to a cloud bucket should not hold a long-lived access key in its
+secrets. With OpenID Connect (OIDC), the run asks the cloud
+provider for short-lived credentials for one role, and the
+provider trusts only runs from your repository and branch.
+
+| Practice | Risk it removes | YAML |
+|---|---|---|
+| Pin by SHA | A moved tag runs code you never reviewed | `uses: owner/action@<40-hex SHA> # v4.4.0` |
+| Least permission | A compromised step writes to the repository | `permissions:` with `contents: read` |
+| OIDC | A leaked long-lived key works until someone revokes it | `id-token: write` and the provider's login action |
+| Dependabot | SHA pins go stale and miss security fixes | `.github/dependabot.yml`, ecosystem `github-actions` |
+| Secrets, never values | A token in Git history is public forever | `${{ secrets.NAME }}` |
+
+: Supply-chain basics for a workflow. {#tbl-ci-security}
+
+[^tj-actions]: The incident is CVE-2025-30066: tags v1 through
+    v45.0.7 pointed at the malicious commit on 14 and 15 March
+    2025. The SHA shown for
+    `actions/checkout` in the next listing was read from the
+    action's repository with `git ls-remote` in October 2026.
+
+The hardened top of the workflow, with one action pinned
+(display-only):
+
+```yaml
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+```
+
+The comment keeps the version readable. Pins do not update
+themselves, so add a Dependabot configuration that opens a pull
+request when a pinned action has a new release, with the SHA and
+the comment both updated. Version updates are the safeguard here,
+because Dependabot alerts for vulnerable actions cover only
+actions referenced by a version tag, not those pinned to a SHA
+(display-only):
+
+```yaml
+# .github/dependabot.yml
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+```
+
+A job that needs cloud access requests the OIDC token and nothing
+else beyond reading the code (display-only; the role and the
+provider's trust policy are configured on the cloud side, and the
+login step is the provider's action):
+
+```yaml
+permissions:
+  contents: read
+  id-token: write
+```
+
+::: {.callout-tip title='Verification'}
+List every action reference in a workflow that is not pinned to a
+full commit SHA, and check for a `permissions:` block. The chunk
+writes the hardened example to a file and audits it.
+
+```{r}
+#| label: ci-audit-pins
+audit_workflow <- function(path) {
+  lines <- readLines(path)
+  uses <- trimws(sub(".*uses:\\s*", "",
+                     grep("uses:", lines, value = TRUE)))
+  uses <- sub("\\s*#.*$", "", uses)
+  list(unpinned = uses[!grepl("@[0-9a-f]{40}$", uses)],
+       has_permissions = any(grepl("^permissions:", lines)))
+}
+
+hardened <- file.path(tempdir(), "check.yml")
+writeLines(c(
+  "permissions:", "  contents: read", "jobs:", "  check:",
+  "    runs-on: ubuntu-latest", "    steps:",
+  paste0("      - uses: actions/checkout@",
+         "11d5960a326750d5838078e36cf38b85af677262 # v4.4.0")
+), hardened)
+audit <- audit_workflow(hardened)
+stopifnot(length(audit$unpinned) == 0, audit$has_permissions)
+audit
+```
+
+Run `audit_workflow()` on each file in your `.github/workflows/`;
+an empty `unpinned` and `TRUE` are what you want.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Your workflow pins every action to a tag such as
+`@v2`, the actions come from well-known organizations, and none of
+your secrets has leaked. Why pin by SHA anyway?
+
+**Answer.** Because a tag is a pointer its owner, or anyone who
+compromises the owner's account, can move, and your workflow
+follows it without a change to your repository. The
+`tj-actions` compromise reached many repositories that had never
+changed a line. A SHA pin means the code that runs is the code you
+pinned, and Dependabot turns each update into a pull request you
+review.
+:::
+
+### Exercises
+
+10. Audit this book's own workflow,
+    `.github/workflows/render-book.yml`, with `audit_workflow()`.
+    Then read the file and answer: what triggers it, when does it
+    provision R and Python, which step renders the book, and which
+    step receives secrets?
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-20-10
+book_wf <- file.path("..", "..", ".github", "workflows",
+                     "render-book.yml")
+if (file.exists(book_wf)) audit_workflow(book_wf)
+```
+
+At the time of writing every action in the file is pinned by tag,
+not SHA, and there is no `permissions:` block; the output above
+shows the current state. The workflow runs on a push to `main`, on
+a pull request against `main`, and on manual dispatch
+(`workflow_dispatch`). If a `Dockerfile` is present it builds the
+project's image and renders inside it; otherwise a detection step
+searches `analysis/report` and provisions R when any file contains
+an `{r}` chunk or a `renv.lock` exists, and Python when any file
+contains a `{python}` chunk.
+The step named 'Render book (host)' or 'Render book (container)'
+runs `quarto render analysis/report --to html`. The deploy step,
+which runs only on a push to `main`, is the one that receives the
+Netlify secrets, and it is a third-party action: the strongest
+case in the file for a SHA pin.
+:::
+
+## For testthat readers {#sec-testing-testthat}
+
+`testthat` is the framework you are most likely to meet elsewhere,
+and where a project already depends on it, stay with it; mixing
+frameworks in one suite buys nothing. The discipline of this
+chapter is the same under either, and most of the translation is
+mechanical (@tbl-testing-testthat).
+
+| `tinytest` | `testthat` |
+|---|---|
+| `expect_equal(x, y, info = "...")` at the top level of the file | `test_that("...", { expect_equal(x, y) })` |
+| `expect_inherits(x, "tbl_df")` | `expect_s3_class(x, "tbl_df")` |
+| `expect_equal(names(x), c(...))` | `expect_named(x, c(...))` |
+| `expect_equal(sort(a), sort(b))` | `expect_setequal(a, b)` |
+| `expect_equal_to_reference(x, "ref.rds")`, stores the object | `expect_snapshot()`, stores printed output; `expect_snapshot_value()`, stores the value |
+| `tinysnapshot::expect_snapshot_plot(p, "label")` | `vdiffr::expect_doppelganger("label", p)` |
+| `run_test_file()`, `test_all()` | `test_file()`, `devtools::test()` |
+
+: The same tests in both frameworks. {#tbl-testing-testthat}
+
+`tinytest`'s missing functions are a choice rather than a gap: each
+is a plain comparison whose failure prints the two values. Visual
+regression testing of `ggplot2` output is the one place the two
+ecosystems differ in maturity. `vdiffr`, which stores an SVG
+(Scalable Vector Graphics) file of the plot and compares later
+renders with it, runs only inside `testthat`; `tinysnapshot` is the
+`tinytest` equivalent, younger and less widely used.
+
+
+## Rules of thumb
+
+1. **Habit 9: test the statistics, not the shape.** Every test
+   file needs at least one assertion against a value computed
+   another way: by hand, in closed form, or from an independent
+   source. A green check is only as good as what it runs: restore,
+   test the statistics, and render; a workflow that renders
+   without testing proves the report compiles.
+2. **Habit 8: plant the bug before you trust the test, and make
+   the quiet failure loud.** A suite you have never seen fail has
+   not shown that it can; run one mutant per codebook rule. The
+   exit status is the only signal CI reads; turn failed tests into
+   a nonzero status, and never set `continue-on-error` on a check.
+3. **Habit 4: pin the environment, including the CI's own.** Run
+   the tests in CI on every push, restore from the lockfile, pin
+   actions by SHA, and fix a red restore in `renv.lock`, never with
+   an install step in the workflow.
+
+## Cumulative practice
+
+11. *Cumulative (uses @sec-git-teams).* Review a colleague's test
+    suite rather than their code. For each test, decide whether it
+    checks statistical content or only structure, and find at least
+    one test that would pass even if the function under test were
+    subtly wrong. Write the mutant that survives, propose the
+    value-level assertion that kills it, and deliver the review as a
+    pull-request comment.
+12. *Cumulative (uses @sec-renv).* Write the complete workflow for
+    the HF-HOME compendium: it runs on pull requests and on pushes
+    to `main`, sets `contents: read`, restores `renv.lock`, installs
+    Quarto, fails on any failed `tinytest` test, and renders
+    `analysis/report`. Add the Dependabot file, and check both
+    against @tbl-ci-checklist and @tbl-ci-security.
+
+::: {.callout-note collapse='true' title='Solution'}
+12. The workflow:
+
+```yaml
+# .github/workflows/check.yml
+name: Check analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<sha> # v4.4.0
+      - uses: r-lib/actions/setup-r@<sha> # v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-renv@<sha> # v2
+      - uses: quarto-dev/quarto-actions/setup@<sha> # v2
+      - name: Run tests
+        run: |
+          Rscript -e 'res <- tinytest::test_all()' \
+            -e 'quit(status = as.integer(tinytest::any_fail(res)))'
+      - name: Render report
+        run: quarto render analysis/report
+```
+
+Replace each `<sha>` with the commit the tag points to, from
+`git ls-remote https://github.com/<owner>/<repo> refs/tags/<tag>`;
+for a tag that `git ls-remote` lists twice, use the line ending in
+`^{}`, which is the commit. The Dependabot file is the one in
+@sec-ci-security. Against the checklist: restore, test, and render
+are each a step that fails the job, no secret appears, the token
+can only read, and every action is pinned. The workflow needs no
+secrets at all, which is the best case.
+:::
+
+13. *On your own work (no key).* Add unit tests for two functions
+    from an analysis of yours (a typical case, an edge case, and an
+    error), an integration test on a synthetic fixture that
+    exercises every branch, and a CI workflow that runs them; push
+    it and confirm the run is green. Plant one mutant and confirm
+    that the suite, and the CI job, turn red. Then remove one
+    package from `renv.lock` while leaving its use in the code, push
+    to a branch, find the first error in the log, and restore the
+    lockfile.
+
+## Cheat sheet
+
+| Task | Code, YAML, or command | Guards against |
+|---|---|---|
+| Assert a value | `expect_equal(f(x), expected, info = "...")` | A function that returns the wrong number |
+| Assert an error | `expect_error(f(bad), pattern = "...")` | Bad input passing silently |
+| Assert a class | `expect_inherits(x, "data.frame")` | A changed return type |
+| Compare with a stored object | `expect_equal_to_reference(x, "ref.rds")` | Unreviewed changes to complex output |
+| Run one file | `run_test_file("test-x.R", set_env = list(...))` | Tests that depend on the working directory |
+| Run every test | `tinytest::test_all()` | Untested corners of the project |
+| Check the tests can see a bug | Plant a mutant; `any_fail(res)` | A suite that passes everything |
+| Run CI on every change | `on: push` and `pull_request` | Breaks found at submission |
+| Restore pinned packages | `r-lib/actions/setup-renv` | Testing versions you never used |
+| Install Quarto | `quarto-dev/quarto-actions/setup` | `quarto: command not found` |
+| Fail CI on a failed test | `quit(status = as.integer(tinytest::any_fail(res)))` | A green job with failing tests |
+| Run weekly | `schedule: - cron: '0 6 * * 1'` | Drift outside the lockfile |
+| Pin an action | `uses: owner/action@<40-hex SHA> # vX` | A moved tag |
+| Least permission | `permissions: contents: read` | A step that can write to the repository |
+| Short-lived cloud access | `id-token: write` (OIDC) | Long-lived keys in secrets |
+| Keep pins current | `.github/dependabot.yml`, `github-actions` | Stale pins |
+| Read a red run | First `Error` line in the failing step | Fixing consequences |
+
+: Testing and CI at a glance. {#tbl-testing-cheat-sheet}
 
 ## Further reading
 
-- [@wickham2023rpkgs] testing chapters, the
-  canonical `testthat` reference.
-- `vdiffr` documentation on CRAN, visual
-  regression testing for `ggplot2`.
-- The `testthat` package vignettes.
+- [@wickham2023rpkgs], the testing chapters, the canonical
+  `testthat` reference, whose advice on designing a suite applies
+  under either framework.
+- [@demillo1978hints], the paper that introduced mutation
+  analysis as a way to judge test data.
+- [@humble2010continuous], *Continuous Delivery*, the book that
+  made the argument for continuous integration that this chapter
+  applies to research code.
 
 ## Prerequisites answers {#sec-quiz-answers-20}
 
-1. Even a one-off analysis benefits from tests:
-   they catch regressions when you refactor
-   mid-analysis, they serve as executable
-   documentation of expected behavior, and they
-   detect silent failures when upstream data
-   changes format. The cost of writing a handful of
-   tests is small; the cost of silently
+1. Even a one-off analysis benefits from tests: they catch
+   regressions when you refactor mid-analysis, they serve as
+   executable documentation of expected behavior, and they detect
+   silent failures when upstream data change format. The cost of
+   writing a handful of tests is small; the cost of silently
    mis-analyzing data is much larger.
-2. A unit test exercises a single function with
-   known inputs and checks the output. An
-   integration test runs a pipeline segment
-   (multiple functions) on synthetic data and
-   checks the pipeline's output. An end-to-end
-   test runs the full analysis pipeline from raw
-   data to final figures/tables. Unit tests are
-   fast and narrow; end-to-end tests are slow and
-   broad; integration tests sit in between, with
-   good cost-benefit for analytic pipelines.
-3. `expect_snapshot()` captures the output of an
-   expression (printed text, numerical result,
-   plot) to a file on first run. On subsequent
-   runs it compares the new output against the
-   saved snapshot. Use it when the output is
-   complex (a printed object, a plot, a formatted
-   table) and not easily expressed as a literal
-   value. Review changes manually when they
-   occur; do not auto-accept.
+2. A unit test exercises a single function with known inputs and
+   checks the output. An integration test runs a pipeline segment
+   (multiple functions) on synthetic data and checks the
+   pipeline's output. An end-to-end test runs the full analysis
+   pipeline from raw data to final figures and tables. Unit tests
+   are fast and narrow; end-to-end tests are slow and broad;
+   integration tests sit in between, with good cost-benefit for
+   analytic pipelines.
+3. Continuous integration automatically builds and checks a
+   project on every change: it reconstructs the environment, runs
+   the tests, and renders the report. It automates the clean-state
+   rerun that a disciplined analyst might do by hand occasionally,
+   but does it on every push and on a machine that is not theirs.
+   'It renders on my machine' depends on packages, files, and
+   manual steps that exist only on your machine and may not be
+   recorded. CI reconstructs the analysis from the committed
+   sources and `renv.lock` on a clean machine, so a passing run
+   demonstrates that the analysis is reproducible from what is
+   actually in the repository, not from the state of your laptop.

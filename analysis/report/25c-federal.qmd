@@ -1,5 +1,23 @@
 # Federal Requirements and Deposition {#sec-federal}
 
+The Data Management and Sharing Plan (DMSP) was written with the
+grant application, two years before the first dataset existed,
+and NIH program staff approved it as a term of the award. The
+plan written in the last hour before submission said 'data will
+be deposited in a public repository at publication', and nobody
+objected. At publication the analyst discovers what the sentence
+committed to: the participant-level data carry protected health
+information (PHI), the repository named accepts only
+de-identified data, and unconditional public release was never
+something the consent form allowed. Nothing failed when the plan
+was written; it fails at the moment it is executed. Writing the
+plan so that it can be carried out is the subject of
+@sec-federal-dmsp, beside the statistical analysis plan. This
+chapter is about the end of the project: what the federal
+public-access policies require at publication, which repository
+each artifact goes to, and the check that runs before anything
+leaves the institution.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
@@ -13,234 +31,191 @@ How the Bankers Use It* (1914)
 ```
 :::
 
-::: {.callout-note}
-## Sources
+```{r}
+#| label: federal-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-Adapted from author's lecture notes and supporting
-materials for a graduate practicum in biostatistics.
+```{r}
+#| label: fig-federal-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: deposition is the Share stage,
+#|   where the compendium becomes a citable, preserved record,
+#|   and the DMSP written at the Plan stage is carried out."
+#| fig-alt: !expr pipeline_alt('share')
+pipeline_diagram('share')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 15 minutes.
+
+**You'll need.** @sec-federal-dmsp for the HF-HOME DMSP and its
+deposit manifest, @sec-deident-practice for the de-identified
+release, and @sec-renv for the lockfile. The code reads the
+running study's files and uses:
+
+```r
+library(dplyr)
+```
+
+**You'll be able to.**
+
+- Check a deposit, element by element, against the DMSP written
+  at the start of the project.
+- State which federal public-access requirements apply to a
+  project, from a dated table you keep current.
+- Choose a repository and an access mode for each artifact from
+  its data type and its identifiers.
+- Check a deposit manifest against an identifier list before
+  anything leaves the institution.
+
+**Outline.**
+
+- [What the policies require](#sec-federal-policy)
+- [Choosing a repository](#sec-federal-repository)
 :::
 
-## Prerequisites
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-25c.
 
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-25c.
+1. What does the 2022 Office of Science and Technology Policy
+   (OSTP) 'Nelson memo' require of federally funded research,
+   and by when were agencies to implement it?
+2. Why are dbGaP and The Cancer Imaging Archive (TCIA) the wrong
+   repositories for a trial's general clinical data?
+3. Your code is public on GitHub. Is that a deposit, for the
+   purposes of a DMSP?
+:::
 
-1. What does the 2022 OSTP 'Nelson memo' require of
-   federally funded research, and by when does each
-   requirement take effect?
-2. What are the main components of an NIH Data Management
-   and Sharing Plan (DMSP) under the 2023 policy?
-3. Why might a funded investigator prefer `renv` over
-   simply listing package dependencies in a
-   `DESCRIPTION` file's `Depends:` field?
+## What the policies require {#sec-federal-policy}
 
-## Learning objectives
+The DMSP (@sec-federal-dmsp) said what the project would share,
+where, and when; this section and the next are the end of the
+project, when that plan is carried out.
 
-By the end of this chapter you should be able to:
+The policy direction in the United States has been toward public
+access for publicly funded research: shorter embargoes, a wider
+scope (data and code, not only papers), and more auditing. The
+details change faster than any book, so they live in one dated
+table, @tbl-federal-asof, and the prose keeps to what has been
+stable.
 
-- Summarize the main federal (US) policies governing
-  access to publications, data, and code for federally
-  funded research.
-- Draft a Data Management and Sharing Plan section that
-  meets NIH expectations.
-- Choose an appropriate public repository (Zenodo, OSF,
-  Dryad, GitHub) for a given artifact and obtain a DOI.
-- Identify when `renv` alone suffices and when Docker is
-  additionally required for environment preservation.
-- Recognize FDA CDISC submission requirements as a
-  domain-specific reproducibility regime.
+| Agency | Requirement | Effective | Source | Verified |
+|---|---|---|---|---|
+| OSTP, for all funding agencies | Peer-reviewed publications and their supporting data freely available at publication, without embargo; persistent identifiers | Memo issued 2022-08-25; agency policies in effect by 2025-12-31 | @usshi2022ostp | 2026-10-09[^asof-ostp] |
+| NIH | DMSP with every application that will generate scientific data; approved plan is a term of award | Applications for receipt dates on or after 2023-01-25 | NOT-OD-21-013 | 2026-10-09 |
+| NIH | 2024 Public Access Policy: accepted manuscript submitted to PubMed Central on acceptance, public on the official publication date, no embargo | Manuscripts accepted on or after 2025-07-01 | NIH public access policy page | 2026-10-09 |
+| NIH | Clinical trials registered and results reported on ClinicalTrials.gov | 2017 | NIH policy on dissemination of clinical trial information | |
+| NSF | Data Management Plan of up to two pages with each proposal | | NSF proposal guide | |
+| DOE, CDC, NASA | Agency public-access plans under the OSTP memo | | Agency pages | |
+| FDA | CDISC-standard data for regulatory submissions (@sec-cdisc) | | FDA study data standards | |
 
-## Orientation
+: Federal requirements as of 2026-10-09. A blank 'Verified' cell
+means the author has not checked that entry against its source;
+check it before relying on it, and record the date you did.
+{#tbl-federal-asof}
 
-@sec-why argued that public-access compliance has become a
-biostatistical responsibility rather than an administrator's,
-because the scope of what must be shared moved from the paper
-to the things the statistician owns. This chapter is the
-operational half of that argument: what the policies actually
-require, and how to hand over an artifact that satisfies them.
+[^asof-ostp]: Checked against secondary sources. Trade-press
+    reports in 2026 that OSTP may reconsider the zero-embargo
+    requirement were unconfirmed as of that date.
 
-It sits here, near the end, because almost everything it asks
-for now exists. You have a compendium (@sec-rrtools), a
-lockfile (@sec-renv), a container (@sec-docker), a pipeline
-that rebuilds the analysis (@sec-targets), and, from the two
-case studies, a worked example of each. Deposition is largely a
-matter of pointing at those and choosing where they go. Read
-at the front of the book, this chapter would have been a list
-of obligations against nothing; read here, it is a checklist
-against work already done.
+Three implications have held through every revision, and they
+are the ones that change what you do:
 
-One requirement is the exception, and it is worth flagging
-because its timing runs opposite to everything else here. The
-Data Management and Sharing Plan is a document rather than an
-artifact, and it is written and graded before any of the work
-it describes has begun.
+- **Plan for the publication to be open from day one.** No
+  embargo affects journal selection, and the accepted manuscript,
+  not only the typeset article, is what NIH requires.
+- **Plan for the data to be deposited and citable at
+  publication.** This affects the timeline: de-identification and
+  repository review take weeks.
+- **Plan for the code to be deposited too.** Funders increasingly
+  expect it even where it is not explicitly required, and a
+  results claim without the code that produced it cannot be
+  checked.
 
-The policy direction in the United States is unambiguous:
-public access for publicly funded research, with
-shrinking embargo periods, expanding scope (data and code,
-not just papers), and increasing audit. Researchers who
-absorbed the 2008 NIH public-access policy as 'put the
-PDF in PMC' will find the 2023 NIH DMSP policy and the
-2025 OSTP implementation a substantially larger lift.
+For a project funded by more than one agency, the most
+restrictive policy applies. The Food and Drug Administration
+(FDA) regime for industry trials is different in kind: it is a
+submission standard rather than an open-data policy, more
+structured, and serves the same reproducibility role inside the
+regulatory process (@sec-cdisc).
 
-## The statistician's contribution {#sec-federal-human}
+::: {.callout-warning title='Pitfall'}
+**A policy summary copied from a colleague's plan is already out
+of date.** Effective dates, notice numbers, and repository lists
+change, and a plan that cites the superseded policy reads as
+current to everyone who does not check. Cite the dated source,
+and re-verify each row of a table like @tbl-federal-asof before
+you submit.
+:::
 
-Compliance is paperwork; making compliance produce a
-genuinely reproducible analysis is judgment.
+### Exercises
 
-**Treat the DMSP as a workflow document, not a form.** A
-plan that says 'data will be deposited at Zenodo at
-publication' is technically compliant but provides no
-mechanism to ensure it happens. A plan that integrates
-deposition into the pipeline (a deposition step at every
-preprint, a CI job that checks the data DOI is live)
-becomes self-enforcing.
+1. Two HF-HOME papers are funded by NIH. Paper A was accepted on
+   2025-06-20 and Paper B on 2025-07-10, and both are published
+   in September 2025. Under the 2024 NIH Public Access Policy,
+   which must be public in PubMed Central on its publication
+   date?
 
-**Public access does not mean unsupervised release.**
-Protected health information, contractually restricted
-data, and preliminary unverified data are all
-inappropriate for unconditional public release. The
-standard response is tiered access: a synthetic or
-de-identified dataset for free public access, with a
-data-use agreement gating the underlying data.
+::: {.callout-note collapse='true' title='Solution'}
+Paper B. The 2024 policy applies to manuscripts *accepted* on or
+after 2025-07-01, so the acceptance date, not the publication
+date, decides. Paper A falls under the earlier policy, which
+allowed an embargo of up to 12 months. A plan that keys on the
+publication date gets this wrong for every paper in the pipeline
+on the changeover date.
+:::
 
-**Pin the environment, do not cite it.** A DMSP that
-'lists the R packages used' is uselessly vague. A DMSP
-that points to a `renv.lock` and a Dockerfile is
-verifiable. The difference takes ten minutes.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Why does this chapter keep policy dates in one
+table rather than in the prose where each is discussed?
 
-These judgments determine whether the published artifact
-actually reproduces the published numbers, or merely
-satisfies the form.
+**Answer.** Because they are perishable facts, and a date in a
+sentence is never re-checked, while a table with a 'Verified'
+column shows its own age. The prose keeps what has been stable
+(open at publication, data citable at publication, code
+deposited), which is what changes your plan; the table carries
+what changes from year to year.
+:::
 
-## The 2022 OSTP 'Nelson memo'
+## Choosing a repository {#sec-federal-repository}
 
-In August 2022 the White House Office of Science and
-Technology Policy issued a memorandum (commonly called
-the 'Nelson memo' after the OSTP director who signed it)
-directing all federal agencies that fund research to:
-
-1. Make peer-reviewed publications resulting from
-   federally funded research **freely available
-   immediately** (no 12-month embargo, in contrast to the
-   2013 Holdren memo).
-2. Make the **scientific data** underlying those
-   publications publicly accessible at the time of
-   publication.
-3. Provide persistent identifiers (DOIs) for both
-   publications and data.
-
-Agencies were directed to publish updated public-access
-plans and implement them by the end of 2025. The result
-is a moving compliance target: NIH, NSF, DOE, NASA, and
-others have rolled out specific implementations on
-slightly different schedules.
-
-For a researcher submitting in 2026 or later, the
-practical implications are:
-
-- Plan for the publication to be open access from day
-  one (no embargo). This affects journal selection.
-- Plan for the data to be deposited and citable at the
-  time of submission. This affects timeline.
-- Plan for the code, in many cases, to be deposited as
-  well. NIH increasingly expects this, even when not
-  explicitly required.
-
-## The NIH DMSP (2023)
-
-Effective January 2023, every NIH grant application must
-include a **Data Management and Sharing Plan** of up to
-two pages. The plan addresses six elements:
-
-1. **Data type.** What data will be generated; what
-   format, what volume.
-2. **Related tools, software, and code.** What software
-   was used to generate or process the data; whether code
-   will be shared.
-3. **Standards.** What data and metadata standards will
-   be applied (e.g., DICOM for imaging, BIDS for
-   neuroimaging, CDISC for clinical trials).
-4. **Data preservation and access.** Where the data will
-   be deposited (named repository, ideally with a DOI),
-   for how long, and under what access conditions.
-5. **Access, distribution, and reuse.** Licensing
-   (Creative Commons for open data, custom DUA for
-   restricted), access mechanism, and any limitations.
-6. **Oversight.** Who is responsible for plan
-   implementation, and how compliance will be monitored.
-
-The DMSP is reviewed during peer review and becomes part
-of the funded award's terms. NIH program officers can
-require updates, and post-award compliance is monitored.
-
-A DMSP for a typical clinical study includes:
-
-- Quantitative data (CRFs, lab values, biomarker
-  measurements) deposited in dbGaP under controlled
-  access.
-- Synthetic or de-identified summary data deposited in
-  Zenodo or OSF for unconditional public access.
-- Analysis code in a public GitHub repository, mirrored
-  to Zenodo for a DOI.
-- Standards: CDISC SDTM for the underlying data
-  structure (@sec-cdisc), Quarto reports for the
-  analysis pipeline.
-
-## NSF and other agencies
-
-Beyond NIH, the major federal funders have their own
-public-access policies converging on similar
-requirements:
-
-- **NSF** requires a Data Management Plan (DMP) of up
-  to two pages with each proposal; data sharing is
-  expected unless legally restricted.
-- **DOE** has a public-access plan emphasizing
-  publication access and high-performance computing
-  data.
-- **CDC** requires public-data sharing for surveillance
-  and epidemiologic data.
-- **FDA**, for industry-sponsored clinical trials, has
-  a separate CDISC-based regime (@sec-cdisc) for
-  regulatory submissions, which is more structured than
-  the open-data policies but serves a similar
-  reproducibility role within the regulatory context.
-
-For a project funded by multiple agencies, the most
-restrictive policy applies. Plan accordingly.
-
-## Choosing a repository
-
-The choice is less open than the list of candidates
-suggests, because the data type and the access
-restriction between them determine it. @fig-repo-choice
-is the decision as it actually runs.
+The choice is less open than the list of candidates suggests,
+because the data type and the access restriction between them
+determine it. @fig-repo-choice is the decision as it actually
+runs.
 
 ```{mermaid}
 %%| echo: false
 %%| label: fig-repo-choice
 %%| fig-alt: "Decision flowchart for choosing a deposition target.
-%%|   The first question asks whether the artifact contains PHI or
-%%|   restricted data. If yes, a domain repository such as dbGaP,
-%%|   TCIA or GEO is used where one exists, otherwise institutional
-%%|   controlled access plus a synthetic public surrogate. If no, a
+%%|   The first question asks whether the artifact contains
+%%|   participant-level or restricted data. If yes, the data are
+%%|   de-identified first, then deposited under controlled access
+%%|   in a domain repository such as dbGaP, TCIA, BioLINCC, Vivli or
+%%|   ICPSR where one fits, otherwise in institutional controlled
+%%|   access plus a synthetic public surrogate. If no, a
 %%|   second question separates code from data: code goes to GitHub
 %%|   with a Zenodo release for the DOI, while data goes to a domain
 %%|   repository such as GEO, SRA, NeuroVault or ICPSR where one
 %%|   exists, otherwise Zenodo, OSF or Dryad."
 %%| fig-cap: "Choosing a deposition target. The first question is
-%%|   whether the artifact carries protected information; the second
+%%|   whether the artifact carries participant-level or restricted
+%%|   data, which are de-identified before any deposit; the second
 %%|   is whether a repository specific to the data type exists. A
 %%|   general-purpose repository is the right answer for code and
 %%|   supplementary tables and the wrong answer for primary
 %%|   genomic or imaging data."
 flowchart TD
-  A{"Does it contain<br/>PHI or restricted data?"}
-  A -->|"Yes"| B{"Domain repository<br/>for this data type?"}
+  A{"Participant-level<br/>or restricted data?"}
+  A -->|"Yes"| X["De-identify first<br/><i>before any deposit</i>"]
+  X --> B{"Domain repository<br/>for this data type?"}
   A -->|"No"| C{"Code, or data?"}
-  B -->|"Yes"| D["dbGaP, TCIA, GEO<br/><i>controlled access, DUA</i>"]
+  B -->|"Yes"| D["dbGaP, TCIA, BioLINCC,<br/>Vivli, ICPSR<br/><i>controlled access, DUA</i>"]
   B -->|"No"| E["Institutional controlled<br/>access, plus a synthetic<br/>public surrogate"]
   C -->|"Code"| F["GitHub for work,<br/>Zenodo release for the DOI"]
   C -->|"Data"| G{"Domain repository<br/>for this data type?"}
@@ -248,312 +223,237 @@ flowchart TD
   G -->|"No"| I["Zenodo, OSF, or Dryad"]
 ```
 
-For deposition, the repository should provide:
+### Matching the artifact to a repository
 
-- A persistent identifier (DOI or equivalent).
-- Long-term preservation (the institution stands behind
-  the data persisting for at least 10--20 years).
-- Open or controlled access as needed.
-- Adequate metadata fields for the discipline.
+Each domain repository has a defined scope, and naming one
+outside it is the commonest error in a draft plan.
+@tbl-federal-repo-match pairs the artifacts a clinical project
+produces with a repository and an access mode. For every
+repository named, the default is de-identified data; deposit more
+only where the repository's terms and your governing agreements
+explicitly allow it.
 
-Common choices:
+| Artifact | PHI as collected? | Appropriate repository | Access |
+|---|---|---|---|
+| Clinical-trial participant data | Yes; de-identify first | BioLINCC (NHLBI studies), Vivli, or an archive the funding institute designates | Controlled, DUA |
+| Genotype paired with phenotype | Yes; de-identify first | dbGaP | Controlled |
+| Cancer imaging | Yes; de-identify first (headers, burned-in text, faces) | The Cancer Imaging Archive (TCIA) | Open or controlled |
+| Gene-expression or sequencing data | Usually not, for non-human studies | GEO, SRA | Open |
+| Social-science and observational survey data | Often; de-identify first | ICPSR | Open or controlled |
+| Code, data dictionary, summary tables | No | GitHub, archived to Zenodo | Open |
+| Synthetic surrogate dataset | No | Zenodo or OSF | Open |
 
-**Zenodo** (CERN). General-purpose, free, DOIs, GitHub
-integration (a release on GitHub auto-deposits). Good
-for code and supplementary materials. Integrated with
-ORCID for author identification.
+: Matching the artifact to the repository. dbGaP and TCIA have
+narrow scopes; clinical data in general belong in neither.
+{#tbl-federal-repo-match}
 
-**OSF (Open Science Framework)**. Center for Open
-Science. Project-oriented; supports preregistration,
-manuscript hosting, data, code. Free.
+### Hosting is not archiving
 
-**Dryad**. Curated, peer-reviewed-paper-associated
-data. Charges a curation fee. Best for the data
-underlying a specific paper.
+For deposition, a repository must provide a persistent
+identifier, a preservation commitment, open or controlled access
+as needed, and metadata fields for the discipline.
+@tbl-federal-hosting compares the three kinds a biostatistician
+uses.
 
-**GitHub**. Code, but not designed for long-term
-preservation; pair with a Zenodo deposit for a DOI.
+| | GitHub | Zenodo, OSF, Dryad | Domain repository |
+|---|---|---|---|
+| Persistent identifier | No; URLs change | DOI per version | Accession number or DOI |
+| Preservation commitment | None | Yes, stated by the repository | Yes |
+| Fixed version | No; `main` moves | Snapshot at deposit | Snapshot at deposit |
+| Access control | Public or private only | Mostly open | Controlled access with DUA |
+| Best for | Working code | Code releases, supplementary data | Primary participant-level, genomic, imaging data |
 
-**Domain-specific repositories**. dbGaP for genomic
-data, ClinicalTrials.gov for trial registration,
-GEO/SRA for sequencing data, NeuroVault for brain
-images, ICPSR for social-science data. Use these when
-they exist for your data type; the metadata standards
-are richer than generic repositories.
+: Hosting, general-purpose archiving, and domain archiving.
+Dryad curates and charges a fee; OSF supports preregistration;
+Zenodo deposits a GitHub release automatically.
+{#tbl-federal-hosting}
 
-**Institutional repositories**. Many universities
-maintain their own; quality varies. Acceptable backup;
-not always sufficient as the primary deposition.
+The practical pattern is therefore to work in GitHub and archive
+to Zenodo at each tagged release, and to deposit primary data in
+the domain repository when one exists. Institutional repositories
+vary in quality; they are an acceptable backup and not always
+sufficient as the primary deposit.
 
-For a typical biostatistician, the practical pattern is:
+::: {.callout-important title='LLM prompt'}
+> **Context.** A two-arm clinical trial funded by NIH. Artifacts:
+> de-identified participant-level CRF and outcome data, a
+> codebook, analysis code, summary tables, and a synthetic
+> surrogate dataset. The funding institute is named in the
+> attachment. No data rows.
+>
+> **Constraints.** For each artifact, propose a repository and an
+> access mode, and quote the repository's own statement of scope
+> that admits this data type. Assume every participant-level
+> artifact is de-identified and none is PHI.
+>
+> **Criteria.** No repository is proposed outside its stated
+> scope; participant-level data are under controlled access; a
+> general-purpose repository is proposed only for code, tables,
+> or synthetic data.
 
-- Code in GitHub (working, version-controlled).
-- Code archived to Zenodo at each release for a DOI.
-- Data in a domain repository (dbGaP, GEO, etc.) when
-  applicable.
-- De-identified or synthetic supplementary data in
-  Zenodo for unconditional access.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: is GitHub deposition?
-
-**Question.** Your code is public on GitHub, with a
-README, a license and a full commit history. The DMSP asks
-where the code will be preserved. Is a GitHub URL an
-adequate answer?
-
-**Answer.**
-
-No, and the reason is not that GitHub is unreliable. It is
-that GitHub makes no preservation commitment at all.
-
-A repository can be deleted by its owner, renamed, made
-private, or removed when an account lapses. The URL then
-returns a 404 and the citation in your paper points at
-nothing. None of that is a failure on GitHub's part; it is
-a code-hosting service, and hosting is not archiving.
-
-A repository also has no fixed identity. `main` today is
-not `main` next year, so a bare URL does not say which
-version produced the results.
-
-Deposition supplies both. A Zenodo release mints a DOI
-that resolves permanently, snapshots the repository at
-that commit, and carries a preservation undertaking. The
-GitHub-Zenodo integration does this on every tagged
-release, which is why the pattern above pairs them rather
-than choosing: GitHub for working, Zenodo for the record.
-
-The same distinction applies to the tag in
-@sec-analysis-plan. A tag organizes; an external,
-timestamped, immutable record is what makes it evidence.
+*Failure mode.* The model reaches for dbGaP or TCIA for clinical
+data that fit neither (dbGaP is for studies pairing genotype with
+phenotype, TCIA for cancer imaging), or defaults to Zenodo for
+participant-level data because it is 'general-purpose'. *Check.*
+Compare each proposal with @tbl-federal-repo-match, read the
+repository's scope statement yourself, and see which repositories
+the leading trials in your field cite.
 :::
 
-## `renv.lock` vs. `Imports:` in DESCRIPTION
+### Exercises
 
-A DESCRIPTION file's `Imports:` field lists package
-*minimum* versions: 'I need dplyr 1.0.0 or later'. It
-does not record the *actual* installed version that
-produced the published results.
+2. Name an appropriate repository and access mode for each:
+   (a) RNA-seq counts from a mouse experiment; (b) HF-HOME's
+   participant-level outcome data; (c) the analysis code and
+   codebook for (b); (d) a synthetic dataset that lets a reviewer
+   run the code for (b).
 
-This matters because R packages change. A function in
-`broom 1.0.0` may produce a tibble with one column
-ordering; the same function in `broom 1.0.5` may produce
-a different column ordering. The DESCRIPTION says 'broom
-1.0.0 or later'; the actual run used 1.0.3, which
-produced the published results.
-
-`renv.lock` (@sec-renv) records the exact version of
-every package, including transitive dependencies, that
-was active at the moment the analysis was run. Restoring
-the lock file on a new machine reproduces the exact
-environment.
-
-For DMSP purposes, declaring 'analysis code uses renv to
-pin all package versions; renv.lock is included in the
-deposit' is concrete and verifiable. Declaring 'analysis
-uses standard R packages' is neither.
-
-For projects with non-R dependencies (a particular LaTeX
-distribution, a system library, an external command-line
-tool), `renv.lock` is necessary but not sufficient.
-Docker (@sec-docker) extends the environment specification
-to system level, giving a fully bit-for-bit reproducible
-environment at the cost of more complex tooling.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: `renv` vs. `Imports:`
-
-**Question.** Your DESCRIPTION lists
-`Imports: dplyr (>= 1.0.0)`. You ran the analysis with
-dplyr 1.0.3, which produced your published Table 2. Six
-months later, dplyr 1.1.0 is released with a behavior
-change in `summarize()`. A reviewer asks you to re-run
-the analysis. Without an `renv.lock`, what happens?
-
-**Answer.**
-
-The reviewer's machine (or yours, if you have updated
-since) has dplyr 1.1.0. Your code runs and produces a
-new Table 2 that may differ from the published one in
-some cells. The DESCRIPTION's `>= 1.0.0` is satisfied;
-the actual computation is different. You cannot tell
-from the discrepancy whether the difference is a bug in
-your code, a difference in dplyr's behavior, or a real
-data issue, you have lost the version-pinned baseline
-that would let you investigate. With an `renv.lock`,
-the reviewer (or you) restores the exact environment
-(dplyr 1.0.3) and reproduces the published numbers
-exactly. This is the practical case for renv: not just
-'is it reproducible' but 'when discrepancies appear,
-can I diagnose them?'
-
+::: {.callout-note collapse='true' title='Solution'}
+(a) GEO for the counts (and SRA for raw reads), open access; no
+PHI is involved. (b) A clinical-trial repository under controlled
+access with a DUA (BioLINCC if NHLBI funds the trial and requests
+the data, otherwise Vivli or the institute's designated archive),
+and only after de-identification; never dbGaP, which is for
+genotype-phenotype studies. (c) GitHub for working, archived to
+Zenodo at a tagged release for the DOI, open. (d) Zenodo or OSF,
+open, with the generator code if possible, so that the reviewer
+can see how the surrogate was made.
 :::
 
-## Worked example: a DMSP outline
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Your code is public on GitHub, with a README, a
+license, and a full commit history. The DMSP asks where the code
+will be preserved. Is a GitHub URL an adequate answer?
 
-For a 200-patient observational study of postoperative
-infection rates:
+**Answer.** No, and not because GitHub is unreliable: it makes no
+preservation commitment. A repository can be deleted, renamed,
+made private, or removed when an account lapses, and the citation
+then points at nothing. A repository also has no fixed identity;
+`main` today is not `main` next year, so a bare URL does not say
+which version produced the results. A Zenodo release mints a DOI
+that resolves permanently and snapshots the repository at that
+commit, which is why the pattern pairs them. The same distinction
+applies to the SAP tag of @sec-analysis-plan: a tag organizes; an
+external, timestamped, immutable record is what makes it evidence.
+:::
 
-> **Data type.** Patient-level CRF data (demographics,
-> baseline labs, surgical details, postoperative
-> outcomes), approximately 1 MB per patient
-> ($\approx$ 200 MB total). Imaging data (CT scans)
-> separately, $\approx$ 200 GB total. Both contain PHI.
->
-> **Related tools.** Data captured in REDCap, exported
-> to a structured CSV. Analysis in R with `renv`-pinned
-> environment (R 4.4.0, packages per `renv.lock` in
-> deposit). Docker container provided for environment
-> reproducibility.
->
-> **Standards.** CDISC SDTM for the underlying CRF
-> structure. DICOM for imaging. Quarto for analytic
-> reports.
->
-> **Data preservation and access.** PHI-containing CRFs
-> deposited in dbGaP under controlled access (DUA via
-> the institutional IRB). De-identified summary data
-> (Table 1, primary outcomes) deposited in Zenodo with
-> CC-BY 4.0 license. Imaging deposited in TCIA under
-> controlled access.
->
-> **Access, distribution, reuse.** PHI data: requestor
-> must complete DUA and IRB approval at their
-> institution. De-identified data: open access at
-> publication. Code: GitHub, mirrored to Zenodo for
-> DOI, MIT license.
->
-> **Oversight.** PI is responsible for plan
-> implementation. Co-investigators sign data-sharing
-> agreements at study onset. Annual review with NIH
-> program officer.
+## Rules of thumb
 
-This level of specificity passes review and produces a
-reproducible artifact. Vague language ('data will be
-shared appropriately') gets flagged.
+1. **Habit 5: pre-specify, then tag.** The DMSP was the
+   pre-specification of sharing; check the deposit against each
+   of its elements, and build deposition into the pipeline.
+2. **Habit 4: pin the environment.** The plan points to
+   `renv.lock` and a Dockerfile, and the deposit contains them.
+3. **Habit 1: the compendium is the unit.** Deposit code, data,
+   environment, and document together, each in the repository
+   whose scope fits it, with de-identified data under controlled
+   access.
 
-## Collaborating with an LLM on policy compliance
+## Cumulative practice
 
-LLMs can draft DMSP boilerplate and audit existing plans
-for omissions. They cannot judge whether the named
-repositories are actually appropriate or whether
-restricted-access timelines are realistic.
+3. *Cumulative (uses @sec-federal-dmsp and @sec-renv).* Rebuild
+   `manifest` from the Verification in @sec-federal-dmsp, and
+   extend it into a deposit manifest: add
+   a `destination` column (controlled-access repository or
+   Zenodo), add the codebook, `renv.lock`, and the Dockerfile as
+   rows, and write a `stopifnot()` that fails if anything bound
+   for an open repository is participant-level or has identifier
+   columns.
+4. *On your own work (no key).* Pick a recent biomedical paper in
+   your field. Check whether its data and code are reachable at a
+   persistent identifier, whether the access mode suits the data,
+   and whether the paper's data-availability statement could be
+   checked by a reader. Write one paragraph classifying its
+   compliance.
 
-**Prompt 1: drafting a DMSP.** Paste the project
-abstract and data description; ask: 'draft an NIH DMSP
-that addresses each of the six required elements.'
+::: {.callout-note collapse='true' title='Solution to exercise 3'}
+```{r}
+#| label: soln-25c-3
+#| message: false
+library(dplyr)
 
-*What to watch for.* The output will likely be the right
-shape. Verify the named repositories are actually
-appropriate for the data type. Verify the access
-mechanism (controlled vs. open) is correct given the
-PHI status. LLMs sometimes propose 'Zenodo' for PHI
-data, which is wrong.
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+identifiers <- c("mrn", "first_name", "last_name", "dob", "zip",
+                 "phone", "discharge_date", "rand_date",
+                 "visit_date", "event_date", "readmit_date",
+                 "death_date")
+files <- list.files(hf_dir, pattern = "\\.csv$")
+manifest <- tibble(
+  file = files,
+  identifier_columns = vapply(files, \(f) {
+    cols <- names(readr::read_csv(file.path(hf_dir, f), n_max = 0,
+                                  show_col_types = FALSE))
+    paste(intersect(cols, identifiers), collapse = ", ")
+  }, character(1))
+)
 
-*Verification.* Cross-check against your IRB-approved
-data-sharing plan and the institutional data
-governance office's recommendations.
+deposit <- manifest |>
+  mutate(participant_level = TRUE,
+         destination = "Controlled access, de-identified release") |>
+  bind_rows(tibble(
+    file = c("README.md (codebook)", "renv.lock", "Dockerfile"),
+    identifier_columns = "",
+    participant_level = FALSE,
+    destination = "Zenodo (open)"
+  ))
 
-**Prompt 2: auditing a draft DMSP.** Paste a draft and
-ask: 'list every missing or ambiguous element under the
-six NIH categories.'
+open_files <- deposit |> filter(destination == "Zenodo (open)")
+stopifnot(!any(open_files$participant_level),
+          all(open_files$identifier_columns == ""))
+deposit |> select(file, participant_level, destination)
+```
 
-*What to watch for.* The standard elements are easy to
-audit; LLMs do this well. Subtle issues (e.g., a
-license that conflicts with a third-party data source's
-terms) are harder; flag for human review.
+The two conditions encode two different rules, and the first is
+the one people forget. `labs.csv` and `medications.csv` carry no
+identifier column, so a check on identifier columns alone would
+let them go to Zenodo; they are still participant-level records,
+linked by `patient_id` to every other file, and belong under
+controlled access with the de-identified release. Even then the
+assertion is a structural check: it confirms that a listed
+identifier is absent, not that the data are safe to publish
+(@sec-deident-risk).
+:::
 
-*Verification.* Submit the audited plan to a colleague
-who has had a DMSP reviewed by NIH program staff.
+## Cheat sheet
 
-**Prompt 3: choosing a repository.** Describe the data
-and ask: 'which repository is appropriate?'
+| Task | Do | Guards against |
+|---|---|---|
+| Carry out the DMSP | Check the deposit against each element (@sec-federal-dmsp) | A plan approved and never executed |
+| Plan data sharing | De-identified data under controlled access; synthetic or summary data open | PHI or participant-level data in an open repository |
+| Describe the environment | Point to `renv.lock` and a Dockerfile (@sec-renv) | 'Standard R packages' |
+| Track policy | One dated table with a 'Verified' column | Superseded requirements cited as current |
+| Archive code | GitHub release archived to Zenodo for a DOI | A citation to a URL that moves |
+| Choose a repository | Match the data type to the repository's stated scope | dbGaP or TCIA for general clinical data |
+| Check before deposit | Manifest of files and identifier columns, with an assertion | An identifier leaving in a file nobody opened |
 
-*What to watch for.* Domain-specific repositories
-(dbGaP, GEO, TCIA) should be preferred when applicable.
-LLMs sometimes default to Zenodo or OSF as
-'general-purpose' answers, which is fine for code or
-supplementary tables but inappropriate for primary
-genomic or imaging data.
-
-*Verification.* Cross-check against domain norms; see
-which repositories the leading papers in your field cite.
-
-## Principle in use
-
-Three habits make federal compliance painless:
-
-1. **Treat the DMSP as a workflow document.** Build
-   deposition into the analysis pipeline; do not bolt it
-   on at submission.
-2. **Pin the environment, not the policy.** A pointer to
-   `renv.lock` and a Dockerfile is more verifiable than
-   prose.
-3. **Use domain repositories when they exist.**
-   Generic repositories (Zenodo, OSF) are fine for code
-   and supplementary materials; primary data belongs in
-   the discipline's standard repository.
-
-## Exercises
-
-**On your own machine, data, or collaborations.** These exercises
-deposit artifacts and read policies, so no answer key is possible.
-
-1. Locate the current NIH DMSP template and write a
-   complete plan for a hypothetical 100-patient
-   observational study.
-2. Pick a recent biomedical paper. Check whether its
-   data and code are accessible at a persistent URL with
-   a DOI. Classify the level of compliance.
-3. For a completed analysis of your own, produce a
-   `sessionInfo.txt` and an `renv.lock` and add them to
-   the compendium. Confirm the lock file captures every
-   attached package.
-4. Identify the appropriate repository for each of:
-   (a) RNA-seq counts from a mouse experiment;
-   (b) clinical trial outcome data with PHI;
-   (c) the analysis code and data dictionary for (b);
-   (d) a synthetic dataset for reviewer access to (b).
-5. Write a one-paragraph briefing for your PI on what
-   the 2025 OSTP implementation means for their
-   submissions, and what changes (if any) the lab
-   should make.
+: Federal requirements and deposition at a glance.
+{#tbl-federal-cheat-sheet}
 
 ## Further reading
 
 - [@usshi2022ostp], the 2022 OSTP 'Nelson memo'.
-- NIH DMSP policy at `sharing.nih.gov`, the
-  authoritative 2023 policy page.
-- The Center for Open Science (`cos.io`) materials on
-  preregistration and open data.
-- ICPSR's *Guide to Social Science Data Preparation
-  and Archiving*, portable to biostatistics for
-  metadata practice.
+- The NIH data management and sharing policy pages at
+  `grants.nih.gov`, the authoritative source for the DMSP and the
+  2024 Public Access Policy.
+- ICPSR's *Guide to Social Science Data Preparation and
+  Archiving*, portable to biostatistics for metadata practice.
 
 ## Prerequisites answers {#sec-quiz-answers-25c}
 
-1. The Nelson memo (August 2022) directs federal
-   agencies to require immediate, free public access to
-   peer-reviewed publications arising from federally
-   funded research and to the scientific data underlying
-   those publications. Agencies were given until the end
-   of 2025 to implement these requirements. The Nelson
-   memo replaces the 2013 Holdren memo and removes the
-   12-month embargo on publication access.
-2. An NIH DMSP must describe: the data types and
-   amounts; related tools/software/code; standards to be
-   applied; access, distribution, and reuse
-   considerations; repositories where data will be
-   preserved; and oversight responsibility. It is
-   submitted with the grant application and becomes part
-   of the funded award's terms.
-3. `renv.lock` records the exact versions of every
-   package (including their transitive dependencies)
-   that were used to produce an analysis, along with
-   the R version itself. `Depends:`/`Imports:` in a
-   `DESCRIPTION` only list minimum acceptable versions;
-   the actual installed versions drift as packages are
-   updated, silently changing behavior. For DMSP
-   compliance, `renv.lock` is concrete and verifiable;
-   `DESCRIPTION` declarations are not.
+1. The Nelson memo (August 2022) directs federal agencies that
+   fund research to make peer-reviewed publications, and the
+   scientific data underlying them, freely available at
+   publication, without the 12-month embargo that the 2013
+   Holdren memo allowed, and with persistent identifiers. Agencies
+   were to have their updated policies in effect by the end of
+   2025; @tbl-federal-asof records each agency's implementation
+   and when it was last checked.
+2. Each has a narrow scope. dbGaP is for studies that pair
+   genotype with phenotype, and TCIA for cancer imaging; general
+   clinical-trial data fit neither, and belong, de-identified and
+   under controlled access, in a clinical-trial repository such as
+   BioLINCC or Vivli (@tbl-federal-repo-match).
+3. No. GitHub hosts; it makes no preservation commitment, and a
+   URL names no fixed version. Archive a tagged release to Zenodo
+   (or a domain repository) for a DOI and a snapshot, and cite
+   that.

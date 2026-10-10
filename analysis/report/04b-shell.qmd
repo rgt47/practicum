@@ -1,39 +1,111 @@
 # The Unix Shell {#sec-shell}
 
+```{r}
+#| label: shell-opening
+#| include: false
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+crf_path <- file.path(hf_dir, "crf_export.csv")
+crf_bytes <- readBin(crf_path, "raw", file.size(crf_path))
+stopifnot(identical(crf_bytes[1:3], as.raw(c(0xef, 0xbb, 0xbf))))
+crf_lines <- strsplit(rawToChar(crf_bytes[-(1:3)]), "\r\n",
+                      fixed = TRUE)[[1]]
+crf_rows <- length(crf_lines) - 1
+n_cr <- sum(crf_bytes == as.raw(0x0d))
+n_empty_weight <- sum(endsWith(crf_lines[-1], ","))
+crf_site <- vapply(strsplit(crf_lines[-1], ",", fixed = TRUE),
+                   `[`, character(1), 2)
+n_site_raw <- length(unique(crf_site))
+n_site_clean <- length(unique(tolower(trimws(crf_site))))
+```
+
+The HF-HOME case report form (CRF) export arrives from the data
+manager, and before loading it into R you ask the shell two quick
+questions. Is the header where you expect it?
+`grep -c '^patient_id' crf_export.csv` counts the lines that begin
+with the first column's name and answers 0. How many patients have
+no discharge weight, which two of the sites record as an empty
+last field? `grep -c ',$' crf_export.csv` also answers 0. The true
+answers are 1 and `r n_empty_weight`: the file begins with three
+invisible bytes, a byte-order mark (BOM), and every line ends in a
+carriage return that the terminal does not display. Nothing
+failed; the shell answered exactly the questions you typed, about
+a file that is not quite the one on your screen. This chapter
+teaches the working subset of the shell, and the habit of looking
+at the bytes before you trust a count.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
 ```
-*This is the Unix philosophy: write programs that do one
+*This is the Unix philosophy: Write programs that do one
 thing and do it well. Write programs to work together.*
 
-[Doug McIlroy]{.smallcaps}, *A Quarter Century of Unix*
-(1994)
+[Doug McIlroy]{.smallcaps}, quoted in Peter H. Salus,
+*A Quarter Century of UNIX* (1994)
 ```{=latex}
 \end{flushright}
 ```
 :::
 
-::: {.callout-note}
-## Why this chapter exists
+```{r}
+#| label: shell-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-The shell is the substrate under everything else in this
-book: Docker is driven from it, Git began as a set of
-shell commands, and every high-performance cluster is
-reached through it. The peer survey (@sec-peer-survey)
-found the command line taught explicitly at Berkeley
-STAT 243 [@berkeley-stat243-2024], in Karl Broman's
-reproducibility course [@broman2019tools4rr], and in
-both Software and Data Carpentry. The Practicum has until
-now assumed the shell rather than taught it; this chapter
-supplies the working subset.
+```{r}
+#| label: fig-shell-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: the shell belongs to the
+#|   Environment band, the layer from which Git, R, Quarto, and
+#|   Docker are all run."
+#| fig-alt: !expr pipeline_alt('environment')
+pipeline_diagram('environment')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 20 minutes.
+
+**You'll need.** A terminal running `bash` or `zsh`: Terminal on
+macOS, any terminal on Linux, and on Windows either Git Bash
+(installed with Git for Windows) or WSL, the Windows Subsystem for
+Linux; @sec-workstation covers both. The HF-HOME files in
+`analysis/data/raw_data/hfhome/` of the book's repository, whose
+`README.md` is the codebook. The shell commands run from
+`analysis/report/`, the directory this book is built in. The R
+verification steps use:
+
+```r
+library(readr)
+library(dplyr)
+```
+
+**You'll be able to.**
+
+- Move around the filesystem and write the relative path to a data
+  file from any working directory.
+- Find a file's row count, delimiter, byte-order mark, and line
+  endings before R reads it, and confirm the count in R.
+- Build a pipeline from `cut`, `sort`, `uniq`, and `grep` that
+  answers a counting question, and translate it to `dplyr`.
+- Write a short script with `set -euo pipefail` that checks a
+  directory of raw files without modifying them.
+
+**Outline.**
+
+- [Navigating the filesystem](#sec-shell-navigate)
+- [Looking at a file before R does](#sec-shell-inspect)
+- [Pipes and redirection](#sec-shell-pipes)
+- [Searching with grep and find](#sec-shell-search)
+- [Worked example: a script that checks the raw
+  files](#sec-shell-worked)
 :::
 
-## Prerequisites
-
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-04b.
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-04b.
 
 1. What does the pipe operator `|` do in the shell, and
    how does it resemble the R pipe `|>`?
@@ -43,80 +115,24 @@ chapter in @sec-quiz-answers-04b.
 3. Why might you write a short shell script to run an
    analysis pipeline rather than clicking through the steps
    by hand each time?
+:::
 
-## Learning objectives
+## Navigating the filesystem {#sec-shell-navigate}
 
-By the end of this chapter you should be able to:
+The shell is a text interface to the operating system. You type a
+command, the shell runs a program, and the program prints its
+output. Its power derives from a design decision made in the early
+1970s: build many small programs, each doing one thing well, and
+let the output of one become the input of the next. You can go far
+in data science without the shell, but not without friction,
+because the tools this book depends on (Git, Docker, `ssh`, and
+the schedulers of a computing cluster) are all operated from it.
+The chapter uses `bash`, the default on most Linux systems and
+inside almost every Docker container; macOS ships `zsh`, which
+differs only in details that do not matter here.
 
-- Navigate the filesystem with `pwd`, `ls`, `cd`, and
-  understand absolute versus relative paths.
-- Inspect and manipulate files with `cat`, `less`, `head`,
-  `tail`, `cp`, `mv`, `rm`, and `mkdir`.
-- Combine small tools with pipes and redirection to build
-  a data-inspection one-liner.
-- Search file contents with `grep` and file trees with
-  `find`.
-- Write and run a short, commented shell script.
-
-## Orientation
-
-The shell is a text interface to the operating system. You type
-a command, the shell runs a program, and the program prints its
-output. Its power derives from a design decision made in the
-early 1970s: build many small programs, each doing one thing
-well, and let the output of one become the input of the next.
-A modern data scientist can go far without the shell, but not,
-we would suggest, without friction. The tools the field
-depends on, Docker, Git, `ssh`, and the cluster schedulers, are
-all operated from it.
-
-This chapter teaches the subset that recurs in applied
-biostatistics: moving around the filesystem, inspecting
-data files, combining tools with pipes, and writing a
-short script to make a pipeline repeatable. We use the
-`bash` shell, the common default on Linux and the one
-inside almost every Docker container; macOS now ships
-`zsh`, which differs only in details that do not matter
-here.
-
-## The statistician's contribution {#sec-shell-human}
-
-The commands take an afternoon to learn. What takes
-longer is the judgment about where the shell belongs in
-an analysis and where it does not:
-
-**Prefer a script to a sequence of clicks.** A pipeline you
-run by hand is a pipeline you will run differently next
-time. A shell script records the steps, runs them
-identically every time, and is version-controlled. The
-reproducibility argument of @sec-why applies to the shell
-as much as to R.
-
-**Destructive commands deserve respect.** `rm` does not
-move a file to a trash can; it deletes it. `rm -rf` on the
-wrong directory is unrecoverable. Read a deletion command
-before running it, and never build one from an
-un-inspected variable.
-
-**Inspect before you load.** A malformed or enormous data
-file will choke R if you read it blind. A few seconds with
-`head`, `wc -l`, and `file` at the shell tells you the row
-count, the delimiter, and the encoding before R ever sees
-it.
-
-**Keep the shell out of the analysis proper.** The shell is
-excellent glue: fetching files, orchestrating steps,
-inspecting inputs. It is a poor place to do statistics.
-Draw the line where @sec-wrangling draws it, and do the
-analysis in R.
-
-These judgments are what make the shell an asset rather
-than a hazard.
-
-## Navigating the filesystem
-
-Three commands answer 'where am I, what is here, and how do
-I move'.
+Three commands answer 'where am I, what is here, and how do I
+move' (display-only, because the output is your machine's):
 
 ```bash
 pwd                 # print working directory (where am I?)
@@ -127,236 +143,738 @@ cd ..               # up one level
 cd -                # back to the previous directory
 ```
 
-Paths come in two kinds. An *absolute* path starts from the
-root and names the full location: `/home/user/data/visits.csv`.
-A *relative* path starts from where you are:
-`data/visits.csv`. The shorthands recur constantly: `.` is
-the current directory, `..` is the parent, `~` is your home
-directory, and `/` is the root. A path that begins with `/`
-or `~` is absolute; anything else is relative to the
-working directory.
+Every command in this chapter that shows output was run from
+`analysis/report/`, so a path to the HF-HOME files climbs one level
+and descends two:
 
-## Inspecting and manipulating files
-
-```bash
-cat file.csv           # print the whole file
-less file.csv          # page through it (q to quit)
-head -n 20 file.csv    # first 20 lines
-tail -n 20 file.csv    # last 20 lines
-wc -l file.csv         # count lines
-file data.bin          # guess the file type and encoding
-
-mkdir -p data/derived  # make a directory (and parents)
-cp a.csv b.csv         # copy
-mv a.csv archive/      # move or rename
-rm scratch.csv         # delete (no undo)
+```{bash}
+#| label: shell-ls
+ls ../data/raw_data/hfhome
 ```
 
-For a data file about to enter R, `head`, `wc -l`, and
-`file` are the quick triage: how many rows, what delimiter,
-what encoding. Discovering that a 'CSV' is tab-separated,
-or that it carries a byte-order mark, is far cheaper at the
-shell than after a puzzling `read_csv` failure.
+Paths come in two kinds. An *absolute* path starts from the root
+of the filesystem and names the full location, such as
+`/home/user/data/visits.csv`. A *relative* path starts from where
+you are, such as `data/visits.csv`. A path that begins with `/` or
+`~` is absolute; anything else is relative to the working
+directory.
 
-## Pipes and redirection
+| Symbol | Means | Example |
+|---|---|---|
+| `/` | The root of the filesystem | `/usr/bin/env` |
+| `~` | Your home directory | `~/research/trial` |
+| `.` | The current directory | `./check-raw.sh` |
+| `..` | The parent of the current directory | `../data/raw_data/hfhome` |
 
-The pipe `|` connects the output of one command to the
-input of the next, exactly as R's `|>` connects functions.
-Redirection sends output to a file with `>` (overwrite) or
-`>>` (append).
+: Path shorthands. {#tbl-shell-paths}
 
-@fig-shell-pipe traces one line of text through a four-stage
-pipeline. Each stage does one thing, and the data narrows at
-every step, which is the whole design.
+### Exercises
+
+1. From the repository root (the directory that contains
+   `analysis/`), what relative path reaches `visits.csv`? From
+   `analysis/report/`? Check each with `ls`.
+
+::: {.callout-note collapse='true' title='Solution'}
+From the root, `analysis/data/raw_data/hfhome/visits.csv`; from
+`analysis/report/`, `../data/raw_data/hfhome/visits.csv`. `ls` on
+the path prints the path back if the file exists and
+`No such file or directory` if it does not. The same file has a
+different relative path from each directory, which is why a script
+that uses relative paths must also say which directory it runs
+from.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague's script begins
+`read_csv("data/visits.csv")` and works for them. It fails for you
+with 'does not exist', although the file is in the repository.
+What is the likeliest cause?
+
+**Answer.** The path is relative, so it is resolved from the
+working directory, and you ran the script from a different
+directory than your colleague did (for example from `analysis/`
+rather than the repository root). Run `pwd`, or `getwd()` in R, to
+see where you are. The durable fix is a convention the whole
+project follows, such as always running from the root, or the
+`here` package, which builds paths from the project root wherever
+the script is run.
+:::
+
+## Looking at a file before R does {#sec-shell-inspect}
+
+A malformed or enormous file can choke R if you read it blind, and
+a subtly malformed one can be read without complaint into the
+wrong values. A few seconds at the shell tell you the row count,
+the delimiter, and whether the bytes are what they appear to be,
+before R ever sees the file.
+
+| Command | Answers |
+|---|---|
+| `head -n 5 file.csv` | What do the first lines look like? Is the delimiter a comma? |
+| `tail -n 5 file.csv` | Does the file end cleanly, or with a footer or a half-written line? |
+| `wc -l file.csv` | How many lines (newline characters)? |
+| `tail -n +2 file.csv` \| `wc -l` | How many lines after the header? |
+| `head -c 16 file.csv` \| `od -c` | What are the first bytes, including invisible ones? |
+| `head -n 2 file.csv` \| `cat -e` | How does each line end? (`$` is the newline, `^M` a carriage return) |
+| `less file.csv` | Page through the file; `q` quits |
+
+: Triage for a data file. {#tbl-shell-triage}
+
+### The visible file
+
+```{bash}
+#| label: shell-head
+cd ../data/raw_data/hfhome
+head -n 3 crf_export.csv
+wc -l crf_export.csv
+tail -n +2 crf_export.csv | wc -l
+```
+
+The header names eight columns separated by commas, as the CSV
+(comma-separated values) format prescribes, and the two data
+rows already show two of the sites' conventions: one writes sex as
+`Female` and dates with dashes, the other `F` and dates as eight
+digits with the identifier's leading zeros gone. `wc -l` counts
+newline characters, so the second count, which skips the header,
+is the number of data rows if no quoted field contains a line
+break.
+
+### The invisible bytes
+
+The two questions from the opening, asked as typed:
+
+```{bash}
+#| label: shell-opening-greps
+cd ../data/raw_data/hfhome
+grep -c '^patient_id' crf_export.csv || true
+grep -c ',$' crf_export.csv || true
+```
+
+`grep -c` exits with an error status when it counts zero matches,
+and `|| true` keeps that status from stopping a script; the zeros
+are the misleading answers. `head` shows characters as your
+terminal draws them, and a terminal draws neither a BOM nor a
+carriage return. Two commands show the bytes themselves:
+
+```{bash}
+#| label: shell-bytes
+cd ../data/raw_data/hfhome
+head -c 16 crf_export.csv | od -c
+head -n 2 crf_export.csv | cat -e
+```
+
+`od -c` prints each byte, and the first three, `357 273 277` in
+octal (`EF BB BF` in hexadecimal), are the UTF-8 byte-order mark,
+a marker some Windows tools write at the start of a file. `cat -e`
+marks the end of each line with `$`, and the `^M` before it is a
+carriage return: the file has Windows (CRLF, carriage return and
+line feed) line endings, `r format(n_cr, big.mark = ",")` carriage
+returns in `r format(crf_rows + 1, big.mark = ",")` lines. This is why the two `grep` counts in the
+opening returned 0: no line begins with `patient_id`, because the
+first begins with the BOM, and no line ends in a comma, because
+every line ends in `\r`.[^file-cmd]
+
+[^file-cmd]: The `file` command is often recommended for this
+    triage, and versions without a test for CSV files report both
+    the BOM and the CRLF line terminators. Versions that recognize
+    CSV files (`file` 5.41 on the macOS
+    machine that built this book, for one) report only `CSV text`
+    and say nothing about either; `file -e csv crf_export.csv`
+    turns the CSV test off and restores the full report. Minimal
+    Docker images often lack `file` altogether, while `od` and
+    `cat` are always present.
+
+`readr` strips the BOM and accepts either line ending, so R is not
+fooled by this file. The verification below is the one to run on
+every count you take at the shell.
+
+::: {.callout-tip title='Verification'}
+Count the data rows at the shell and in R, and require that the
+two agree:
+
+```{r}
+#| label: shell-verify-rows
+library(readr)
+
+shell_rows <- system2("bash", c("-c", shQuote(
+  "tail -n +2 ../data/raw_data/hfhome/crf_export.csv | wc -l"
+)), stdout = TRUE)
+
+crf <- read_csv(crf_path,
+                col_types = cols(.default = col_character()),
+                na = character())
+
+stopifnot(as.integer(shell_rows) == nrow(crf))
+nrow(crf)
+names(crf)[1]
+```
+
+The counts agree, and `readr` has removed the BOM from the first
+column's name. When they disagree, a quoted field holds a line
+break, or the last line has no final newline; find out which
+before you trust either number.
+:::
+
+### Copying, moving, and deleting
+
+The commands that change files are short, and two of them cannot
+be undone (display-only):
+
+```bash
+mkdir -p data/derived  # make a directory, and its parents
+cp a.csv b.csv         # copy
+mv a.csv archive/      # move or rename
+rm scratch.csv         # delete: no trash can, no undo
+```
+
+`rm` does not move a file to a trash can; it deletes it, and
+`rm -rf` on the wrong directory is unrecoverable. Read a deletion
+command before running it, and never build one from a variable you
+have not inspected. A redirection that writes to a file you are
+also reading is the quieter version of the same mistake.
+
+```{bash}
+#| label: shell-truncate
+tmp=$(mktemp -d)
+cp ../data/raw_data/hfhome/crf_export.csv "$tmp/crf.csv"
+wc -c < "$tmp/crf.csv"
+tr -d '\r' < "$tmp/crf.csv" > "$tmp/crf.csv"
+wc -c < "$tmp/crf.csv"
+rm -r "$tmp"
+```
+
+The chunk works on a copy in a temporary directory and deletes the
+directory at the end; the second count shows what happened to the
+copy.
+
+::: {.callout-warning title='Pitfall'}
+**Redirecting a command's output onto its own input empties the
+file.** The shell opens `crf.csv` for writing, which truncates it
+to zero bytes, before `tr` reads a single byte, so the command
+reads an empty file and writes an empty file, and reports no
+error. On a raw export this destroys the evidence (Habit 2). Write
+the repaired version somewhere else, for example
+`tr -d '\r' < crf_export.csv > ../derived/crf_lf.csv`, and never
+point a redirection at a file in the raw-data directory.
+:::
+
+### Exercises
+
+2. Using only the shell, find the number of data rows, the
+   delimiter, and the column names of `visits.csv`. Does it carry
+   a BOM? Does it have CRLF line endings?
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-04b-2
+visits_path <- file.path(hf_dir, "visits.csv")
+visits <- read_csv(visits_path, show_col_types = FALSE)
+nrow(visits)
+names(visits)
+visits_bytes <- readBin(visits_path, "raw", file.size(visits_path))
+visits_bytes[1:3]
+sum(visits_bytes == as.raw(0x0d))
+```
+
+`tail -n +2 visits.csv | wc -l` prints the row count above,
+`head -n 1 visits.csv` shows the comma-separated, quoted column
+names, `head -c 16 visits.csv | od -c` begins with `"` rather than
+`357 273 277` (no BOM), and `head -n 2 visits.csv | cat -e` shows
+lines ending in `$` with no `^M` (no carriage returns, as the zero
+count above confirms). Of the HF-HOME files, only the CRF export
+carries either.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** `wc -l` reports `r format(crf_rows + 1, big.mark = ",")`
+lines for a CSV file with a header. Can you conclude that it holds
+`r format(crf_rows, big.mark = ",")` records?
+
+**Answer.** Not yet. `wc -l` counts newline characters. A quoted
+field that contains a line break (a free-text comment, say) adds a
+line without adding a record, and a last line with no final
+newline is a record that `wc -l` does not count. The shell count
+is a fast first estimate; the record count is what a CSV parser
+reports, which is why the Verification compares the two rather
+than trusting either.
+:::
+
+## Pipes and redirection {#sec-shell-pipes}
+
+The pipe `|` connects the output of one command to the input of
+the next, as R's `|>` connects functions. Redirection sends output
+to a file with `>` (overwrite) or `>>` (append), and reads input
+from a file with `<`. @fig-shell-pipe traces the HF-HOME laboratory
+file through a five-stage pipeline. Each stage does one thing, and
+the data narrow at every step, which is the whole design.
 
 ```{mermaid}
 %%| echo: false
 %%| label: fig-shell-pipe
-%%| fig-alt: "Left-to-right pipeline. A 50,000-line CSV feeds into
-%%|   cut, which keeps one field; then sort, which makes duplicates
-%%|   adjacent; then uniq -c, which counts runs; then sort -rn piped
-%%|   to head, which ranks and truncates. The output is ten lines."
+%%| fig-alt: "Left-to-right pipeline. labs.csv, one line per test
+%%|   result, feeds tail -n +2, which drops the header; then cut,
+%%|   which keeps the third field; then sort, which makes duplicates
+%%|   adjacent; then uniq -c, which counts runs; then sort -rn, which
+%%|   ranks the counts. The output is one line per test code."
 %%| fig-cap: "A shell pipeline as a sequence of narrowing
 %%|   transformations. Each tool reads standard input and writes
 %%|   standard output, so composition needs no shared file format
-%%|   beyond lines of text. This is the same compositional idea as
-%%|   a dplyr pipeline, in a different notation."
+%%|   beyond lines of text. This is the compositional idea of a
+%%|   dplyr pipeline in a different notation."
 flowchart LR
-  F["labs.csv<br/><i>50,000 lines</i>"]
-  F --> A["cut -d',' -f5<br/><i>keep one field</i>"]
+  F["labs.csv<br/><i>one line per result</i>"]
+  F --> H["tail -n +2<br/><i>drop the header</i>"]
+  H --> A["cut -d, -f3<br/><i>keep one field</i>"]
   A --> B["sort<br/><i>make duplicates adjacent</i>"]
   B --> C["uniq -c<br/><i>count runs</i>"]
-  C --> D["sort -rn | head<br/><i>rank, truncate</i>"]
-  D --> G["10 lines<br/><i>the answer</i>"]
+  C --> D["sort -rn<br/><i>rank</i>"]
+  D --> G["one line per test<br/><i>the answer</i>"]
 ```
 
-```bash
-# how many unique treatment arms appear in column 3?
-cut -d',' -f3 visits.csv | sort | uniq -c
-
-# save the count of data rows to a log
-wc -l visits.csv > rowcount.txt
-
-# the ten largest files in a directory tree
-du -ah . | sort -rh | head -n 10
+```{bash}
+#| label: shell-pipe-labs
+cd ../data/raw_data/hfhome
+tail -n +2 labs.csv | cut -d, -f3 | sort | uniq -c | sort -rn
 ```
 
-The first line reads as a sentence: take the third
-comma-delimited field, sort it, then count the unique
-values. Each tool does one thing; the pipe composes them.
-This is the same compositional idea as a `dplyr` pipeline,
-in a different notation.
+The line reads as a sentence: drop the header, keep the third
+comma-delimited field, sort it, count each distinct value, and
+rank the counts. `uniq -c` counts *adjacent* repeats, which is why
+the first `sort` is required. The quotation marks are part of the
+field, because `cut` knows nothing about CSV quoting; a field that
+contains a quoted comma would be split in the wrong place, which
+is one reason to keep the shell for questions and R for analysis.
 
-## Searching with grep and find
+### The shell and R side by side
 
-`grep` searches file *contents*; `find` searches the file
-*tree*.
+Every pipeline in this chapter has an R equivalent, and the
+equivalent is the check. The shell is excellent glue (fetching
+files, orchestrating steps, inspecting inputs) and a poor place to
+do statistics: draw the line where @sec-wrangling draws it, and do
+the analysis in R.
+
+| Question | Shell | R |
+|---|---|---|
+| First rows | `head -n 5 f.csv` | `head(df, 5)` |
+| Number of records | `tail -n +2 f.csv` \| `wc -l` | `nrow(df)` |
+| Rows matching a pattern | `grep -c 'Site E' f.csv` | `sum(stringr::str_detect(df$site, "Site E"))` |
+| One column | `cut -d, -f2 f.csv` | `select(df, site)` |
+| Count of each value | `cut -d, -f2 f.csv` \| `sort` \| `uniq -c` | `count(df, site)` |
+| Distinct values | `cut -d, -f2 f.csv` \| `sort -u` | `distinct(df, site)` |
+
+: The same questions at the shell and in R. The shell versions
+read lines and split on every comma; the R versions read records
+and respect quoting. {#tbl-shell-vs-r}
+
+::: {.callout-tip title='Verification'}
+Repeat the laboratory count in R:
+
+```{r}
+#| label: shell-verify-labs
+#| message: false
+library(dplyr)
+read_csv(file.path(hf_dir, "labs.csv"), show_col_types = FALSE) |>
+  count(test_code, sort = TRUE)
+```
+
+The counts should match the shell's line for line.
+:::
+
+### Repairing line endings without touching the raw file
+
+The pipe also repairs the opening's count. `tr -d '\r'` deletes
+every carriage return on its way through, and the file on disk is
+not changed:
+
+```{bash}
+#| label: shell-crlf-fix
+cd ../data/raw_data/hfhome
+tr -d '\r' < crf_export.csv | grep -c ',$'
+tail -n +2 crf_export.csv | tr -d '\r' | grep -c ',$'
+```
+
+The first count is the opening's `r n_empty_weight`, and the second
+confirms that the header is not among them. To keep the repaired
+version, redirect it to a file outside the raw-data directory, as
+the Pitfall above requires.
+
+::: {.callout-important title='LLM prompt'}
+A model writes shell pipelines fluently, and the error it makes is
+the field number or an invisible byte, not the syntax.
+
+> **Context.** I have a CSV file. Its header, and two lines of the
+> file passed through `cat -e`, are below [paste them; for real
+> patient data, paste the header and one invented row, never real
+> rows]. I want the number of records for each value of the
+> `site` column.
+>
+> **Constraints.** Use only `head`, `tail`, `cut`, `tr`, `sort`,
+> `uniq`, and `grep`, with options that work in both the macOS
+> (BSD) and GNU versions. Read the file; do not write to it or to
+> its directory.
+>
+> **Criteria.** Before the pipeline, state the field number you
+> chose and why, and whether the file has a header, a BOM, or CRLF
+> endings, citing the `cat -e` output. After it, give the
+> `dplyr` code that should produce the same counts.
+
+*Failure mode.* The model counts fields from zero or from the
+wrong end, drops the `sort` before `uniq -c`, or ignores the `^M`
+that `cat -e` shows, so that every count is plausible and one
+category is split in two. *Check.* Run both the pipeline and the
+`dplyr` code and compare them line for line, as in the
+Verification above. A header and an invented row are structure,
+not data, so they may go to any approved tool (@sec-ai-governance).
+:::
+
+### Exercises
+
+3. How many distinct spellings of the site label does
+   `crf_export.csv` contain? How many sites remain after you
+   convert to lower case and remove leading and trailing spaces?
+
+::: {.callout-note collapse='true' title='Solution'}
+At the shell:
 
 ```bash
-# lines mentioning a subject id across all CSVs
-grep "STUDY01-042" data/*.csv
+cd ../data/raw_data/hfhome
+tail -n +2 crf_export.csv | cut -d, -f2 | sort | uniq | wc -l
+tail -n +2 crf_export.csv | cut -d, -f2 |
+  tr '[:upper:]' '[:lower:]' | sed 's/^ *//; s/ *$//' |
+  sort | uniq | wc -l
+```
 
-# case-insensitive, with line numbers
-grep -in "hba1c" analysis/*.R
+The first count is `r n_site_raw` and the second
+`r n_site_clean`, computed here in R from the same bytes:
 
-# every R script modified in the last 7 days
-find . -name "*.R" -mtime -7
+```{r}
+#| label: soln-04b-3
+length(unique(crf_site))
+length(unique(tolower(trimws(crf_site))))
+```
+
+Each site's label arrives in several spellings that differ in case
+and in leading or trailing spaces. `sort | uniq -c | cat -e` makes
+a trailing space visible as a space before the `$`. `readr` trims
+the spaces by default, so a count after `read_csv()` finds fewer
+spellings than the shell does; the shell is reporting what the
+file contains.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** What does
+`tail -n +2 labs.csv | cut -d, -f3 | sort | uniq -c | sort -rn | head -n 1`
+print, read left to right?
+
+**Answer.** It drops the header of `labs.csv`, keeps the third
+comma-delimited field (the test code), sorts the values so that
+identical ones are adjacent, counts each distinct value (`uniq -c`
+needs the prior `sort`), sorts those counts in descending numeric
+order, and keeps the first line: the most frequent test and its
+count. It is the shell equivalent of
+`count(labs, test_code, sort = TRUE) |> slice(1)`.
+:::
+
+## Searching with grep and find {#sec-shell-search}
+
+`grep` searches file *contents*; `find` searches the file *tree*.
+
+```{bash}
+#| label: shell-grep-find
+cd ../data/raw_data/hfhome
+grep -c '^"2433"' labs.csv
+find . -name '*.csv' -size +500k | sort
+```
+
+The first command counts the laboratory rows for patient `2433`,
+who appears in no other file: an orphan record that a join
+(@sec-joins) would silently drop or keep depending on its type.
+The second lists the CSV files larger than 500 kibibytes; `find`
+prints in directory order, which differs between systems, so the
+`sort` makes the output stable. The same two commands search a
+project's code (display-only):
+
+```bash
+# every line that mentions the CRF export, with line numbers
+grep -rn "crf_export" R/ analysis/
+
+# case-insensitive, in R scripts only
+grep -rni --include='*.R' "ntprobnp" .
 
 # every file over 100 MB (candidates to keep out of Git)
 find . -type f -size +100M
 ```
 
-`grep` with a regular expression is the fastest way to
-answer 'where is this variable used?' across a project, and
-`find` is how you locate the large files that should never
-enter version control.
+`grep` with a regular expression is the fastest way to answer
+'where is this variable used?' across a project, and `find` is how
+you locate the large files that should never enter version
+control.
 
-## Writing a short script
+### Exercises
 
-A shell script is a text file of commands with a `#!` line
-naming the interpreter. It turns a sequence you would
-otherwise retype into a single, version-controlled command.
+4. How many rows of `labs.csv` belong to patient `2433`? Which
+   HF-HOME files are larger than 500 kibibytes?
+
+::: {.callout-note collapse='true' title='Solution'}
+`grep -c '^"2433"' labs.csv` and
+`find . -name '*.csv' -size +500k`, run in the HF-HOME directory,
+as in the chunk above. The same answers in R:
+
+```{r}
+#| label: soln-04b-4
+labs_raw <- read_csv(file.path(hf_dir, "labs.csv"),
+                     col_types = cols(.default = col_character()))
+sum(labs_raw$patient_id == "2433")
+
+csvs <- list.files(hf_dir, pattern = "[.]csv$", full.names = TRUE)
+basename(csvs[file.size(csvs) > 500 * 1024])
+```
+
+The anchor `^` matters: without it, `grep -c '"2433"'` would also
+count any line in which `"2433"` appeared in another field. Here
+the identifier is the first field, so anchoring to the start of
+the line is exact.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** `grep -c 'Site E' crf_export.csv` returns a count.
+Is it the number of patients from Site E?
+
+**Answer.** No. It counts lines that contain the exact string
+`Site E`, and the export also spells the site in other cases
+(Exercise 3), which this pattern misses. `grep -ci 'site e'` is
+closer, but it would also match the string in any other field.
+The reliable count normalizes the one column first, as in
+Exercise 3, or is done in R after the same normalization.
+:::
+
+## Worked example: a script that checks the raw files {#sec-shell-worked}
+
+A pipeline you run by hand is a pipeline you will run differently
+next time. A shell script is a text file of commands with a `#!`
+line naming the interpreter; it records the steps, runs them
+identically every time, and is version-controlled with the
+analysis. The reproducibility argument of @sec-why applies to the
+shell as much as to R.
+
+The script below reports, for every CSV in a directory, the number
+of data rows and whether the file carries a BOM or carriage
+returns. It reads the files and writes nothing.
+
+```{bash}
+#| label: shell-check-script
+#| eval: false
+#!/usr/bin/env bash
+# check-raw.sh: report rows, byte-order mark, and line endings
+set -euo pipefail
+
+dir="${1:-.}"
+printf '%-18s %6s %4s %5s\n' file rows bom crlf
+for f in "$dir"/*.csv; do
+  rows=$(tail -n +2 "$f" | wc -l | tr -d ' ')
+  first=$(head -c 3 "$f" | od -An -tx1 | tr -d ' \n')
+  if [ "$first" = "efbbbf" ]; then bom=yes; else bom=no; fi
+  if grep -q $'\r' "$f"; then crlf=yes; else crlf=no; fi
+  printf '%-18s %6s %4s %5s\n' "$(basename "$f")" "$rows" \
+    "$bom" "$crlf"
+done
+```
+
+Saved as `check-raw.sh`, it runs with
+`bash check-raw.sh ../data/raw_data/hfhome`, or, after
+`chmod +x check-raw.sh`, as `./check-raw.sh ../data/raw_data/hfhome`:
+
+```{r}
+#| label: shell-check-run
+#| echo: false
+check_file <- tempfile(fileext = ".sh")
+writeLines(knitr::knit_code$get("shell-check-script"), check_file)
+check_out <- system2("bash", c(check_file, hf_dir), stdout = TRUE)
+unlink(check_file)
+cat(check_out, sep = "\n")
+```
+
+Three lines make the script safe. `set -euo pipefail` stops it at
+the first failed command, at the first use of an unset variable,
+and at a failure anywhere in a pipeline, rather than letting it
+plow on; it is the single most valuable line in any script.
+Quoting every variable (`"$f"`, `"$dir"`) protects against paths
+that contain spaces. And `${1:-.}` gives the directory argument a
+default, so that `set -u` does not stop a run with no argument.
+
+A script that fetches the raw file in the first place needs one
+more guard (display-only, because it reaches the network):
 
 ```bash
 #!/usr/bin/env bash
-# fetch-and-check.sh: download the extract and sanity-check it
-set -euo pipefail          # stop on error, unset variable, or failed pipe
-
-DATA_DIR="data/raw"
-mkdir -p "$DATA_DIR"
-
-echo "Downloading extract..."
-curl -sSL "$1" -o "$DATA_DIR/visits.csv"
-
-rows=$(wc -l < "$DATA_DIR/visits.csv")
-echo "Downloaded $rows lines."
-
-if [ "$rows" -lt 2 ]; then
-  echo "ERROR: file has no data rows" >&2
-  exit 1
-fi
+# fetch-raw.sh: download the extract into data/raw
+set -euo pipefail
+mkdir -p data/raw
+curl -fsSL "$1" -o data/raw/crf_export.csv
 ```
 
-Two habits make shell scripts safe. The `set -euo pipefail`
-line tells the shell to stop at the first error rather than
-plow on through a broken pipeline, which is the single
-most valuable line in any script. Quoting variables as
-`"$DATA_DIR"` protects against paths that contain spaces.
-Make the script executable with `chmod +x fetch-and-check.sh`
-and run it with `./fetch-and-check.sh <url>`.
+Without the `-f` flag, a server's '404 Not Found' page is saved as
+if it were the extract and the script carries on; with it, `curl`
+exits with an error and `set -e` stops the script.
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: reading a pipeline
+::: {.callout-tip title='Verification'}
+Compare the script's row counts with R's for every file:
 
-**Question.** What does
-`cut -d',' -f5 labs.csv | sort | uniq -c | sort -rn | head`
-do, read left to right?
+```{r}
+#| label: shell-verify-script
+script_rows <- read.table(text = check_out, header = TRUE)
+r_rows <- vapply(file.path(hf_dir, script_rows$file), \(p) {
+  nrow(read_csv(p, col_types = cols(.default = col_character()),
+                na = character()))
+}, integer(1))
+stopifnot(all(script_rows$rows == r_rows))
+script_rows[script_rows$bom == "yes" | script_rows$crlf == "yes", ]
+```
 
-**Answer.**
-
-It extracts the fifth comma-delimited field of `labs.csv`
-(say, the test name), sorts those values so identical ones
-are adjacent, counts the occurrences of each distinct value
-(`uniq -c` requires the prior `sort`), sorts those counts
-in descending numeric order, and prints the top few. In
-one line it answers 'which lab tests appear most often in
-this file?', the shell equivalent of
-`count(test, sort = TRUE)` in `dplyr`.
-
+The assertion passes, and only the CRF export carries a BOM or
+carriage returns.
 :::
 
-## Collaborating with an LLM on the shell
+::: {.callout-important title='LLM prompt'}
+Ask a model or a coding agent for a script with the safety lines
+written into the request, and give an agent the dry-run rule as a
+standing instruction.
 
-LLMs write shell fluently, and the shell is where a wrong
-command does the most damage, so verification matters most
-here.
+> **Context.** I need a `bash` script that [describe the task:
+> takes a directory and moves every CSV older than 30 days into an
+> `archive/` subdirectory]. It will run on macOS and on Ubuntu.
+>
+> **Constraints.** Begin with `set -euo pipefail`; quote every
+> variable; take paths as arguments, never hard-coded. Never
+> delete, and never write into `data/raw/`. Every `rm`, `mv`, or
+> `>` that could overwrite a file must first run as
+> `echo rm ...` (or `echo mv ...`) behind a `--dry-run` flag that
+> is the default.
+>
+> **Criteria.** With no flags, the script prints the commands it
+> would run and changes nothing. Explain each line that changes a
+> file before the code.
 
-**Prompt 1: composing a pipeline.** Describe the file and
-the question and ask for a shell one-liner.
+For a coding agent, put the rule in the project's instruction file
+(`AGENTS.md` or `CLAUDE.md`): 'Before any `rm`, `mv`, or
+redirection that overwrites a file, print the command with `echo`
+and wait for confirmation.' *Failure mode.* The script builds a
+deletion from a variable that is empty or unset (`rm -rf "$dir/"*`
+with `dir` empty is `rm -rf /*`), or redirects onto its own input.
+*Check.* Run the dry run on a copy in a `mktemp -d` directory, read
+every echoed command, then run it for real on the copy and compare
+`ls -R` before and after. A task description and file names are
+structure, not data (@sec-ai-governance).
+:::
 
-*What to watch for.* The delimiter and the field number,
-and whether a `sort` precedes `uniq`. Read the pipeline as
-a sentence before running it.
+### Exercises
 
-*Verification.* Run it on a small copy first, or pipe the
-result to `head`, before trusting it on the real file.
+5. Extend `check-raw.sh` to print a fifth column: the number of
+   columns in each file's header. Which HF-HOME file has the most
+   columns?
 
-**Prompt 2: writing a script.** Ask for a script with
-`set -euo pipefail` and quoted variables, and read every
-line before running it.
+::: {.callout-note collapse='true' title='Solution'}
+Add the count inside the loop and widen both `printf` lines:
 
-*What to watch for.* Any `rm`, `mv`, or redirection that
-could overwrite data. Never run an LLM-generated deletion
-command built from a variable without inspecting the
-expanded value.
+```bash
+cols=$(head -n 1 "$f" | tr ',' '\n' | wc -l | tr -d ' ')
+```
 
-*Verification.* Dry-run destructive steps by replacing
-`rm` with `echo rm` first, to see what would be deleted.
+`tr` puts each header field on its own line and `wc -l` counts
+them; this is exact only because no HF-HOME header contains a
+quoted comma. The counts, from R:
 
-## Principle in use
+```{r}
+#| label: soln-04b-5
+vapply(csvs, \(p) ncol(read_csv(p, n_max = 0,
+                                show_col_types = FALSE)),
+       integer(1)) |>
+  setNames(basename(csvs))
+```
 
-The shell rewards three habits and punishes their absence:
+`demographics.csv` has the most, because it carries the
+identifiers that the de-identification chapter removes.
+:::
 
-1. **Script it, do not click it.** A repeated pipeline
-   belongs in a version-controlled script, not in your
-   memory of what you typed.
-2. **Read destructive commands before running them.** `rm`
-   has no undo; inspect the target, especially when it
-   comes from a variable.
-3. **Inspect data at the shell before loading it in R.**
-   `head`, `wc -l`, and `file` are three seconds well spent.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A script without `set -euo pipefail` runs
+`curl -s "$1" -o data/raw/visits.csv` and then
+`Rscript analysis.R`. The URL has moved. What happens?
 
-## Exercises
+**Answer.** Without `-f`, `curl` saves the server's error page as
+`visits.csv` and exits successfully; without `-e`, the script would
+have continued even if it had not. R then reads an HTML page as a
+CSV and, depending on the page, stops with a parse error or, worse,
+produces a one-column data frame that later steps summarize. With
+`curl -f` and `set -e`, the script stops at the download, with an
+error naming the URL.
+:::
 
-**On your own machine, data, or collaborations.** These exercises run
-against files on your own disk, so no answer key is possible. Each
-states what a correct result looks like.
+## Rules of thumb
 
-1. Using only the shell, determine the number of data rows,
-   the delimiter, and the column names of a CSV file you
-   have on hand.
-2. Write a pipeline that reports the five most frequent
-   values of a chosen column in a CSV, with their counts.
-3. Use `find` to list every file over 50 MB in a project
-   directory, then explain which of them should be excluded
-   from Git and why.
-4. Write a shell script that takes a directory as its
-   argument, counts the `.R` and `.qmd` files in it, and
-   prints the totals. Include `set -euo pipefail` and
-   quote your variables.
-5. Use `grep` to find every place a particular variable
-   name is used across a project's R scripts, and compare
-   the result to what your editor's search returns.
+1. **Habit 8: a bug that produces a plausible number is the
+   expensive kind.** Look at the bytes with `od -c` and `cat -e`
+   before trusting a count, and confirm every shell count in R.
+2. **Habit 2: raw data are evidence.** Inspect raw files, never
+   edit them in place; write repaired copies elsewhere, and never
+   redirect onto a file you are reading.
+3. **Habit 12: every model output is a hypothesis until
+   verified.** Read a generated script before running it, and make
+   every destructive command echo before it acts.
+
+## Cumulative practice
+
+6. *Cumulative (uses @sec-why).* A raw file is evidence only if you
+   can show it has not changed. Write a checksum manifest for the
+   HF-HOME CSV files with `md5sum *.csv > ../hfhome.md5` (on older
+   macOS, `md5 -r` prints the same format), check it with
+   `md5sum -c ../hfhome.md5`, and confirm one hash in R. What is
+   the checksum of `crf_export.csv`?
+7. *On your own work (no key).* Run `check-raw.sh` on the raw-data
+   directory of a project of yours, and count the data rows of
+   each file in R. Record any file whose counts disagree, and why.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-04b-6
+unname(tools::md5sum(crf_path))
+```
+
+`md5sum -c` prints `OK` beside each file whose bytes still match;
+change one byte of a copy and it prints `FAILED`. The manifest is
+written outside the raw directory, so the directory holds only
+what you received, and the manifest belongs under version control
+(@sec-git-solo), so that its history shows when the evidence last
+changed.
+:::
+
+## Cheat sheet
+
+| Task | Command |
+|---|---|
+| Where am I; what is here | `pwd`; `ls -la` |
+| Move | `cd path`; `cd ..`; `cd -` |
+| First and last lines | `head -n 5 f`; `tail -n 5 f` |
+| Count data rows | `tail -n +2 f` \| `wc -l` |
+| See invisible bytes | `head -c 16 f` \| `od -c`; `head -n 2 f` \| `cat -e` |
+| Remove carriage returns, to a new file | `tr -d '\r' < f > ../derived/f` |
+| Count values of a column | `tail -n +2 f` \| `cut -d, -f2` \| `sort` \| `uniq -c` \| `sort -rn` |
+| Search contents | `grep -c 'pattern' f`; `grep -rn 'pattern' dir/` |
+| Search the tree | `find . -name '*.csv' -size +500k` |
+| Start a safe script | `#!/usr/bin/env bash`; `set -euo pipefail` |
+| Dry-run a deletion | `echo rm "$f"` |
+| Make a scratch directory | `tmp=$(mktemp -d)` |
+
+: The shell at a glance. {#tbl-shell-cheat-sheet}
 
 ## Further reading
 
 - The Software Carpentry lesson 'The Unix Shell' at
-  `swcarpentry.github.io/shell-novice`, a gentle hands-on
-  introduction.
-- [@broman2019tools4rr], which covers the command line in
-  the context of reproducible research.
-- @sec-docker and @sec-cloud, where the shell is the
-  interface to containers and remote servers.
+  `swcarpentry.github.io/shell-novice`, a hands-on introduction.
+- [@janssens2021dsatcl], the command line as a data-science tool,
+  free online.
+- [@broman2019tools4rr], which covers the command line in the
+  context of reproducible research.
 
 ## Prerequisites answers {#sec-quiz-answers-04b}
 

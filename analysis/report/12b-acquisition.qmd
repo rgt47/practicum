@@ -1,4 +1,34 @@
-# Getting Data In: Files, APIs, and Scraping {#sec-acquisition}
+# Getting Data In: Files {#sec-acquisition}
+
+```{r}
+#| label: acq-opening
+#| include: false
+library(tidyverse)
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+opening_base <- read.csv(file.path(hf_dir, "crf_export.csv"))
+opening_readr <- read_csv(file.path(hf_dir, "crf_export.csv"),
+                          col_types = cols(.default = col_character()))
+opening_rand <- read_csv(file.path(hf_dir, "randomization.csv"),
+                         col_types = cols(.default = col_character()))
+opening_zeros <- sum(as.character(opening_base$patient_id) !=
+                       opening_readr$patient_id)
+opening_orphans <- nrow(anti_join(opening_readr, opening_rand,
+                                  by = "patient_id"))
+```
+
+Every data chapter after this one begins with a data frame already
+in memory, as though it had arrived there by itself. It did not.
+Read the HF-HOME case report form (CRF) export with base R's
+`read.csv()`, and `r format(opening_zeros, big.mark = ",")` of
+`r format(nrow(opening_base), big.mark = ",")` patient identifiers
+lose their leading zeros; read it with `readr`, and the zeros
+survive everywhere except in the `r opening_orphans` identifiers
+that one site's system had already stripped before the file was
+written. Neither reader warns, and a join to a randomization list
+that kept its zeros drops every one of those patients. A value
+that is silently misread at import is a value that no downstream
+test will catch, which is why this chapter treats getting data in
+as the first step of the analysis rather than a preamble to it.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -13,143 +43,90 @@
 ```
 :::
 
-::: {.callout-note}
-## Why this chapter exists
+```{r}
+#| label: acq-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-Every data chapter that follows this one begins with a data
-frame already in memory, as though it had arrived there by
-itself. It did not. Someone read a file whose encoding was
-wrong, or queried an API whose token had expired, or was
-handed a spreadsheet in which the dates had turned into
-five-digit numbers. That work is where a substantial share of
-an analyst's time goes, and it is where a substantial share of
-the errors that survive into publication are introduced,
-because a value that is silently misread is a value that no
-downstream test will catch. This chapter covers the three ways
-data actually arrive: as a file, through an interface, and, as
-a last resort, off a web page.
+```{r}
+#| label: fig-acquisition-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: acquisition produces the raw
+#|   data that every later stage reads and none may change."
+#| fig-alt: !expr pipeline_alt('acquire')
+pipeline_diagram('acquire')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 25 minutes.
+
+**You'll need.** @sec-shell for looking at a file's bytes before
+you read it. The code uses:
+
+```r
+library(tidyverse)
+```
+
+**You'll be able to.**
+
+- Read a delimited file with a full column specification, and
+  compute what the default read got wrong.
+- Detect the file pathologies of a clinical export (byte-order
+  mark, line endings, lost leading zeros, missing-value codes,
+  per-site formats) and write an assertion for each.
+- Keep the data as received read-only, and turn the checks on an
+  import into assertions that run on every render.
+
+**Outline.**
+
+- [Three ways data arrive](#sec-acquisition-routes)
+- [Reading files deliberately](#sec-acquisition-files)
 :::
 
-## Prerequisites
-
-Answer the following questions to see if you can bypass this
-chapter. You can find the answers at the end of the chapter in
-@sec-quiz-answers-12b.
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-12b.
 
 1. `read_csv()` guesses the type of every column from the first
    thousand rows. Name two ways this guess can be wrong in a
    manner that no error message will reveal, and say what you
    should do instead.
-2. You obtain your analytic dataset by querying an institutional
-   API on the day you begin the analysis. What must you commit
-   to the repository so that the analysis is reproducible, and
-   what must you *not* commit?
-3. A public web page contains the table you need. What questions
-   should you answer before writing the scraper, and what is the
-   first thing you should do with the data once you have it?
+2. A collaborator corrects three cells of the raw export in a
+   spreadsheet and sends it back. The corrections are right. Why
+   should you not use the corrected file?
+3. A script that reads `x$patient_id` works on your laptop and
+   returns `NULL` in a container. The file begins with a
+   byte-order mark. What is happening?
+:::
 
-## Learning objectives
+## Three ways data arrive {#sec-acquisition-routes}
 
-By the end of this chapter you should be able to:
+Data arrive as a file, through an interface, or off a web page,
+and the three differ in how much control you have over what
+arrives (@tbl-acquisition-routes). A **file** is a snapshot someone
+made for you; its pathologies are all present the moment you
+receive it. An **interface**, such as the application programming
+interface (API) of REDCap or of an institutional data warehouse, is
+a query against a living system, so the code is deterministic and
+the data source is not. A **scrape** is what you resort to when the
+data exist but no interface does. This chapter reads files;
+@sec-apis takes up interfaces and pages.
 
-- Read delimited files with an explicit column specification,
-  and treat that specification as a data-integrity assertion
-  rather than a convenience.
-- Diagnose the common file-level pathologies: wrong delimiter,
-  wrong encoding, byte-order marks, sentinel missing values, and
-  Excel serial dates.
-- Query a token-authenticated REST API from R, keeping the token
-  out of the repository, and handle pagination and rate limits.
-- Parse a nested JSON response into a tidy data frame.
-- Scrape an HTML table when no interface exists, and decide
-  whether you should.
-- Cache every acquisition to a dated, immutable raw file, so that
-  the analysis does not depend on the network or on the state of
-  a remote system at render time.
+| Source | What can go wrong | What you control | How to freeze it |
+|---|---|---|---|
+| File | Encoding, line endings, delimiter, guessed column types, missing-value codes | Only how you read it | Keep the file as received, read-only, with a checksum |
+| Interface | Authentication, pagination, rate limits, a response shape that changes without notice | The query | Write each response to a dated raw file with a provenance note |
+| Web page | Terms of use, page structure that is not a contract, personal data | The selector, and whether to scrape at all | Save the page or the parsed table, dated, once |
 
-## Orientation
+: The three routes by which data arrive. The last column is the
+same discipline in three forms. {#tbl-acquisition-routes}
 
-Data arrive in three ways, and they differ in how much control
-you have over what arrives.
-
-A **file** is a snapshot someone made for you. It is inert, it
-does not change under you, and its pathologies are all present
-at the moment you receive it: the encoding, the delimiter, the
-sentinel values that some upstream system used to mean 'missing'.
-Reading a file correctly is a matter of asserting what you
-expect and checking that you got it.
-
-An **interface**, by which we mean a REST API such as REDCap's or
-an institutional data warehouse's, is a query against a living
-system. What it returns today is not what it returned last
-month, because rows have been added, corrected, and occasionally
-deleted. The reproducibility problem is therefore different in
-kind. The code is deterministic, but the data source is not, and
-the only defense is to freeze what was received.
-
-A **scrape** is what you resort to when the data exist but no
-interface does. It is the most fragile of the three, because the
-page's structure is not a contract and can change without notice,
-and it is the only one of the three that raises a question about
-whether you are entitled to the data at all.
-
-The three converge on a single discipline, which is the
-raw-data rule of @sec-wrangling stated one step earlier in the
-pipeline: whatever you acquire, write it down, date it, and never
-acquire it again in the same breath as analyzing it.
-
-## The statistician's contribution {#sec-acquisition-human}
-
-Reading a file takes one line. Knowing what that line
-assumed, and what it will do when the assumption fails
-next quarter, is this chapter's actual subject:
-
-**The column specification is an assertion, not a convenience.**
-Every reader guesses your column types, and the guess is right
-until it is not: a sentinel -99 becomes a blood pressure, an
-ambiguous date is read under the wrong convention, an identifier
-of leading zeros becomes an integer, so that the join in
-@sec-joins drops a patient and reports no error. Worse, the
-guesses differ between readers, so a file that imports correctly
-for you imports differently for a collaborator who reached for a
-different function. Writing the `col_types` out in full is fifteen
-seconds of typing that converts a silent corruption into a loud
-parse failure. Do it on every read of any file you did not create.
-
-**Acquisition is a step, not a preamble.** The instinct is to
-treat 'getting the data' as something that happens before the
-analysis starts, and therefore something that need not be
-scripted to the same standard. This is exactly backwards. The
-acquisition determines which rows exist, and no amount of care
-downstream can recover a row that was silently dropped at
-import. The script that acquires is the first script in the
-pipeline and is held to the same standard as the last.
-
-**Freeze what you receive.** A warehouse query run in March and
-re-run in June returns different rows, because the warehouse is
-alive: patients are added, records are corrected, a duplicate is
-merged. If you re-query at render time, your figures change
-under you and you cannot tell whether a shifted estimate is a
-finding or a data refresh. Write the response to a dated raw
-file, commit it if you may, and read *that* in the analysis.
-The query is the recipe; the dated file is the ingredient.
-
-**Prefer the interface to the scrape, and the file to neither.**
-Scraping is the technique of last resort. It is brittle, it is
-often against the terms under which the data are published, and
-its output is a guess about someone else's HTML. Before writing
-a scraper, ask whether an API exists, whether the data are
-published as a file somewhere, and whether you could simply ask
-the person who has them. The answer is surprisingly often yes.
-
-These judgments determine whether the data your analysis rests
-on are the data you think they are.
-
-The three routes differ in almost everything except
-their ending. @fig-acquisition-routes puts them side by
-side, because the checking step they converge on is the
-same regardless of how the data arrived, and it is the
-step most often skipped.
+The routes differ in almost everything except their ending, and
+@fig-acquisition-routes puts them side by side because the checking
+step they converge on is the step most often skipped.
 
 ```{mermaid}
 %%| echo: false
@@ -175,762 +152,517 @@ flowchart TD
   C --> D["Everything downstream<br/><i>wrangling, joining, modeling</i>"]
 ```
 
-## Reading files, deliberately
+### The raw-data rule
 
-The whole tidyverse import story is one function per format:
+The three routes converge on a single discipline, the **raw-data
+rule**: the data as received are read-only, and every change to
+them lives in a script rather than in the file (Habit 2). At the
+acquisition step the rule has a second clause: whatever you
+acquire, write it down, date it, and never acquire it again in the
+same breath as analyzing it. @sec-wrangling applies the same rule
+to cleaning.
+
+The rule follows from treating acquisition as a step rather than a
+preamble. The instinct is to regard 'getting the data' as something
+that happens before the analysis starts, and therefore something
+that need not be scripted to the same standard. This is backwards.
+The acquisition determines which rows exist, and no amount of care
+downstream can recover a row that was silently dropped at import.
+The script that acquires is the first script in the pipeline and
+is held to the same standard as the last.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A collaborator opens the CRF export in a spreadsheet,
+fixes three obviously wrong site labels by hand, saves it, and
+sends it back. The fixes are correct. What has been lost?
+
+**Answer.** The evidence. The file you hold is no longer the file
+the sites produced, nothing records which three cells changed or
+why, and the next export from the sites will arrive with the same
+three errors and no script to correct them. The spreadsheet may
+also have rewritten other cells on save, for example by stripping
+leading zeros from identifiers. Under the raw-data rule the
+collaborator's three corrections become three lines in the
+cleaning script, run against the untouched export.
+:::
+
+::: {.callout-warning title='Ethics'}
+Before assembling data from several routes, ask whether the
+people in it would be surprised to find their records joined.
+Linking sources that are each harmless can create a profile none
+of them disclosed; @sec-ethics-aggregation works through the
+argument, and @sec-apis applies it to scraping.
+:::
+
+## Reading files deliberately {#sec-acquisition-files}
+
+The tidyverse import story is one function per format:
 `readr::read_csv()` and its relatives for delimited text,
 `readxl::read_excel()` for spreadsheets, `haven::read_sas()` and
 `haven::read_xpt()` for the SAS world of @sec-sas. They share an
-interface and, more importantly, a philosophy: they parse, they
-report what they did, and they never fail silently if you ask
-them not to.
+interface and a philosophy: they parse, they report what they did,
+and they fail loudly if you tell them what to expect. The generic
+tour is in R for Data Science [@wickham2023r4ds, ch. 7]; this
+section reads one real export.
 
-Consider a small CRF extract with three of the pathologies that
-recur in clinical data: an identifier with leading zeros, a
-sentinel value that means 'missing', and a date that a site typed
-in the American convention.
+### The default read
+
+The HF-HOME CRF export, `crf_export.csv`, holds one row per
+patient from five hospitals, each of which wrote its own
+conventions into the file (the codebook is `README.md` beside it).
+Read it twice with the defaults, once with base R and once with
+`readr`:
 
 ```{r}
-#| label: acq-csv
-#| message: false
+#| label: acq-naive
 library(tidyverse)
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+crf_path <- file.path(hf_dir, "crf_export.csv")
 
-extract <- "patient_id,visit_date,sbp,site
-007,03/14/2026,148,Durham
-012,03/15/2026,-99,Durham
-019,03/17/2026,152,Chapel Hill
-"
+naive_base  <- read.csv(crf_path)
+naive_readr <- read_csv(crf_path, show_col_types = FALSE)
 
-naive <- read_csv(extract, show_col_types = FALSE)
-naive
+str(naive_base[, c("patient_id", "dob", "sbp_discharge")])
+spec(naive_readr)
 ```
 
-Every column parsed without complaint, and the result is wrong in
-two ways. The `sbp` of -99 is a sentinel that some upstream system
-used to mean 'not recorded', and it is now a blood pressure of
-negative ninety-nine, which will pass through `mean()` without a
-murmur and drag the estimate down. The `visit_date` is not a date
-at all but a string, so it will sort lexicographically, which puts
-January of next year before March of this one.
+Both reads succeed in silence, and both are wrong in ways the
+output does not show. `read.csv()` made the identifier an integer,
+so `0007` is now `7`. `readr` kept it as text, a property of
+`readr`'s guesser and not of R, and relying on it is a mistake: the
+day a collaborator uses `read.csv()`, or the file arrives through
+`readxl`, the zeros go. Both readers left the dates as text and
+read Site D's missing-value code, `-99`, as a blood pressure.
 
-The `patient_id`, on the other hand, survived: `readr` guessed
-character and kept the leading zeros. That is a property of
-`readr`, not of R, and relying on it is a mistake. The same file
-read with base R's reader loses them:
+### The specified read
 
-```{r}
-#| label: acq-base
-f <- tempfile(fileext = ".csv")
-writeLines(extract, f)
-
-base_read <- utils::read.csv(f)
-str(base_read$patient_id)
-```
-
-The identifier is now the integer 7. It will never again match the
-string `'007'` in the demographics file, the join of @sec-joins
-will silently drop that patient, and nothing will have complained.
-Which of your columns survive an unspecified read is therefore a
-fact about which function you happened to call, and it will change
-under you the day a collaborator uses `read.csv()`, or the file
-arrives through `readxl`, or someone upgrades a package. This is
-the whole argument for not leaving it to the guess.
-
-The remedy is to say what you expect:
+The remedy is to say what you expect. A full column specification
+names every column's type, and the `na` argument names every
+string that means 'missing':
 
 ```{r}
-#| label: acq-csv-spec
-clean <- read_csv(
-  extract,
-  col_types = cols(
-    patient_id = col_character(),          # leading zeros matter
-    visit_date = col_date(format = "%m/%d/%Y"),
-    sbp        = col_double(),
-    site       = col_factor(levels = c("Durham", "Chapel Hill"))
-  ),
-  na = c("", "NA", "-99")                  # the sentinel, declared
+#| label: acq-spec
+crf_spec <- cols(
+  patient_id     = col_character(),
+  site           = col_character(),
+  sex            = col_character(),
+  dob            = col_character(),
+  discharge_date = col_character(),
+  ef_pct         = col_double(),
+  sbp_discharge  = col_double(),
+  weight_kg      = col_double()
 )
-clean
+crf <- read_csv(crf_path, col_types = crf_spec,
+                na = c("", "NA", "-99"))
+problems(crf)
 ```
 
-The identifier survives as a string, the date is a date, the
-sentinel is a missing value rather than a number, and the site
-is a factor whose levels you have declared. This means a fourth
-site appearing in next month's extract will arrive as `NA` and
-be visible, rather than silently swelling the level set.
+The dates stay as text on purpose. The sites wrote them in four
+formats, and a `col_date()` here would be a promise the file cannot
+keep; @sec-wrangling parses them site by site. One `na` list
+applies to every column, which is safe here only because no
+identifier or label in this file can legitimately read `-99`; the
+assertions below check that assumption.
 
-That last property is the one to internalize. A full `col_types`
-specification is a contract with the file. When the file changes,
-the contract is violated, and `readr` tells you so through the
-problems it reports rather than by handing you a data frame that
-is quietly different from last month's.
+The difference between the reads is a computation, not an
+impression:
 
 ```{r}
-#| label: acq-problems
-problems(clean)
-```
-
-An empty problems table is a passed assertion. On a real extract,
-inspect it every time; a non-empty one names the row, the column,
-and what it expected.
-
-### The pathologies that do not announce themselves
-
-**The wrong delimiter.** A file named `.csv` that is
-tab-separated will read as a single column with commas nowhere in
-it. The shell triage of @sec-shell, `head` and `file`, catches
-this in three seconds, before R is involved.
-
-**Encodings and the byte-order mark.** A file exported from a
-Windows tool may be Latin-1 rather than UTF-8, so that a patient
-from Zürich arrives as `Z\xfcrich`, or may carry a byte-order
-mark that turns the first column's name into `ï»¿patient_id`, so
-that `select(patient_id)` fails on a column you can see with your
-own eyes. Declare the encoding (`locale = locale(encoding =
-"latin1")`) rather than repairing the strings afterward.
-
-**Excel serial dates.** A date column arriving as five-digit
-numbers is Excel's internal representation, and parsing it as a
-date yields nonsense. @sec-types has the fix
-(`janitor::excel_numeric_to_date()`); the rule here is the
-detection: any column whose *name* says date and whose *values*
-are numbers is a bug until proven otherwise.
-
-**Trailing whitespace and case.** `'Durham'` and `'Durham '` and
-`'durham'` are three sites as far as a join is concerned. The
-`janitor::clean_names()` of @sec-wrangling handles the column
-names; the values need `str_squish()` and a deliberate decision
-about case.
-
-### Checking as an artifact, not an activity
-
-Every analyst checks data. The question is whether anyone can
-see that they did. A check run at the console leaves nothing
-behind: it is not re-run when the extract is refreshed, and a
-reviewer has no way to know which pathologies were looked for
-and which were not.
-
-Harrell's *R Workflow* [@harrell2025rworkflow] treats this as a
-structural matter rather than a habit. Data checking and data
-overview are numbered chapters of the workflow, not preliminaries
-to it, and their output is a section of the rendered report. The
-argument generalizes past the packages that book happens to use:
-what makes a check trustworthy is that it lives in the document,
-so it executes on every render and fails loudly when the next
-extract violates an assumption the first one satisfied.
-
-In the tidyverse idiom this book uses, the artifact is a chunk:
-
-```{r}
-#| label: acq-first-look
-#| message: false
-# A stand-in export, including the surprises the checks below exist
-# to catch: a site code nobody mentioned, and an out-of-range age.
-visits_path <- file.path(tempdir(), "visits.csv")
-readr::write_csv(tibble::tibble(
-  patient_id = sprintf("%03d", 1:6),
-  site       = c("A", "A", "B", "B", "B", "ZZ"),
-  sex        = c("F", "M", "F", "M", "F", "U"),
-  age        = c(64, 71, 52, 45, 38, 59)
-), visits_path)
-
-raw <- read_csv(visits_path,
-                col_types = cols(patient_id = col_character()))
-
-# distributions, missingness, and type of every column
-skimr::skim(raw)
-
-# categorical levels, including the ones you did not expect
-raw |> count(site, sort = TRUE)
-raw |> count(sex)
-
-# the assumptions you are willing to state
-stopifnot(
-  !any(duplicated(raw$patient_id)),
-  all(raw$age >= 18 & raw$age <= 120, na.rm = TRUE)
-)
-```
-
-`skim()` reports what the column looks like; `count()` exposes the
-level that the codebook did not mention; `stopifnot()` states the
-assumption you would want to be told about the day it stops
-holding. The first two are for the reader, the third is for the
-build. @sec-testing develops the assertion side of this into a
-test suite; the point here is only that the checking happens
-where the reader can see it.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: the silent identifier
-
-**Question.** Your cohort has 1,000 patients. You read the
-demographics file without a column specification, join it to the
-visits file on `patient_id`, and the result has 1,000 rows, which
-is what you expected. Everything looks correct. What might still
-be wrong?
-
-**Answer.**
-
-The join may have matched on a coerced type. Suppose the visits
-file came to you as a CSV read with `readr`, which keeps
-`'007'` as a string, while the demographics came from a
-collaborator's script that used `read.csv()`, or from an Excel
-export, either of which turns it into the integer 7. The join then
-fails outright with a type error, which is the *good* case,
-because you find out.
-
-The bad case is subtler: if both files were read by a tool that
-coerces, both identifiers are now integers, the join succeeds, the
-row count is right, and every identifier that originally carried a
-leading zero is a different value from the one in the source
-system. The analysis is internally consistent and externally
-wrong: you can no longer link a row back to the patient it came
-from, and the day someone asks you to re-identify a case for a
-data query, you cannot.
-
-The row count told you nothing, because it was never sensitive to
-the failure. This is the pattern of @sec-testing: a structural
-check that passes for the wrong reason. Read identifiers as
-character, always, and assert it.
-
-:::
-
-## Querying an interface
-
-Most clinical data now reach the statistician through an
-interface rather than a file. REDCap exposes one; so do
-institutional warehouses, ClinicalTrials.gov, the FDA's openFDA
-endpoints, and PubMed. The pattern is the same in every case: you
-send an authenticated HTTP request describing what you want, and
-you receive JSON.
-
-The `httr2` package expresses this as a pipeline that mirrors the
-structure of the request itself.
-
-```r
-library(httr2)
-
-resp <- request("https://redcap.example.edu/api/") |>
-  req_body_form(
-    token   = Sys.getenv("REDCAP_TOKEN"),   # <1>
-    content = "record",
-    format  = "json",
-    fields  = "patient_id,visit_date,sbp",
-    type    = "flat"
-  ) |>
-  req_retry(max_tries = 3) |>               # <2>
-  req_throttle(rate = 30 / 60) |>           # <3>
-  req_perform()
-
-raw_json <- resp_body_string(resp)          # <4>
-```
-1. The token comes from the environment, never from the source.
-2. Transient network failures are retried rather than crashing
-   the pipeline.
-3. At most thirty requests per minute, so that you do not
-   inconvenience a shared institutional server.
-4. Keep the response as a string; it is about to become a file.
-
-The single most important line is the first. **A credential in a
-repository is a credential that has been disclosed**, and a
-REDCap token is not a password to an inconvenience, it is
-authenticated access to protected health information. It belongs
-in `.Renviron`, which is listed in `.gitignore`:
-
-```
-# .Renviron  (never committed)
-REDCAP_TOKEN=A1B2C3D4E5F6...
-```
-
-and the repository ships a `.Renviron.example` naming the
-variable without its value, so that a collaborator knows what
-they must obtain. The de-identification discipline of
-@sec-deident applies to the pipeline as much as to the data, and
-a leaked token is the fastest route from a defensible study to an
-institutional incident report. If you do commit one, rotating the
-token is not optional and deleting the commit is not sufficient.
-
-### From JSON to a data frame
-
-The response is nested, because JSON is. Flattening it is the
-step where rows quietly vanish, so it deserves the same care as a
-join.
-
-Here is a REDCap-shaped payload, fabricated so that this chapter
-renders without a network call. It has the two features that
-matter: the values are all strings, because REDCap sends them
-that way, and one record is missing a field entirely rather than
-sending it as null.
-
-```{r}
-#| label: acq-json
-#| message: false
-library(jsonlite)
-
-payload <- '[
-  {"patient_id":"007","visit_date":"2026-03-14","sbp":"148"},
-  {"patient_id":"012","visit_date":"2026-03-15","sbp":""},
-  {"patient_id":"019","visit_date":"2026-03-17"}
-]'
-
-records <- fromJSON(payload, simplifyDataFrame = TRUE) |>
-  as_tibble()
-records
-```
-
-Note what arrived. Every column is character, including the blood
-pressure, because the interface does not know or care about your
-types. The third record has no `sbp` field at all, and `fromJSON`
-has filled it with `NA`, which is the behavior you want but
-should verify rather than assume. The empty string in the second
-record is *not* `NA` yet; it is a zero-length string that will
-become `0` if you coerce it carelessly.
-
-The coercion, therefore, is explicit and is where the column
-specification of the previous section reappears in a different
-costume:
-
-```{r}
-#| label: acq-json-types
-visits <- records |>
-  mutate(
-    patient_id = as.character(patient_id),
-    visit_date = as.Date(visit_date),
-    sbp        = na_if(sbp, "") |> as.numeric()
+#| label: acq-diffs
+iso_date <- "^\\d{4}-\\d{2}-\\d{2}$"
+read_diffs <- tibble(
+  column = c("patient_id", "patient_id", "sbp_discharge",
+             "weight_kg", "discharge_date", "site"),
+  problem = c("leading zeros dropped by read.csv()",
+              "leading zeros already missing in the file",
+              "-99 read as a pressure by both default reads",
+              "-99 read as a weight by both default reads",
+              "not in ISO 8601 form",
+              "distinct spellings of five sites"),
+  rows = c(
+    sum(as.character(naive_base$patient_id) != crf$patient_id),
+    sum(nchar(crf$patient_id) < 4),
+    sum(naive_readr$sbp_discharge == -99, na.rm = TRUE),
+    sum(naive_readr$weight_kg == -99, na.rm = TRUE),
+    sum(!str_detect(crf$discharge_date, iso_date)),
+    n_distinct(crf$site)
   )
-
-visits
-
-stopifnot(
-  nrow(visits) == 3,
-  is.character(visits$patient_id),
-  !anyNA(visits$patient_id)
 )
+read_diffs
 ```
 
-The `stopifnot()` is the point. An interface can change its
-response shape without telling you, and the assertion is what
-turns a silent shape change into a failed pipeline. Assert the
-row count you expect, assert the types, and assert that the
-identifier is present on every record.
+The specification repairs what a read can repair: the identifier
+stays text and the missing-value code becomes `NA`. The last four
+rows are facts about the file, which no reader can fix and a
+cleaning script must. The `r read_diffs$rows[2]` short identifiers
+are the ones Site E's system stripped before export; restoring them
+with `str_pad()` is safe only because the codebook says every
+identifier has four digits (@sec-wrangling).
 
-### Pagination
-
-An interface will not hand you a million rows at once. It will
-hand you the first thousand and a token for the next page, and a
-loop that forgets to follow the token will produce an analysis of
-the first thousand patients that reports itself as an analysis of
-all of them. This is the acquisition-layer version of the silent
-row loss that @sec-joins warns about, and it is more dangerous,
-because there is no second table to compare against.
-
-```r
-fetch_all <- function(base_query) {
-  out  <- list()
-  page <- 1
-  repeat {
-    resp <- request(base_query) |>
-      req_url_query(page = page, page_size = 1000) |>
-      req_perform() |>
-      resp_body_json()
-
-    if (length(resp$records) == 0) break     # <1>
-    out[[page]] <- resp$records
-    if (is.null(resp$next_page)) break       # <2>
-    page <- page + 1
-  }
-  bind_rows(out)                             # <3>
-}
-```
-1. Stop on an empty page.
-2. Stop when the interface says there is no next page. Trusting
-   only the empty-page test will loop forever against an API that
-   repeats its last page.
-3. One data frame, whose row count you now assert against the
-   total the interface reported.
-
-Whatever the pagination scheme, verify the total. Most interfaces
-report a record count in the response or a header; compare it to
-`nrow()` and fail loudly if they differ.
-
-## Scraping, and whether to
-
-Sometimes the data are on a web page and nowhere else: a
-regulator's table of approvals, a registry's list of trials, an
-institution's directory. `rvest` will get them, and the mechanics
-are straightforward. The prior question is not.
-
-**Can you?** is a technical question and the answer is usually
-yes. **Should you?** is the question that matters, and it has
-three parts. Does the site's `robots.txt` permit it? Do the terms
-of service? And would the volume and rate of your requests impose
-a cost on someone else's server that they did not agree to bear?
-A scraper that hammers a small registry's server at fifty
-requests a second is a denial-of-service attack with good
-intentions. The `polite` package encodes the etiquette (check
-`robots.txt`, identify yourself with a user agent that names you,
-rate-limit, cache), and it is the right default.
-
-Ask also whether the data are personal. A page listing the
-attendees of a support group is public in the sense that anyone
-can read it, and aggregating it into a dataset is a different act
-with different consequences. That the data are technically
-accessible does not make their aggregation ethical, and the fact
-that a website has published something is not a license for you
-to redistribute it.
-
-When the answer to all of this is yes, the mechanics are these.
-The example below parses a literal HTML fragment rather than
-fetching a page, so that the chapter renders offline and so that
-no server is touched by a build of this book.
+A specification is also an assertion. Declare the discharge date as
+an ISO 8601 date, which the codebook promises for the clean tables
+but not for this export, and `readr` says so, row by row:
 
 ```{r}
-#| label: acq-scrape
-#| message: false
-library(rvest)
-
-page <- minimal_html('
-  <html><body>
-    <h1>Site enrollment</h1>
-    <table class="enrollment">
-      <tr><th>Site</th><th>Enrolled</th><th>Target</th></tr>
-      <tr><td>Durham</td><td>142</td><td>150</td></tr>
-      <tr><td>Chapel Hill</td><td>118</td><td>150</td></tr>
-      <tr><td>Raleigh</td><td>97</td><td>150</td></tr>
-    </table>
-  </body></html>
-')
-
-enrollment <- page |>
-  html_element("table.enrollment") |>
-  html_table() |>
-  janitor::clean_names()
-
-enrollment
+#| label: acq-strict
+#| warning: true
+strict_spec <- crf_spec
+strict_spec$cols$discharge_date <- col_date()
+strict <- read_csv(crf_path, col_types = strict_spec,
+                   na = c("", "NA", "-99"))
+nrow(problems(strict))
+strict |>
+  count(site = str_to_title(str_squish(site)),
+        unparsed = is.na(discharge_date))
 ```
 
-`html_element()` takes the first match for a CSS selector and
-`html_elements()` takes all of them; `html_table()` turns an HTML
-table into a data frame. Selecting by a class (`table.enrollment`)
-rather than by position (`table` and hope) is what makes the
-scraper survive the addition of a second table to the page. It
-will not survive a redesign, and nothing will, which is why the
-next section matters more than this one.
+Every failure is at Sites C, D, and E, the three that do not write
+ISO dates. When next month's extract changes, a full specification
+turns the change into a warning and a `problems()` table naming the
+row, the column, and what was expected, rather than a data frame
+that is quietly different from last month's. An empty `problems()`
+table is a passed assertion; inspect it after every read.
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: why not fetch at render time?
-
-**Question.** Putting the API call directly in your `.qmd`
-means the report always reflects the current data, and
-there is no stale intermediate file to manage. That sounds
-like an argument for reproducibility. Why does this chapter
-insist on a separate acquisition script instead?
-
-**Answer.**
-
-Because 'always current' and 'reproducible' are opposites,
-and the phrasing hides it.
-
-A document that fetches at render time produces different
-output on every render, by design. Re-render it next year
-and you cannot reconstruct this year's numbers; the inputs
-are gone. That is the exact failure the whole book is
-about, arriving through a door marked convenience.
-
-Three further consequences follow. The render now needs
-network access and a valid credential, so it fails on a CI
-runner, in a container, and on a plane. It fails silently
-in a worse way if the endpoint returns a partial result.
-And it hits someone else's server every time anyone builds
-the document, which is a cost you are imposing on a host
-who did not agree to it.
-
-The two-script pattern separates the two things being
-confused. `01-acquire.R` runs rarely, deliberately, by a
-human, and writes a dated raw file with a provenance note.
-`02-clean.R` runs on every render and touches no network.
-The first is an *event*; the second is a *function*. Only
-the second belongs in a build.
-
-The test the chapter proposes is a good one: disconnect
-the network and render. If it still builds, the boundary
-is in the right place.
+::: {.callout-warning title='Pitfall'}
+**Whether an identifier survives depends on which reader you
+call.** `readr` guesses `patient_id` as text here only because
+some values have leading zeros in its sample. `read.csv()`,
+`data.table::fread()`, and a spreadsheet opened and re-saved all
+make it a number. Two files read by coercing readers then join
+without error on integers, the row count is right, and every
+identifier that carried a leading zero no longer matches the
+source system. Write `col_character()` for every identifier, on
+every read of a file you did not create.
 :::
 
-## The discipline that makes any of this reproducible
+::: {.callout-important title='LLM prompt'}
+Use a model to draft the specification, from the codebook rather
+than from the data.
 
-An acquisition that runs at render time is a reproducibility bug
-wearing a convenience costume. If your Quarto document queries
-the warehouse when it renders, then the document produces
-different numbers on different days, your collaborator cannot
-render it at all without a token, and your continuous-integration
-run of @sec-ci fails or, worse, succeeds against different data.
+> **Context.** I am reading `crf_export.csv`, a raw CRF export from
+> five sites. Its header and the codebook entries for each column
+> are below, followed by three synthetic rows I made up in the
+> file's format. The identifier is four digits with leading zeros.
+>
+> **Constraints.** Use `readr::read_csv()` with a complete `cols()`
+> specification, every column named, no `.default`. Identifiers are
+> `col_character()`. Keep any column whose format varies by site as
+> character. Declare the missing-value codes the codebook lists in
+> `na`.
+>
+> **Criteria.** Justify each column's type in one line, citing the
+> codebook. List every assumption you made that the codebook does
+> not state. Write a `stopifnot()` that fails if the identifier is
+> not character or if any numeric column holds a value outside a
+> range you state.
 
-The pattern is two scripts and one dated file.
+*Failure mode.* A model infers types from the rows it sees, exactly
+as `read_csv()` does, so it inherits the guesser's blindness: shown
+rows without leading zeros, it makes the identifier an integer, and
+shown no `-99`, it omits the code. *Check.* Run the read, then
+`problems()`, then the checks in @sec-acquisition-checks; compare
+the model's `na` list with the missing-value table in
+@sec-wrangling. Send the codebook and synthetic rows, never the
+export (@sec-ai-governance).
+:::
 
-```r
-# scripts/01-acquire.R  (run deliberately, by a human, rarely)
-source("R/redcap.R")
+### Pathologies that do not announce themselves {#sec-acquisition-pathologies}
 
-raw <- fetch_redcap(Sys.getenv("REDCAP_TOKEN"))
+Two more properties of this file are invisible on screen. Its first
+three bytes are a UTF-8 [**byte-order mark**](F-glossary.qmd#gloss-byte-order-mark) (BOM), and every line
+ends in a carriage return and a line feed (CRLF), the Windows
+convention. @sec-shell shows both at the byte level. What they do
+depends on the reader and on the machine, and the claims commonly
+made about them are too strong. Compare three reads:
 
-stopifnot(nrow(raw) > 0)
+```{r}
+#| label: acq-bom
+readBin(crf_path, "raw", n = 3)
 
-stamp <- format(Sys.Date(), "%Y%m%d")
-write_rds(raw, glue::glue("data/raw/redcap_{stamp}.rds"))   # <1>
-write_lines(                                                # <2>
-  glue::glue("Extracted {nrow(raw)} records on {Sys.Date()} \\
-              from {Sys.getenv('REDCAP_URL')}"),
-  glue::glue("data/raw/redcap_{stamp}.README")
+c(
+  `read_csv()` = names(naive_readr)[1],
+  `read.csv(), UTF-8 locale` = names(naive_base)[1],
+  `read.csv(), C locale` = withr::with_locale(
+    c(LC_CTYPE = "C"), names(read.csv(crf_path))[1]
+  )
 )
 ```
-1. Dated, so that a later extraction does not overwrite the one
-   your published numbers rest on.
-2. A provenance note beside it: how many rows, from where, when.
-   Six months from now this file is the only thing that can tell
-   you which extraction Table 2 came from.
 
-```r
-# scripts/02-clean.R  (runs on every render; touches no network)
-raw <- read_rds("data/raw/redcap_20260314.rds")   # <1>
+`readr` removes the mark, and so does base R's `read.csv()` in a
+UTF-8 locale, the default on current macOS, Windows, and most Linux
+desktops. In the C (POSIX) locale, which R falls back to in a
+container or on a server where no locale has been set,
+`read.csv()` keeps the three
+bytes and `check.names` turns them into dots, so the first column is
+`X...patient_id` and `x$patient_id` returns `NULL`.[^bom-readers]
+The same script then works on your laptop and fails, or worse
+returns `NULL` into a check, in the container.
+
+[^bom-readers]: As run for this edition (R 4.6.1, `readr` 2.2.0,
+    `data.table` 1.18.4, macOS): `data.table::fread()` also removes
+    the mark. Python's `csv` module keeps it when the file is opened
+    with `encoding='utf-8'`, so the first name is
+    `'\ufeffpatient_id'`, and removes it with `encoding='utf-8-sig'`.
+    Shell tools keep it (@sec-shell).
+
+The carriage returns are harmless to every R reader shown here,
+which accept either line ending. They matter at the shell, where
+`cut` and `grep` see a `\r` at the end of every last field, and in
+any parser you write yourself.
+
+@tbl-import-checklist collects the file pathologies of this export
+and three that it happens not to have, with how each shows itself
+and the assertion that makes it loud.
+
+| Pathology | Symptom | Detection | Fix | Assertion |
+|---|---|---|---|---|
+| Byte-order mark | First column name changes with the reader and locale | `readBin(f, "raw", 3)` is `ef bb bf` | `read_csv()`, or `fileEncoding = "UTF-8-BOM"` | `names(x)[1] == "patient_id"` |
+| CRLF line endings | `\r` on the last field, at the shell | `od -c`, `cat -e` (@sec-shell) | None needed in R; never edit the raw file | Last numeric column parses with no `problems()` |
+| Leading zeros lost | `7` where the key is `0007`; joins drop patients | `count(x, nchar(patient_id))` | `col_character()`; `str_pad()` only by the codebook | `all(nchar(x$patient_id) == 4)` |
+| Missing-value codes | `-99` averaged as a pressure | Count codes by site (@sec-wrangling) | `na = c("", "NA", "-99")` | `all(between(x$sbp, 50, 250), na.rm = TRUE)` |
+| Formats by site | Dates stay text; a single parse misreads some | `count(x, site, str_detect(d, iso))` | Character at read; parse per site (@sec-types) | `!anyNA(date)` after parsing |
+| Label variants | Fifteen spellings of five sites | `count(x, site)` | `str_squish()`, `str_to_title()` | `all(site %in% expected)` |
+| Wrong delimiter | One wide column | `ncol(x)` | `read_tsv()` or `delim =` | `ncol(x) == 8` |
+| Wrong encoding | `Z\xfcrich` for Zürich | `stringi::stri_enc_isutf8()` | `locale = locale(encoding = "latin1")` | All strings valid UTF-8 |
+| Excel serial dates | Five-digit numbers in a date column | A date-named column that is numeric | `janitor::excel_numeric_to_date()` (@sec-types) | Dates within the study period |
+
+: The import checklist. The first six rows are planted in the
+HF-HOME export; the last three are common elsewhere.
+{#tbl-import-checklist}
+
+### Checking as an artifact, not an activity {#sec-acquisition-checks}
+
+Every analyst checks data. The question is whether anyone can see
+that they did. A check run at the console leaves nothing behind: it
+is not re-run when the extract is refreshed, and a reviewer cannot
+tell which pathologies were looked for. Harrell's *R Workflow*
+[@harrell2025rworkflow] makes data checking and data overview
+numbered chapters of the workflow, with their output a section of
+the rendered report. What makes a check trustworthy is that it
+lives in the document, so it executes on every render and fails
+loudly when the next extract violates an assumption the first one
+satisfied.
+
+In the tidyverse idiom, the artifact is a function that returns one
+result per row of the checklist, applied to each read:
+
+```{r}
+#| label: acq-checks
+randomization <- read_csv(file.path(hf_dir, "randomization.csv"),
+                          col_types = cols(.default = col_character()))
+
+check_import <- function(x) {
+  c(
+    header       = identical(names(x)[1], "patient_id"),
+    rows         = nrow(x) == nrow(randomization),
+    id_is_text   = is.character(x$patient_id),
+    id_width_4   = all(nchar(as.character(x$patient_id)) == 4),
+    id_unique    = !anyDuplicated(x$patient_id),
+    sbp_range    = all(between(x$sbp_discharge, 50, 250),
+                       na.rm = TRUE),
+    weight_range = all(between(x$weight_kg, 30, 250), na.rm = TRUE),
+    site_labels  = all(x$site %in% paste("Site", LETTERS[1:5]))
+  )
+}
+
+tibble(
+  check     = names(check_import(crf)),
+  read.csv  = check_import(naive_base),
+  readr     = check_import(naive_readr),
+  specified = check_import(crf)
+)
 ```
-1. The date is written into the analysis, deliberately. When you
-   refresh the extract, you change this line in a commit that
-   says so, and the change in the numbers is attributable to the
-   refresh rather than mysterious.
 
-Whether the dated raw file can be committed depends on what is in
-it. Protected health information cannot go in a repository
-(@sec-deident, @sec-federal), and in that case the compendium
-holds the acquisition script, the provenance note, and a
-synthetic file of the same shape so that a reviewer without
-access can still run the pipeline. This is exactly the
-arrangement @sec-adni describes for ADNI, and the reason it
-generalizes is that the constraint is not about ADNI: it is about
-any dataset you are not free to redistribute.
+The specified read passes every check a read can pass. The two
+failures it keeps, the identifier width and the site labels, are
+the repairs @sec-wrangling makes; the import script records them
+and asserts that they are confined to where the codebook says they
+are, so that a new kind of failure stops the build.
 
-## Collaborating with an LLM on acquisition
+::: {.callout-tip title='Verification'}
+The build-time form of the checks is a `stopifnot()` that prints
+nothing when the file is as expected:
 
-Models write `readr`, `httr2`, and `rvest` fluently. The failure
-mode is uniform across all three: they produce code that runs,
-against data they have not seen.
+```{r}
+#| label: acq-verify
+crf_checks <- check_import(crf)
+short_id_sites <- crf |>
+  filter(nchar(patient_id) < 4) |>
+  distinct(site = str_to_title(str_squish(site)))
 
-**Prompt 1: writing the column specification.** Paste the first
-twenty lines of the file and ask for a full `col_types`
-specification with the sentinel values declared.
+stopifnot(
+  all(crf_checks[c("header", "rows", "id_is_text", "id_unique",
+                   "sbp_range", "weight_range")]),
+  identical(short_id_sites$site, "Site E"),
+  nrow(problems(crf)) == 0
+)
+```
 
-*What to watch for.* The model infers types from the sample you
-pasted, exactly as `read_csv()` would, so it inherits the same
-blindness: it will make an identifier an integer if the first
-twenty rows contain no leading zeros. Tell it which columns are
-identifiers. Ask it to justify each type.
+If Site B's system begins dropping zeros next quarter, the second
+assertion fails and names the change, instead of the join in
+@sec-joins quietly losing Site B's patients.
+:::
 
-*Verification.* Read the file with the specification, then check
-`problems()` and the distinct values of every factor column
-against what you expected.
+`skimr::skim()` and `count()` belong beside the assertions: `skim()`
+reports what each column looks like, and `count()` exposes the level
+the codebook did not mention. The first two are for the reader; the
+`stopifnot()` is for the build. @sec-testing develops the assertion
+side into a test suite.
 
-**Prompt 2: parsing a JSON response.** Paste one record of the
-response and ask for the code that flattens the whole thing to a
-tibble.
+### Exercises
 
-*What to watch for.* Whether it handles the record that is
-missing a field, and whether it distinguishes an empty string
-from a missing value. A model given one well-formed record will
-write code that assumes every record is well-formed, and the one
-that is not is precisely the one you needed to know about.
+1. Using `crf` from the specified read, count by site the patients
+   whose `patient_id` matches no row of `randomization.csv`. Pad the
+   identifiers to four digits and show that the anti-join is then
+   empty.
+2. Add two checks to `check_import()`: one that fails when the
+   columns are not exactly those in the codebook, in order, and one
+   that fails when any numeric column holds the value `-99`. Report
+   the result for all three reads.
 
-*Verification.* Assert the row count against the total the
-interface reports, and assert that no identifier is `NA`.
-
-**Prompt 3: 'write me a scraper for this page'.** The model will
-comply, immediately and without asking the question you should
-have asked.
-
-*What to watch for.* It will not raise `robots.txt`, the terms of
-service, rate limiting, or whether the data are personal, because
-you did not ask and it is agreeable. The judgment is yours and
-the model will not prompt you for it. Ask it explicitly to argue
-the case *against* scraping the page, which is a prompt it
-handles well and which surfaces the considerations you should
-have weighed.
-
-*Verification.* Run the scraper once, on one page, and inspect
-what came back before you point it at anything larger.
-
-## Principle in use
-
-Three habits govern the step where most silent errors enter:
-
-1. **Specify every column.** The type specification is an
-   assertion about the file, and the file will eventually violate
-   it. Better a loud parse failure than a silent coercion.
-2. **Freeze what you receive.** Acquire deliberately, to a dated
-   raw file with a provenance note beside it. Never acquire and
-   analyze in the same breath, and never over the network at
-   render time.
-3. **Keep credentials out of the repository, and ask whether you
-   should scrape before asking how.** The token belongs in
-   `.Renviron`; the ethics belong to you and not to the tool.
-
-## Exercises
-
-1. Construct a small CSV containing each of the pathologies in
-   this chapter (leading-zero identifier, sentinel missing value,
-   American-format date, trailing whitespace in a factor level, a
-   byte-order mark). Write a read that handles all five and an
-   assertion suite that would fail if any of them regressed.
-
-**On your own data and network.** No answer key; these need a
-file you supply or a host you contact.
-
-2. Take a delimited file you did not create. Read it once with no
-   arguments and once with a full `col_types` specification.
-   Diff the two results. Document every column on which they
-   disagree and say which is correct.
-3. Query any public API with `httr2` (ClinicalTrials.gov and
-   openFDA both permit anonymous access). Write the response to a
-   dated raw file with a provenance note. Then write a second
-   script that reads the dated file and touches no network, and
-   confirm the second runs with the network disconnected.
-4. Take the paginated fetch in this chapter and break it
-   deliberately, by removing the `next_page` check. Point it at an
-   interface with more than one page of results and show that the
-   result is silently incomplete. Write the assertion that would
-   have caught it.
-5. Find a web page with a table you would like as data. Before
-   writing any code, write a paragraph answering: does
-   `robots.txt` permit this, do the terms of service, is an API
-   available instead, are the data personal, and would your
-   request rate cost the host anything. Only then write the
-   scraper, or, having answered honestly, do not.
-
-::: {.callout-tip icon=false collapse=true}
-## Solution to exercise 1
-
-**A file containing all five pathologies, and a read that
-survives them.**
-
+::: {.callout-note collapse='true' title='Solution'}
 ```{r}
 #| label: soln-12b-1
-#| message: false
-bad_path <- file.path(tempdir(), "pathologies.csv")
+crf |>
+  anti_join(randomization, by = "patient_id") |>
+  count(site = str_to_title(str_squish(site)))
 
-# Written as raw bytes so the byte-order mark is really there.
-writeBin(charToRaw(paste0(
-  "﻿", "patient_id,visit_date,site,sbp\n",
-  "007,03/14/2026,Site A ,142\n",
-  "042,12/01/2026, Site B,-999\n"
-)), bad_path)
-
-raw <- readr::read_csv(
-  bad_path,
-  col_types = readr::cols(
-    patient_id = readr::col_character(),   # keeps the leading zero
-    visit_date = readr::col_date(format = "%m/%d/%Y"),
-    site       = readr::col_character(),
-    sbp        = readr::col_double()
-  ),
-  na = c("", "NA", "-999"),                # the sentinel
-  trim_ws = TRUE                           # the padding
-)
-raw
+padded <- crf |>
+  mutate(patient_id = str_pad(patient_id, width = 4, pad = "0"))
+stopifnot(nrow(anti_join(padded, randomization,
+                         by = "patient_id")) == 0)
 ```
 
-`readr` strips the byte-order mark on its own, which is
-worth knowing rather than assuming; the other four need
-saying explicitly. Reading with no arguments would have
-turned `007` into the number 7, left `03/14/2026` as a
-string, kept `Site A ` distinct from `Site A`, and
-carried `-999` into every mean you computed afterward.
-
-Now the assertions, which are the half of the exercise
-that matters. They are what fails if a future export
-regresses:
-
-```{r}
-#| label: soln-12b-1-assert
-stopifnot(
-  is.character(raw$patient_id),
-  all(nchar(raw$patient_id) == 3),
-  inherits(raw$visit_date, "Date"),
-  !any(grepl("^\\s|\\s$", raw$site)),
-  all(is.na(raw$sbp) | raw$sbp > 0),
-  !any(grepl("﻿", names(raw)))
-)
-
-# the sentinel became NA rather than a number
-sum(is.na(raw$sbp))
-```
-
-Each assertion names one pathology, so a failure message
-points at the specific thing that changed. A single
-composite check would tell you only that something did.
+Every unmatched patient is at Site E, which is the codebook's
+account of the file. A join on the unpadded key would have dropped
+them all without an error (@sec-joins).
 :::
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-12b-2
+codebook_cols <- c("patient_id", "site", "sex", "dob",
+                   "discharge_date", "ef_pct", "sbp_discharge",
+                   "weight_kg")
+
+check_import_2 <- function(x) {
+  numeric_cols <- c("ef_pct", "sbp_discharge", "weight_kg")
+  c(
+    check_import(x),
+    columns = identical(names(x), codebook_cols),
+    no_code = !any(vapply(numeric_cols,
+                          \(v) any(x[[v]] == -99, na.rm = TRUE),
+                          logical(1)))
+  )
+}
+
+tibble(
+  check     = names(check_import_2(crf)),
+  read.csv  = check_import_2(naive_base),
+  readr     = check_import_2(naive_readr),
+  specified = check_import_2(crf)
+) |>
+  tail(2)
+```
+
+All three reads have the codebook's columns in this locale; under
+the C locale `read.csv()` fails the `columns` check, because its
+first name is `X...patient_id`. Only the specified read passes
+`no_code`. The `-99` check is narrower than the range checks, and
+that is its value: a failure names the cause, not only the symptom.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Your cohort has 1,000 patients. You read the
+demographics file and the visits file, both without a column
+specification, join them on `patient_id`, and get 1,000 rows,
+which is what you expected. What might still be wrong?
+
+**Answer.** If one file was read by a coercing reader and the other
+by `readr`, the join fails with a type error, which is the good
+case. If both were read by coercing readers, both identifiers are
+integers, the join succeeds, the row count is right, and every
+identifier that carried a leading zero no longer matches the source
+system. The analysis is internally consistent and externally wrong:
+the day someone asks you to re-identify a case for a data query,
+you cannot. The row count was never sensitive to the failure. Read
+identifiers as character, always, and assert it.
+:::
+
+## Rules of thumb
+
+1. **Habit 2: raw data are evidence.** Keep what you received
+   read-only and unedited, and make every change in a script run
+   against the untouched file.
+2. **Habit 7: convert late, validate early.** Specify every column,
+   read identifiers as character, and keep site-dependent formats
+   as text until a script parses them by rule.
+3. **Habit 8: a bug that produces a plausible number is the
+   expensive kind.** A `-99` averaged as a pressure raises
+   nothing; write the assertion for each row of the import
+   checklist.
+
+## Cumulative practice
+
+3. *On your own work (no key).* Take a delimited file you did not
+   create. Read it once with no arguments and once with a full
+   column specification, compute the differences as in
+   @sec-acquisition-files, and say for each disagreement which read
+   is correct.
+
+## Cheat sheet
+
+| Task | Code | Guards against |
+|---|---|---|
+| Read with a contract | `read_csv(f, col_types = cols(...), na = c("", "NA", "-99"))` | Guessed types; missing codes as data |
+| Keep identifiers | `patient_id = col_character()` | Lost leading zeros |
+| Read everything as text | `cols(.default = col_character())` | Conversions before you have looked |
+| See parse failures | `problems(x)` | A changed extract read quietly |
+| Look at the first bytes | `readBin(f, "raw", n = 3)` | Byte-order marks |
+| Declare an encoding | `locale = locale(encoding = "latin1")` | Mangled accented names |
+| Assert the import | `stopifnot(names(x)[1] == "patient_id", ...)` | Reader and locale differences |
+
+: Reading files at a glance. {#tbl-acquisition-cheat-sheet}
 
 ## Further reading
 
-- [@wickham2023r4ds], the data-import and web-scraping chapters,
-  the canonical applied treatment of `readr` and `rvest`.
+- [@wickham2023r4ds], the data-import and spreadsheet chapters,
+  the canonical applied treatment of `readr` and `readxl`.
 - [@harrell2025rworkflow], Chapters 7 and 8, on data checking and
   data overview as reported steps of the workflow. The code is
-  `data.table` and `Hmisc` rather than tidyverse (@sec-alternative-wrangling
-  covers the dialect), but the structural argument transfers intact.
-- The `httr2` documentation at `httr2.r-lib.org`, in particular
-  its articles on authentication and on wrapping an API.
-- The `polite` package, which encodes the scraping etiquette this
-  chapter argues for as a set of defaults.
-- @sec-databases, for the case where the data live in a warehouse
-  and the query, not the file, is the provenance.
-- @sec-deident and @sec-federal, for what you may keep, commit,
-  and redistribute once you have it.
+  `data.table` and `Hmisc` rather than tidyverse
+  (@sec-alternative-wrangling covers the dialect), but the
+  structural argument transfers intact.
 
 ## Prerequisites answers {#sec-quiz-answers-12b}
 
 1. The guess is made from a sample (the first thousand rows by
    default), so any pathology that does not appear in the sample
-   is invisible to it. Two consequences that produce no error.
-   First, a sentinel value used upstream to mean 'missing', such
-   as -99 or 9999, is guessed as a number and enters the analysis
-   as a real measurement, dragging every mean it touches. Second,
-   a column of dates in an ambiguous format is guessed as
-   character and then sorts lexicographically, or, worse, is
-   guessed as a date under the wrong convention, so that
-   03/04/2026 is March in one file and April in another.
-
-   A third hazard is worth stating precisely, because it is
-   commonly misdescribed: whether an identifier with leading
-   zeros survives depends on *which reader you call*. Modern
-   `readr` guesses character and keeps `'007'`; base R's
-   `read.csv()` and most spreadsheet exports coerce it to the
-   integer 7. Relying on your reader's good behavior is
-   therefore relying on a fact about your tooling rather than
-   about your data, and it will break the day a collaborator uses
-   a different function.
-
-   The remedy in every case is the same: pass a full `col_types`
-   specification and an explicit `na` argument, treat both as
-   assertions about the file, and check `problems()` after every
-   read.
-2. Commit the acquisition script, the query it sends, and a
-   provenance note recording how many records came back, from
-   which endpoint, on which date; and commit the dated raw file
-   itself if, and only if, you are permitted to redistribute its
-   contents. Do not commit the credential: the API token belongs
-   in `.Renviron`, which is gitignored, with a
-   `.Renviron.example` naming the variable so a collaborator
-   knows what to obtain. Do not commit protected health
-   information; ship a synthetic file of the same shape instead,
-   so that the pipeline can be run by a reviewer who lacks
-   access. And do not have the analysis query the interface at
-   render time, because a living system returns different rows on
-   different days and your figures would change under you.
-3. Before writing the scraper: does an API or a published file
-   exist that would make the scrape unnecessary; does the site's
-   `robots.txt` permit it; do the terms of service; are the data
-   personal, such that aggregating them causes a harm that
-   publishing them individually did not; and would your request
-   rate impose a cost on the host. Once you have the data, the
-   first thing to do is write them to a dated raw file with a
-   provenance note, so that the analysis never scrapes again. The
-   page will change, and when it does you want the failure to be
-   an explicit re-acquisition rather than a figure that silently
-   changed.
+   is invisible to it. Two consequences produce no error. First, a
+   code used upstream to mean 'missing', such as -99, is guessed as
+   a number and enters the analysis as a measurement, dragging
+   every mean it touches. Second, a column of dates in an
+   ambiguous or site-specific format is guessed as character and
+   sorts as text, or is parsed under the wrong convention, so that
+   03/04/2026 is March in one file and April in another. A third
+   hazard is commonly misdescribed: whether an identifier with
+   leading zeros survives depends on which reader you call.
+   `readr` keeps `0007` as text when its sample shows the zeros;
+   base R's `read.csv()` and most spreadsheet exports make it the
+   integer 7. The remedy in every case is a full `col_types`
+   specification and an explicit `na` argument, treated as
+   assertions, with `problems()` checked after every read.
+2. Because the file is evidence and the corrections are not
+   recorded. Nothing says which cells changed or why, the next
+   export will arrive with the same errors and no script to fix
+   them, and the spreadsheet may have rewritten other cells on
+   save, for example by stripping leading zeros. Keep the export
+   as received and make the three corrections lines of the
+   cleaning script.
+3. Base R's `read.csv()` removes the mark in a UTF-8 locale but
+   keeps it in the C (POSIX) locale that a container or server
+   often falls back to. There `check.names` turns the three bytes
+   into dots, the first column is named `X...patient_id`, and
+   `x$patient_id` returns `NULL`. Read with `read_csv()`, which
+   removes the mark in either locale, and assert
+   `names(x)[1] == "patient_id"`.

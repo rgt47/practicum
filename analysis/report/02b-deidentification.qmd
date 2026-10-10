@@ -1,164 +1,235 @@
 # De-identification and Data Ethics {#sec-deident}
 
+A Massachusetts state agency that bought health insurance for
+state employees released their hospital records to researchers
+with names and addresses removed, keeping ZIP code, date of
+birth, and sex. Latanya Sweeney obtained the Cambridge voter
+list, which carried the same three fields beside every voter's
+name. Six people on it shared the birth date of the governor,
+William Weld; three of them were men; only one lived in his ZIP
+code, and the released records were his
+[@sweeney2002kanonymity]. Nothing in the file was a name, and
+nothing about it looked wrong. The identification lived in the
+combination of ordinary fields, which is where it lives in every
+clinical dataset you will release.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
 ```
-*The right to be let alone is the most comprehensive of
-rights, and the right most valued by civilized men.*
+*They conferred, as against the government, the right to be
+let alone ... the most comprehensive of rights and the right
+most valued by civilized men.*
 
-[Louis D. Brandeis]{.smallcaps}, *Olmstead v. United
-States* (1928)
+[Louis D. Brandeis]{.smallcaps}, dissenting, *Olmstead v.
+United States* (1928)
 ```{=latex}
 \end{flushright}
 ```
 :::
 
-::: {.callout-note}
-## Why this chapter exists
+```{r}
+#| label: deident-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-A biostatistician working with clinical data handles
-protected health information on the first day, and the
-obligations that attach to it are not optional. The survey
-of peer curricula (@sec-peer-survey) found explicit
-treatment of de-identification and human-subjects
-protection in Karl Broman's *Tools for Reproducible
-Research* [@broman2019tools4rr] and in the Johns Hopkins
-statistical-computing sequence [@hopkins-biostat776-2024],
-and the topic is conspicuous by its absence from most
-others. For
-a book aimed at students who will spend their careers with
-clinical data, the omission would be indefensible, and
-this chapter fills it.
+```{r}
+#| label: fig-deident-pipeline-stage
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: de-identification governs the
+#|   Acquire stage, deciding which data you may hold and in what
+#|   form, before any wrangling begins."
+#| fig-alt: !expr pipeline_alt('acquire')
+pipeline_diagram('acquire')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 20 minutes.
+
+**You'll need.** @sec-why for the case that an analysis must
+be rerunnable by someone else, and @sec-team-science for the
+intake conversation in which data access is agreed. The chapter
+has no code to run; the releases it describes are built and
+checked in R in @sec-deident-practice, after the data chapters.
+
+**You'll be able to.**
+
+- Classify every column of a clinical file as a Safe Harbor
+  identifier, a quasi-identifier, or neither.
+- Choose among Safe Harbor, Expert Determination, and a limited
+  data set for a stated release, and name what each requires.
+- Name what each of the four transformations costs the analysis
+  and which pathway it commits a release to.
+- State the obligations that survive de-identification, and what
+  may be sent to a language model.
+
+**Outline.**
+
+- [What de-identification promises](#sec-deident-promise)
+- [The three HIPAA pathways](#sec-deident-pathways)
+- [Four transformations](#sec-deident-transformations)
+- [Obligations that survive de-identification](#sec-deident-obligations)
 :::
 
-## Prerequisites
-
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-02b.
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-02b.
 
 1. Under the HIPAA Privacy Rule, what are the two accepted
-   methods for de-identifying protected health
-   information, and how do they differ?
+   methods for de-identifying protected health information, and
+   how do they differ?
 2. Why is removing names and medical record numbers
    insufficient to de-identify a dataset, and what is a
    'quasi-identifier'?
 3. What is the difference between de-identification and
-   anonymization, and why does the distinction matter for
-   what you may promise a participant?
+   anonymization, and why does the distinction matter for what
+   you may promise a participant?
+:::
 
-## Learning objectives
+## What de-identification promises {#sec-deident-promise}
 
-By the end of this chapter you should be able to:
+De-identification transforms data so that the individuals they
+describe can no longer reasonably be identified. Under the
+United States Health Insurance Portability and Accountability
+Act (HIPAA) Privacy Rule, de-identified data fall outside the
+Rule's restrictions, which is why de-identification is the
+gateway to most secondary analysis and data sharing. The chapter
+is written for that regulatory context; the principles transfer
+to the European General Data Protection Regulation (GDPR) and
+other regimes, though the specific rules differ.
 
-- Enumerate the eighteen identifiers of the HIPAA Safe
-  Harbor method and apply them to a dataset.
-- Distinguish Safe Harbor from Expert Determination and
-  choose appropriately.
-- Recognize quasi-identifiers and the re-identification
-  risk of their combination.
-- Apply basic disclosure-control transformations in R:
-  suppression, generalization, date shifting, and hashing.
-- State the ethical obligations that survive
-  de-identification, including the terms of a data-use
-  agreement.
+The word promises less than it seems to. De-identified is not
+anonymous. A dataset stripped of names can still be
+re-identified through the combination of the ordinary variables
+that remain, as the Weld records were.
 
-## Orientation
+### Quasi-identifiers
 
-De-identification is the process of transforming data so that
-the individuals it describes can no longer reasonably be
-identified. Under the United States HIPAA Privacy Rule,
-de-identified data fall outside the Rule's restrictions. This is
-why de-identification serves as the gateway to most secondary
-analysis and data sharing. The word carries rather less
-certainty than it appears to, however, and the distinction is
-worth drawing at the outset. De-identified is not the same as
-anonymous. A dataset stripped of names can still, we shall see,
-be re-identified through the combination of the ordinary
-variables that remain.
+A [**quasi-identifier**](F-glossary.qmd#gloss-quasi-identifier) is a variable that identifies no one alone
+but contributes to identification in combination: age, sex, ZIP
+code, admission date, occupation, a rare diagnosis. Sweeney
+estimated from 1990 census data that 87% of the United States
+population was likely unique on five-digit ZIP code, sex, and
+full date of birth [@sweeney2002kanonymity]; a later analysis of
+2000 census data put the figure at about 63% [@golle2006revisiting].
+The exact share matters less than the mechanism: each added field
+multiplies the number of possible combinations while the
+population stays fixed, so a handful of ordinary fields is
+enough to make most people unique. Re-identification risk is a
+property of the joint distribution, and you reason about it the
+way you reason about any joint distribution, not one field at a
+time.
 
-This chapter covers the two regulatory methods, the
-practical transformations that implement Safe Harbor, and
-the residual risk that no transformation removes. It is
-written for the United States regulatory context; the
-principles transfer to the European GDPR and to other
-regimes, though the specific rules differ.
+### The safest identifier is the one you never collected
 
-## The statistician's contribution {#sec-deident-human}
+If the analysis does not need date of birth, collect age; if it
+does not need the full ZIP code, collect the first three digits.
+Minimizing identifiers at collection is cheaper and safer than
+removing them afterward. It is the disclosure-control analog of
+the raw-data rule (Habit 2): what you never received, you never
+have to protect.
 
-De-identification is not a checklist to be run and
-forgotten. The judgments:
+### Promises must match reality
 
-**Re-identification risk lives in combinations.** No single
-quasi-identifier identifies anyone, but their conjunction
-can. The often-cited estimate is that the combination of
-five-digit ZIP code, date of birth, and sex uniquely
-identifies a large share of the United States population.
-The statistician's job is to reason about the joint
-distribution, not to tick off fields one at a time.
+Do not tell a participant that their data are anonymous if you
+retain the means to re-identify them. The consent form and the
+data use agreement are commitments, and the data you build must
+honor them. 'De-identified under Safe Harbor' is a claim you can
+defend; 'anonymous' usually is not.
 
-**The safest data are the data you never collect.** If the
-analysis does not need date of birth, collect age; if it
-does not need full ZIP, collect the three-digit prefix.
-Minimizing identifiers at collection is cheaper and safer
-than de-identifying them afterward, and it is the
-disclosure-control analog of the raw-data discipline in
-@sec-wrangling.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A trial team removes names, medical record numbers,
+and telephone numbers from its demographics file and keeps exact
+date of birth, sex, and five-digit ZIP code. A collaborator calls
+the result 'anonymized'. What is wrong with the claim?
 
-**De-identification is irreversible by design, and that is
-a feature.** A per-patient hash of the medical record
-number lets you link visits within your dataset without
-storing the number itself. If you keep a crosswalk back to
-the identifiers, you have not de-identified the data; you
-have created a coded dataset, which is a different and more
-regulated thing.
+**Answer.** Date of birth, sex, and five-digit ZIP code are
+exactly the combination that made most of the United States
+population unique in Sweeney's estimate, and they singled out the
+Weld records. The file is not anonymous, and it is not
+de-identified under Safe Harbor either, because Safe Harbor
+removes every date element except the year and truncates ZIP
+codes (@sec-deident-pathways). Removing the direct identifiers
+is necessary and nowhere near sufficient.
+:::
 
-**Promises must match reality.** Do not tell a participant
-their data are anonymous if you retain the means to
-re-identify them. The consent form and the data-use
-agreement are commitments; honor them in the data you
-build.
+## The three HIPAA pathways {#sec-deident-pathways}
 
-These judgments are what distinguish genuine disclosure
-control from a false sense of safety.
+The Privacy Rule recognizes exactly two ways to de-identify
+protected health information (PHI), and the guidance from the
+Department of Health and Human Services (HHS) [@hhs2012deident]
+is the authoritative statement of both. A third pathway, the
+limited data set, does not de-identify the data at all, and it is
+the one a biostatistician meets most often.
 
-## The two HIPAA methods
+[**Safe Harbor**](F-glossary.qmd#gloss-safe-harbor) (45 CFR 164.514(b)(2), in Title 45 of the Code of
+Federal Regulations) removes eighteen specified
+categories of identifier and adds one condition: the covered
+entity must have no actual knowledge that the remaining
+information could identify an individual, alone or in
+combination. It is mechanical and checkable, which is its
+appeal, but it is blunt: dates survive only as the year, so it
+may remove information the analysis needs, and it does not
+certify that re-identification is impossible, only that the
+eighteen categories are gone.
 
-The Privacy Rule recognizes exactly two ways to
-de-identify protected health information, and the HHS
-guidance [@hhs2012deident] is the authoritative
-statement of both.
+[**Expert Determination**](F-glossary.qmd#gloss-expert-determination) (164.514(b)(1)) engages a qualified
+statistician to certify, using accepted methods, that the risk of
+re-identification is very small. It is more flexible and can
+retain more analytic detail, but it requires documented
+statistical judgment and is correspondingly more involved. A
+biostatistician may be asked to fill this role. Transformations
+that keep detail Safe Harbor forbids, such as per-patient date
+shifting, belong here: they are defensible only when an expert
+has assessed the risk of the data as released.
 
-**Safe Harbor** removes eighteen specified categories of
-identifier. It is mechanical and checkable, which is its
-appeal, but it is blunt: it may remove information the
-analysis needs, and it does not certify that
-re-identification is impossible, only that the eighteen
-categories are gone.
+A [**limited data set**](F-glossary.qmd#gloss-limited-data-set) (45 CFR 164.514(e)) removes the direct
+identifiers (names, street address, contact numbers, medical
+record and other account numbers, and the like) but may keep
+dates, city, state, and five-digit ZIP code. It is still
+protected health information, and it may be disclosed only for
+research, public health, or health care operations under a data
+use agreement (DUA) that, among other things, forbids
+re-identification and contact. Because it keeps the dates that
+longitudinal analysis needs, it is the pathway a biostatistician
+meets most often; the precise requirements, and whether your
+institution prefers it to de-identification for a given project,
+are matters for the privacy office and the institutional review
+board (IRB). @tbl-deident-pathways sets the three side by side.
 
-**Expert Determination** engages a qualified statistician
-to certify, using accepted methods, that the risk of
-re-identification is very small. It is more flexible, and
-can retain more analytic detail, but it requires
-documented statistical judgment and is correspondingly
-more involved. This is a role a biostatistician may
-themselves be asked to fill.
+| | Safe Harbor | Expert Determination | Limited data set |
+|---|---|---|---|
+| Regulation | 45 CFR 164.514(b)(2) | 45 CFR 164.514(b)(1) | 45 CFR 164.514(e) |
+| What is removed | Eighteen categories of identifier | Whatever the expert's analysis requires | Direct identifiers |
+| Dates | Year only; ages over 89 pooled | As the determination allows | May be kept |
+| Geography | First three ZIP digits, or `000` for small areas | As the determination allows | City, state, five-digit ZIP may be kept |
+| Still PHI? | No | No | Yes |
+| Condition | No actual knowledge that the rest identifies anyone | Documented finding that the risk is very small | A DUA forbidding re-identification and contact |
+| Who decides | The covered entity, by checklist | A qualified expert | The covered entity, under the DUA |
 
-## The eighteen Safe Harbor identifiers
+: The three HIPAA pathways for research data. Only the first two
+de-identify. {#tbl-deident-pathways}
 
-Safe Harbor requires removal of the following, for the
-individual and for their relatives, employers, and
-household members:
+### The eighteen Safe Harbor identifiers
+
+Safe Harbor requires removal of the following, for the individual
+and for their relatives, employers, and household members:
 
 1. Names.
-2. Geographic subdivisions smaller than a state, including
-   street address, city, county, and ZIP code (with a
-   narrow exception for the first three ZIP digits when the
-   population of that region exceeds 20,000).
-3. All date elements finer than a year that relate to an
-   individual (birth, admission, discharge, death), and all
-   ages over 89.
+2. Geographic subdivisions smaller than a state, including street
+   address, city, county, and ZIP code. The initial three ZIP
+   digits may be kept only if the geographic unit formed by all
+   ZIP codes sharing them contains more than 20,000 people
+   according to current Census data; otherwise they are changed
+   to `000`.
+3. All date elements except the year that relate to an individual
+   (birth, admission, discharge, death), and all ages over 89
+   together with any date element, including the year, that would
+   reveal such an age; those ages may be pooled into a single
+   category of 90 or older.
 4. Telephone numbers.
 5. Fax numbers.
 6. Email addresses.
@@ -167,456 +238,371 @@ household members:
 9. Health-plan beneficiary numbers.
 10. Account numbers.
 11. Certificate or license numbers.
-12. Vehicle identifiers and serial numbers, including
-    license plates.
+12. Vehicle identifiers and serial numbers, including license
+    plates.
 13. Device identifiers and serial numbers.
 14. Web URLs.
 15. IP addresses.
-16. Biometric identifiers, including fingerprints and
-    voiceprints.
+16. Biometric identifiers, including fingerprints and voiceprints.
 17. Full-face photographs and comparable images.
-18. Any other unique identifying number, characteristic, or
-    code, except a re-identification code assigned under the
-    Rule's conditions.
+18. Any other unique identifying number, characteristic, or code,
+    except a re-identification code that meets the conditions of
+    45 CFR 164.514(c), the first of which is that it is not
+    derived from information about the individual.
 
-The third item is the one that most often surprises
-analysts: dates are identifiers. A date of admission,
-combined with a hospital and a diagnosis, can single out a
-patient. Safe Harbor permits the year but not the day.
+The third item most often surprises analysts: dates are
+identifiers. A date of admission, combined with a hospital and a
+diagnosis, can single out a patient. Safe Harbor permits the year
+but not the day, and for a patient over 89 not even the year of
+birth.
 
-Four transformations do nearly all the work, and each
-one trades a different thing away. @fig-deident-pipeline
-sets them beside what they cost, because the cost is
-what determines whether the de-identified dataset can
+### Re-identification codes and linkage keys
+
+A per-patient key lets you link visits without carrying the
+medical record number in the analysis file, but how the key is
+made decides which claim you may attach to the result. HIPAA
+allows a covered entity to keep a re-identification code only if
+the code is not derived from information about the individual
+and the means of re-identification is not disclosed (45 CFR
+164.514(c)). A hash of the medical record number, salted or not,
+is derived from it, so it is not such a code; it remains an
+identifier under Safe Harbor. A randomly assigned study ID, with
+the crosswalk held apart by the covered entity, satisfies the
+rule. Keeping that crosswalk also makes the data 'coded' in the
+sense of the Common Rule, which is a separate framework with its
+own definitions: whether coded data count as human-subjects
+research is a question for your IRB, not one that HIPAA
+de-identification settles.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Which of these may appear in a Safe Harbor release:
+(a) the year of discharge, (b) a patient's age of 93, (c) the
+three-digit ZIP prefix `921`, (d) a salted SHA-256 (Secure Hash
+Algorithm) hash of the medical record number?
+
+**Answer.** (a) Yes: the year of a date is the one element Safe
+Harbor keeps. (b) No: ages over 89 are pooled into '90 or older',
+and the year of birth goes with them. (c) Yes, provided the area
+formed by all ZIP codes beginning `921` has more than 20,000
+people, which a populous metropolitan prefix does. (d) No: it is
+derived from an identifier, so it is not a 164.514(c)
+re-identification code, and Safe Harbor's eighteenth category
+removes it.
+:::
+
+### Exercises
+
+1. The HF-HOME codebook (`analysis/data/raw_data/hfhome/README.md`)
+   lists the columns of `demographics.csv`: `patient_id`, `mrn`,
+   `first_name`, `last_name`, `dob`, `age`, `sex`, `race`,
+   `ethnicity`, `zip`, and `phone`. For each, say whether a Safe
+   Harbor release removes it, transforms it, or keeps it, and cite
+   the Safe Harbor category that decides.
+
+::: {.callout-note collapse='true' title='Solution'}
+| Column | Action | Why |
+|---|---|---|
+| `mrn` | Remove | Category 8, medical record numbers |
+| `first_name`, `last_name` | Remove | Category 1, names |
+| `phone` | Remove | Category 4, telephone numbers |
+| `dob` | Transform to year, and remove the year when age is over 89 | Category 3 |
+| `age` | Transform: pool ages over 89 as '90+' | Category 3 |
+| `zip` | Transform to the first three digits, `000` for restricted prefixes | Category 2 |
+| `patient_id` | Replace with a new random ID | See below |
+| `sex`, `race`, `ethnicity` | Keep | Not among the eighteen; quasi-identifiers all the same |
+
+`patient_id` is the hard case. It was assigned by the trial, not
+derived from the patient, so it could serve as a 164.514(c) code.
+But it is the key of every other HF-HOME file, including the ones
+that hold full dates, and the IDs were assigned in enrollment
+order, so the ID itself carries approximate calendar time. A
+fresh random ID, with the crosswalk held back, avoids both
+problems; the worked example of @sec-deident-practice does
+that. Keeping `sex`, `race`, and `ethnicity` is permitted, and
+they are exactly the fields that combine with age and ZIP prefix
+into the residual risk measured in @sec-deident-risk.
+:::
+
+2. A data management plan must explain how analysts will link a
+   patient's visits without the medical record number. Write the
+   paragraph, comparing a salted hash of the number with a
+   randomly assigned study ID held in a separate crosswalk, and
+   say which is compatible with a Safe Harbor claim.
+
+::: {.callout-note collapse='true' title='Solution'}
+A model paragraph: 'Analysts will receive a study identifier
+assigned at random by the data coordinating center, which keeps
+the crosswalk from identifier to medical record number on a
+separate, access-controlled system and never releases it or the
+method used to make it. Because the identifier is not derived
+from any information about the patient, it is a re-identification
+code under 45 CFR 164.514(c), and the analysis files remain
+de-identified under Safe Harbor. We considered a salted hash of
+the medical record number, which would let later extracts link
+without a lookup; because a hash is derived from the record
+number, it would remain an identifier under Safe Harbor, and its
+use would require an Expert Determination.'
+
+The paragraph names who holds the crosswalk, states that the
+method is not disclosed, and gives the reason the hash was
+rejected. A paragraph that says only 'identifiers will be
+hashed' gives a reviewer nothing to check and makes a claim that
+is false under Safe Harbor.
+:::
+
+## Four transformations {#sec-deident-transformations}
+
+Four transformations do nearly all the work, and they divide
+cleanly into two kinds. **Remove or disguise**: suppression and
+generalization *remove* information, and they are what Safe
+Harbor requires; keyed hashing and date shifting *disguise*
+information while keeping it, and what is disguised is still
+there, so Safe Harbor does not cover it. A release that relies on
+a disguise is de-identified only if an Expert Determination says
+so. In the table and figure below, MRN abbreviates medical record
+number. @tbl-deident-transformations gives each transformation its
+cost, because the cost decides whether the released data can
 still answer the question you had.
+
+| Transformation | Kind | What it does | Cost to the analysis | Pathway | In R |
+|---|---|---|---|---|---|
+| **Suppress** | Remove | Drops a variable or a value | The variable is gone | Safe Harbor | `select(-mrn)` |
+| **Generalize** | Remove | Coarsens a value: date to year, ZIP to three digits, ages over 89 to '90+' | Resolution: no intervals between dates, no fine geography | Safe Harbor | `format(dob, "%Y")`, `substr(zip, 1, 3)` |
+| **Hash** | Disguise | Replaces an identifier with a salted digest | Little; the key is derived from the identifier and anyone with the salt can regenerate it | Expert Determination | `digest::digest()` |
+| **Shift** | Disguise | Moves every date of a patient by one random offset | Calendar time and season; intervals survive | Expert Determination | `date + shift` |
+
+: Remove or disguise: the four disclosure-control transformations,
+what each costs, and the pathway each belongs to.
+{#tbl-deident-transformations}
+
+@fig-deident-pipeline traces the two routes to the residual risk
+that neither route removes.
 
 ```{mermaid}
 %%| echo: false
 %%| fig-alt: "Left-to-right flowchart. A PHI table branches into
-%%|   four parallel transformations, each labeled with what it
-%%|   costs: Suppress loses the variable, Generalize loses
-%%|   resolution, Hash makes the key unrecoverable while preserving
-%%|   linkage, and Shift dates loses calendar time while preserving
-%%|   intervals. All four converge on a de-identified table, which
-%%|   in turn leads to a residual-risk node noting that
-%%|   quasi-identifiers still combine and the result is not
-%%|   anonymous."
+%%|   four transformations. Suppress (cost: the variable is gone)
+%%|   and Generalize (dates to year, restricted ZIP prefixes to
+%%|   000, ages 90 and over pooled; cost: resolution) lead to a
+%%|   Safe Harbor table with a random study ID. Keyed hash
+%%|   (linkage preserved, but derived from the MRN) and Shift
+%%|   dates (intervals preserved, day-level detail retained) lead
+%%|   to a separate table that is de-identified only after an
+%%|   Expert Determination. Both tables lead to a residual-risk
+%%|   node noting that quasi-identifiers still combine and the
+%%|   result is not anonymous."
 %%| label: fig-deident-pipeline
-%%| fig-cap: "The four Safe Harbor transformations and what each
-%%|   gives up. Suppression loses the variable; generalization loses
-%%|   resolution; hashing keeps linkage but destroys the key; date
-%%|   shifting keeps within-patient intervals but destroys calendar
-%%|   time. What survives is not anonymous, only de-identified."
+%%| fig-cap: "Four disclosure-control transformations and the
+%%|   HIPAA pathway each belongs to. Suppression and generalization
+%%|   implement Safe Harbor (45 CFR 164.514(b)(2)). Keyed hashing
+%%|   and date shifting keep linkage and intervals, and with them
+%%|   detail that Safe Harbor forbids, so they require Expert
+%%|   Determination (164.514(b)(1)). What survives either route is
+%%|   not anonymous, only de-identified."
 flowchart LR
   P["PHI table<br/><i>name, MRN, DOB,<br/>admit date, ZIP</i>"]
-  P --> S["<b>Suppress</b><br/>name, phone, email<br/><i>cost: variable gone</i>"]
-  P --> G["<b>Generalize</b><br/>ZIP to 3 digits,<br/>age 90+ collapsed<br/><i>cost: resolution</i>"]
-  P --> H["<b>Hash</b><br/>MRN to salted digest<br/><i>cost: key unrecoverable,<br/>linkage preserved</i>"]
-  P --> D["<b>Shift dates</b><br/>per-patient offset<br/><i>cost: calendar time,<br/>intervals preserved</i>"]
-  S --> R["De-identified table"]
-  G --> R
-  H --> R
-  D --> R
-  R --> Q["<b>Residual risk</b><br/><i>quasi-identifiers still<br/>combine; not anonymous</i>"]
+  P --> S["<b>Suppress</b><br/>name, MRN, phone, email<br/><i>cost: variable gone</i>"]
+  P --> G["<b>Generalize</b><br/>dates to year, ZIP to 3 digits<br/>or 000, age 90+ pooled<br/><i>cost: resolution</i>"]
+  P --> H["<b>Keyed hash</b><br/>MRN to salted digest<br/><i>linkage preserved;<br/>derived from the MRN</i>"]
+  P --> D["<b>Shift dates</b><br/>per-patient offset<br/><i>intervals preserved;<br/>day-level detail kept</i>"]
+  S --> SH["<b>Safe Harbor table</b><br/>random study ID<br/><i>164.514(b)(2)</i>"]
+  G --> SH
+  H --> ED["<b>Expert Determination</b><br/>needed before release<br/><i>164.514(b)(1)</i>"]
+  D --> ED
+  SH --> Q["<b>Residual risk</b><br/><i>quasi-identifiers still<br/>combine; not anonymous</i>"]
+  ED --> Q
 ```
 
-## Applying Safe Harbor in R
+The shift must be one offset per patient, applied to all of that
+patient's dates. A different offset per row destroys the
+intervals the analysis needs; a single offset for the whole study
+preserves the calendar relationship between patients, so anyone
+who knows one true date can undo every shift.
 
-To make the transformations concrete, we build a small
-synthetic dataset carrying several identifiers and apply
-Safe Harbor to it. The data are fabricated; no real
-protected health information appears here.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A longitudinal analysis needs the number of days
+from discharge to each home-health visit. Which of the four
+transformations can deliver that, and what does choosing it
+commit the release to?
 
-```{r}
-#| label: deident-data
-#| message: false
-library(dplyr)
-
-set.seed(47)
-phi <- tibble(
-  name       = c("Ana Ruiz", "Ben Cole", "Cara Dey", "Dan Fox"),
-  mrn        = c("MRN-40021", "MRN-40022", "MRN-40023", "MRN-40024"),
-  dob        = as.Date(c("1948-03-11", "1971-09-02",
-                         "1933-12-19", "1960-06-30")),
-  admit_date = as.Date(c("2026-01-14", "2026-02-03",
-                         "2026-01-27", "2026-03-08")),
-  zip        = c("92037", "92093", "92037", "59001"),
-  sbp        = c(148, 152, 139, 145)
-)
-phi
-```
-
-The transformations: remove the direct identifiers, replace
-the medical record number with a salted hash, shift each
-patient's dates by a fixed per-patient random offset
-(preserving intervals while destroying the actual calendar
-dates), generalize ages above 89, and truncate the ZIP to its
-first three digits, suppressing prefixes from sparsely
-populated regions. The salted hash is what lets within-dataset
-linkage survive without the number itself.
-
-```{r}
-#| label: deident-transform
-salt <- "study-specific-secret-not-in-the-repo"
-
-# per-patient date offset: preserves intervals, hides calendar dates
-set.seed(1)
-offsets <- sample(-90:90, nrow(phi), replace = TRUE)
-
-# ZIP prefixes with population under 20,000 are suppressed by
-# Safe Harbor; here we treat 590 as such an example
-sparse_zip3 <- c("590", "036", "692", "878")
-
-deid <- phi |>
-  mutate(
-    subject_id = vapply(paste0(salt, mrn),
-                        function(x) substr(digest::digest(x, "sha256"),
-                                           1, 12),
-                        character(1)),
-    age        = as.integer(floor(
-                   as.numeric(admit_date - dob) / 365.25)),
-    age        = if_else(age > 89L, NA_integer_, age),  # 90+ suppressed
-    admit_day  = admit_date + offsets,                  # shifted
-    zip3       = substr(zip, 1, 3),
-    zip3       = if_else(zip3 %in% sparse_zip3, NA_character_, zip3)
-  ) |>
-  select(subject_id, age, admit_day, zip3, sbp)
-
-deid
-```
-
-Two features are worth noting. The `subject_id` is a
-one-way hash: the same medical record number always
-produces the same code, so a patient's visits still link,
-but the code cannot be reversed to recover the number,
-provided the salt is kept out of the repository. The date
-shift preserves the *interval* between a patient's
-admission and any other of their dates, which is what a
-longitudinal analysis needs, while destroying the actual
-admission day. What Safe Harbor does not do is guarantee
-that the surviving combination of age, region, and clinical
-values is unique to no one, which is the subject of the
-next section.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: is this anonymous?
-
-**Question.** After the transformation above, a colleague
-proposes releasing the de-identified table publicly,
-describing it as 'anonymous'. The dataset has four rows.
-What is your concern?
-
-**Answer.**
-
-On four rows, the combination of age, three-digit ZIP, and
-systolic blood pressure may still single out an individual
-to anyone who knows a patient was in the study, because
-each row is nearly unique on those quasi-identifiers. Safe
-Harbor removes the eighteen categories but does not certify
-that the remainder is non-unique; on small datasets the
-residual re-identification risk can be high. 'Anonymous'
-overstates what has been achieved. The honest description
-is 'de-identified under Safe Harbor', and a public release
-of a small dataset should be evaluated for
-re-identification risk (Expert Determination) rather than
-assumed safe.
-
+**Answer.** Only date shifting, applied with one offset per
+patient, keeps the intervals while hiding the calendar dates.
+Generalizing dates to the year destroys the intervals. Choosing
+the shift commits the release to Expert Determination, because a
+shifted date is still a full date, finer than the year Safe
+Harbor allows. The alternative that stays inside Safe Harbor is
+to compute the intervals before release and ship
+`days_to_visit` instead of any date, which works whenever the
+analysis plan names the intervals in advance.
 :::
 
-## Quasi-identifiers and residual risk
+## Obligations that survive de-identification {#sec-deident-obligations}
 
-A quasi-identifier is a variable that does not identify
-anyone alone but contributes to identification in
-combination: age, sex, ZIP, admission date, occupation,
-rare diagnosis. The formal tools for reasoning about their
-joint risk come from statistical disclosure control. The
-simplest is *k-anonymity*: a dataset is k-anonymous on a
-set of quasi-identifiers if every combination of their
-values that appears is shared by at least $k$ records, so
-that no individual is distinguishable from at least $k-1$
-others. Achieving a target $k$ is a matter of generalizing
-(coarsening age into bands, ZIP into prefixes) and
-suppressing (removing the rare rows) until the condition
-holds. Refinements such as l-diversity and t-closeness
-address weaknesses that k-anonymity alone does not, and the
-`sdcMicro` package implements these methods for R.
+De-identifying the data does not discharge every obligation. If
+the data arrived under a data use agreement, its terms bind you
+regardless of de-identification: a DUA commonly forbids any
+attempt at re-identification, restricts redistribution, and
+requires secure storage and eventual destruction. The case study
+of the Alzheimer's Disease Neuroimaging Initiative (ADNI) in
+@sec-adni turns on exactly such an agreement. Human-subjects
+protections, IRB conditions, and the promises made in the consent
+form persist as well. De-identification changes what the HIPAA
+Privacy Rule requires; it does not override a contract or a
+promise.
 
-The practical lesson is that de-identification is a
-risk-reduction exercise, not a binary state. The
-statistician's contribution is to quantify the residual
-risk and to match the transformation to the sensitivity of
-the data and the openness of the release.
+### Language models and protected data
 
-## Obligations that survive de-identification
+The same reasoning governs what you send to a language model.
+Send the model a schema, column names, or synthetic rows, never
+the protected health information itself, unless the deployment
+has been approved by your institution for that data under the
+agreement that governs it (the DUA, the IRB protocol, and any
+business associate agreement). Pasting real rows into a public
+chat interface is a disclosure, whatever the prompt asks. The
+rule is Habit 12, and @sec-ai-governance states it for the whole
+book.
 
-De-identifying the data does not discharge every
-obligation. If the data arrived under a data-use agreement,
-its terms bind you regardless of de-identification: a DUA
-commonly forbids any attempt at re-identification,
-restricts redistribution, and requires secure storage and
-eventual destruction. The ADNI case study in @sec-adni
-turns on exactly such an agreement. Human-subjects
-protections, institutional review board conditions, and
-the promises made in the consent form persist as well.
-De-identification changes what the HIPAA Privacy Rule
-requires; it does not override a contract or a promise.
+::: {.callout-important title='LLM prompt'}
+Use a model for a first pass over a schema, never as the
+compliance decision.
 
-## Collaborating with an LLM on de-identification
+> **Context.** Below is the column list of a clinical file, with
+> each column's type and a one-line description, taken from the
+> codebook. No data rows are included. [paste the `Column`,
+> `Type`, and `Description` table for `demographics.csv`]
+>
+> **Constraints.** Use the eighteen Safe Harbor categories of 45
+> CFR 164.514(b)(2) and nothing else. Do not propose code. Do not
+> call any hashed or date-shifted variable Safe Harbor.
+>
+> **Criteria.** For each column, return one row: the column name,
+> 'identifier', 'quasi-identifier', or 'neither', the Safe Harbor
+> category number if any, and the transformation (suppress or
+> generalize) Safe Harbor requires. List separately any column
+> whose description suggests free text.
 
-LLMs know the eighteen categories and can draft
-transformation code; the danger is treating their output
-as a compliance guarantee.
-
-**Prompt 1: auditing a schema.** Paste a list of column
-names and ask which correspond to Safe Harbor identifiers.
-
-*What to watch for.* The model will catch names and MRNs
-readily; it is less reliable on the subtle cases, dates,
-the ZIP exception, and free-text fields that may embed
-identifiers. Treat the output as a first pass, not a
-certification.
-
-*Verification.* Confirm against the official eighteen
-categories, and inspect any free-text field by hand, since
-a notes column can contain names the schema does not
-reveal.
-
-**Prompt 2: writing the transformation.** Describe the
-identifiers present and ask for R code to suppress,
-generalize, hash, and date-shift them.
-
-*What to watch for.* Whether the hash is salted and whether
-the salt is kept out of the repository; whether date
-shifting preserves within-patient intervals; whether ages
-over 89 are handled.
-
-*Verification.* Run the code on synthetic data; confirm no
-direct identifier survives and that within-patient linkage
-still works through the hash.
-
-## Principle in use
-
-Three habits keep the claim matched to the method:
-
-1. **Minimize at collection.** Collect age, not date of
-   birth; the three-digit ZIP, not the full one. The safest
-   identifier is the one you never held.
-2. **Reason about combinations.** Re-identification risk is
-   a property of the joint distribution of quasi-identifiers,
-   not of any single field.
-3. **Match the claim to the method.** 'De-identified under
-   Safe Harbor' is a defensible claim; 'anonymous' usually
-   is not. Honor the data-use agreement regardless.
-
-## Exercises
-
-1. Take the synthetic `phi` dataset from this chapter and
-   add a free-text `notes` column containing a sentence
-   that mentions a patient's name. Write code that detects
-   and flags the identifier in the free text; explain why
-   this is harder than handling a structured column.
-2. Construct a synthetic dataset of 200 patients with age,
-   sex, and three-digit ZIP. Compute the largest $k$ for
-   which the dataset is k-anonymous on those three
-   quasi-identifiers. Generalize age into decade bands and
-   recompute; by how much does $k$ improve?
-3. Implement date shifting that preserves within-patient
-   intervals but uses a different random offset per patient.
-   Verify on synthetic data that the interval between two
-   of a patient's dates is unchanged while the calendar
-   dates differ.
-
-**Writing and recall.** No answer key; these are prose and
-memory rather than computation.
-
-4. Enumerate the eighteen Safe Harbor identifiers from
-   memory, then check your list against the official one.
-   Which did you miss?
-5. Explain, in a paragraph suitable for a data-management
-   plan, why a salted hash of the medical record number is
-   preferable to either keeping the number or dropping the
-   ability to link visits.
-
-::: {.callout-tip icon=false collapse=true}
-## Solutions to exercises 1 to 3
-
-**1. Finding an identifier in free text.**
-
-```{r}
-#| label: soln-02b-1
-notes <- c(
-  "Ana Ruiz presented with headache; BP elevated.",
-  "Patient reports improvement since last visit.",
-  "Discussed results with Mr. Cole and his daughter.",
-  "Referred to cardiology."
-)
-phi_notes <- phi |> mutate(notes = notes)
-
-# a name dictionary built from the structured column
-known <- unlist(strsplit(phi$name, " "))
-pattern <- paste0("\\b(", paste(known, collapse = "|"), ")\\b")
-
-phi_notes |>
-  mutate(flagged = stringr::str_extract_all(notes, pattern)) |>
-  select(name, notes, flagged)
-```
-
-The dictionary catches `Ana Ruiz` and `Cole`, and that is
-the whole lesson. It works only because the names were
-already in a structured column of the same table. A note
-mentioning a relative, a referring physician, an employer,
-or a patient whose name is spelled differently from the
-registry is invisible to it, and a note reading 'the
-patient's daughter Sarah' contains an identifier this
-approach cannot see at all.
-
-A structured column has a fixed domain: every value in
-`mrn` is a medical record number, so a single rule handles
-all of them. Free text has no domain. Detection becomes a
-recall problem with no upper bound, which is why
-regulated workflows tend to suppress free text entirely
-rather than attempt to clean it.
-
-**2. k-anonymity, before and after generalization.**
-
-```{r}
-#| label: soln-02b-2
-set.seed(52)
-n <- 200
-quasi <- tibble(
-  age  = as.integer(round(rnorm(n, 62, 14))),
-  sex  = sample(c("M", "F"), n, replace = TRUE),
-  zip3 = sample(c("920", "921", "922"), n, replace = TRUE)
-)
-
-k_of <- function(d) d |> count(across(everything())) |>
-                    pull(n) |> min()
-
-c(
-  raw          = k_of(quasi),
-  decade_bands = k_of(mutate(quasi,
-                    age = cut(age, seq(20, 100, by = 10),
-                              right = FALSE))),
-  top_bottom   = k_of(mutate(quasi,
-                    age = cut(age, c(-Inf, 50, 60, 70, 80, Inf)))),
-  two_bands    = k_of(mutate(quasi,
-                    age = cut(age, c(-Inf, 60, Inf)))),
-  drop_zip     = k_of(mutate(quasi,
-                    age = cut(age, c(-Inf, 60, Inf))) |>
-                    select(-zip3))
-)
-```
-
-The interesting result is how little the obvious step
-helps. With exact ages the dataset is 1-anonymous: someone
-is unique on the three fields together, so releasing it
-releases them. Banding age into decades leaves $k$ at 1.
-So does top-and-bottom coding the tails. Only collapsing
-age to two bands moves $k$ to 10, and dropping the ZIP
-entirely takes it to 37.
-
-The reason is that $k$ is a *minimum*, not an average.
-With 200 patients, decade bands give roughly 48 cells and
-about four people each on average, which sounds
-comfortable, and the average is irrelevant. One
-combination in the sparse tail, an 87-year-old man in
-`922`, has a single occupant, and that one cell sets $k$
-for the whole dataset. Generalization improves $k$ only
-when it fixes the specific rarest cell, so the useful
-question is never 'how coarse are my bands' but 'who is
-alone'.
-
-That is also why $k$ falls so sharply as quasi-identifiers
-accumulate: each additional field multiplies the number of
-cells while the sample stays fixed. Two cautions follow. A
-higher $k$ is not a guarantee, since it says nothing about
-whether the sensitive value is constant within a cell,
-which is what l-diversity addresses. And each of these
-steps costs analytic resolution, so the last row is not a
-recommendation, only the arithmetic.
-
-**3. Per-patient date shifting, and the interval check.**
-
-```{r}
-#| label: soln-02b-3
-set.seed(53)
-longitudinal <- tibble(
-  patient_id = rep(c("P1", "P2"), each = 3),
-  event      = rep(c("admit", "surgery", "discharge"), 2),
-  date       = as.Date(c("2026-01-14", "2026-01-17", "2026-01-22",
-                         "2026-02-03", "2026-02-05", "2026-02-11"))
-)
-
-offsets <- tibble(
-  patient_id = c("P1", "P2"),
-  offset     = sample(-90:90, 2)
-)
-
-shifted <- longitudinal |>
-  left_join(offsets, by = "patient_id") |>
-  mutate(date_shifted = date + offset)
-
-# intervals within a patient are unchanged
-intervals <- shifted |>
-  group_by(patient_id) |>
-  summarize(
-    orig    = as.numeric(max(date) - min(date)),
-    shifted = as.numeric(max(date_shifted) - min(date_shifted)),
-    .groups = "drop")
-
-intervals
-stopifnot(identical(intervals$orig, intervals$shifted))
-
-# calendar dates differ
-stopifnot(!any(shifted$date == shifted$date_shifted))
-```
-
-The offset must be per patient, not per row: a per-row
-offset would destroy the intervals the analysis needs, and
-a single study-wide offset would preserve the calendar
-relationship between patients, so anyone knowing one
-admission date could recover all the others.
-
-Note also what the shift does *not* protect. Season
-survives, so a study of influenza admissions still leaks
-approximate time of year, and an offset drawn from a range
-of 90 days is recoverable in expectation if an adversary
-knows even one true date for one patient.
+*Failure mode.* Models catch names and record numbers readily and
+miss the subtle cases: a date column whose name does not say
+'date', the 90-and-over rule, the restricted ZIP prefixes, and
+free-text fields that embed names. *Check.* Write your own
+classification first, as in exercise 1 above, and compare the
+two with `setdiff()` in both directions; resolve every
+disagreement against the regulation, not against either list.
+Inspect any free-text column by hand.
 :::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague de-identifies a DUA-restricted dataset
+to Safe Harbor and proposes posting it to a public repository,
+since de-identified data are no longer PHI. What do you check
+first?
+
+**Answer.** The DUA. De-identification changes what HIPAA
+requires of the data; it does not release you from the contract
+under which you received them, and most DUAs restrict
+redistribution whatever the form of the data. Check the consent
+form as well: participants who were told their data would be
+shared only with named investigators were made a promise that
+de-identification does not cancel.
+:::
+
+::: {.callout-warning title='Ethics'}
+Meeting a HIPAA pathway answers whether a release is legal, not
+whether it is harmless. A dataset can be de-identified and still
+expose a small community, or combine with another source to
+single someone out. @sec-ethics-floor and
+@sec-ethics-aggregation take up what compliance leaves open.
+:::
+
+## Rules of thumb
+
+1. **Habit 2: raw data are evidence; derived data are a build
+   product.** Collect only the identifiers the analysis needs, and
+   treat every release as a product built from the untouched raw
+   file, never as an edit of it.
+2. **Habit 5: pre-specify, then tag.** Decide the pathway, and
+   the intervals the analysis needs, before the release is built;
+   intervals named in advance can be computed and shipped inside
+   Safe Harbor.
+3. **Habit 12: send the model structure, not data.** A schema
+   may go to any approved tool; PHI goes only where the governing
+   agreement allows, and often nowhere.
+
+## Cumulative practice
+
+3. *Cumulative (uses @sec-why and @sec-team-science).* A
+   collaborator asks at intake for 'the de-identified data, with
+   the dates'. Write the reply: name the pathway that keeps dates
+   and what it requires, the pathway that removes them, and the
+   question about the analysis that decides between them.
+
+::: {.callout-note collapse='true' title='Solution'}
+A model reply: 'De-identified data cannot keep full dates under
+Safe Harbor, which allows only the year. There are three ways
+forward. If the analysis needs only intervals, such as days from
+discharge to each visit, we can compute them before release and
+stay within Safe Harbor. If it needs the dates themselves, a
+limited data set keeps them, but it is still PHI and requires a
+data use agreement that forbids re-identification and contact.
+Shifted dates that keep intervals are possible only under an
+Expert Determination. Which quantities in the analysis plan use
+dates, and do any of them need the calendar date rather than an
+interval?' The reply turns a request for a label into a question
+about the analysis, the intake conversation of @sec-team-science-intake, and
+it promises nothing that the data or the agreements cannot
+deliver.
+:::
+
+4. *On your own work (no key).* Take a dataset you hold that
+   contains people. Classify every column as a Safe Harbor
+   identifier, a quasi-identifier, or neither, and say which
+   pathway a release of it would need. Do this on a secure system
+   approved for the data.
+
+## Cheat sheet
+
+| Decision | Rule | Guards against |
+|---|---|---|
+| Dates under Safe Harbor | Year only; ages over 89 pooled as '90+', with their birth year removed | Day-level dates; identifying the very old |
+| ZIP codes under Safe Harbor | First three digits; `000` where the area has 20,000 or fewer people | Small-area identification |
+| A linkage key | Random study ID, crosswalk held back (164.514(c)); a hash of the MRN remains an identifier | A derived re-identification code |
+| Intervals needed | Compute them before release, or shift dates per patient under Expert Determination | Losing the analysis, or a full date under a Safe Harbor label |
+| Dates needed | A limited data set under a DUA; it is still PHI | Treating a limited data set as de-identified |
+| Data received under a DUA | Its terms bind after de-identification | Redistribution the agreement forbids |
+| A language model | Schema and synthetic rows only (@sec-ai-governance) | Disclosure in a prompt |
+
+: De-identification decisions at a glance. The code for each is
+in @tbl-deident-cheat-sheet. {#tbl-deident-concepts-cheat-sheet}
 
 ## Further reading
 
-- [@hhs2012deident], the authoritative HHS guidance on
-  Safe Harbor and Expert Determination.
-- [@templ2015sdcmicro], the `sdcMicro` package, for
-  k-anonymity and statistical disclosure control in R.
-- [@elemam2013anonymizing], *Anonymizing Health Data*,
-  a practical book-length treatment.
-- @sec-federal on the federal data-sharing requirements
-  that de-identification enables.
+- [@hhs2012deident], the authoritative HHS guidance on Safe
+  Harbor and Expert Determination, including how to find the
+  restricted ZIP prefixes.
+- [@elemam2013anonymizing], *Anonymizing Health Data*, a
+  practical book-length treatment.
 
 ## Prerequisites answers {#sec-quiz-answers-02b}
 
 1. Safe Harbor removes eighteen specified categories of
-   identifier; it is mechanical and checkable but blunt.
-   Expert Determination has a qualified statistician certify,
-   by accepted methods, that the re-identification risk is
-   very small; it is more flexible and can retain more
-   analytic detail but requires documented statistical
-   judgment.
-2. Names and medical record numbers are direct identifiers,
-   but the ordinary variables that remain, age, ZIP,
-   admission date, sex, so-called quasi-identifiers, can
-   identify an individual in combination even though none
-   does alone. The classic result is that ZIP, date of
-   birth, and sex together are unique for a large share of
-   the population.
+   identifier; it is mechanical and checkable but blunt. Expert
+   Determination has a qualified statistician certify, by
+   accepted methods, that the re-identification risk is very
+   small; it is more flexible and can retain more analytic detail
+   but requires documented statistical judgment.
+2. Names and medical record numbers are direct identifiers, but
+   the ordinary variables that remain, age, ZIP, admission date,
+   sex, so-called quasi-identifiers, can identify an individual
+   in combination even though none does alone. The classic result
+   is that ZIP, date of birth, and sex together are unique for a
+   large share of the population.
 3. De-identification reduces re-identification risk under a
-   defined method (such as Safe Harbor) but does not
-   guarantee anonymity; the residual risk may be
-   non-trivial, especially on small datasets. Anonymization
-   implies re-identification is effectively impossible. The
-   distinction matters because you may only promise a
-   participant what the data actually deliver, and because a
-   retained crosswalk makes data 'coded', not
-   de-identified.
+   defined method (such as Safe Harbor) but does not guarantee
+   anonymity; the residual risk may be non-trivial, especially on
+   small datasets. Anonymization implies re-identification is
+   effectively impossible. The distinction matters because you
+   may only promise a participant what the data actually deliver,
+   and because a retained crosswalk means someone can re-identify
+   them. HIPAA permits the covered entity to keep a
+   re-identification code under 45 CFR 164.514(c), but such data
+   are 'coded' in the Common Rule sense and are never anonymous.

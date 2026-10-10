@@ -1,0 +1,158 @@
+# Tooling as of October 2026 {#sec-tooling}
+
+::: {.callout-note}
+## Why this appendix exists
+
+This appendix is dated, and it is meant to be replaced. It holds
+the perishable half of @sec-ai-coding: the `ellmer` interface for
+calling a model from R, the model identifier, the names of the
+coding agents in common use, and the `btw` and Model Context
+Protocol (MCP) setup, each as it stood in October 2026. Package
+interfaces, product names, and model identifiers change on a
+schedule of months, so the chapter keeps the durable practice
+(the four Cs, the failure modes, governance, and provenance) and
+sends the reader here for the commands. When the commands below
+stop working, rewrite this appendix against the current
+documentation; nothing in the chapter should need to change.
+:::
+
+## Models and agents from R {#sec-ai-tooling}
+
+Everything in this section is perishable: package interfaces,
+product names, and model identifiers change on a schedule of
+months. @sec-ai-coding does not depend on it, and every rule of
+@sec-ai-governance applies to each tool below.
+
+### Calling a model from R with `ellmer`
+
+`ellmer` [@wickham2026ellmer], from Posit, provides an R interface
+to LLM APIs (application programming interfaces). A prompt in a
+script is versionable, where a copy-paste from a chat window is
+not; an LLM call can sit inside an R function that takes input
+from your pipeline and returns output to it; and `ellmer` supports
+tool use (the model calls R functions you provide), structured
+output (validated against a schema), and streaming. Display-only,
+because it needs an API key:
+
+```r
+install.packages("ellmer")
+library(ellmer)
+
+# model identifiers are retired on a schedule: this one was current
+# as of October 2026; models_anthropic() lists what is available now
+model_id <- "claude-opus-5-5"
+chat <- chat_anthropic(model = model_id)
+# or chat_openai(), chat_google_gemini(), chat_ollama() for local
+
+chat$chat("Translate this regex to plain English: '^\\d{3}-\\d{2}-\\d{4}$'")
+chat$chat("What about variants with no separator?")
+
+# stream() returns a generator, consumed chunk by chunk
+stream <- chat$stream("Long analysis...")
+coro::loop(for (chunk in stream) cat(chunk))
+```
+
+Older code and tutorials call `chat_claude()`; current `ellmer`
+names the function `chat_anthropic()`, after the provider rather
+than the model family. Keep the model identifier in one variable,
+as here, and record its value alongside your results: a script
+that names a retired model stops running, and a result produced by
+an unrecorded model cannot be reproduced.
+
+Set the API key once, in a project-local `.Renviron` that is listed
+in `.gitignore` and never committed (display-only):
+
+```bash
+ANTHROPIC_API_KEY=<your key>
+OPENAI_API_KEY=<your key>
+```
+
+Restart R, and `ellmer` reads the variables automatically.
+
+A short worked example: a function that asks a model to explain
+another function and list its unhandled edge cases (display-only).
+
+```r
+explain_function <- function(fn, model_id) {
+  prompt <- paste0(
+    "Explain in one paragraph what this R function does, ",
+    "and identify any bugs or edge cases it does not handle:\n\n",
+    paste(deparse(fn), collapse = "\n")
+  )
+  chat <- chat_anthropic(model = model_id)
+  chat$chat(prompt)
+}
+
+explain_function(function(x) {
+  x |> filter(!is.na(value)) |> summarize(mean = mean(value))
+}, model_id = model_id)
+```
+
+The function sends code, not data. Its output is a starting point
+for review, checked against your own reading.
+
+### Coding agents
+
+An interactive coding agent gives the model direct file-edit and
+shell access: it reads files, makes targeted edits, runs the
+tests, and iterates on the output. As of October 2026 the common
+ones are Claude Code, Codex CLI, Gemini CLI, and GitHub Copilot CLI
+in the terminal (CLI, command-line interface), and Cursor and
+Positron Assistant in the IDE (integrated development environment).
+Reach for one for multi-file refactors where the model needs the
+whole project, for iterative debugging where it needs to run the
+code and observe failures, and for large tasks where copy-paste
+would be tedious. Use a chat window for quick lookups, and write
+the code yourself where you want control of every edit. An agent
+is more capable and more dangerous than a chat window, and every
+rule in @sec-ai-governance applies to it.
+
+### Live documentation with `btw`
+
+The `btw` package gives a model the documentation of your
+installed packages and a view of the R session, either by copying
+that context for a chat window or as an MCP server that an agent
+calls. As of October 2026 the setup is as follows (display-only;
+check the package README, because these interfaces change):
+
+```r
+install.packages("btw")
+btw::btw("{dplyr}", "?dplyr::left_join", trial)
+```
+
+```bash
+claude mcp add -s user r-btw -- Rscript -e "btw::btw_mcp_server()"
+```
+
+The first call gathers a package overview, a help page, and a
+description of a data frame for pasting into a chat; the second
+registers `btw`'s MCP server with Claude Code, and other agents
+have equivalent commands. A description of a data frame includes
+values from it, so the governance rules apply to what `btw` sends:
+point it at synthetic data.
+
+### Exercises
+
+1. Write a function of under 20 lines that uses
+   `chat_anthropic()` to summarize a block of R code passed as a
+   string, with the model identifier as an argument and the
+   provenance (model, date) attached to the result.
+
+::: {.callout-note collapse='true' title='Solution'}
+```r
+summarize_code <- function(code, model_id) {
+  chat <- ellmer::chat_anthropic(model = model_id)
+  reply <- chat$chat(paste0(
+    "Summarize what this R code does in three sentences. ",
+    "Do not suggest changes.\n\n", code
+  ))
+  structure(reply, model = model_id, date = Sys.Date())
+}
+```
+
+The identifier is an argument rather than a string inside the
+function, so it is set and recorded in one place, and the
+attributes carry the provenance with the result. The function
+sends code only; pass it nothing that contains data.
+:::
+

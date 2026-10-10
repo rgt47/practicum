@@ -1,5 +1,18 @@
 # Docker for Reproducibility {#sec-docker}
 
+Two analysts ran the same bootstrap script, from the same commit
+and with the same seed, and reported different confidence
+intervals for the same trial. Neither had made an error. One
+machine ran R 3.5 and the other R 3.6, and R 3.6.0 changed the
+algorithm `sample()` uses to draw integers, so the same seed
+produced different resamples. The difference sat in the second
+decimal place, small enough to pass for rounding and large enough
+to change a table a reviewer had already seen. `renv` could not
+have caught it, because no package changed; the R build beneath
+the packages did. A container fixes R, the system libraries, and
+the operating system along with the packages, so that the same
+code gives the same number on every machine that runs the image.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
@@ -12,240 +25,412 @@
 ```
 :::
 
-::: {.callout-note}
-## Sources
+```{r}
+#| label: docker-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-Blog posts `32-sharermdcodeviadocker`,
-`33-shareshinycodeviadocker`; the `rocker` project;
-the author's own Docker + `renv` demo materials.
+```{r}
+#| label: fig-docker-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: Docker pins the whole
+#|   Environment band (operating system, system libraries, R, and,
+#|   through renv, the packages) under every stage of the analysis."
+#| fig-alt: !expr pipeline_alt('environment')
+pipeline_diagram('environment')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 25 minutes.
+
+**You'll need.** @sec-renv for the lockfile, and Docker Desktop
+(or Docker Engine on Linux) installed. The one executed example
+uses base R and the HF-HOME files; every Docker command is
+display-only, because the book does not run Docker when it
+renders.
+
+**You'll be able to.**
+
+- Explain what a container pins that `renv` does not, and show a
+  number that changes with the R version alone.
+- Write a Dockerfile whose layers cache correctly, with a
+  digest-pinned base image and a `.dockerignore`, and confirm both
+  from the build output.
+- Run RStudio Server in a container reachable only from your own
+  machine.
+- Archive a built image so that a reader can run it after the
+  registry and the base image have moved on.
+
+**Outline.**
+
+- [Images, containers, and layers](#sec-docker-model)
+- [Choosing and pinning a base image](#sec-docker-rocker)
+- [A research-compendium Dockerfile](#sec-docker-canonical)
+- [Interactive and multi-service containers](#sec-docker-rstudio)
+- [Sharing and archiving an image](#sec-docker-sharing)
+- [Diagnosing build failures](#sec-docker-failures)
+- [Worked example: a dockerized compendium](#sec-docker-worked)
 :::
 
-## Prerequisites
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-09.
 
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-09.
+1. What is the difference between a Docker image and a Docker
+   container?
+2. Why might a data analyst prefer Docker over `renv` for
+   long-term reproducibility, and what does Docker capture that
+   `renv` alone does not?
+3. What does the base image `rocker/tidyverse:4.4.0` give you out
+   of the box?
+:::
 
-1. What is the difference between a Docker image and a
-   Docker container?
-2. Why might a data analyst prefer Docker over `renv`
-   for long-term reproducibility, and what does Docker
-   capture that `renv` alone does not?
-3. What does the base image `rocker/tidyverse:4.4.0`
-   give you out of the box?
+## Images, containers, and layers {#sec-docker-model}
 
-## Learning objectives
+### What `renv` leaves out
 
-By the end of this chapter you should be able to:
-
-- Pull a `rocker` base image and start an R session
-  inside a container.
-- Write a `Dockerfile` that layers system dependencies,
-  R packages via `renv`, and your project source, in
-  build-cache-friendly order.
-- Run RStudio Server in a container accessible from a
-  browser.
-- Use Docker Compose for multi-service analyses (R +
-  database, R + Shiny).
-- Deposit a built image in Docker Hub or GitHub
-  Container Registry for persistent distribution.
-- Diagnose common Docker build failures (missing
-  system libraries, slow rebuilds, image bloat).
-
-## Orientation
-
-The previous chapter left a gap and did not dwell on it.
 `renv` pins the R packages, and R packages are not the whole
-environment. Beneath them sit the system libraries they compile
-against, the R build itself, and the operating system beneath
-that, none of which the lockfile records. Most of the time this
-does not matter. That is precisely why it is easy to overlook.
-The gap stays invisible until an analysis depends on a linear
-algebra library that computes eigenvalues in a marginally
-different order. It also stays invisible until an analysis
-depends on a geospatial stack that is not installed on the
-reviewer's machine at all.
+environment. Beneath them sit the R build itself, the system
+libraries packages compile against, and the operating system
+(OS), none of which the lockfile installs. Most of the time this
+does not matter, which is exactly why it is easy to overlook. The
+chunk below reproduces the opening on the HF-HOME trial: it
+bootstraps the 30-day risk difference, in percentage points, with
+the same seed under the integer sampler R used before version 3.6.0
+and the one it has used since.
 
-Docker closes the gap by specifying the whole stack rather than
-the top of it. The cost is a second technology to learn and a
-build step to wait for. This chapter takes the position that the
-cost is worth paying for work that must reproduce years later,
-and worth paying for work that depends on system libraries at
-all. It is not worth paying for a self-contained analysis that
-will be finished this quarter.
+```{r}
+#| label: docker-same-code
+hf_dir <- file.path('..', 'data', 'raw_data', 'hfhome')
+rand <- read.csv(file.path(hf_dir, 'randomization.csv'),
+                 colClasses = c(patient_id = 'character'))
+outc <- read.csv(file.path(hf_dir, 'outcomes.csv'),
+                 colClasses = c(patient_id = 'character'))
+hf <- merge(rand[c('patient_id', 'arm')],
+            outc[c('patient_id', 'event_30d')], by = 'patient_id')
+stopifnot(nrow(hf) == nrow(rand))
+hf <- hf[!is.na(hf$event_30d), ]
+usual <- hf$event_30d[hf$arm == 'Usual care']
+home <- hf$event_30d[hf$arm == 'Home health']
 
-The `rocker` project [@boettiger2017rocker] provides
-curated Docker images for R: minimal R, R with
-tidyverse, R with geospatial libraries, RStudio Server,
-and others. They are the foundation for almost all
-R-in-Docker work. The case for containers in research
-computing specifically was made by Boettiger
-[-@boettiger2015introduction], and it is the argument
-this chapter assumes.
+boot_rd <- function(sample_kind, reps = 2000, seed = 2019) {
+  old <- RNGkind()
+  on.exit(RNGkind(old[1], old[2], old[3]))
+  suppressWarnings(RNGkind(sample.kind = sample_kind))
+  set.seed(seed)
+  rd <- replicate(reps, {
+    mean(sample(usual, replace = TRUE)) -
+      mean(sample(home, replace = TRUE))
+  })
+  100 * quantile(rd, c(0.025, 0.975))
+}
 
-This chapter does not assume prior Docker experience.
-The mental model and the canonical recipes are enough
-for most biostatistical workflows.
+intervals <- rbind(r_before_3_6 = boot_rd('Rounding'),
+                   r_3_6_and_later = boot_rd('Rejection'))
+round(intervals, 2)
+```
 
-## The statistician's contribution {#sec-docker-human}
+Same data, same seed, same resampling code, and only the sampler
+differs, as it does between R 3.5 and any R since 3.6.0: the lower
+bound moves from
+`r sprintf('%.2f', intervals[1, 1])` to
+`r sprintf('%.2f', intervals[2, 1])`. Both intervals include zero,
+as the trial's result is inconclusive, but a reader comparing your
+table with a rerun sees two different numbers and no explanation.
+The `sample.kind` argument lets one R imitate the other here; a
+change in a system linear-algebra library offers no such switch,
+and it can move the last digits of a regression coefficient
+between two machines with identical lockfiles. Docker closes the
+gap by specifying the whole stack rather than its top layer.
 
-Building an image is a matter of following a recipe.
-Whether the image is a reproducibility instrument or an
-expensive way to run R depends on choices the Dockerfile
-makes silently:
+The cost is a second technology to learn and a build step to wait
+for. It is worth paying for work that must reproduce years later,
+and for work that depends on system libraries at all. It is not
+worth paying for a self-contained analysis that will be finished
+this quarter. The case for containers in research computing was
+made by Boettiger [-@boettiger2015introduction], and it is the
+argument this chapter assumes.
 
-**Pick the right base image.** `rocker/r-ver:4.4.0` is
-minimal: a few hundred MB. `rocker/tidyverse:4.4.0`
-adds tidyverse (faster startup if your project uses it,
-larger image). `rocker/geospatial:4.4.0` adds GDAL,
-PROJ, and CRS libraries (essential for geospatial work,
-overkill otherwise). Pick the smallest base that has
-your prerequisites.
+### The mental model
 
-**Layer order matters.** Docker caches each `RUN`
-layer. Put slow-changing layers (system dependencies,
-`renv::restore()`) early, fast-changing layers (project
-source) late. A change to your analysis script should
-not invalidate the package-installation layer.
+| Term | What it is | What follows |
+|---|---|---|
+| Image | An immutable, read-only template: OS, system libraries, R, packages, code | The artifact you build, share, and archive |
+| Container | A running instance of an image, with a writable layer on top | Changes made inside it vanish when it is removed |
+| Layer | The result of one `RUN`, `COPY`, or `ADD` instruction | Cached and reused, which is why order matters |
+| Registry | A server that stores images (Docker Hub, GitHub Container Registry) | Hosting, not archiving (@sec-docker-sharing) |
+| Tag | A movable name for an image, such as `4.4.0` | Can be rebuilt to point at different bytes |
+| Digest | The content hash of an image, `sha256:...` | The only identifier that cannot move |
 
-**Pin everything.** `FROM rocker/r-ver:4.4.0` is good;
-`FROM rocker/r-ver:latest` is bad. The first reproduces;
-the second drifts. The same applies to system packages
-(`apt-get install r-base`): pin versions in the
-Dockerfile or accept that 'latest' will eventually
-break.
+: Docker's vocabulary. {#tbl-docker-terms}
 
-**Decide where the data goes.** Embedding data in the
-image makes the image self-contained but bloats it.
-Mounting data via a volume keeps the image small but
-breaks the 'one image, full reproduction' promise. For
-small data, embed; for large or sensitive data, mount.
+On an Apple Silicon Mac, add `--platform linux/amd64` to every
+`docker pull`, `docker run`, and `docker build`. Many R images
+and binary package repositories target x86_64 only, and an image
+built for arm64 will not run on a typical Linux server; see
+@tbl-docker-failures. Every command in this chapter carries the
+flag, which costs nothing on an Intel machine.
 
-These judgments are what make Docker a reproducibility
-tool rather than a slow build system.
-
-## Images, containers, and layers
-
-The Docker mental model:
-
-- **Image**: an immutable, read-only template. Contains
-  an OS, system libraries, application code,
-  configuration. Stored on disk as a stack of *layers*.
-- **Container**: a running instance of an image. Adds a
-  writable layer on top of the image's layers; the
-  container's filesystem changes do not modify the
-  image.
-- **Layer**: each `RUN` / `COPY` / `ADD` instruction in a
-  Dockerfile produces a layer. Layers are cached;
-  rebuilds reuse unchanged layers, which is why layer
-  order matters for build speed.
-- **Registry**: a server that stores images. Docker Hub
-  is the public default; GitHub Container Registry, AWS
-  ECR, and others are alternatives.
-
-Common operations:
+The everyday commands (display-only):
 
 ```bash
-# pull an image
-docker pull rocker/tidyverse:4.4.0
-
-# run a container interactively
-docker run -it --rm rocker/tidyverse:4.4.0 R
-
-# run a container with a mounted volume
-docker run -it --rm -v $(pwd):/work \
-  rocker/tidyverse:4.4.0 R
-
-# build an image from a Dockerfile in the current directory
-docker build -t my-analysis:v1.0 .
-
-# list local images
-docker images
-
-# remove an image
-docker rmi my-analysis:v1.0
+docker pull --platform linux/amd64 rocker/r-ver:4.4.0
+docker run -it --rm --platform linux/amd64 rocker/r-ver:4.4.0 R
+docker run -it --rm --platform linux/amd64 -v "$(pwd)":/work \
+  rocker/r-ver:4.4.0 R               # with the project mounted
+docker build --platform linux/amd64 -t my-analysis:v1.0 .
+docker images                        # list local images
+docker rmi my-analysis:v1.0          # remove an image
 ```
 
-The `--rm` flag removes the container when it exits;
-without it, stopped containers accumulate.
+The `--rm` flag removes the container when it exits; without it,
+stopped containers accumulate.
 
-## The `rocker` project
+::: {.callout-tip title='Verification'}
+Confirm that the image gives you the R and the OS you expect,
+whatever your laptop runs:
 
-[`rocker-project.org`](https://rocker-project.org/)
-maintains the standard R Docker images:
+```bash
+docker run --rm --platform linux/amd64 rocker/r-ver:4.4.0 R --version
+docker run --rm --platform linux/amd64 rocker/r-ver:4.4.0 \
+  grep PRETTY /etc/os-release
+```
 
-- **`rocker/r-ver`**: minimal R on Debian. Smallest
-  image; useful as a base for `renv`-based projects
-  where you install everything yourself.
-- **`rocker/rstudio`**: R plus RStudio Server. For
-  interactive use in the browser.
-- **`rocker/tidyverse`**: R, RStudio, and the tidyverse.
-  Most common starting point for biostatistical work.
-- **`rocker/geospatial`**: tidyverse plus GDAL/PROJ for
-  spatial analysis.
-- **`rocker/verse`**: tidyverse plus LaTeX for paper
-  rendering.
-- **`rocker/binder`**: configured for use with the
-  Binder service (myBinder.org).
-- **`bioconductor/bioconductor_docker`**: similar
-  ecosystem for genomics/Bioconductor.
+The first should begin `R version 4.4.0`, and the second should
+name Ubuntu 22.04 LTS (long-term support), the base of the
+`rocker/r-ver` 4.4 images. If you see your laptop's R version,
+you ran R outside the container.
+:::
 
-Each image is tagged with R version (e.g.,
-`rocker/tidyverse:4.4.0`) and built reproducibly from
-public Dockerfiles. Pinning a tag pins the
-environment.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You build an image `readmissions:v1.0`, run a
+container from it, install a new R package inside the running
+container, then exit. Is the package available the next time you
+run a container from the same image?
 
-## A research-compendium Dockerfile
+**Answer.** No. The image is immutable; changes inside a container
+live only in its writable layer, which is discarded when the
+container is removed (at exit, with `--rm`). To add the package
+permanently, install it in the project, snapshot `renv.lock`, and
+rebuild the image. This is the discipline that makes Docker a
+reproducibility tool: changes happen in the Dockerfile and the
+lockfile, in version control, never in running containers. 'Works
+on my machine' becomes 'works on this image, which everyone has'.
+:::
+
+## Choosing and pinning a base image {#sec-docker-rocker}
+
+### The `rocker` images
+
+The `rocker` project [@boettiger2017rocker] maintains the standard
+R images at [rocker-project.org](https://rocker-project.org/).
+Each builds on the one before it and is tagged with its R version:
+
+| Image | Adds | Use when |
+|---|---|---|
+| `rocker/r-ver` | R on Ubuntu LTS (about 0.8 GB) | `renv`-based projects that install their own packages; continuous integration |
+| `rocker/rstudio` | RStudio Server | Interactive work in a browser |
+| `rocker/tidyverse` | The tidyverse and common dependencies (about 3 GB) | Teaching, and quick starts where most projects use the tidyverse |
+| `rocker/verse` | TeX and publishing tools | Rendering PDF documents |
+| `rocker/geospatial` | GDAL, GEOS, and PROJ, the spatial system libraries | Spatial analysis |
+| `bioconductor/bioconductor_docker` | Bioconductor's toolchain | Genomics |
+
+: Base images for R. Sizes are approximate and uncompressed, as
+observed for recent tags. {#tbl-docker-rocker}
+
+Pick the smallest base that has your prerequisites. A larger base
+is convenient during development and costs build time, disk, and
+a larger surface of things that can change underneath you. For a
+compendium whose packages are pinned by `renv`, `rocker/r-ver` is
+the right base: the lockfile, not the image, decides the
+packages.
+
+### Tags, digests, and what each pins
+
+`FROM rocker/r-ver:4.4.0` pins the R version; `FROM
+rocker/r-ver:latest` drifts. Neither pins the bytes. Only a digest
+does:
 
 ```dockerfile
-# pin to a specific R version (and rocker tag)
-FROM rocker/r-ver:4.4.0
-
-# system libraries that R packages need
-# (curl/openssl/xml2 covers most CRAN packages)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    libxml2-dev \
-    libfontconfig1-dev \
-    libfreetype6-dev \
-    libpng-dev \
-    libtiff5-dev \
-    libjpeg-dev \
-    pandoc \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# install renv (a known version)
-RUN R -e 'install.packages("renv", \
-  repos = "https://cloud.r-project.org", version = "1.0.7")'
-
-# restore project packages from lockfile
-WORKDIR /work
-COPY renv.lock renv.lock
-RUN R -e 'renv::restore()'
-
-# copy the project source AFTER package install (cache friendly)
-COPY . /work
-
-# default command: render the paper
-CMD ["R", "-e", "rmarkdown::render('analysis/paper/paper.qmd')"]
+FROM rocker/r-ver:4.4.0@sha256:73adabf378930f8744f56bac1fe5e99870532eb4ced1a15075991bac909d21f3
 ```
 
-The order matters: lockfile, then renv install, then
-project source. @fig-docker-layers shows why. Docker
-caches each layer and reuses it on the next build unless
-that layer or something above it has changed. Copying the
-lockfile and restoring packages *before* copying the
-frequently-edited manuscript means that an ordinary day of
-writing invalidates only the fast final `COPY`, leaving
-the slow package-restore layer untouched.
+The same reasoning applies to system packages installed with
+`apt-get`: either pin their versions, or accept that a rebuild
+months later installs newer ones. A digest-pinned base fixes the
+packages that come with the base; it cannot fix what a later
+`apt-get update` fetches.
+
+::: {.callout-tip title='Verification'}
+Find the digest of a tag you have pulled:
+
+```bash
+docker inspect --format '{{index .RepoDigests 0}}' rocker/r-ver:4.4.0
+```
+
+It prints `rocker/r-ver@sha256:` followed by 64 hexadecimal
+characters. Paste the hash after the tag in your `FROM` line, as
+above, and rebuild; the build log's `FROM` step now names the
+digest.
+:::
+
+### Exercises
+
+1. Choose a base image from @tbl-docker-rocker for each project.
+   (a) A trial analysis whose `renv.lock` pins every package,
+   rendered to HTML. (b) The same analysis, rendered to PDF.
+   (c) A course in which forty students need RStudio in a browser
+   on the first day. (d) A spatial analysis of ZIP-code-level
+   readmission rates with `sf`.
+
+::: {.callout-note collapse='true' title='Solution'}
+(a) `rocker/r-ver` at the R version in the lockfile: the lockfile
+supplies the packages, so a larger base only adds things to drift.
+(b) Still `rocker/r-ver`, plus `quarto install tinytex` in the
+Dockerfile (@sec-docker-canonical); `rocker/verse` also works and
+is larger. (c) `rocker/tidyverse`, which includes RStudio Server
+and the packages a course needs, so that the first day is not
+spent installing. (d) `rocker/r-ver` with the spatial system
+libraries added to the `apt-get` line, as in the worked example
+(@sec-docker-worked), or `rocker/geospatial` if you prefer to
+inherit them.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Your Dockerfile begins `FROM rocker/verse:4.4.1`.
+That is an exact version, not `latest`. Does rebuilding it in two
+years give you the same image?
+
+**Answer.** Probably not. A tag is a movable label, not a fixed
+identity. `4.4.1` pins the R version, and the maintainers can and
+do rebuild that tag against a newer Ubuntu base, refreshed apt
+packages, and patched system libraries; your `FROM` line resolves
+to whatever the tag points at today. The digest cannot change: if
+it resolves at all, it resolves to exactly the bytes you built
+against.
+
+The trade-off is real. A pinned digest never picks up a security
+patch, so it ages into a liability, and the hash is unreadable in
+a diff. The usual compromise is a version tag during development
+and a digest recorded at the moment of submission, alongside the
+`sap-v1.0` tag of @sec-analysis-plan, so the archived artifact is
+reconstructible even though day-to-day work is not frozen.
+Archiving the built image (@sec-docker-sharing) sidesteps the
+question entirely.
+:::
+
+## A research-compendium Dockerfile {#sec-docker-canonical}
+
+This is the book's one canonical Dockerfile; @sec-renv and
+@sec-rrtools use it unchanged. It assumes a compendium with the
+paper at `analysis/paper/` (the layout @sec-rrtools, the next
+chapter, sets out in full), a `renv.lock` that includes
+`rmarkdown` and `knitr`
+(Quarto needs both to run R chunks), and the `.Rprofile` and
+`renv/activate.R` that `renv::init()` writes.
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM rocker/r-ver:4.4.0
+
+ARG QUARTO_VERSION=1.6.40
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates curl \
+    libcurl4-openssl-dev libssl-dev libxml2-dev libuv1-dev \
+  && rm -rf /var/lib/apt/lists/*
+
+# rocker/r-ver ships R but not the Quarto CLI
+RUN arch="$(dpkg --print-architecture)" \
+  && curl -fsSL -o /tmp/quarto.deb \
+    "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-${arch}.deb" \
+  && dpkg -i /tmp/quarto.deb \
+  && rm /tmp/quarto.deb
+
+# outside /work, so a bind mount of the project cannot hide it
+ENV RENV_PATHS_LIBRARY=/opt/renv/library
+
+WORKDIR /work
+COPY renv.lock .Rprofile ./
+COPY renv/activate.R renv/activate.R
+RUN R -q -e "renv::restore(prompt = FALSE)"
+
+COPY . .
+
+CMD ["quarto", "render", "analysis/paper/paper.qmd"]
+```
+
+### Three details that are easy to get wrong
+
+- **Quarto is not in the base image.** `rocker/r-ver` does not
+  include the Quarto command line interface (CLI), so the image
+  installs a pinned release; without it, `quarto render` fails.
+- **The render command is `quarto render`.** `rmarkdown::render()`
+  is the R Markdown renderer and does not process a `.qmd`
+  project.
+- **The base tag must match the R version in `renv.lock`.**
+  Otherwise `renv` restores the right packages onto the wrong R.
+
+For the strongest pin, replace the tag with the digest, as in
+@sec-docker-rocker. The image above renders HTML; for PDF output,
+add `RUN quarto install tinytex --no-prompt` after the Quarto
+layer.
+
+::: {.callout-warning title='Pitfall'}
+**A base image that does not match the lockfile builds without
+error.** `renv::restore()` installs the recorded package versions
+onto whatever R the image has, notes the mismatch in one line of a
+build log nobody reads (`Using R 4.4.0 (lockfile was generated
+with R 4.6.1)`), and the image renders. The packages are pinned and R is
+not, which is the gap the opening described. Read the R version
+from the lockfile before you write the `FROM` line:
+`renv::lockfile_read('renv.lock')$R$Version`.
+:::
+
+### `.dockerignore`
+
+Next to the Dockerfile, commit a `.dockerignore`. It keeps the
+local package library, credentials, and other machine-specific
+files out of the build context, and therefore out of an image you
+may later push to a public registry:
+
+```
+.git/
+.Rproj.user/
+.Rhistory
+.RData
+.Renviron
+.env
+secrets/
+renv/library/
+renv/staging/
+renv/local/
+_freeze/
+```
+
+Without it, `COPY . .` copies your `.Renviron`, with whatever API
+tokens it holds, into a layer of the image, and deleting the file
+in a later layer does not remove it from the earlier one.
+
+### Layer order
+
+The order of the Dockerfile is lockfile, then restore, then project
+source, and @fig-docker-layers shows why. Docker caches each layer
+and reuses it on the next build unless that layer or something
+above it has changed. Copying the lockfile and restoring packages
+*before* copying the frequently edited manuscript means that an
+ordinary day of writing invalidates only the fast final `COPY`,
+leaving the slow package-restore layer untouched.
 
 ```{mermaid}
 %%| echo: false
 %%| label: fig-docker-layers
 %%| fig-alt: "Vertical stack of Dockerfile layers in build order,
-%%|   annotated by how often each changes. A cached rocker/verse
+%%|   annotated by how often each changes. A cached rocker/r-ver
 %%|   base, then system dependencies that rarely change, then
 %%|   copying renv.lock and restoring packages, which changes when
 %%|   packages change, then copying the source tree, which changes
@@ -257,401 +442,458 @@ the slow package-restore layer untouched.
 %%|   manuscript invalidates only the final COPY, so the expensive
 %%|   package restore is reused from cache."
 flowchart TD
-  A["FROM rocker/verse<br/><i>cached base image</i>"] --> B["RUN apt-get system deps<br/><i>rarely changes</i>"]
+  A["FROM rocker/r-ver<br/><i>cached base image</i>"] --> B["RUN apt-get system deps<br/><i>rarely changes</i>"]
   B --> C["COPY renv.lock + restore<br/><i>changes when packages change</i>"]
   C --> D["COPY . /work<br/><i>changes every edit</i>"]
-  D --> E["CMD render paper"]
+  D --> E["CMD quarto render"]
   style C fill:#e8f4f4,stroke:#2c7a7b
   style D fill:#fbe9e7,stroke:#9d2235
 ```
 
-Changes to `analysis/paper/paper.qmd` only invalidate the
-last layer (a fast COPY); changes to `renv.lock`
-invalidate the package install. Without this ordering,
-every change to the manuscript triggers a full reinstall,
-which is slow.
+### Building and running
 
-Build:
+From the compendium root (display-only):
 
 ```bash
-docker build -t readmissions:v1.0 .
-```
-
-Run the analysis:
-
-```bash
-docker run --rm -v $(pwd)/analysis/paper:/output \
+docker build --platform linux/amd64 -t readmissions:v1.0 .
+docker run --rm --platform linux/amd64 \
+  -v "$(pwd)/analysis/paper:/work/analysis/paper" \
   readmissions:v1.0
 ```
 
-The mounted volume makes the rendered PDF appear in your
-host's file system.
+`quarto render` writes its output next to the source, in
+`/work/analysis/paper/`, so that is the directory to mount. The
+rendered file then appears in your host's `analysis/paper/`; a
+mount at any other container path receives nothing.
 
-## RStudio Server in a container
+Data follow the same choice. Copying data into the image makes it
+self-contained and larger; mounting them keeps the image small and
+means the image alone no longer reproduces the analysis. Embed
+small, shareable data; mount large or sensitive data, and never
+build an image containing protected health information that might
+reach a registry.
 
-For interactive work with the project's pinned
-environment:
+::: {.callout-tip title='Verification'}
+Check the cache and the environment, not only that the build
+succeeded:
 
 ```bash
-docker run -d --rm \
-  -p 8787:8787 \
-  -e PASSWORD=secret \
-  -v $(pwd):/home/rstudio \
+docker build --progress=plain --platform linux/amd64 \
+  -t readmissions:v1.0 . 2>&1 | grep -A1 'renv::restore'
+docker run --rm --platform linux/amd64 readmissions:v1.0 R --version
+docker run --rm --platform linux/amd64 readmissions:v1.0 \
+  Rscript -e 'renv::status()'
+```
+
+After you edit a `.qmd` file and rebuild, the line after the
+`renv::restore` step should read `CACHED`; if the step runs again,
+the layer order is wrong. `R --version` should match the
+lockfile's `R$Version`, and `renv::status()` should report no
+issues. A mismatched base tag shows up here as a status message
+that the lockfile was generated with a different R.
+:::
+
+::: {.callout-important title='LLM prompt'}
+> **Context.** My compendium's `renv.lock` records R
+> `<output of renv::lockfile_read('renv.lock')$R$Version>` and the
+> packages listed below. The paper renders with
+> `quarto render analysis/paper/paper.qmd`. The project tree is:
+> `<output of tree -L 2>`.
+>
+> **Constraints.** Base the image on `rocker/r-ver` at the tag
+> equal to that R version, with a `FROM` line pinned by digest (I
+> will fill in the digest from `docker inspect`; do not invent
+> one). Install a pinned Quarto CLI release. Copy `renv.lock`,
+> `.Rprofile`, and `renv/activate.R` and restore before copying
+> the project. Write a `.dockerignore` that excludes `.git/`,
+> `.Renviron`, `.env`, and `renv/library/`. Add only the system
+> libraries my packages need, and say which package needs each.
+>
+> **Criteria.** The image builds with `--platform linux/amd64`;
+> after I edit a `.qmd` file and rebuild, the restore step is
+> `CACHED`; inside the container, `R --version` matches the
+> lockfile and `renv::status()` reports no issues.
+
+*Failure mode.* Models write a base tag from their training data
+(`rocker/r-ver:4.4.0`, or `latest`) that does not match your
+lockfile, invent a plausible-looking digest, omit the
+`.dockerignore`, or copy the whole project before the restore so
+that every edit reinstalls every package. *Check.* Run the
+Verification above, and compare the draft line by line with the
+canonical Dockerfile. The prompt carries file names and package
+names, not data (@sec-ai-governance).
+:::
+
+### Exercises
+
+2. A colleague's Dockerfile reads, in order: `FROM
+   rocker/r-ver:latest`; `COPY . /work`; `RUN R -q -e
+   "renv::restore(prompt = FALSE)"`; `CMD ["Rscript", "-e",
+   "rmarkdown::render('analysis/paper/paper.qmd')"]`. There is no
+   `.dockerignore`. List every problem and the fix for each.
+
+::: {.callout-note collapse='true' title='Solution'}
+- `latest` drifts: use the tag equal to the lockfile's R version,
+  pinned by digest at submission.
+- `COPY . /work` before the restore invalidates the restore layer
+  on every edit: copy `renv.lock`, `.Rprofile`, and
+  `renv/activate.R` first, restore, then `COPY . .`.
+- Without a `.dockerignore`, the build context includes
+  `renv/library/` (slow, and the wrong platform's binaries) and
+  any `.Renviron` or `.env`, which then sit in a layer of an image
+  that may be pushed publicly.
+- `rmarkdown::render()` does not render a Quarto project, and
+  `rocker/r-ver` has no Quarto: install a pinned Quarto CLI and
+  use `CMD ["quarto", "render", "analysis/paper/paper.qmd"]`.
+- With the library inside `/work`, a bind mount of the project
+  would hide it: set `RENV_PATHS_LIBRARY` outside `/work`.
+
+The canonical Dockerfile above is the corrected file.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You add one package to `renv.lock` and rebuild.
+Which layers rebuild, and why is that correct?
+
+**Answer.** The two `COPY` layers that bring in `renv.lock` and its
+bootstrap files change, so the restore layer and everything after
+it rebuild; the base image, the system libraries, and the Quarto
+install are reused from cache. That is the intended behavior: a
+dependency change should reinstall packages, and an edit to the
+manuscript should not.
+:::
+
+## Interactive and multi-service containers {#sec-docker-rstudio}
+
+### RStudio Server in a container
+
+For interactive work in a pinned environment, run RStudio Server
+from a `rocker` image (display-only):
+
+```bash
+docker run -d --rm --platform linux/amd64 \
+  -p 127.0.0.1:8787:8787 \
+  -e PASSWORD="$RSTUDIO_PASSWORD" \
+  -v "$(pwd)":/home/rstudio/project \
   --name analysis-rstudio \
   rocker/tidyverse:4.4.0
 ```
 
-Then open `http://localhost:8787` in a browser; log in
-as `rstudio` with password `secret`. Your project
-files are mounted under `/home/rstudio`. Inside the
-container, run `renv::restore()` to install the
-project's packages.
+Set `RSTUDIO_PASSWORD` in your shell first, rather than typing a
+password into a command that lands in your shell history. Binding
+to `127.0.0.1` keeps the server off your network; a bare `-p
+8787:8787` publishes it on every interface, so anyone who can
+reach your machine can try the login. Then open
+`http://localhost:8787` and log in as `rstudio`. Your project is
+mounted under `/home/rstudio/project`; inside the container, run
+`renv::restore()` to install its packages. The pattern suits
+teaching (every student gets the same environment) and
+collaborative analysis.
 
-This pattern is useful for teaching (every student gets
-the same environment) and for collaborative analysis
-(everyone runs the same RStudio).
-
-## Sharing a container
-
-Push the image to a registry:
+::: {.callout-tip title='Verification'}
+Confirm where the server is listening:
 
 ```bash
-# tag for Docker Hub
-docker tag readmissions:v1.0 username/readmissions:v1.0
-docker push username/readmissions:v1.0
+docker port analysis-rstudio
+```
 
-# or to GitHub Container Registry
+It should print `8787/tcp -> 127.0.0.1:8787`. An address of
+`0.0.0.0` means the server is reachable from your network; stop
+the container and restart it with the `127.0.0.1:` prefix.
+:::
+
+### Several services: a pointer to Compose
+
+When an analysis needs a second service, such as a PostgreSQL
+database, Docker Compose starts several containers from one
+`compose.yaml` file. Three rules prevent most of its problems.
+Read passwords from a `.env` file beside the Compose file
+(`POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env}`), list
+`.env` in both `.gitignore` and `.dockerignore`, and never write a
+password into the committed file. Use the `docker compose`
+subcommand: the hyphenated `docker-compose` binary is Compose
+version 1, which reached end of life in 2023, and the top-level
+`version:` key older examples show is obsolete. Docker's Compose
+documentation covers the rest. For most biostatistical analyses a
+single container is enough.
+
+## Sharing and archiving an image {#sec-docker-sharing}
+
+Push the image to a registry so that collaborators can pull it
+(display-only):
+
+```bash
 docker tag readmissions:v1.0 ghcr.io/username/readmissions:v1.0
 docker push ghcr.io/username/readmissions:v1.0
+
+# a reader
+docker pull --platform linux/amd64 ghcr.io/username/readmissions:v1.0
+docker run --rm --platform linux/amd64 ghcr.io/username/readmissions:v1.0
 ```
 
-A reader pulls with:
+Docker Hub works the same way with `username/readmissions:v1.0`. A
+registry is hosting, not archiving: accounts lapse, free tiers
+change, and images are deleted. For the archival copy, save the
+built image as a file and deposit it with the compendium, for
+example on Zenodo, which issues a DOI (digital object identifier):
 
 ```bash
-docker pull username/readmissions:v1.0
-docker run --rm username/readmissions:v1.0
+docker save readmissions:v1.0 | gzip > readmissions-v1.0.tar.gz
+# upload readmissions-v1.0.tar.gz to Zenodo with the compendium
 ```
 
-For long-term archival, push the built image's tarball
-to Zenodo:
+The saved image is the environment itself, not instructions for
+rebuilding it, so it survives the base image's tag being rebuilt,
+the apt mirrors moving on, and the registry disappearing. Record
+the image ID and the base digest in the compendium's README at
+submission.
+
+::: {.callout-tip title='Verification'}
+Confirm that the archive restores the image you built:
 
 ```bash
-docker save -o readmissions-v1.0.tar readmissions:v1.0
-gzip readmissions-v1.0.tar
-# upload readmissions-v1.0.tar.gz to Zenodo for a DOI
+docker image inspect --format '{{.Id}}' readmissions:v1.0
+docker rmi readmissions:v1.0
+docker load -i readmissions-v1.0.tar.gz
+docker image inspect --format '{{.Id}}' readmissions:v1.0
 ```
 
-This produces a self-contained, citable artifact that
-will outlive Docker Hub or GitHub.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: does a pinned tag pin the image?
-
-**Question.** Your Dockerfile begins
-`FROM rocker/verse:4.4.1`. That is an exact version, not
-`latest`. Does rebuilding it in two years give you the
-same image?
-
-**Answer.**
-
-Probably not, and the reason catches people who thought
-they had done the careful thing.
-
-A tag is a movable label, not a fixed identity. `4.4.1`
-pins the R version, and the maintainers can and do rebuild
-that tag against a newer Ubuntu base, refreshed apt
-packages, and patched system libraries. Your `FROM` line
-resolves to whatever the tag points at today.
-
-The immutable identity is the digest:
-
-```
-FROM rocker/verse@sha256:1a2b3c...
-```
-
-That is content-addressed and cannot change. If it
-resolves at all, it resolves to exactly the bytes you
-built against.
-
-The trade-off is real, which is why the book does not
-insist on digests everywhere. A pinned digest never picks
-up a security patch, so it ages into a liability, and the
-hash is unreadable in a diff. The usual compromise is a
-version tag during development and a digest recorded at
-the moment of submission, alongside the `sap-v1.0` tag of
-@sec-analysis-plan, so the archived artifact is
-reconstructible even though day-to-day work is not frozen.
-
-Either way, `docker save` above sidesteps the question
-entirely by archiving the built image rather than the
-instructions for building it.
+`docker load` reads the gzipped file directly. The two IDs must be
+identical; then run the loaded image and compare the rendered
+paper with yours.
 :::
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: image vs. container
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A reviewer asks you to reproduce a table two years
+after submission. You have the Dockerfile with a version tag, and
+the image on a registry under an account that has lapsed. What can
+you reproduce, and what would have made it exact?
 
-**Question.** You build an image `readmissions:v1.0`,
-run a container from it, install a new R package
-inside the running container, then exit. Is the new
-package available next time you run a container from
-the same image?
-
-**Answer.**
-
-No. The image is immutable; changes inside a container
-live only in the container's writable layer, which is
-discarded when the container exits (with `--rm`) or
-otherwise lost when the container is removed. To add
-the package permanently, edit the Dockerfile (add a
-`renv::install` step or update `renv.lock`) and rebuild
-the image. This is the discipline that makes Docker a
-reproducibility tool: changes happen in the
-Dockerfile, in version control, not on running
-containers. The 'works on my machine' problem becomes
-'works on this image, which everyone has'.
-
+**Answer.** You can rebuild from the Dockerfile, but the tag may
+now point at a different base and `apt-get` will fetch newer system
+libraries, so you get a close environment, not the same one. The
+exact environment needed either the archived image file, which
+restores the identical bytes, or at least a digest-pinned `FROM`
+line, which fixes the base. With either, the R build and system
+libraries are those that produced the table.
 :::
 
-## Docker Compose for multi-service analyses
+## Diagnosing build failures {#sec-docker-failures}
 
-For analyses that need a database, a Shiny app talking
-to an R session, or other multi-process setups, Docker
-Compose orchestrates several containers:
+Most build failures are one of five kinds, and each has a
+recognizable symptom:
 
-```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  r:
-    build: .
-    volumes:
-      - ./analysis:/work/analysis
-      - ./data:/work/data
-    depends_on:
-      - postgres
+| Symptom | Cause | Fix |
+|---|---|---|
+| `cannot find -lcurl`, `fatal error: openssl/ssl.h`, or a `configure` error naming a library | A system library is missing for a package that compiles from source (`curl`, `xml2`, `openssl`, `httr2`, `sf` are common) | Add the matching `lib*-dev` package to the `apt-get install` line |
+| Every edit reinstalls every package | The project is copied before the restore | Copy the lockfile and bootstrap files first (@fig-docker-layers) |
+| The image is gigabytes larger than expected | `apt-get` without `--no-install-recommends`, or the apt lists left behind | Use the install-and-clean pattern of the canonical Dockerfile |
+| `exec format error` on a server | Built for arm64 on Apple Silicon, run on x86_64 | Build with `--platform linux/amd64`, or build for both |
+| `renv::status()` in the container reports a different R | The base tag does not match the lockfile | Set the `FROM` tag to the lockfile's `R$Version` |
 
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_PASSWORD: secret
-      POSTGRES_DB: research
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+: Docker build failures. {#tbl-docker-failures}
 
-volumes:
-  pgdata:
-```
-
-```bash
-docker compose up -d
-docker compose exec r R       # interactive R session in the r service
-docker compose down            # stop both services
-```
-
-The `docker compose` (subcommand) form is current as of
-Docker 20.10+; the older `docker-compose` (hyphenated
-binary) is being deprecated.
-
-For most biostatistical analyses, a single container is
-enough. Compose is useful when the analysis interacts
-with another service (a database, a queue) that should
-also be reproducibly versioned.
-
-## Common build failures
-
-**System library missing.** A package compile fails with
-'cannot find -lcurl' or 'fatal error: openssl/...'.
-Add the corresponding `lib*-dev` to the
-`apt-get install` line. The R packages `curl`, `xml2`,
-`openssl`, `httr2`, `sf` are common offenders.
-
-**Slow rebuilds.** Every change triggers package
-reinstallation. The fix: copy `renv.lock` first, then
-restore, then copy the rest of the project. Layer
-caching does the rest.
-
-**Image bloat.** `apt-get install` without
-`--no-install-recommends` and `rm -rf /var/lib/apt/lists/*`
-produces images that are gigabytes larger than
-necessary. The standard one-liner above mitigates this.
-
-**Architecture mismatch.** Building on Apple Silicon
-(arm64) and deploying on a Linux x86_64 server
-produces an image that does not run. Use Docker
-Buildx to build multi-arch images:
+To build one image for both architectures and push it
+(display-only):
 
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 \
-  -t username/readmissions:v1.0 --push .
+  -t ghcr.io/username/readmissions:v1.0 --push .
 ```
 
-## Worked example: complete dockerized compendium
+::: {.callout-important title='LLM prompt'}
+> **Context.** A `docker build` of the Dockerfile below fails.
+> Here are the Dockerfile and the last 40 lines of the build log,
+> from the first line containing `ERROR` or `error:`.
+>
+> **Constraints.** Do not change the base image, the layer order,
+> or the R version, and do not suggest installing packages
+> outside `renv`. Propose the smallest change.
+>
+> **Criteria.** Name the R package whose installation failed, the
+> system library it needs, and the Ubuntu package that provides
+> that library, quoting the log line that shows it.
+
+*Failure mode.* A model that cannot read the cause from a
+truncated log proposes a different base image or a long list of
+`lib*-dev` packages, which makes the build pass and the image
+larger without saying why. *Check.* Rebuild with the one added
+package; the failing step should now complete, and the log line
+the model quoted should be the one that named the missing
+library.
+:::
+
+### Exercises
+
+3. Map each error to the Ubuntu package that fixes it.
+   (a) `configuration failed for package 'xml2'` with `libxml-2.0
+   was not found`. (b) `gdal-config: not found` while installing
+   `sf`. (c) `ERROR: dependency 'openssl' is not available`,
+   preceded by `ssl.h: No such file or directory`.
+
+::: {.callout-note collapse='true' title='Solution'}
+(a) `libxml2-dev`. (b) `libgdal-dev`; `sf` also needs
+`libproj-dev` and `libgeos-dev`, so add all three, as in the
+worked example. (c) `libssl-dev`. The canonical Dockerfile already
+installs (a) and (c), so a log showing either means the line was
+edited away. In each case the log names the library or the header
+file; the fix is the Ubuntu `-dev` package that provides it.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** An image built on your Apple Silicon Mac runs there
+and fails on the department's Linux server with `exec format
+error`. Your colleague suggests reinstalling Docker on the server.
+What is the actual cause?
+
+**Answer.** The image was built for arm64, your laptop's
+architecture, and the server is x86_64. Docker is working
+correctly on both machines. Rebuild with `--platform linux/amd64`,
+or build a multi-architecture image with `docker buildx`.
+:::
+
+## Worked example: a dockerized compendium {#sec-docker-worked}
+
+Start from the canonical Dockerfile. A compendium that also uses
+`sf` needs the geospatial system libraries, so extend the
+`apt-get` line and change nothing else:
 
 ```dockerfile
-# Dockerfile
-FROM rocker/r-ver:4.4.0
-
-# system deps for tidyverse, sf, brms
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libcurl4-openssl-dev libssl-dev libxml2-dev \
-    libfontconfig1-dev libfreetype6-dev libpng-dev \
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates curl \
+    libcurl4-openssl-dev libssl-dev libxml2-dev libuv1-dev \
     libgdal-dev libproj-dev libgeos-dev \
-    pandoc texlive-xetex \
-    && rm -rf /var/lib/apt/lists/*
-
-# renv at a fixed version
-RUN R -e 'install.packages("renv", repos = "https://cloud.r-project.org")'
-
-WORKDIR /work
-COPY renv.lock renv.lock
-RUN R -e 'renv::restore()'
-
-COPY . /work
-
-# render the paper by default
-CMD ["R", "-e", "rmarkdown::render('analysis/paper/paper.qmd')"]
+  && rm -rf /var/lib/apt/lists/*
 ```
 
-```bash
-# build and run
-docker build -t readmissions:v1.0 .
-docker run --rm -v $(pwd)/output:/work/output readmissions:v1.0
+Build, run, and share (display-only):
 
-# push for sharing
+```bash
+docker build --platform linux/amd64 -t readmissions:v1.0 .
+docker run --rm --platform linux/amd64 \
+  -v "$(pwd)/analysis/paper:/work/analysis/paper" \
+  readmissions:v1.0
 docker tag readmissions:v1.0 ghcr.io/username/readmissions:v1.0
 docker push ghcr.io/username/readmissions:v1.0
 ```
 
-A reader, given the GitHub repository of the
-compendium, runs:
+A reader, given the GitHub repository of the compendium, runs:
 
 ```bash
 git clone https://github.com/username/readmissions.git
 cd readmissions
-docker build -t readmissions:v1.0 .
-docker run --rm readmissions:v1.0
+docker build --platform linux/amd64 -t readmissions:v1.0 .
+docker run --rm --platform linux/amd64 \
+  -v "$(pwd)/analysis/paper:/work/analysis/paper" \
+  readmissions:v1.0
 ```
 
-The paper renders. They have reproduced your
-environment exactly.
+The paper renders. The reader now has the same R version, the
+same package versions, and the same system libraries as of the day
+they built, which is close to your environment but not identical
+to it: the tag may have been rebuilt since (@sec-docker-rocker).
+For an identical environment, give the reader the digest-pinned
+Dockerfile or the archived image.
 
-## Collaborating with an LLM on Docker
+::: {.callout-tip title='Verification'}
+The reader's check is the one the opening needed: the same number.
+Compare the key estimate in the reader's rendered paper with the
+one in yours, and the environments behind them:
 
-LLMs handle Docker reasonably; subtle issues with
-caching and platform variants need verification.
+```bash
+docker run --rm --platform linux/amd64 readmissions:v1.0 \
+  Rscript -e 'sessionInfo()'
+```
 
-**Prompt 1: drafting a Dockerfile.** Paste the
-`renv.lock` and project structure, ask: 'write a
-Dockerfile that builds reproducibly, with proper layer
-caching, on the rocker/r-ver:4.4.0 base.'
+The R version, platform, and BLAS (Basic Linear Algebra
+Subprograms) library lines should match the ones recorded at
+submission. If the estimates differ and the environments match,
+the cause is in the code or the data, not the machine.
+:::
 
-*What to watch for.* Layer ordering (lockfile before
-project source). System dependencies (the LLM may miss
-ones for less-common packages like `sf`, `brms`,
-`rstan`). The `--no-install-recommends` and cleanup
-patterns.
+## Rules of thumb
 
-*Verification.* Build the image. Make a trivial change
-to the project source; rebuild. The rebuild should be
-fast (cache hit on the package install layer). If it
-re-installs everything, layer order is wrong.
+1. **Habit 4: pin the environment.** The lockfile pins the
+   packages; the image pins R, the system libraries, and the OS,
+   and only a digest or an archived image pins the bytes.
+2. **Habit 8: a plausible number is the expensive bug.** A
+   different R or BLAS produces a different number without an
+   error; check the R version and `renv::status()` inside the
+   container, not only that the build succeeded.
+3. **Habit 3: tag what you submit.** Record the base digest and the
+   image ID with the Git tag, and archive the image beside the
+   compendium; a registry is hosting, not archiving.
 
-**Prompt 2: diagnosing a build error.** Paste the
-error and the Dockerfile and ask the LLM to diagnose.
+## Cumulative practice
 
-*What to watch for.* Most build errors are missing
-system libraries. The LLM should map the error to the
-needed `apt-get install` package. For genuinely
-exotic errors (Apple Silicon vs. amd64, GitHub
-Container Registry auth), responses are more variable.
+4. *Cumulative (uses @sec-renv).* Take a project with a committed
+   `renv.lock`. Write its Dockerfile from the canonical one, with
+   the `FROM` tag read from the lockfile and pinned by digest, and
+   a `.dockerignore`. Build it, edit a `.qmd` file, rebuild, and
+   record the evidence that the restore layer was cached. Then run
+   `renv::status()` and `R --version` inside the container.
+5. *On your own work (no key).* Dockerize an analysis of yours
+   that you will need to reproduce after submission. Archive the
+   image with `docker save`, remove it, load it again, and confirm
+   the image ID and a key number in the output match.
 
-*Verification.* Apply the fix and rebuild. Iterate.
+::: {.callout-note collapse='true' title='Solution'}
+4. The evidence is the build log line after the `renv::restore`
+   step reading `CACHED` on the second build, an `R --version`
+   matching `renv::lockfile_read('renv.lock')$R$Version`, and
+   `renv::status()` reporting no issues. If `status()` reports that
+   the lockfile was generated with a different R, the `FROM` tag
+   is wrong. If packages are reported as not installed, the
+   restore failed partway, usually for a missing system library
+   that the build log names (@tbl-docker-failures).
+:::
 
-**Prompt 3: choosing a base image.** Describe the
-project's package needs and ask the LLM to recommend
-between `rocker/r-ver`, `rocker/tidyverse`,
-`rocker/geospatial`, etc.
+## Cheat sheet
 
-*What to watch for.* The smallest viable base is the
-right answer for production; convenience may justify a
-larger base for development.
+| Task | Command | Guards against |
+|---|---|---|
+| Run R in a pinned image | `docker run --rm --platform linux/amd64 rocker/r-ver:4.4.0 R` | Your laptop's R leaking into results |
+| Find a digest | `docker inspect --format '{{index .RepoDigests 0}}' <image>` | A tag that moves |
+| Build for the server | `docker build --platform linux/amd64 -t name:v1 .` | `exec format error` |
+| Check the cache | `docker build --progress=plain ...` | Reinstalling every package on every edit |
+| Check the environment | `docker run ... Rscript -e 'renv::status()'` | Right packages on the wrong R |
+| Keep secrets out | `.dockerignore` with `.Renviron`, `.env`, `renv/library/` | Credentials in a pushed image |
+| RStudio, local only | `-p 127.0.0.1:8787:8787` | A login page open to the network |
+| Share | `docker push ghcr.io/<user>/<image>:<tag>` | Collaborators rebuilding by hand |
+| Archive | `docker save`, compressed with `gzip` | A registry or base tag that changes |
+| Restore an archive | `docker load -i image.tar.gz` | Unverified archives |
 
-*Verification.* Run the project's setup in each
-candidate and time it. Build size matters less than
-'does it build at all'.
-
-## Principle in use
-
-Docker earns its build time through three habits:
-
-1. **Pin everything.** Specific R version, specific
-   rocker tag, specific package versions via
-   `renv.lock`, specific system libraries.
-2. **Order layers for cache.** Slow-changing first,
-   fast-changing last. The package-install layer
-   should not invalidate on every code change.
-3. **Push to a registry, archive to Zenodo.** The
-   image is the artifact; persist it where it can
-   outlive your laptop and your Docker Hub account.
-
-## Exercises
-
-**On your own machine, data, or collaborations.** These exercises build
-and run containers, so no answer key is possible. A successful build and
-a matching render are the check.
-
-1. Dockerize a simple existing analysis of yours.
-   Build the image, run it, and verify it produces
-   identical output.
-2. Run RStudio Server in a Docker container, connect
-   from your browser, and render one Quarto document
-   inside.
-3. Push your image to Docker Hub. Pull it from a
-   different machine and verify it reproduces the
-   analysis.
-4. Make a deliberate change to the project source.
-   Rebuild. Confirm the cache is hit on the
-   package-install layer; if not, fix layer order.
-5. Use Docker Compose to run a two-service setup: an
-   R container plus a PostgreSQL container. Connect
-   from R to the database and run a query.
+: Docker at a glance. {#tbl-docker-cheat-sheet}
 
 ## Further reading
 
-- [@boettiger2015introduction], the motivating paper
-  for containers in reproducible research.
-- [@boettiger2017rocker], the `rocker` project and its
-  canonical R Docker images.
-- [@kurtzer2017singularity], for Apptainer, the
-  unprivileged runtime you will need on a shared HPC
-  cluster where Docker is forbidden (@sec-cloud).
-- Docker's own documentation at `docs.docker.com`.
+- [@boettiger2015introduction], the motivating paper for containers
+  in reproducible research.
+- [@boettiger2017rocker], the `rocker` project and its R images.
+- Docker's documentation at `docs.docker.com`, in particular the
+  Dockerfile reference and the build-cache guide.
 
 ## Prerequisites answers {#sec-quiz-answers-09}
 
-1. A Docker image is an immutable read-only template
-   that includes an OS, system libraries, and
-   application code. A container is a running instance
-   of an image, with its own writable filesystem
-   layer. Many containers can be run from one image;
-   terminating a container does not modify the image.
-   The image is the artifact; the container is the
-   process.
-2. `renv` captures R packages only. Docker captures the
-   operating system, system libraries (BLAS,
-   geospatial libs, compilers), the R build itself,
-   *and* R packages. When an analysis depends on a
-   specific OS or system lib, only Docker can
-   guarantee bit-identical reproduction years later.
-   For pure-R analyses, `renv` may suffice; for
-   anything with non-R dependencies, Docker is the
-   prudent choice.
-3. `rocker/tidyverse:4.4.0` provides: Debian (the base
-   for `rocker/r-ver` since the 2022 reorganization);
-   R 4.4.0; RStudio Server; and the tidyverse package
-   suite pre-installed. A container starts immediately
-   without package installation, useful for teaching
-   and for rapid-turnaround collaborative analyses.
-   It is larger than `rocker/r-ver` but the trade-off
-   is justified when most projects use tidyverse
-   anyway.
+1. A Docker image is an immutable read-only template that includes
+   an OS, system libraries, and application code. A container is a
+   running instance of an image, with its own writable filesystem
+   layer. Many containers can be run from one image; removing a
+   container does not modify the image. The image is the artifact;
+   the container is the process.
+2. `renv` captures R packages only. Docker captures the operating
+   system, system libraries (BLAS, geospatial libraries,
+   compilers), the R build itself, *and* R packages. When an
+   analysis depends on a specific OS or system library, Docker
+   comes far closer than `renv` alone to reproducing it years
+   later, and a digest-pinned or archived image closer still. For
+   pure-R analyses `renv` may suffice; for anything with non-R
+   dependencies, Docker is the prudent choice.
+3. `rocker/tidyverse:4.4.0` provides Ubuntu LTS (the base of the
+   `rocker/r-ver` images it builds on; 22.04 for this tag), R
+   4.4.0, RStudio Server, and the tidyverse packages
+   pre-installed. A container starts immediately without package
+   installation, which suits teaching and quick collaborative
+   work. It is larger than `rocker/r-ver`, a trade-off justified
+   when most projects use the tidyverse anyway.

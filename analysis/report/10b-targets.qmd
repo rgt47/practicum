@@ -1,12 +1,24 @@
 # Reproducible Pipelines with targets {#sec-targets}
 
+Table 2 of a trial manuscript reports the primary outcome by arm,
+and it was built from an analysis-set file that a cleaning script
+wrote on Tuesday. On Wednesday a colleague noticed that the script
+counted every patient whose outcome was never ascertained as
+event-free, and fixed it. You re-ran the cleaning script and the
+model, but not the script that writes Table 2, because nothing told
+you to. The manuscript now reports risks from Tuesday's analysis
+set beside a model fitted to Wednesday's; every number is
+plausible, and no step raised an error. A dependency-aware pipeline
+makes that state impossible: it knows that Table 2 depends on the
+analysis set, and it rebuilds the one whenever the other changes.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
 ```
-*Make is a tool which controls the generation of
-executables and other non-source files of a program from
-the program's source files.*
+*Make provides a simple mechanism for maintaining up-to-date
+versions of programs that result from many operations on a
+number of files.*
 
 [Stuart Feldman]{.smallcaps}, *Make: A Program for
 Maintaining Computer Programs* (1979)
@@ -15,304 +27,796 @@ Maintaining Computer Programs* (1979)
 ```
 :::
 
-::: {.callout-note}
-## Why this chapter exists
+```{r}
+#| label: targets-pipeline-setup
+#| include: false
+source('_pipeline.R')
+has_targets <- requireNamespace('targets', quietly = TRUE)
+```
 
-A research compendium holds the code, the data, and the
-environment, but it does not by itself make the analysis
-re-runnable end to end; that requires a tool that knows
-which step depends on which. The peer survey
-(@sec-peer-survey) found dependency-aware pipeline tools
-taught in two generations, GNU Make at Broman's
-reproducibility course [@broman2019tools4rr] and in
-Software Carpentry, and the modern `targets` package
-[@landau2021targets] in more recent collaborative-practice
-courses. For a book that already
-teaches compendia and Docker, a build tool is the missing
-piece, and this chapter supplies it.
+```{r}
+#| label: fig-targets-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: a pipeline tool organizes the
+#|   Analyze stage, deciding which derived objects, models, and
+#|   tables are stale and rebuilding exactly those."
+#| fig-alt: !expr pipeline_alt('analyze')
+pipeline_diagram('analyze')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 20 minutes.
+
+**You'll need.** @sec-rrtools for the compendium layout and the
+`R/` directory of functions, and @sec-renv for pinning packages.
+Install the package once with `install.packages("targets")`. The
+pipeline in this chapter uses:
+
+```r
+library(targets)
+library(readr)
+library(dplyr)
+```
+
+**You'll be able to.**
+
+- Decompose an analysis into targets, each a function with
+  explicit inputs, and declare them in a `_targets.R` file.
+- Predict which targets an edit invalidates, and confirm the
+  prediction with `tar_outdated()` before running `tar_make()`.
+- Declare input files with `format = "file"` so that a new data
+  extract invalidates everything downstream of it.
+- Make a Quarto report a target, and run the whole pipeline in a
+  container.
+
+**Outline.**
+
+- [The dependency graph](#sec-targets-dag)
+- [A pipeline for the running study](#sec-targets-pipeline)
+- [Changing a step](#sec-targets-change)
+- [The report as a target](#sec-targets-report)
+- [Pipelines in the compendium and the container](#sec-targets-compendium)
 :::
 
-## Prerequisites
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-10b.
 
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-10b.
+1. When you edit one data-cleaning function in a long analysis,
+   what does a dependency-aware pipeline tool do that re-sourcing
+   all your scripts by hand does not?
+2. What is a directed acyclic graph, and why is it the right
+   abstraction for an analysis pipeline?
+3. Why is 'I re-ran everything and the numbers changed, but I am
+   not sure which step caused it' a symptom that a pipeline tool
+   would prevent?
+:::
 
-1. When you edit one data-cleaning function in a long
-   analysis, what does a dependency-aware pipeline tool do
-   that re-sourcing all your scripts by hand does not?
-2. What is a directed acyclic graph, and why is it the
-   right abstraction for an analysis pipeline?
-3. Why is 'I re-ran everything and the numbers changed, but
-   I am not sure which step caused it' a symptom that a
-   pipeline tool would prevent?
+```{r}
+#| label: targets-availability-note
+#| echo: false
+#| results: asis
+if (!has_targets) {
+  cat(
+    "*This copy of the book was rendered without the `targets`",
+    "package installed, so the pipeline chunks in this chapter",
+    "show their code but no output. Install `targets` and render",
+    "the chapter to see the output.*\n"
+  )
+}
+```
 
-## Learning objectives
+## The dependency graph {#sec-targets-dag}
 
-By the end of this chapter you should be able to:
+An analysis is a chain of steps: read the raw data, derive the
+analysis set, summarize it, fit a model, write the report. When
+you change one step, everything downstream of it becomes stale,
+and everything upstream remains sound. Doing this bookkeeping by
+hand means remembering which steps to re-run after every change,
+and the errors it produces are silent: a table built from a stale
+intermediate looks exactly like a table built from a current one.
 
-- Explain the problem that a dependency-aware build tool
-  solves, and why manual re-running does not.
-- Structure an analysis as a set of `targets` connected by
-  their dependencies.
-- Write a `_targets.R` plan defining the pipeline.
-- Run the pipeline with `tar_make()` and understand what is
-  and is not re-executed.
-- Inspect the dependency graph and retrieve built objects.
+The `targets` package [@landau2021targets] automates the
+bookkeeping. You declare the steps; `targets` works out their
+dependencies and order, runs only what has changed and what
+depends on it, and skips the rest. It is the R successor to GNU
+Make, designed around R objects rather than files. The payoff is
+partly speed, but mostly trust: when `targets` reports that a
+target is up to date, it reflects the current code and data,
+which a hand re-run cannot promise.
 
-## Orientation
-
-An analysis is a chain of steps: read the raw data, clean it,
-derive variables, fit a model, produce a figure. When you
-change one step, everything downstream of it is rendered stale
-while everything upstream remains sound. Doing this bookkeeping by hand means remembering which steps to
-re-run after a change. That is tedious and error-prone. The
-errors are, we would stress, of the silent kind: a figure built
-from a stale intermediate that you forgot to rebuild.
-
-The `targets` package automates the bookkeeping. You
-declare the steps and their dependencies; `targets` works
-out the order, runs only what has changed and what depends
-on it, and skips the rest. It is the R successor to GNU
-Make, designed around R objects rather than files. The
-payoff is twofold: pipelines run faster because unchanged
-steps are skipped, and results are trustworthy because
-nothing downstream of a change is ever left stale.
-
-## The statistician's contribution {#sec-targets-human}
-
-Declaring targets is straightforward. The hard part, and
-the part that determines whether the pipeline is worth
-having at all, is the decomposition it encodes:
-
-**Decompose the analysis into honest steps.** A pipeline is
-only as clear as its decomposition. Steps should be
-meaningful units, read, clean, model, report, each a
-function with explicit inputs and outputs, not one
-thousand-line script. The decomposition is a modeling
-decision about the analysis, and it is yours to make.
-
-**Stale results are worse than slow ones.** The reason to
-adopt a pipeline tool is not speed; it is trust. When
-`targets` reports that a target is up to date, you know it
-reflects the current code and data. Re-running everything
-by hand offers no such guarantee, because you might forget
-a step.
-
-**Determinism is a precondition.** A pipeline tool assumes
-that the same inputs produce the same outputs. Set your
-random seeds; `targets` has explicit support for
-reproducible seeding. A step that quietly depends on the
-wall clock or an unpinned package defeats the tool's
-promise.
-
-**The plan is documentation.** The `_targets.R` file is a
-readable statement of the analysis's structure: what
-depends on what, in what order. It is often the most useful
-single artifact for a new collaborator trying to
-understand the project.
-
-These judgments are what make a pipeline trustworthy
-rather than merely automated.
-
-## The dependency graph
-
-The organizing idea is the directed acyclic graph, or DAG.
-Each step is a node; an arrow from step A to step B means B
-uses A's output. 'Directed' because dependencies have a
-direction; 'acyclic' because a step cannot, even
-indirectly, depend on itself. Given the graph, the order of
-execution is determined, and so is the set of steps that a
-change makes stale: everything reachable by following the
-arrows forward from the changed node.
-
-@fig-targets-dag shows the graph for a small analysis.
+The organizing idea is the [**directed acyclic graph**](F-glossary.qmd#gloss-dag) (DAG). Each
+step is a node; an arrow from step A to step B means B uses A's
+output. 'Directed' because dependencies have a direction;
+'acyclic' because a step cannot, even indirectly, depend on
+itself. Given the graph, the order of execution is determined, and
+so is the set of steps that a change makes stale: everything
+reachable by following the arrows forward from the changed node.
+@fig-targets-dag is the graph of the pipeline this chapter builds;
+each node is named after its target.
 
 ```{mermaid}
 %%| echo: false
 %%| label: fig-targets-dag
-%%| fig-alt: "Directed acyclic graph of a small pipeline. A raw file
-%%|   feeds an import step, which feeds clean_data. From clean_data
-%%|   the graph splits to fit_model and make_figure, and both of
-%%|   those feed the report node. Editing clean_data therefore makes
-%%|   everything downstream of it stale while leaving the import
-%%|   untouched."
-%%| fig-cap: "The dependency graph of a small analysis pipeline.
-%%|   Editing `clean_data` makes the model, the figure, and the report
-%%|   stale, but leaves the raw-data import untouched; targets rebuilds
-%%|   exactly the stale nodes and no others."
+%%| fig-alt: "Directed acyclic graph of the HF-HOME pipeline. Two
+%%|   file targets, rand_file and outcomes_file, feed the targets
+%%|   randomization and outcomes. Both feed analysis_set, which
+%%|   feeds table_2. A dashed arrow from table_2 to report marks the
+%%|   report target added later in the chapter. Editing the
+%%|   function behind analysis_set makes analysis_set, table_2, and
+%%|   report stale and leaves the four targets above it untouched."
+%%| fig-cap: "The dependency graph of the chapter's pipeline, with
+%%|   each node named after its target. Editing the function behind
+%%|   `analysis_set` makes `analysis_set`, `table_2`, and `report`
+%%|   stale and leaves the four targets above it alone; `targets`
+%%|   rebuilds exactly the stale nodes. The dashed `report` target
+%%|   is added in @sec-targets-report."
 flowchart TD
-  R["raw_file"] --> I["import"]
-  I --> C["clean_data"]
-  C --> M["fit_model"]
-  C --> F["make_figure"]
-  M --> Rep["report"]
-  F --> Rep
+  RF["rand_file"] --> RA["randomization"]
+  OF["outcomes_file"] --> OU["outcomes"]
+  RA --> AS["analysis_set"]
+  OU --> AS
+  AS --> T2["table_2"]
+  T2 -.-> REP["report"]
 ```
 
-## A minimal pipeline
+The graph is only as clear as the decomposition it encodes, and
+the decomposition is yours to make, not the tool's. Make each
+target a meaningful unit (read, derive, summarize, model, report),
+each computed by a function with explicit inputs and one output,
+rather than one thousand-line script that a single target wraps.
+A target that does too much is rebuilt for every small change; a
+target that does too little clutters the graph without adding
+information. The finished plan is also documentation: `_targets.R`
+states what depends on what, and it is often the most useful
+single file for a collaborator new to the project.
 
-A `targets` project keeps its pipeline definition in a file
-named `_targets.R` at the project root. The plan lists the
-targets; each `tar_target()` names a step and gives the R
-expression that produces it. Functions referenced in the
-plan live in an `R/` directory that the plan sources.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** In @fig-targets-dag, you edit the function behind
+`table_2` and run the pipeline. Which targets are rebuilt, and
+which are skipped?
 
-```r
-# _targets.R
+**Answer.** `table_2` is rebuilt because its function changed, and
+`report` because it depends on `table_2`. The two file targets,
+`randomization`, `outcomes`, and `analysis_set` are skipped,
+because none of them lies downstream of the change. That is the
+tool's whole value: it rebuilds the two stale targets and leaves
+everything upstream, which may be expensive, alone.
+:::
+
+### Exercises
+
+1. Using @fig-targets-dag, list the targets that become stale when
+   (a) a new `outcomes.csv` arrives, and (b) you edit the function
+   that reads the randomization file.
+
+::: {.callout-note collapse='true' title='Solution'}
+(a) `outcomes_file`, `outcomes`, `analysis_set`, `table_2`, and
+`report`: everything reachable forward from `outcomes_file`. The
+randomization branch is untouched. (b) `randomization`,
+`analysis_set`, `table_2`, and `report`. The function is shared by
+both read targets in the pipeline below, so in that pipeline
+`outcomes` is stale as well; the graph shows data dependencies,
+and `targets` also tracks the functions each target calls.
+:::
+
+## A pipeline for the running study {#sec-targets-pipeline}
+
+The pipeline reads the HF-HOME randomization list and outcomes
+file, derives the analysis set, and summarizes the primary outcome
+by arm as the manuscript's Table 2. The chunks below build it in a
+temporary directory, so that running them changes nothing in the
+book's own project; in your own work the same files live at the
+root of the compendium.
+
+```{r}
+#| label: targets-project-setup
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+proj <- file.path(tempdir(), "hfhome-pipeline")
+unlink(proj, recursive = TRUE)
+r_dir <- file.path(proj, "R")
+dir.create(r_dir, recursive = TRUE)
+dir.create(file.path(proj, "data"))
+invisible(file.copy(
+  file.path(hf_dir, c("randomization.csv", "outcomes.csv")),
+  file.path(proj, "data")
+))
+```
+
+### Functions in `R/`
+
+Each step is a function in the project's `R/` directory. The
+reading function keeps `patient_id` as character, because the
+identifiers carry leading zeros:
+
+```{cat}
+#| label: targets-fn-read
+#| engine.opts: !expr list(file = file.path(r_dir, "read.R"), lang = "r")
+read_trial_csv <- function(path) {
+  read_csv(path, col_types = cols(patient_id = "c", .default = "?"))
+}
+```
+
+The first version of the derivation repeats Tuesday's mistake from
+the opening on purpose: `coalesce()` turns a missing outcome into
+'no event'.
+
+```{cat}
+#| label: targets-fn-derive-v1
+#| engine.opts: !expr list(file = file.path(r_dir, "derive.R"), lang = "r")
+derive_analysis_set <- function(randomization, outcomes) {
+  randomization |>
+    inner_join(outcomes, by = "patient_id",
+               relationship = "one-to-one") |>
+    mutate(
+      arm = factor(arm, levels = c("Usual care", "Home health")),
+      event_30d = coalesce(event_30d, 0)
+    ) |>
+    select(patient_id, arm, event_30d)
+}
+```
+
+```{cat}
+#| label: targets-fn-summarize
+#| engine.opts: !expr list(file = file.path(r_dir, "summarize.R"), lang = "r")
+summarize_by_arm <- function(analysis_set) {
+  analysis_set |>
+    summarize(
+      n = n(),
+      events = sum(event_30d),
+      risk_pct = round(100 * mean(event_30d), 1),
+      .by = arm
+    ) |>
+    arrange(arm)
+}
+```
+
+### The plan
+
+A `targets` project keeps its pipeline definition in a file named
+`_targets.R` at the project root. The plan lists the targets; each
+`tar_target()` names a step and gives the R expression that
+produces it.
+
+```{cat}
+#| label: targets-plan
+#| engine.opts: !expr list(file = file.path(proj, "_targets.R"), lang = "r")
 library(targets)
-tar_source()          # source the helper functions in R/
+tar_source()
+tar_option_set(packages = c("readr", "dplyr"))
 
 list(
-  tar_target(raw_file, "data/raw/visits.csv", format = "file"),
-  tar_target(visits,   read_visits(raw_file)),
-  tar_target(clean,    clean_visits(visits)),
-  tar_target(model,    fit_model(clean)),
-  tar_target(figure,   make_figure(clean)),
-  tar_target(report,   render_report(model, figure))
+  tar_target(rand_file, "data/randomization.csv", format = "file"),
+  tar_target(outcomes_file, "data/outcomes.csv", format = "file"),
+  tar_target(randomization, read_trial_csv(rand_file)),
+  tar_target(outcomes, read_trial_csv(outcomes_file)),
+  tar_target(analysis_set, derive_analysis_set(randomization, outcomes)),
+  tar_target(table_2, summarize_by_arm(analysis_set))
 )
 ```
 
-Declaring `raw_file` with `format = "file"` tells `targets`
-to watch the file's contents, so that editing the raw data
-invalidates everything downstream. The dependencies are not
-declared explicitly; `targets` reads them from the code,
-noticing that `clean` uses `visits`, that `model` and
-`figure` both use `clean`, and so on. That is how it builds
-the graph in @fig-targets-dag without your drawing it.
+`tar_source()` sources every script in `R/`. Declaring `rand_file`
+and `outcomes_file` with `format = "file"` tells `targets` to watch
+the files' contents, so that a new extract invalidates everything
+downstream. The dependencies are not declared explicitly;
+`targets` reads them from the code, noticing that `analysis_set`
+uses `randomization` and `outcomes`, that `table_2` uses
+`analysis_set`, and so on. That is how it builds the graph in
+@fig-targets-dag without your drawing it.
 
-## Running and inspecting
+`tar_option_set(packages = ...)` names the packages every
+target needs. `targets` runs each target in a clean
+environment, so a `library()` call at the top of a script
+you sourced interactively does not carry over; packages
+the functions in `R/` use must be listed here (or called
+with `pkg::fn()`). The functions above call `read_csv()` and
+`inner_join()` without a namespace, so without that line every
+target after the file targets would fail.
 
-```r
-library(targets)
+### Running it
 
-tar_make()            # run everything that is out of date
+`tar_make()` runs everything that is out of date. Run it from the
+project root:[^with-dir]
 
-tar_visnetwork()      # view the dependency graph interactively
+[^with-dir]: The chunks wrap each call in `withr::with_dir(proj,
+    ...)` so that it runs in the temporary project. In a terminal
+    you would start R in the project directory and type
+    `tar_make()` alone.
 
-tar_read(model)       # retrieve a built target into the session
-tar_load(clean)       # load a target under its own name
+```{r}
+#| label: targets-make-first
+#| eval: !expr has_targets
+withr::with_dir(proj, targets::tar_make())
 ```
 
-The first `tar_make()` builds every target. Edit
-`clean_visits()` and run `tar_make()` again, and `targets`
-rebuilds `clean`, `model`, `figure`, and `report`, the
-nodes downstream of the change, while skipping the
-untouched `read_visits()` step and reporting it as up to
-date. Nothing you did not change, and nothing upstream of
-what you changed, is re-executed. On a pipeline whose model
-fit takes an hour, this is the difference between an
-iteration that costs minutes and one that costs the whole
-hour.
+The first run builds every target, in an order consistent with
+the graph. Run it again with nothing changed:
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: what gets rebuilt?
+```{r}
+#| label: targets-make-second
+#| eval: !expr has_targets
+withr::with_dir(proj, targets::tar_make())
+```
 
-**Question.** Your pipeline is the one in @fig-targets-dag.
-You edit the `make_figure` function and run `tar_make()`.
-Which targets are rebuilt, and which are skipped?
+Every target is skipped. `tar_read()` retrieves a built target
+into the session, and `tar_load()` loads it under its own name:
 
-**Answer.**
+```{r}
+#| label: targets-read-v1
+#| eval: !expr has_targets
+table_2_v1 <- withr::with_dir(proj, targets::tar_read(table_2))
+table_2_v1
+```
 
-`figure` is rebuilt because you changed its function, and
-`report` is rebuilt because it depends on `figure`.
-Everything else, `import`, `clean_data`, and `fit_model`,
-is skipped, because none of them lies downstream of the
-change: the figure does not feed the model. This is the
-whole value of the tool: it rebuilds the two stale targets
-and leaves the model fit, which may be expensive, alone.
+Every patient randomized is in the denominator, and the risks are
+diluted by the unascertained patients counted as event-free. The
+table looks like any other Table 2.
 
+::: {.callout-tip title='Verification'}
+Recompute the summary without `targets`, from the raw files, and
+confirm that the stored target matches it. A mismatch would mean
+the store holds something the current code does not produce.
+
+```{r}
+#| label: targets-verify-v1
+#| eval: !expr has_targets
+rand <- read.csv(file.path(hf_dir, "randomization.csv"),
+                 colClasses = c(patient_id = "character"))
+outc <- read.csv(file.path(hf_dir, "outcomes.csv"),
+                 colClasses = c(patient_id = "character"))
+trial <- merge(rand, outc, by = "patient_id")
+events_v1 <- tapply(ifelse(is.na(trial$event_30d), 0,
+                           trial$event_30d), trial$arm, sum)
+stopifnot(
+  nrow(trial) == nrow(rand),
+  all(table_2_v1$n == table(trial$arm)[as.character(table_2_v1$arm)]),
+  all(table_2_v1$events == events_v1[as.character(table_2_v1$arm)])
+)
+```
+
+In your own pipeline, `tar_visnetwork()` (which needs the
+`visNetwork` package) draws the graph `targets` inferred; compare
+it with the one you intended.
 :::
 
-## Relationship to the compendium and Docker
+::: {.callout-important title='LLM prompt'}
+A model can draft the plan and the functions. What it cannot
+supply is the decomposition, so give it yours.
+
+> **Context.** An R analysis in a research compendium. Raw inputs:
+> `data/randomization.csv` and `data/outcomes.csv` (one row per
+> `patient_id`, a character key with leading zeros). Steps, in
+> order: read each file; join them into the analysis set; summarize
+> the primary outcome `event_30d` by `arm`; fit
+> `glm(event_30d ~ arm, family = binomial)`.
+>
+> **Constraints.** One `tar_target()` per step listed, no more.
+> Each target calls a function in `R/` with its inputs as
+> arguments; no function reads a file path or a global variable
+> directly. Declare the raw files with `format = "file"`. List the
+> packages in `tar_option_set(packages = ...)`. Add no packages
+> beyond `targets`, `readr`, and `dplyr`.
+>
+> **Criteria.** List the edges of the dependency graph you expect
+> before writing code. After I run `tar_make()` twice, the second
+> run skips every target.
+
+*Failure mode.* Models collapse steps into one target that calls a
+script, or have a function read `"data/outcomes.csv"` by path,
+which hides the file from `targets` (the Pitfall below). *Check.*
+Compare `targets::tar_network(targets_only = TRUE)$edges` with the
+edge list the model gave you, and run `tar_make()` twice. The plan
+and the column names are structure, not data, and may go to any
+approved tool (@sec-ai-governance).
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You delete the `tar_option_set()` line from
+`_targets.R` and run `tar_make()` in a fresh session. Which
+targets fail, and why does the same code work when you source the
+functions and call them at the console?
+
+**Answer.** The file targets succeed, and the first target that
+calls a function from `readr` or `dplyr` fails with 'could not
+find function'. Each target runs in a clean environment that sees
+only the packages the plan names. At the console, `library(dplyr)`
+from earlier in your session is still attached, which is exactly
+the ambient state a pipeline is meant to exclude.
+:::
+
+### Exercises
+
+2. Without running anything, list every target `table_2` depends
+   on, directly or indirectly. Then confirm your list from the
+   graph `targets` inferred.
+
+::: {.callout-note collapse='true' title='Solution'}
+Directly, `analysis_set`; indirectly, `randomization`, `outcomes`,
+`rand_file`, and `outcomes_file`. `tar_network()` returns the
+inferred graph without drawing it; its `edges` element lists each
+arrow as a `from` and `to` pair:
+
+```{r}
+#| label: soln-10b-2
+#| eval: !expr has_targets
+withr::with_dir(
+  proj, targets::tar_network(targets_only = TRUE)$edges
+)
+```
+:::
+
+## Changing a step {#sec-targets-change}
+
+Now make Wednesday's fix: the analysis set should hold the
+patients whose outcome was ascertained, with their observed
+outcomes, rather than counting the missing ones as event-free.
+
+```{cat}
+#| label: targets-fn-derive-v2
+#| engine.opts: !expr list(file = file.path(r_dir, "derive.R"), lang = "r")
+derive_analysis_set <- function(randomization, outcomes) {
+  randomization |>
+    inner_join(outcomes, by = "patient_id",
+               relationship = "one-to-one") |>
+    filter(ascertained) |>
+    mutate(arm = factor(arm, levels = c("Usual care", "Home health"))) |>
+    select(patient_id, arm, event_30d)
+}
+```
+
+Before running anything, ask `targets` what the edit made stale:
+
+```{r}
+#| label: targets-outdated
+#| eval: !expr has_targets
+withr::with_dir(proj, targets::tar_outdated())
+```
+
+`tar_outdated()` lists the targets the next `tar_make()` will
+build. Only the derivation and what lies downstream of it are
+listed; the file targets and the two reads are current. Run the
+pipeline:
+
+```{r}
+#| label: targets-make-after-edit
+#| eval: !expr has_targets
+withr::with_dir(proj, targets::tar_make())
+table_2_v2 <- withr::with_dir(proj, targets::tar_read(table_2))
+table_2_v2
+```
+
+The two reads are skipped and the two stale targets are rebuilt.
+Table 2 cannot be left behind: the fix to the derivation reached
+it without your remembering it, which is the failure in the
+opening made impossible. On a pipeline whose model fit takes an
+hour, the same mechanism is the difference between an iteration
+that costs minutes and one that costs the hour.
+
+::: {.callout-tip title='Verification'}
+Confirm that the rebuilt table now counts only ascertained
+patients and that the events, which the fix should not change,
+are the same.
+
+```{r}
+#| label: targets-verify-v2
+#| eval: !expr has_targets
+obs <- trial[trial$ascertained, ]
+stopifnot(
+  all(table_2_v2$n == table(obs$arm)[as.character(table_2_v2$arm)]),
+  all(table_2_v2$events == table_2_v1$events),
+  all(table_2_v2$n < table_2_v1$n)
+)
+```
+:::
+
+::: {.callout-warning title='Pitfall'}
+**A file read inside a function is invisible to `targets`.** If a
+function opens `"data/outcomes.csv"` by its path, rather than
+receiving the path from a `format = "file"` target, `targets`
+tracks the function's code but not the file. Replace the file with
+a new extract and `tar_outdated()` reports nothing, `tar_make()`
+skips everything, and Table 2 is stale again, with the tool
+vouching for it. The same holds for any global variable or
+option a function reads. Pass every input as an argument, and
+declare every file with `format = "file"`. Exercise 3 shows the
+failure.
+:::
+
+Two further assumptions belong to you rather than to the tool.
+The first is determinism: a pipeline assumes that the same inputs
+produce the same outputs. `targets` gives each target its own
+random-number seed, derived from the seed option
+(`tar_option_set(seed = ...)`) and the target's name, so a
+simulation or bootstrap target reproduces its draws however the
+pipeline is scheduled; a target that reads the clock or an
+unpinned package defeats that. The second is the environment: the
+pipeline records code and data, not package versions, which is
+the lockfile's job (@sec-renv).
+
+::: {.callout-important title='LLM prompt'}
+When `targets` rebuilds more than you expected, or less, a model
+can help you find the hidden dependency.
+
+> **Context.** Below are my `_targets.R`, the functions in `R/`,
+> and the output of `tar_outdated()` and of
+> `tar_make()` after I changed [describe the one edit].
+>
+> **Constraints.** Explain using only what is in the code shown.
+> Do not suggest `tar_destroy()`, `tar_invalidate()`, or deleting
+> `_targets/`.
+>
+> **Criteria.** For each target that was rebuilt unexpectedly, or
+> skipped unexpectedly, name the dependency (a function, a global
+> variable, a file read by path, an option) responsible, and the
+> line where it appears.
+
+*Failure mode.* The model recommends deleting the store and
+rebuilding everything, which makes the symptom disappear and
+leaves the hidden dependency in place. *Check.* Make the change
+the model proposes, then confirm with `tar_outdated()` that the
+same edit now invalidates exactly the targets downstream of it in
+@fig-targets-dag (@sec-ai-governance).
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** After the edit, `tar_outdated()` listed
+`analysis_set` and `table_2`. Suppose the edit had only renamed a
+local variable inside `derive_analysis_set()`, so that the
+function returns exactly the same data. Which targets would
+`tar_make()` run?
+
+**Answer.** `analysis_set` would still run, because its function's
+code changed. `table_2` would then be skipped: `targets` compares
+the new value of `analysis_set` with the stored one, finds them
+identical, and treats everything downstream as current. A pipeline
+rebuilds what a change could affect and stops where it did not.
+:::
+
+### Exercises
+
+3. Copy the project. In the copy, delete the `outcomes_file`
+   target and change the `outcomes` target to call
+   `read_trial_csv("data/outcomes.csv")`, with the path written
+   inside the call, and run `tar_make()`. Then remove the last row
+   of `data/outcomes.csv` and ask `tar_outdated()` what is stale.
+   Repeat the edit in the original project and compare.
+
+::: {.callout-note collapse='true' title='Solution'}
+The copy reports nothing stale after the data change; the
+original reports the file target and everything downstream of it.
+
+```{r}
+#| label: soln-10b-3
+#| eval: !expr has_targets
+drop_last_row <- function(path) {
+  lines <- readLines(path)
+  writeLines(lines[-length(lines)], path)
+}
+
+hidden <- file.path(tempdir(), "hfhome-hidden")
+unlink(hidden, recursive = TRUE)
+dir.create(hidden)
+invisible(file.copy(list.files(proj, full.names = TRUE), hidden,
+                    recursive = TRUE))
+unlink(file.path(hidden, "_targets"), recursive = TRUE)
+plan <- readLines(file.path(hidden, "_targets.R"))
+plan <- plan[!grepl("tar_target(outcomes_file", plan, fixed = TRUE)]
+plan <- sub("read_trial_csv(outcomes_file)",
+            "read_trial_csv(\"data/outcomes.csv\")", plan,
+            fixed = TRUE)
+writeLines(plan, file.path(hidden, "_targets.R"))
+invisible(withr::with_dir(hidden, targets::tar_make(reporter = "silent")))
+
+drop_last_row(file.path(hidden, "data", "outcomes.csv"))
+withr::with_dir(hidden, targets::tar_outdated())
+
+drop_last_row(file.path(proj, "data", "outcomes.csv"))
+withr::with_dir(proj, targets::tar_outdated())
+```
+
+The empty result for the copy is the silent failure: the data
+changed and the tool vouches that nothing did. In the original,
+`outcomes_file` is a file target, so its changed contents
+invalidate `outcomes`, `analysis_set`, and `table_2`.
+:::
+
+4. From `table_2` after the fix, compute the risk difference in
+   percentage points, usual care minus home health, the direction
+   the analysis plan uses (@sec-analysis-plan), so that a positive
+   value is a reduction.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-10b-4
+#| eval: !expr has_targets
+risk <- setNames(table_2_v2$risk_pct, table_2_v2$arm)
+risk[["Usual care"]] - risk[["Home health"]]
+```
+
+The difference is a few points in favor of home health, from
+rounded risks; an estimate for the manuscript belongs in its own
+target, with a confidence interval, computed from `analysis_set`
+rather than from a rounded table. The analysis plan's primary
+estimator is in @sec-analysis-plan.
+:::
+
+## The report as a target {#sec-targets-report}
+
+The opening's failure ended in the manuscript, so the pipeline
+should end there too. The `report` target sketched in
+@fig-targets-dag would call a function of your own that renders
+the document. When the report is a Quarto document, use
+`tarchetypes::tar_quarto(report, "report.qmd")` instead:
+it renders the document and reads the `tar_read()` and
+`tar_load()` calls inside it, so the report becomes
+stale whenever a target it reads changes. The addition to the plan
+is two lines (display-only here, because it needs the
+`tarchetypes` and `quarto` packages and a report to render):
+
+```r
+library(tarchetypes)
+
+# appended to the list in _targets.R
+tar_quarto(report, "report.qmd")
+```
+
+Inside `report.qmd`, read each result from the store rather than
+recomputing it:
+
+````qmd
+```{{r}}
+#| label: tbl-primary
+#| tbl-cap: "Primary outcome by arm"
+targets::tar_read(table_2)
+```
+````
+
+A report that recomputes its numbers in its own chunks, rather
+than reading them from targets, is outside the graph again:
+`targets` cannot know that it depends on the analysis set, and it
+can go stale exactly as Table 2 did. @sec-quarto covers the
+document itself and the inline numbers it should carry.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague's `report.qmd` builds its own copy of
+Table 2 in a chunk, reading the two CSV files and repeating the
+derivation, instead of calling `tar_read(table_2)`. You make the
+derivation fix in `R/derive.R`. What does `tar_outdated()` list,
+and is the rendered report current?
+
+**Answer.** It lists `analysis_set` and `table_2`, not `report`.
+`tar_quarto()` found no `tar_read()` or `tar_load()` call in the
+document, so the report depends on nothing in the pipeline, and
+its copy of the derivation still holds Tuesday's mistake. The
+pipeline is current and the report is not: the opening's failure,
+one file later. Read every reported number from a target.
+:::
+
+### Exercises
+
+5. Add `tar_quarto()` to a pipeline of your own with a one-table
+   report, run `tar_make()`, then edit the function behind the
+   table and run `tar_outdated()`. (This needs the `tarchetypes`
+   and `quarto` packages and the Quarto command-line tool.)
+
+::: {.callout-note collapse='true' title='Solution'}
+A correct setup lists both the table's target and `report` in
+`tar_outdated()` after the edit, and `tar_make()` then re-renders
+the report. If `report` is missing from the list, the document
+does not read the table with `tar_read()` or `tar_load()`, so
+`tar_quarto()` found no dependency on it.
+:::
+
+## Pipelines in the compendium and the container {#sec-targets-compendium}
 
 A `targets` pipeline sits naturally inside the research
 compendium of @sec-rrtools: the `_targets.R` plan and the
 `R/` functions live in the package structure, `renv`
 (@sec-renv) pins the packages the pipeline uses, and the
-Dockerfile (@sec-docker) can end with `CMD Rscript -e
-'targets::tar_make()'` so that building the image runs the
-entire analysis. The compendium holds the ingredients;
-`targets` is the recipe that assembles them in the right
-order, and re-assembles only what has changed. Together
-they deliver the end-to-end re-runnability that a
-compendium alone only promises.
+Dockerfile (@sec-docker) can end with `CMD ["Rscript",
+"-e", "targets::tar_make()"]` so that running a container
+from the image executes the entire analysis. `CMD` runs
+when the container starts, not when the image is built;
+building only prepares the environment, which is what you
+want, since an image that baked in results would have to
+be rebuilt for every change to the code.
 
-## Collaborating with an LLM on pipelines
+The store, `_targets/`, holds every built target. Commit
+`_targets.R` and the `R/` functions; keep `_targets/` out of Git,
+because it is a build product that `tar_make()` regenerates. In a
+container, mount the project directory so that the store outlives
+the container, or every run starts from nothing.
 
-LLMs write `targets` plans competently; the judgment they
-cannot supply is the decomposition.
+| Piece | Holds | Version-controlled? |
+|---|---|---|
+| `_targets.R` | The plan: targets and their commands | Yes |
+| `R/` | The functions the targets call | Yes |
+| `data/raw_data/` | Inputs declared with `format = "file"` | As @sec-rrtools describes |
+| `_targets/` | The store of built targets and their metadata | No |
+| `renv.lock` | Package versions the pipeline runs under | Yes |
 
-**Prompt 1: drafting a plan.** Describe the analysis steps
-and their inputs and outputs, and ask for a `_targets.R`
-plan and the corresponding `R/` functions.
+: Where a pipeline's pieces live in a compendium. {#tbl-targets-pieces}
 
-*What to watch for.* Whether file inputs use
-`format = "file"`, and whether the decomposition matches
-the analysis you actually have rather than a generic
-template.
+The compendium holds the ingredients; `targets` is the recipe that
+assembles them in the right order, and re-assembles only what has
+changed. Together they deliver the end-to-end re-runnability that
+a compendium alone only promises.
 
-*Verification.* Run `tar_visnetwork()` and confirm the
-dependency graph matches your mental model; run
-`tar_make()` twice and confirm the second run skips
-everything.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague builds the image, runs the container
+without mounting the project, and reports that every run takes the
+full hour. Why?
 
-**Prompt 2: diagnosing a rebuild.** When `targets` rebuilds
-more than you expected, paste the plan and ask why a target
-is invalidated.
+**Answer.** Without a mount, `_targets/` is written inside the
+container's writable layer and discarded when the container
+exits. Each run starts with an empty store, so every target is
+out of date. Mount the project directory (`-v "$PWD":/work`, as in
+@sec-docker) and the store persists between runs.
+:::
 
-*What to watch for.* Hidden dependencies on global
-variables or on the wall clock, which make targets rebuild
-when you did not expect it.
+### Exercises
 
-*Verification.* Use `tar_outdated()` to list what is out of
-date and reason about why before accepting the explanation.
+6. Add a `CMD` line that runs `targets::tar_make()` to the
+   canonical Dockerfile of @sec-docker-canonical, build the image,
+   and run the container twice with the project mounted.
 
-## Principle in use
+::: {.callout-note collapse='true' title='Solution'}
+The first run's output ends with every target completed; the
+second's with every target skipped. If the second run rebuilds
+everything, the store is not on the mount: check that the
+container's working directory is the mounted project directory,
+so that `_targets/` is written to the host.
+:::
 
-Three habits make the pipeline's guarantee real:
+## Rules of thumb
 
-1. **Decompose into honest, functional steps.** Each target
-   is a function with explicit inputs and outputs, not a
-   monolithic script.
-2. **Trust up-to-date, distrust hand-running.** The tool's
-   value is the guarantee that nothing downstream of a
-   change is left stale.
-3. **Seed for determinism.** A pipeline assumes reproducible
-   steps; set seeds and pin packages so the assumption
-   holds.
+1. **Habit 2: derived data are a build product.** Let the pipeline
+   regenerate every intermediate; never edit or hand-run one into
+   place.
+2. **Habit 8: a stale intermediate produces a plausible number.**
+   Run `tar_outdated()` before you report anything, and pass every
+   input as an argument so that it can see the change.
+3. **Habit 4: pin the environment.** The pipeline tracks code and
+   data; the lockfile and the container pin what it runs on.
 
-## Exercises
+## Cumulative practice
 
-**On your own machine, data, or collaborations.** These exercises build
-and invalidate a pipeline on your machine, so no answer key is possible.
-`tar_visnetwork()` and the rebuild behavior are the verification.
+7. *Cumulative (uses @sec-renv).* Put this chapter's pipeline in a
+   compendium of your own, with `renv` initialized. Snapshot so
+   that the lockfile records `targets`, `readr`, and `dplyr`, clone
+   the repository into a new directory, run `renv::restore()`, and
+   confirm that `tar_make()` builds every target there and that
+   `tar_read(table_2)` matches the original.
+8. *On your own work (no key).* Convert a small analysis of yours
+   (read, clean, model, plot) into a pipeline with one target per
+   step and the functions in `R/`. Record which hidden dependencies
+   on files or global variables you had to remove.
 
-1. Convert a small existing analysis (read, clean, model,
-   plot) into a `targets` pipeline with one target per
-   step and the functions in `R/`.
-2. Run `tar_make()`, then edit the cleaning function and
-   run it again. Confirm from the output which targets were
-   rebuilt and which were skipped, and explain why.
-3. Use `tar_visnetwork()` to view the dependency graph.
-   Add a second figure that depends on the model, and
-   observe how the graph changes.
-4. Declare the raw-data path with and without
-   `format = "file"`. Edit the raw file in each case and
-   show that only the `format = "file"` version invalidates
-   the downstream targets.
-5. Add a `CMD` line to a Dockerfile that runs
-   `targets::tar_make()`, so that building the image
-   executes the whole pipeline. Explain how this closes the
-   loop with the compendium and `renv`.
+## Cheat sheet
+
+| Task | Code |
+|---|---|
+| Source the functions in `R/` | `tar_source()` |
+| Declare packages for every target | `tar_option_set(packages = c(...))` |
+| Declare a target | `tar_target(name, command)` |
+| Watch an input file's contents | `tar_target(f, "data/x.csv", format = "file")` |
+| Run what is out of date | `tar_make()` |
+| List what the next run will build | `tar_outdated()` |
+| Retrieve a target | `tar_read(name)`, or `tar_load(name)` |
+| Inspect the inferred graph | `tar_network()`, or `tar_visnetwork()` with `visNetwork` |
+| Make a Quarto report a target | `tarchetypes::tar_quarto(report, "report.qmd")` |
+| Run the pipeline in a container | `CMD ["Rscript", "-e", "targets::tar_make()"]` |
+
+: The `targets` verbs card. {#tbl-targets-cheat-sheet}
 
 ## Further reading
 
 - [@landau2021targets], the `targets` user manual, the
   authoritative and readable reference.
-- The `targets` package website at
-  `docs.ropensci.org/targets`, with function documentation
-  and examples.
+- [@landau2021joss], the paper that introduces the package and its
+  design.
 - @sec-rrtools and @sec-docker, the compendium and
   container context this pipeline sits inside.
 

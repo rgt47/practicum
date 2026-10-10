@@ -1,375 +1,735 @@
 # Statistical Analysis Plans {#sec-analysis-plan}
 
+A trial registers one primary outcome and publishes another. The
+paper reads well, its p-value is small, and nothing in it reveals
+the switch, because the only evidence is a document the reader never
+opens. When the COMPare project checked every trial published over
+six weeks in five high-impact medical journals against its protocol
+or registry entry, 58 of 67 had discrepancies, and the papers added
+a mean of 5.4 outcomes per trial that had never been declared
+[@goldacre2019compare]. Most of the correction letters the team
+sent went unpublished. What caught the switches was not peer review
+but a dated plan to compare against; this chapter is about writing
+that plan so that it binds, and so that a reader can check it did.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
 ```
-*To call in the statistician after the experiment is done
-may be no more than asking him to perform a post-mortem
-examination: he may be able to say what the experiment died
-of.*
+*It is unacceptably easy to publish 'statistically
+significant' evidence consistent with any hypothesis.*
 
-[Ronald A. Fisher]{.smallcaps}, *Presidential Address to the
-First Indian Statistical Congress* (1938)
+[Joseph P. Simmons, Leif D. Nelson, and Uri
+Simonsohn]{.smallcaps}, *False-Positive Psychology*,
+Psychological Science (2011)
 ```{=latex}
 \end{flushright}
 ```
 :::
 
-::: {.callout-note}
-## Sources
+```{r}
+#| label: sap-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-Adapted from author's lecture notes and supporting
-materials for a graduate practicum in biostatistics.
+```{r}
+#| label: fig-sap-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: the statistical analysis plan is
+#|   the Plan stage, written and tagged before the outcome data are
+#|   seen, and every later stage executes it."
+#| fig-alt: !expr pipeline_alt('plan')
+pipeline_diagram('plan')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 40 minutes.
+
+**You'll need.** @sec-git-solo for commits and tags,
+@sec-missing for missing-data mechanisms and sensitivity analysis,
+@sec-deident-practice for the de-identified release a data-sharing
+plan promises, and @sec-renv for the lockfile it points to. The
+code uses base R's `stats` package and:
+
+```r
+library(dplyr)
+library(ggplot2)
+```
+
+**You'll be able to.**
+
+- State a trial's estimand by its five attributes and choose a
+  strategy for each intercurrent event.
+- Draft a statistical analysis plan (SAP) whose sections map to the
+  published guideline, specific enough that a second analyst would
+  produce the same result.
+- Compute and report a sample size with base R, apply the attrition
+  assumption, and show power across a range of sample sizes.
+- Tag the SAP before data access, and label every result in the
+  paper as pre-specified or exploratory.
+- Write each of the six elements of an NIH data management and
+  sharing plan (DMSP) so that a reader could check, at
+  publication, whether it was carried out.
+
+**Outline.**
+
+- [Why pre-specify](#sec-analysis-plan-why)
+- [Estimands: what the trial estimates](#sec-analysis-plan-estimands)
+- [What a SAP contains](#sec-analysis-plan-template)
+- [Sample size](#sec-analysis-plan-power)
+- [Pre-specified versus exploratory](#sec-analysis-plan-exploratory)
+- [Version control and tagging](#sec-analysis-plan-tagging)
+- [Worked example: the HF-HOME SAP](#sec-analysis-plan-worked)
+- [The data management and sharing plan](#sec-federal-dmsp)
 :::
 
-## Prerequisites
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-18.
 
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-18.
+1. What is the primary purpose of a pre-registered Statistical
+   Analysis Plan (SAP)?
+2. Name at least five sections every clinical SAP should contain.
+3. Why is it important, both scientifically and ethically, to
+   distinguish pre-specified from exploratory analyses in the body
+   of a SAP?
+4. What are the six elements of an NIH DMSP under the 2023
+   policy, and who assesses the plan?
+:::
 
-1. What is the primary purpose of a pre-registered
-   Statistical Analysis Plan (SAP)?
-2. Name at least five sections every clinical SAP
-   should contain.
-3. Why is it important, both scientifically and
-   ethically, to distinguish pre-specified from
-   exploratory analyses in the body of a SAP?
+## Why pre-specify {#sec-analysis-plan-why}
 
-## Learning objectives
+The SAP is the professional biostatistician's most important
+non-code document, and the argument for it is narrower and stronger
+than the one usually made. It is not primarily a defense against
+dishonesty. Very few analysts set out to select the analysis that
+gives the answer they wanted. What they do, having looked at the
+data, is make a long series of small and individually defensible
+choices. Each is one they would have made differently had the data
+looked otherwise, and none is experienced as a choice at all. The
+p-value that emerges at the end has a nominal Type I error rate that
+assumes none of this happened.
 
-By the end of this chapter you should be able to:
+### Researcher degrees of freedom
 
-- Draft a SAP using the 243B template as a starting
-  point.
-- Pre-specify primary, secondary, and exploratory
-  analyses with enough detail that a collaborator
-  could execute them without further instruction.
-- Compute sample-size requirements with `zzpower` and
-  report them in the SAP.
-- Define missing-data strategies, sensitivity
-  analyses, and multiple-testing corrections
-  explicitly.
-- Version-control the SAP and tag the submitted
-  version before data access.
-- Distinguish pre-specified from exploratory analyses
-  in the analysis plan and the eventual paper.
+With many possible analyses (which covariates, which
+transformations, which subgroups, which outcome), the chance that
+*some* analysis gives $p < 0.05$ under the null is much greater than
+5%. @simmons2011false calculate that four common degrees of freedom
+together inflate the false-positive rate from 5% to about 60%. The
+problem does not need conscious p-hacking: in the 'garden of forking
+paths' [@gelman2013garden], the reported test's calibration depends
+on the choices that *would* have been made on different data, even
+if the analyst made only one.
 
-## Orientation
+The inflation is easy to see. The simulation below generates trials
+with no treatment effect at all, and lets the analyst make up to four
+yes-or-no choices: which of two correlated outcomes, whether to
+adjust for age, whether to drop values more than two standard deviations from the
+mean,
+and whether to report the older half as a subgroup. Each choice
+doubles the number of analyses, and the analyst reports the smallest
+p-value.
 
-The SAP is, we would contend, the professional
-biostatistician's most important non-code document, and the
-argument for it is narrower and stronger than the one usually
-made. It is not primarily a defense against dishonesty. Very
-few analysts set out to select the analysis that gives the
-answer they wanted. What they do, having looked at the data, is
-make a long series of small and individually defensible
-choices. Each is one they would have made differently had the
-data looked otherwise, and none is experienced as a choice at
-all. The p-value that emerges at the end has a
-nominal Type-I error rate that assumes none of this happened.
+```{r}
+#| label: sap-forking-sim
+set.seed(20260423)
 
-A plan written before the data are seen is the only instrument
-that distinguishes the two situations after the fact, because
-by then the analyst's memory of what they would have done is
-not evidence. Federally funded trials require one, most
-journals require one for confirmatory analyses, and the reason
-to want one has less to do with either than with being able to
-say, truthfully, which of your findings the study was designed
-to test.
+one_null_trial <- function(n = 80) {
+  arm <- rep(0:1, length.out = n)
+  age <- rnorm(n)
+  y1 <- 0.3 * age + rnorm(n)
+  y2 <- 0.5 * y1 + sqrt(0.75) * rnorm(n)
+  forks <- expand.grid(outcome = 1:2, adjust = c(FALSE, TRUE),
+                       trim = c(FALSE, TRUE), older = c(FALSE, TRUE))
+  vapply(seq_len(nrow(forks)), \(i) {
+    f <- forks[i, ]
+    y <- if (f$outcome == 1) y1 else y2
+    keep <- (!f$trim | abs(y - mean(y)) < 2 * sd(y)) &
+      (!f$older | age > 0)
+    fit <- if (f$adjust) lm(y ~ arm + age, subset = keep)
+           else lm(y ~ arm, subset = keep)
+    summary(fit)$coefficients["arm", 4]
+  }, numeric(1))
+}
 
-The SAP exists to constrain analyst degrees of
-freedom. Without it, the analysis plan is whatever
-the analyst chose after looking at the data, and the
-nominal Type-I error rate of the reported tests is
-not what the math says it is. With it, the analysis
-is anchored to a written-down plan that is on the
-public record.
+pvals <- replicate(1000, one_null_trial())
 
-## The statistician's contribution {#sec-analysis-plan-human}
+# expand.grid varies the first fork fastest, so the first 2^k rows
+# are every analysis available after k choices
+forking <- data.frame(choices = 0:4, analyses = 2^(0:4))
+forking$false_positive <- vapply(
+  forking$analyses,
+  \(a) mean(apply(pvals[seq_len(a), , drop = FALSE], 2, min) < 0.05),
+  numeric(1)
+)
+forking
+```
 
-The SAP is judgment work, not boilerplate.
+```{r}
+#| label: fig-sap-forking
+#| fig-cap: "False-positive rate under a true null as yes-or-no
+#|   analytic choices accumulate, from 1,000 simulated trials. The
+#|   dashed line is the nominal 5%."
+#| fig-alt: "Line chart with the number of analytic choices, 0 to 4,
+#|   on the horizontal axis and the false-positive rate on the
+#|   vertical axis. The rate starts near 0.05 with no choices and
+#|   rises steadily with each choice, ending several times higher
+#|   at four choices; a dashed horizontal line marks 0.05."
+#| fig-width: 5.5
+#| fig-height: 3.2
+library(ggplot2)
+ggplot(forking, aes(choices, false_positive)) +
+  geom_line() +
+  geom_point() +
+  geom_hline(yintercept = 0.05, linetype = 2) +
+  scale_x_continuous(
+    breaks = forking$choices,
+    labels = paste0(forking$choices, "\n(", forking$analyses,
+                    ifelse(forking$analyses == 1, " analysis)",
+                           " analyses)")),
+    expand = expansion(mult = 0.08)
+  ) +
+  labs(x = "Analytic choices", y = "False-positive rate") +
+  theme_minimal()
+```
 
-**Specify enough to constrain.** A SAP that says 'we
-will fit a regression model' has not specified
-anything. A SAP that says 'multivariable logistic
-regression of 30-day readmission on home-health
-visit (yes/no), adjusted for age (continuous), sex,
-ejection fraction (continuous), and discharge
-medication count (continuous), with a 5% Type-I
-error rate, two-sided' has constrained the
-researcher degrees of freedom that matter. Aim for
-the second.
+Four modest choices, each of which an analyst could defend, take the
+false-positive rate from
+`r sprintf("%.0f%%", 100 * forking$false_positive[1])` to
+`r sprintf("%.0f%%", 100 * forking$false_positive[5])`. A plan
+written before the data are seen fixes the covariates, the model,
+the missing-data strategy, and the multiple-comparison procedure,
+and it is the only instrument that distinguishes the two situations
+after the fact, because by then the analyst's memory of what they
+would have done is not evidence. The trade-off is real:
+pre-specification restricts flexibility. The flexibility it
+restricts was producing inflated false-positive rates anyway.
 
-**Pre-specify what you commit to.** A primary
-analysis is a commitment. The Type-I error rate of
-that test is the rate the reader is told. Adding
-sensitivity analyses, exploratory analyses, and
-'data-prompted' analyses afterward is fine,
-provided they are labeled as such. Mixing them with
-the primary changes what the primary actually means.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** In the simulation, every one of the 16 analyses is a
+valid test at the 5% level. Why does the reported result not have a
+5% error rate?
 
-**Be honest about uncertainty in the plan.** When
-you do not know the right method until you see the
-data, say so. 'If the residuals show
-heteroscedasticity, we will use HC1 standard errors;
-otherwise classical SEs' is more honest than 'we
-will use HC1 SEs' (which constrains a choice that
-should be data-driven) or 'we will use SEs' (which
-constrains nothing).
+**Answer.** Because the analyst reports the *smallest* of 16
+p-values, and the minimum of several valid p-values is not a valid
+p-value. Each test is calibrated on its own; the procedure 'run
+several, report the best' is not, and the reader is told the error
+rate of a single test. The tests are correlated (they share the
+data), which is why the rate rises more slowly than
+$1 - 0.95^{16}$, but it rises all the same.
+:::
 
-**Tag the SAP at data access.** Git tag
-`sap-v1.0-locked` at the moment the data become
-accessible. The tag is the proof of pre-
-specification. Later amendments are dated tags
-(`sap-v1.1-amendment-1`); their relationship to the
-data-access timeline is auditable.
+## Estimands: what the trial estimates {#sec-analysis-plan-estimands}
 
-These judgments are what make a SAP a serious
-document rather than a regulatory chore.
+Before a plan says how to analyze, it has to say what is being
+estimated. The E9(R1) addendum [@ich2019e9r1] of the International
+Council for Harmonisation (ICH) calls that target
+the [**estimand**](F-glossary.qmd#gloss-estimand) and asks for it to be stated by five attributes:
 
-## Why pre-register?
+| Attribute | What it fixes | HF-HOME |
+|---|---|---|
+| Population | The patients the question is about | Adults discharged alive after a heart-failure admission who meet the eligibility criteria |
+| Treatment conditions | What is compared | Assignment to home-health visits versus usual care |
+| Variable | What is measured on each patient | Readmission or death within 30 days of discharge |
+| Intercurrent events | Events after randomization that change what the variable means, and the strategy for each | Missed visit, home health outside the protocol, death |
+| Population-level summary | How the variable is compared between conditions | Marginal risk difference, usual care minus home health |
 
-The case rests on three observations:
+: The five estimand attributes, with the HF-HOME choices from its
+SAP (@sec-analysis-plan-worked). {#tbl-estimand-attributes}
 
-1. **Researcher degrees of freedom inflate Type-I
-   error.** With many possible analyses (which
-   covariates to include, which transformations,
-   which subgroups), the chance that *some* analysis
-   produces $p < 0.05$ under the null is much
-   greater than 5%. Simmons, Nelson, and Simonsohn
-   [-@simmons2011false] calculate that four
-   commonly-encountered degrees of freedom inflate
-   Type-I error from 5% to about 60%.
+### Intercurrent events and their strategies
 
-2. **The 'garden of forking paths'**
-   [@gelman2013garden]: even without conscious p-hacking,
-   the analysis is data-driven if the analyst made
-   choices in response to early data exploration.
-   The reported test's calibration depends on the
-   *unmade* choices that would have been made on
-   different data.
+*Intercurrent events* are 'events occurring after treatment
+initiation that affect either the interpretation or the existence
+of the measurements associated with the clinical question of
+interest' [@ich2019e9r1]. In HF-HOME, a home-health patient who
+never receives the visit, a usual-care patient who gets home health
+anyway, and a patient who dies before any readmission are all
+intercurrent events. The addendum names five strategies for them,
+and each one asks a different question:
 
-3. **Pre-registration constrains the choices.** A
-   SAP written before data access fixes the
-   covariates, the model class, the missingness
-   strategy, the multiple-comparison correction. The
-   eventual analysis is what was pre-specified; any
-   deviation is documented as an amendment or as
-   exploratory.
+| Strategy | Question it answers | HF-HOME example | What it requires |
+|---|---|---|---|
+| Treatment policy | Effect of the assigned treatment, whatever patients then received | Missed and outside-protocol visits ignored: analyzed as randomized (the SAP's choice) | Outcomes on every patient, including the nonadherent |
+| Composite | The event is itself an outcome | Death before readmission counts as an event (the SAP's choice) | A variable defined for everyone |
+| Hypothetical | Effect had the event not occurred | Effect had every home-health patient received the visit | A model for an unobserved scenario, with untestable assumptions |
+| While on treatment | Response before the event | Readmission while home-health services were active | Comparable observation windows across arms |
+| Principal stratum | Effect in patients who would (or would not) have the event | Effect among patients who would receive a visit if assigned home health | Assumptions that identify a stratum no one observes directly |
 
-The trade-off is honest: pre-registration restricts
-flexibility. The flexibility it restricts was
-producing inflated false-positive rates anyway.
+: Strategies for intercurrent events, illustrated with HF-HOME.
+{#tbl-estimand-strategies}
 
-## The 243B SAP template
+A treatment-policy strategy cannot handle a terminal event such as
+death, because no outcome exists after it; that is why HF-HOME uses
+the composite strategy for death and treatment policy for the
+visits. The choice determines what counts as missing data, which is
+why @sec-missing-trials starts from the estimand.
 
-A standard biostatistical SAP has these sections:
+### Why 'patients who got the visit' answers no question
 
-1. **Background and rationale.** Why this study, in
-   half a page. Sets the audience for the rest.
-2. **Research questions and hypotheses.** Numbered.
-   Each question paired with the specific
-   statistical hypothesis it implies.
-3. **Study design.** RCT (parallel, crossover,
-   cluster), observational cohort, case-control,
-   etc. Sample size and power justification reference
-   this design.
-4. **Inclusion and exclusion criteria.** As a numbered
-   list. Each criterion testable from data alone.
-5. **Primary outcome definition.** Operationalized:
-   the data fields, the time window, the value
-   transformation. A second analyst should compute
-   the same outcome variable.
-6. **Secondary outcomes.** Same level of detail.
-7. **Covariates.** Each one named, with its
-   transformation if any (continuous? categorized?
-   reference level?). Effects of interest specified.
-8. **Primary analysis.** Specific test or model.
-   Expected output (point estimate, CI, p-value).
-   Type-I error rate.
-9. **Secondary analyses.** Each one its own subsection
-   with the same level of detail.
-10. **Sensitivity analyses.** Each labeled as
-    sensitivity (e.g., 'sensitivity to missing-data
-    assumption'); pre-specified, not data-driven.
-11. **Missing-data handling.** Specific strategy:
-    complete-case, multiple imputation, IPW; the
-    assumed mechanism (MCAR, MAR, MNAR); diagnostic
-    checks.
-12. **Multiple testing.** Family-wise correction
-    (Bonferroni, Holm, etc.) or false discovery
-    rate (BH) procedure; the family of tests it
-    applies to.
-13. **Reporting.** What gets reported, in what
-    table/figure, in what manuscript.
+The tempting analysis compares patients by what they received. The
+running study's files show how far that drifts from any estimand:
 
-The template is a checklist; not every section is
-needed for every study. For an observational
-secondary analysis, sections 3 and 4 are simpler;
-sections 8--12 are the same.
+```{r}
+#| label: sap-estimand-receipt
+#| message: false
+library(dplyr)
 
-The template says what a SAP must contain. It does
-not say whether the analysis it specifies is a good
-one, and a SAP can be complete, version-controlled,
-tagged before data access, and still pre-specify a
-weak analysis. For that second question there is a
-useful external cross-check: Harrell's author
-checklist [@harrell2024checklist], maintained for
-years as the Vanderbilt Biostatistics manuscript
-checklist and now hosted on datamethods.org. It is
-written for the reviewer of a finished manuscript,
-which makes it the right instrument to run against a
-draft SAP, because every item on it is a way a paper
-gets rejected that a plan could have prevented. Its
-recurring targets are decisions this template invites
-you to make in section 7 and section 8. They include
-categorizing a continuous covariate rather than modeling
-it with a spline, selecting variables by stepwise
-procedures, reporting a p-value without the interval
-that gives it magnitude, and choosing a sample size
-from an effect size observed in a previous study rather
-than from the effect worth detecting. *Regression Modeling
-Strategies* [@harrell2015rms] is the book-length
-argument behind those items. Read the checklist once
-before you draft section 8, and again after.
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+read_hf <- function(file) {
+  readr::read_csv(file.path(hf_dir, file),
+                  col_types = readr::cols(patient_id = "c",
+                                          .default = "?"))
+}
 
-## Sample size with `zzpower`
+hf_rand <- read_hf("randomization.csv")
+visited <- read_hf("visits.csv") |>
+  filter(visit_type == "home_health", visit_day <= 7) |>
+  distinct(patient_id) |>
+  mutate(visit_7d = TRUE)
 
-`zzpower` provides power calculations for the
-standard clinical-trial designs:
+hf <- hf_rand |>
+  select(patient_id, arm) |>
+  left_join(visited, by = "patient_id", relationship = "one-to-one") |>
+  left_join(read_hf("outcomes.csv") |>
+              select(patient_id, event_30d, days_to_event),
+            by = "patient_id", relationship = "one-to-one",
+            unmatched = "error") |>
+  mutate(visit_7d = coalesce(visit_7d, FALSE),
+         arm = factor(arm, levels = c("Usual care", "Home health")))
+stopifnot(nrow(hf) == nrow(hf_rand))
+
+hf |>
+  group_by(arm) |>
+  summarize(received_visit = round(mean(visit_7d), 3))
+
+by_receipt <- hf |>
+  filter(arm == "Home health") |>
+  group_by(visit_7d) |>
+  summarize(patients = n(),
+            risk = round(mean(event_30d, na.rm = TRUE), 3),
+            event_by_day_7 = sum(event_30d == 1 & days_to_event <= 7,
+                                 na.rm = TRUE))
+by_receipt
+```
+
+::: {.callout-warning title='Pitfall'}
+**Subsetting on what patients received breaks randomization, and the
+result looks like a large effect.** Within the home-health arm,
+patients without a visit had a 30-day risk of
+`r sprintf("%.0f%%", 100 * by_receipt$risk[!by_receipt$visit_7d])`
+against
+`r sprintf("%.0f%%", 100 * by_receipt$risk[by_receipt$visit_7d])`
+for those visited. That is not the effect of the visit. Frail
+patients were less likely to receive one, and
+`r by_receipt$event_by_day_7[!by_receipt$visit_7d]` of the unvisited
+had their event by day 7, which in the trial's records prevents the
+visit (the immortal-time trap of @sec-team-science). A principal
+stratum is defined by what a patient *would* experience, which
+randomization balances; a subset defined by what patients *did*
+experience is not balanced by anything.
+:::
+
+### Exercises
+
+1. Using `outcomes.csv` and `randomization.csv`, count by arm the
+   patients whose first event was death. Which strategy does the
+   HF-HOME SAP apply to them, and why could it not use a
+   treatment-policy strategy?
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-18-estimand
+deaths <- hf_rand |>
+  select(patient_id, arm) |>
+  left_join(read_hf("outcomes.csv") |> select(patient_id, first_event),
+            by = "patient_id", relationship = "one-to-one",
+            unmatched = "error") |>
+  group_by(arm) |>
+  summarize(ascertained = sum(!is.na(first_event)),
+            death_first = sum(first_event == "death", na.rm = TRUE))
+deaths
+```
+
+The SAP uses a composite strategy: death within 30 days is an event,
+so the variable is defined for every patient. A treatment-policy
+strategy would need the readmission outcome after death, which does
+not exist; the addendum notes that treatment policy cannot be
+implemented for terminal events. Treating death as censoring, or
+dropping the deaths, would instead estimate an effect among
+survivors, a population that the treatment itself may change.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague proposes a 'per-protocol' analysis of
+HF-HOME restricted to home-health patients who received the visit
+and usual-care patients who did not. Which estimand does it target?
+
+**Answer.** None of the five. It is neither a hypothetical estimand
+(that needs a model for what unvisited patients would have
+experienced) nor a principal stratum (that needs the patients who
+*would* be visited if assigned, identified in both arms). It
+compares two subsets selected after randomization by frailty and by
+early events, so its estimate mixes the treatment effect with those
+differences. If the question is the effect of actually receiving
+the visit, state it as a hypothetical or principal-stratum estimand
+and pre-specify the assumptions that identify it.
+:::
+
+## What a SAP contains {#sec-analysis-plan-template}
+
+A standard biostatistical SAP has the sections in @tbl-sap-sections.
+They condense the published guideline for the content of
+clinical-trial SAPs [@gamble2017sap], whose 55 items are the fuller
+checklist to use for a trial, and each maps to the statistical
+principles in ICH E9 [@ich1998e9] and its addendum. A downloadable
+SAP skeleton with these sections will accompany the book.
+
+| SAP section | Contents | Gamble et al. (2017) | ICH E9 or E9(R1) |
+|---|---|---|---|
+| Administrative | Version, date, revision history, signatures | Administrative information (1 to 6) | (see @sec-analysis-plan-tagging) |
+| 1. Background | Why this study, in half a page | Introduction: background and rationale (7) | 2.1 Trial context |
+| 2. Questions and estimands | Each question with its hypothesis and estimand | Introduction: objectives (8) | E9(R1) A.3 Estimands |
+| 3. Design | Design, allocation, randomization, sample size | Study methods (9 to 15) | 3.1 Design configuration; 3.5 Sample size |
+| 4. Eligibility | Inclusion and exclusion, each testable from data | Trial population: eligibility (22) | 2.2.1 Population |
+| 5. Primary outcome | Data fields, time window, transformation | Analysis: outcome definitions (26) | 2.2.2 Primary and secondary variables |
+| 6. Secondary outcomes | Same level of detail | Analysis: outcome definitions (26) | 2.2.2 |
+| 7. Covariates | Each named, with coding and reference level | Analysis: analysis methods (27) | 5.7 Subgroups, interactions and covariates |
+| 8. Primary analysis | Model, estimator, interval, Type I error, analysis set | Analysis methods (27); analysis populations (20) | 5.2 Analysis sets; 5.5 Estimation, confidence intervals and hypothesis testing |
+| 9. Secondary analyses | Each with the same detail | Analysis: analysis methods (27) | 5.5 |
+| 10. Sensitivity analyses | Each a named departure from a stated assumption | Analysis: analysis methods (27) | E9(R1) A.5.2 Sensitivity analysis |
+| 11. Missing data | Assumed mechanism, primary method, diagnostics | Analysis: missing data (28) | 5.3 Missing values and outliers |
+| 12. Multiple testing | The procedure and the family it covers | Statistical principles: confidence intervals and P values (16 to 18) | 5.6 Adjustment of significance and confidence levels |
+| 13. Reporting | Tables, figures, flow diagram | Trial population (21 to 25) | VII Reporting |
+
+: SAP sections, with their counterparts in the guideline of
+@gamble2017sap (item numbers in parentheses) and ICH E9 (section
+numbers). {#tbl-sap-sections}
+
+Not every section is needed for every study. For an observational
+secondary analysis, sections 3 and 4 are simpler, and sections 8 to
+12 are the same.
+
+### Specific enough to constrain
+
+A SAP that says 'we will fit a regression model' has specified
+nothing. One that says 'multivariable logistic regression of 30-day
+readmission or death on randomized arm (home health vs. usual care),
+adjusted for age (continuous), sex, ejection fraction (continuous),
+and discharge medication count (continuous), with a 5% Type I error
+rate, two-sided' has constrained the researcher degrees of freedom
+that matter. Aim for the second.
+
+Where you do not know whether an assumption will hold, pre-specify a
+method that remains valid either way rather than a test that chooses
+between methods. 'If the residuals show heteroscedasticity, we will
+use heteroscedasticity-consistent (HC1) standard errors; otherwise
+classical standard errors (SEs)' looks careful but
+is a pretest procedure: the combined rule's error rate is that of
+neither branch, and classical SEs chosen after a heteroscedasticity
+test that lacked power are the worst of both. 'We will use HC3
+standard errors' commits to an estimator that is valid whether or
+not the variance is constant and costs little when it is
+[@long2000hc]. 'We will use SEs' constrains nothing.
+
+### Complete is not the same as good
+
+The template says what a SAP must contain, not whether the analysis
+it specifies is a good one; a SAP can be complete, tagged before
+data access, and still pre-specify a weak analysis. Harrell's author
+checklist [@harrell2024checklist], written for the reviewer of a
+finished manuscript, is the right instrument to run against a draft,
+because every item on it is a way a paper gets rejected that a plan
+could have prevented. Its recurring targets are decisions sections 7
+and 8 invite: categorizing a continuous covariate rather than
+modeling it with a spline, selecting variables stepwise, reporting a
+p-value without the interval that gives it magnitude, and choosing a
+sample size from an effect observed in a previous study rather than
+the effect worth detecting. *Regression Modeling Strategies*
+[@harrell2015rms] is the book-length argument behind those items.
+Read the checklist once before you draft section 8, and again after.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A draft SAP says: 'Missing data will be handled
+appropriately, with sensitivity analyses as needed.' Which sections
+of @tbl-sap-sections does it fail, and what would fix it?
+
+**Answer.** Sections 10 and 11. It names no mechanism, no method,
+and no sensitivity analysis, so any analysis chosen after the data
+arrive would satisfy it. The fix states the assumed mechanism and
+the variables it conditions on, the primary method (with $M$ if
+imputing), and each sensitivity analysis by method and range, as in
+section 11 of the HF-HOME SAP below.
+:::
+
+## Sample size {#sec-analysis-plan-power}
+
+Base R's `stats` package covers the two designs most clinical SAPs
+start from, a parallel-group randomized controlled trial (RCT) with
+a continuous or a binary outcome: `power.t.test()` for a continuous outcome and
+`power.prop.test()` for a binary one. Supplying `power` solves for
+the sample size per arm; supplying `n` solves for power:
+
+```{r}
+#| label: sap-power-base
+# parallel-group RCT, continuous outcome:
+# n per arm at 80% power for a standardized effect of 0.5
+power.t.test(delta = 0.5, sd = 1, power = 0.80,
+             sig.level = 0.05)
+
+# the converse question: power at 50 per arm
+power.t.test(n = 50, delta = 0.5, sd = 1)$power
+```
+
+For designs beyond these, community packages such as `pwr` and, for
+group-sequential and adaptive trials, `rpact` are the usual next
+step. The in-house `zzpower` package is one further option. It is
+installed from GitHub rather than CRAN and has not been through an
+external review, so where base R covers the same design, cross-check
+its answer against `stats`; for the calculation below the two agree
+once rounded up to whole patients.
 
 ```{r}
 #| label: sap-power-calc
 #| message: false
 library(zzpower)
 
-# parallel-group RCT, continuous outcome:
-# required N at 80% power for a standardized effect of 0.5
 zzpower::power_calc("ttest_2groups",
            target_power  = 0.80,
            effect_size   = 0.5,
            effect_method = "cohens_d",
            alpha         = 0.05)
-
-# the converse question: power at a fixed sample size
-zzpower::power_calc("ttest_2groups",
-           sample_size   = 100,
-           effect_size   = 0.5,
-           effect_method = "cohens_d")
 ```
 
-The first argument names a design from the package's
-registry. Besides `ttest_2groups` it holds
-`ttest_paired`, `ttest_one_sample`, `prop_2groups`,
-`correlation`, `logrank`, `fisher_exact`, `trend_prop`,
-`anova_oneway`, `mcnemar`, `mixed_model`, and
-`cluster_rct`, which covers most of what a clinical SAP
-needs. Supplying `target_power` solves for sample size;
-supplying `sample_size` solves for power.
-
-To see the trade-off rather than a single number, which
-is usually what a protocol discussion actually wants,
-`power_table()` sweeps a grid of effect sizes against
-power thresholds:
+In the SAP, report the sample size with the underlying assumptions,
+and apply the attrition assumption rather than merely stating it.
+The calculation gives the number of participants who must be
+*analyzed*; the number enrolled has to be larger by the factor
+$1/(1 - \text{attrition})$:
 
 ```{r}
-#| label: sap-power-table
-zzpower::power_table("ttest_2groups",
-            effect_grid      = seq(0.3, 0.8, by = 0.1),
-            power_thresholds = c(0.80, 0.90),
-            effect_method    = "cohens_d")
+#| label: sap-attrition
+attrition  <- 0.10
+n_analyzed <- power.t.test(delta = 0.5, sd = 1,
+                           power = 0.80)$n
+n_enrolled <- ceiling(n_analyzed / (1 - attrition))
+
+c(analyzed = ceiling(n_analyzed), enrolled = n_enrolled)
 ```
 
-In the SAP, report the sample size with the
-underlying assumptions:
+> The study will enroll `r n_enrolled` participants per arm
+> (`r 2 * n_enrolled` in total), so that with 10% attrition
+> `r ceiling(n_analyzed)` per arm remain for analysis, giving 80%
+> power to detect a standardized effect of 0.5 at a two-sided
+> $\alpha = 0.05$.
 
-> The study will enroll 64 participants per arm
-> (total $n = 128$), to achieve 80% power to detect
-> a standardized effect of 0.5 at a two-sided
-> $\alpha = 0.05$, assuming an attrition rate of
-> 10%.
+A plan that says '64 per arm, assuming 10% attrition' and enrolls 64
+has assumed the attrition and then ignored it. If the assumptions
+are uncertain, show power across a range of sample sizes or effects,
+as @fig-sap-power does for HF-HOME, and choose the planned size with
+feasibility in view.
 
-If the assumptions are uncertain, present a table of
-required sample sizes under several effect sizes,
-and choose the planned sample size based on
-feasibility.
+### Exercises
 
-## Pre-specified vs. exploratory
+2. Use `power.t.test()` to compute the required sample size for a
+   two-arm comparison under three plausible standardized effect
+   sizes (small, medium, large). Then inflate each for a cluster
+   randomized design with 20 patients per practice and an
+   intracluster correlation of 0.02, and report the number of
+   clusters required.
 
-A pre-specified analysis is one that:
+::: {.callout-note collapse='true' title='Solution'}
+**The individual-level requirement first.**
 
-- Was written down in the SAP before data access.
-- Has its statistical properties (Type-I error rate,
-  CI coverage) calibrated to the SAP's specification,
-  not to the analyst's choices afterward.
-- Carries the full inferential authority of the
-  study.
+```{r}
+#| label: soln-18-1
+per_arm <- vapply(
+  c(small = 0.2, medium = 0.5, large = 0.8),
+  \(d) power.t.test(delta = d, sd = 1, power = 0.80,
+                    sig.level = 0.05)$n,
+  numeric(1))
 
-An exploratory analysis is one that:
+ceiling(per_arm)          # analytic n per arm
+```
 
-- Was generated after seeing the data, or that was
-  not pre-specified for some reason (a reviewer
-  request, an unexpected finding).
-- Has its statistical properties uncalibrated.
-- Is hypothesis-generating, not confirmatory.
+With `sd = 1`, `delta` is the standardized effect. The same
+calculation in `zzpower` reads its result from `sample_sizes` rather
+than `sample_size`: the element is a list, because a two-arm
+calculation returns per-arm and total figures separately, along with
+an intention-to-treat (ITT) inflated version. Its `$n` is the analytic requirement per
+arm, and it agrees with base R once rounded up:
 
-In the SAP, separate them clearly:
+```{r}
+#| label: soln-18-1-zzpower
+#| message: false
+library(zzpower)
 
-> **Pre-specified analyses.** [list]
->
-> **Exploratory analyses (hypothesis-generating,
-> reported with appropriate caution).** [list]
+per_arm_zz <- vapply(
+  c(small = 0.2, medium = 0.5, large = 0.8),
+  \(d) power_calc("ttest_2groups",
+                  target_power  = 0.80,
+                  effect_size   = d,
+                  effect_method = "cohens_d",
+                  alpha         = 0.05)$sample_sizes$n,
+  numeric(1))
 
-In the paper, label them in the methods section:
+stopifnot(identical(ceiling(per_arm), ceiling(per_arm_zz)))
+```
 
-> The primary analysis was a multivariable logistic
-> regression of 30-day readmission on home-health
-> visit, pre-specified in the analysis plan
-> (Supplementary Material, version 1.0). Subgroup
-> analyses by age were exploratory and are reported
-> as hypothesis-generating.
+The per-arm requirement is what the design effect below scales.
 
-The convention spares the reader from over-
-interpreting exploratory findings while preserving
-their scientific value as motivation for follow-up.
+**Then the design effect.** A cluster randomized trial does not
+randomize patients; it randomizes practices, and patients within a
+practice resemble one another. The variance inflation is
+$\text{DEFF} = 1 + (m - 1)\rho$, with $m$ patients per cluster and
+$\rho$ the intracluster correlation:
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: pre-spec vs. exploratory
+```{r}
+#| label: soln-18-1b
+m   <- 20      # patients per practice
+rho <- 0.02    # intracluster correlation
 
-**Question.** You have pre-specified a primary
-logistic regression. Reviewers ask for a subgroup
-analysis by age. You run it and find a significant
-interaction. How should this appear in the paper?
+deff <- 1 + (m - 1) * rho
 
-**Answer.**
+total <- 2 * per_arm                 # both arms
 
-The subgroup analysis is exploratory because it was
-not pre-specified. Even though the data showed a
-significant interaction, the test's Type-I error
-rate is not 5% in any meaningful sense: the test
-was selected after the data were seen. Report the
-result clearly labeled as exploratory and
-hypothesis-generating, not as a confirmatory
-finding. The interaction is a candidate for a
-future pre-registered study; in the current paper,
-it joins the discussion section as an interesting
-observation, not the results section as a
-confirmatory test. Mislabelling exploratory
-findings as confirmatory is among the most common
-forms of inferential overreach in clinical
-research.
+data.frame(
+  effect       = names(per_arm),
+  n_total      = ceiling(total),
+  deff         = round(deff, 2),
+  n_cluster    = ceiling(total * deff),
+  clusters     = ceiling(ceiling(total * deff) / m),
+  row.names    = NULL
+)
+```
 
+An intracluster correlation of 0.02 sounds negligible and is not.
+With 20 patients per practice it inflates the required sample by
+38%, because the design effect depends on $\rho$ and cluster size
+jointly. Doubling the cluster size to 40 would inflate it by 78%
+instead, so recruiting more patients per practice buys
+progressively less.
+
+Two things belong in the SAP alongside this table. The value of
+$\rho$ is an assumption, not a measurement, and it should be
+attributed to a source and given a sensitivity range. And the
+number that gets recruited is `clusters`, rounded up, so the
+realized sample is generally larger than `n_cluster`; quoting the
+latter as the target understates what the trial must enroll.
 :::
 
-## Version control and tagging
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A protocol states 80% power with 750 evaluable
+patients per arm, and a colleague checked the arithmetic by eye.
+What is the only check that counts?
+
+**Answer.** Recomputing it from the stated assumptions, in code, and
+putting the computed number in the prose. At a 25% control risk and
+a 5-point reduction, 750 per arm falls well short of 80% power, as
+@sec-analysis-plan-worked computes. A typed number in a protocol is
+evidence of what someone believed, not of what the design delivers
+(Habit 10).
+:::
+
+## Pre-specified versus exploratory {#sec-analysis-plan-exploratory}
+
+The distinction is about *when* an analysis was decided, and it
+determines what the result can claim:
+
+| | Pre-specified | Exploratory |
+|---|---|---|
+| When decided | Written in the SAP before data access | After seeing the data, or added later (a reviewer request, an unexpected finding) |
+| Error rates | Calibrated to the SAP's specification | Uncalibrated |
+| Authority | The full inferential authority of the study | Hypothesis-generating, not confirmatory |
+| In the SAP | Listed under 'Pre-specified analyses' | Listed under 'Exploratory analyses (hypothesis-generating, reported with appropriate caution)' |
+| In the paper | Methods name the SAP and its version | Labeled exploratory where reported |
+
+: Pre-specified and exploratory analyses. {#tbl-prespecified}
+
+In the paper, the label goes in the methods section:
+
+> The primary analysis was a multivariable logistic regression of
+> 30-day readmission or death on randomized arm, pre-specified in
+> the analysis plan (Supplementary Material, version 1.0). Subgroup
+> analyses by age were exploratory and are reported as
+> hypothesis-generating.
+
+The convention spares the reader from over-interpreting exploratory
+findings while preserving their value as motivation for follow-up.
+
+::: {.callout-important title='LLM prompt'}
+Use a model to flag analyses that look exploratory, not to decide
+which were pre-specified; only your timeline knows that.
+
+> **Context.** Below are the analysis list from my draft results
+> section and the list of analyses in SAP version 1.0, with the
+> date of its tag and the date of data access.
+>
+> **Constraints.** Classify each analysis in the results as
+> pre-specified (it appears in SAP v1.0 with the same outcome,
+> model, population, and covariates) or exploratory (anything else).
+> Treat any change of outcome, time point, covariate set, or
+> analysis population as a deviation, not a match.
+>
+> **Criteria.** For each analysis, quote the SAP sentence it matches,
+> or state 'no match'. List every SAP analysis that does not appear
+> in the results.
+
+*Failure mode.* The model matches on topic rather than
+specification, calling a 90-day outcome pre-specified because the
+SAP mentions 30-day readmission, and it cannot know when an analysis
+was decided. *Check.* For every 'pre-specified' label, confirm that
+the quoted sentence is in the tagged SAP (`git show
+sap-v1.0-locked:SAP/sap-v1.0.qmd`); the list of unreported SAP
+analyses is the outcome-switching audit of this chapter's opening.
+A SAP and a results outline are structure, not data
+(@sec-ai-governance).
+:::
+
+### Exercises
+
+3. Locate a published trial with a publicly available SAP or
+   protocol. Audit whether the paper's analyses match it: list the
+   pre-specified primary and secondary outcomes, the reported ones,
+   and every discrepancy, and classify each as an amendment, an
+   exploratory analysis, or unreported.
+
+::: {.callout-note collapse='true' title='Solution'}
+There is no single key, because the paper is yours to choose. A good
+audit is a table with one row per outcome: as pre-specified (with
+the document, version, and date), as reported, and the
+classification. It counts the outcomes added without declaration
+and the pre-specified outcomes not reported, as COMPare did
+[@goldacre2019compare], and for each discrepancy checks whether the
+paper itself discloses and explains it. An undisclosed switch of the
+primary outcome is the finding that matters most.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You pre-specified a primary logistic regression.
+Reviewers ask for a subgroup analysis by age. You run it and find a
+significant interaction. How should this appear in the paper?
+
+**Answer.** As an exploratory analysis, clearly labeled. It was not
+pre-specified, and the test was selected after the data were seen,
+so its Type I error rate is not 5% in any meaningful sense. Report
+it as hypothesis-generating, in the discussion rather than as a
+confirmatory result; it is a candidate for a future pre-registered
+study. Mislabeling exploratory findings as confirmatory is among
+the most common forms of inferential overreach in clinical
+research.
+:::
+
+## Version control and tagging {#sec-analysis-plan-tagging}
 
 A SAP that can be edited after the data arrive is not a
-pre-specification, whatever it says on its front page.
-What makes the claim checkable is a timestamped tag in a
-history nobody can quietly rewrite. @fig-sap-timeline is
-the sequence that has to hold.
+pre-specification, whatever it says on its front page. What makes
+the claim checkable is a timestamped tag in a history nobody can
+quietly rewrite. @fig-sap-timeline is the sequence that has to hold.
 
 ```{mermaid}
 %%| echo: false
@@ -410,7 +770,7 @@ project/
 └── ...
 ```
 
-Tag the moment of data lock:
+Tag the moment of data lock, and push the tag:
 
 ```bash
 git tag -a sap-v1.0-locked -m "SAP locked at data access 2026-04-23"
@@ -423,78 +783,175 @@ Later amendments are separate commits and tags:
 git tag -a sap-v1.1-amendment-1 -m "Amendment 1: revised missing-data strategy following blinded data review"
 ```
 
-Amendments must be made before unblinded data
-analysis to retain confirmatory status; amendments
-made after unblinding (after seeing outcomes) are
-exploratory by definition.
-
-For trials, deposit the locked SAP at the trial
-registry (ClinicalTrials.gov, ANZCTR, ISRCTN) at
-the time of registration. The deposited copy is the
+Amendments must be made before unblinded data analysis to retain
+confirmatory status; amendments made after unblinding (after seeing
+outcomes) are exploratory by definition. For trials, deposit the
+locked SAP at the trial registry (ClinicalTrials.gov, ANZCTR,
+ISRCTN) at the time of registration. The deposited copy is the
 authoritative pre-specification.
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: a tag you could have forged
+### Exercises
 
-**Question.** You tag the SAP `sap-v1.0` before data lock,
-as this chapter recommends. A skeptical reviewer points out
-that `git tag` can be created at any time with any name,
-and that you could have written the tag last week after
-seeing the results. What actually stops you?
+4. In a scratch repository, commit a one-page SAP and tag it
+   `sap-v1.0-locked`. Write an amendment that revises the
+   missing-data strategy after a blinded data review, commit it, and
+   tag it `sap-v1.1-amendment-1`. Show that the order of events is
+   auditable.
 
-**Answer.**
+::: {.callout-note collapse='true' title='Solution'}
+The evidence is in Git's own records (display-only; run in your
+scratch repository):
 
-Locally, nothing. The reviewer is right about the
-mechanism and wrong about the conclusion, and it is worth
-knowing which is which.
+```bash
+git tag -n1 --sort=creatordate
+git log --format='%h %ad %s' --date=iso -- SAP/
+git diff sap-v1.0-locked sap-v1.1-amendment-1 -- SAP/
+```
 
-A tag is a label on a commit and can be created, deleted
-and moved at will. Commit dates are metadata a determined
-person can set. A repository sitting on your laptop proves
-nothing about *when*, only about *what*.
-
-What supplies the timing is publication to somewhere you
-do not control. Pushing the tag to a remote creates a
-record on a server with its own timestamps and its own
-log. The registry deposit above is stronger still, since
-ClinicalTrials.gov records a submission date you cannot
-edit. Stronger again is anything that timestamps content
-cryptographically, such as a Zenodo DOI or an OSF
-registration.
-
-So the honest statement of the practice is: the tag makes
-the pre-specification *findable and unambiguous*, and an
-external record makes it *credible*. The chapter's
-instruction to push the tag rather than merely create it is
-carrying the whole weight, and a SAP tagged but never
-pushed provides organization without evidence.
-
-This is the same distinction @sec-federal draws between
-hosting an artifact and depositing it.
+The first lists both tags with their messages in creation order;
+the second dates every change to the SAP; the third shows exactly
+what the amendment changed. Locally these prove *what* and *in what
+order*, not *when*: a determined author could have created both
+tags yesterday. Pushing the tags, and depositing the SAP with a
+registry, is what supplies credible dates (see the Check below).
 :::
 
-## Worked example: SAP outline
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You tag the SAP `sap-v1.0` before data lock. A
+skeptical reviewer points out that `git tag` can be created at any
+time with any name, and that you could have written the tag last
+week after seeing the results. What actually stops you?
+
+**Answer.** Locally, nothing. The reviewer is right about the
+mechanism and wrong about the conclusion. A tag is a label on a
+commit and can be created, deleted, and moved at will, and commit
+dates are metadata a determined person can set. A repository on
+your laptop proves *what*, not *when*.
+
+What supplies the timing is publication to somewhere you do not
+control. Pushing the tag to a remote creates a record on a server
+with its own timestamps and log. The registry deposit is stronger
+still, since ClinicalTrials.gov records a submission date you cannot
+edit, and stronger again is anything that timestamps content
+cryptographically, such as a Zenodo digital object identifier (DOI) or a registration
+on the Open Science Framework (OSF). The
+tag makes the pre-specification *findable and unambiguous*; an
+external record makes it *credible*. A SAP tagged but never pushed
+provides organization without evidence. This is the same
+distinction @sec-federal draws between hosting an artifact and
+depositing it.
+:::
+
+## Worked example: the HF-HOME SAP {#sec-analysis-plan-worked}
+
+The design numbers in the plan below are computed, not typed, from
+four assumptions: a 25% event rate under usual care, a 5-point
+absolute reduction worth detecting, 80% power at two-sided
+$\alpha = 0.05$, and up to 10% of patients without an ascertainable
+outcome.
+
+```{r}
+#| label: sap-hfhome-n
+p_usual    <- 0.25
+p_home     <- 0.20
+missing_hf <- 0.10
+
+hf_design <- power.prop.test(p1 = p_usual, p2 = p_home,
+                             power = 0.80)
+n_eval    <- ceiling(hf_design$n)
+n_rand    <- ceiling(hf_design$n / (1 - missing_hf))
+or_hf     <- (p_home / (1 - p_home)) /
+  (p_usual / (1 - p_usual))
+power_750 <- power.prop.test(n = 750, p1 = p_usual,
+                             p2 = p_home)$power
+
+c(evaluable_per_arm  = n_eval,
+  randomized_per_arm = n_rand,
+  randomized_total   = 2 * n_rand)
+round(c(odds_ratio = or_hf, power_at_750 = power_750), 2)
+```
+
+The last line is a warning about typed numbers. An earlier draft of
+this plan read '1500 (750 per arm) for 80% power to detect OR = 0.75
+at baseline rate 0.25'. At those rates 750 per arm gives
+`r round(100 * power_750)`% power, not 80%, and no one checking the
+prose by eye would have noticed. @fig-sap-power shows where the two
+numbers sit on the design's power curve.
+
+```{r}
+#| label: fig-sap-power
+#| fig-cap: "Power of the HF-HOME design (25% versus 20% risk,
+#|   two-sided alpha 0.05) against evaluable patients per arm. The
+#|   earlier draft's 750 per arm falls well short of the 80% line;
+#|   the computed requirement meets it."
+#| fig-alt: "Rising power curve from about 0.4 at 400 patients per
+#|   arm to above 0.9 at 1,600. A dashed horizontal line marks 80%
+#|   power. Two vertical lines mark 750 per arm, where the curve is
+#|   near 0.64, and the computed requirement of about 1,094 per arm,
+#|   where it crosses 0.80."
+#| fig-width: 5.5
+#| fig-height: 3.2
+power_curve <- data.frame(n = seq(400, 1600, by = 10))
+power_curve$power <- power.prop.test(n = power_curve$n, p1 = p_usual,
+                                     p2 = p_home)$power
+marks <- data.frame(n = c(750, n_eval),
+                    label = c("750 (earlier draft)",
+                              paste(format(n_eval, big.mark = ","),
+                                    "(computed)")))
+
+ggplot(power_curve, aes(n, power)) +
+  geom_line() +
+  geom_hline(yintercept = 0.80, linetype = 2) +
+  geom_vline(data = marks, aes(xintercept = n), color = "grey40") +
+  geom_text(data = marks, aes(x = n, y = 0.42, label = label),
+            angle = 90, hjust = 0, vjust = -0.5, size = 3) +
+  labs(x = "Evaluable patients per arm", y = "Power") +
+  theme_minimal()
+```
 
 > **Title:** Statistical Analysis Plan for the
 > Effect of Post-Discharge Home Health Visits on
-> 30-Day Readmission in Heart Failure (HF-HOME-RCT)
+> 30-Day Readmission or Death in Heart Failure
+> (HF-HOME-RCT)
 >
 > **Version:** 1.0, locked 2026-04-23.
 >
 > ## 1. Background
 >
 > Patients hospitalized with heart failure have a
-> 25% 30-day readmission rate. Home-health visits
+> 30-day risk of readmission or death of about 25%. Home-health visits
 > within 7 days of discharge have been associated
 > with reduced readmission in observational studies
 > [...]. We test the causal effect with a parallel-
 > group RCT.
 >
-> ## 2. Research question
+> ## 2. Research question and estimand
 >
-> Does receipt of $\geq 1$ home-health visit within
-> 7 days of discharge reduce 30-day all-cause
-> readmission in HF patients?
+> Among adults discharged alive after a heart-failure
+> admission, does assignment to a home-health
+> program (at least one visit within 7 days of
+> discharge), compared with usual care, reduce the
+> 30-day risk of readmission or death? The estimand,
+> by its five ICH E9(R1) attributes
+> [@ich2019e9r1]:
+>
+> - *Population:* patients meeting section 4.
+> - *Treatment conditions:* assignment to the
+>   home-health program versus usual care.
+> - *Variable:* all-cause readmission or death
+>   within 30 days of index discharge (section 5).
+> - *Intercurrent events:* death before readmission
+>   is handled by a composite strategy (it is an
+>   event), so the variable is defined for every
+>   patient. Not receiving the visit in the
+>   home-health arm, and receiving home health
+>   outside the protocol in the usual-care arm, are
+>   handled by a treatment-policy strategy: patients
+>   are analyzed as randomized, whatever they
+>   received.
+> - *Population-level summary:* the marginal risk
+>   difference, usual care minus home health, so
+>   that a positive value is a reduction.
 >
 > ## 3. Design
 >
@@ -512,258 +969,464 @@ hosting an artifact and depositing it.
 >
 > ## 5. Primary outcome
 >
-> Binary: 30-day all-cause readmission, defined as
-> any inpatient admission to any institution within
-> 30 days of index discharge. Source: institutional
-> EHR linked to state HIE.
+> Binary: all-cause readmission or death within 30
+> days of index discharge. Readmission is any
+> inpatient admission to any institution. Source:
+> institutional EHR linked to the state HIE and to
+> state death records.
 >
 > ## 8. Primary analysis
 >
-> Multivariable logistic regression of readmission
-> on treatment (home-health visit yes/no), adjusted
-> for age (continuous), sex, ejection fraction
-> (continuous), discharge medication count
-> (continuous), and site (random intercept).
-> Estimand: marginal odds ratio (Hernan and
-> Robins). Two-sided $\alpha = 0.05$. Sample size:
-> 1500 (750 per arm) for 80% power to detect
-> OR = 0.75 at baseline rate 0.25.
+> Logistic regression of the primary outcome on
+> randomized arm (as randomized, never as treatment
+> received), adjusted for age (continuous), sex,
+> ejection fraction (continuous), discharge
+> medication count (continuous), and site (fixed
+> effect, as a stratification factor). The arm
+> coefficient of this model is a *conditional* odds
+> ratio and is not the estimand. The estimand is
+> obtained by standardization (g-computation):
+> predict each randomized patient's risk under each
+> arm, average over all randomized patients, and
+> take the difference. 95% CI by nonparametric
+> bootstrap (2,000 resamples, percentile). Two-sided
+> $\alpha = 0.05$. The conditional odds ratio is
+> reported as a supportive summary, labeled as
+> conditional.
+>
+> Sample size: `r format(n_eval, big.mark = ",")`
+> evaluable patients per arm give 80% power to
+> detect a reduction from `r 100 * p_usual`% to
+> `r 100 * p_home`% (odds ratio
+> `r sprintf("%.2f", or_hf)`) at two-sided
+> $\alpha = 0.05$ (`power.prop.test`). Allowing for
+> up to `r 100 * missing_hf`% of patients without an
+> ascertainable outcome, we randomize
+> `r format(n_rand, big.mark = ",")` per arm
+> (`r format(2 * n_rand, big.mark = ",")` in total).
 >
 > ## 11. Missing data
 >
-> Outcome: complete from the institutional EHR; if
-> any missingness, complete-case primary; multiple
-> imputation by chained equations as sensitivity.
-> Covariates: $<5\%$ missing assumed MAR;
-> imputation as for outcome.
+> Outcome: missing only for patients who cannot be
+> linked to the state HIE (for example, after moving
+> out of state). Primary: the standardized estimator
+> of section 8, fitted to patients with an
+> ascertained outcome and averaged over all
+> randomized patients, which is valid if
+> missingness is independent of the outcome given
+> arm and the adjustment covariates.
+>
+> Sensitivity: a two-dimensional tipping-point
+> analysis. Unascertained patients in each arm are
+> assigned a risk equal to that arm's observed risk
+> multiplied by its own factor, $\delta_U$ for
+> usual care and $\delta_H$ for home health, each
+> varied independently over 0.5 to 2.0 in steps of
+> 0.25 (49 combinations; $\delta_U = \delta_H = 1$
+> is missing at random, MAR). Both arms are varied
+> because the rule must locate a change of
+> conclusion in either direction, whatever the
+> primary result. In each combination the outcomes
+> of unascertained patients are multiply imputed
+> ($M = 50$; the arm's risk drawn from its beta
+> posterior under a uniform prior given the
+> ascertained patients, then multiplied by the
+> arm's $\delta$ and capped at 1), the unadjusted
+> risk difference is computed over all randomized
+> patients, and the results are
+> pooled by Rubin's rules. Missing patients stay in
+> the denominator. Each combination is classified as
+> benefit (95% CI above zero), harm (below zero), or
+> inconclusive. We will report the full grid as a
+> figure and name every combination whose
+> classification differs from that of the primary
+> analysis, in either direction, together with the
+> smallest departure from MAR that produces it; the
+> report states in words whether such departures are
+> clinically plausible. Seed for the imputation:
+> 20260423. Covariates:
+> $<5\%$ missing expected; imputed by the pooled
+> mean (continuous) or mode (categorical), which is
+> valid for baseline covariates in a randomized
+> trial.
 >
 > ## 12. Multiple testing
 >
-> Primary outcome: no correction (one test).
-> Secondary outcomes: Bonferroni at $\alpha = 0.05/k$
-> for $k$ secondary tests.
+> Primary outcome at two-sided $\alpha = 0.05$.
+> Secondary outcomes by a fixed-sequence
+> (hierarchical) procedure, in this order:
+> (S1) 30-day all-cause readmission alone;
+> (S2) 30-day emergency department visit;
+> (S3) 90-day readmission or death. Each is tested
+> at $\alpha = 0.05$ only if the primary and every
+> earlier secondary test rejected; at the first
+> non-rejection testing stops, and the remaining
+> outcomes are reported as estimates with CIs and
+> no p-value. This controls the familywise error
+> rate at 0.05 across the primary and secondary
+> outcomes. Testing the primary at 0.05 and the
+> secondaries at Bonferroni-corrected levels
+> regardless of the primary result does not: the
+> two families each spend 0.05, and the familywise
+> rate can approach 0.10.
 
-This level of specificity is what 'pre-specified'
-means. Vagueness invites researcher degrees of
-freedom.
+This level of specificity is what 'pre-specified' means. Vagueness
+invites researcher degrees of freedom.
 
-## Collaborating with an LLM on SAPs
-
-LLMs draft SAP boilerplate well; the substantive
-choices need human judgment.
-
-**Prompt 1: drafting boilerplate sections.** Paste
-the project description and ask: 'draft sections
-1--4 of a SAP using the 243B template.'
-
-*What to watch for.* The output will likely be the
-right shape. Verify the inclusion/exclusion
-criteria are checkable from data alone (no
-'eligible at investigator discretion'). Verify the
-outcome definition is operational.
-
-*Verification.* Hand the draft to a clinical
-collaborator; ask whether the outcome and
-eligibility could be applied without further
-instruction.
-
-**Prompt 2: classifying analyses.** Paste a list of
-analyses and ask: 'which are pre-specified
-(confirmatory) and which are exploratory?'
-
-*What to watch for.* The classification depends on
-when each analysis was decided. The LLM cannot
-know this; it can only flag analyses that look
-exploratory in nature (subgroup, post-hoc).
-Cross-check with your timeline.
-
-*Verification.* For each analysis, ask: 'was this
-in the SAP at data access?' If yes,
-pre-specified; if no, exploratory.
-
-**Prompt 3: power calculation.** Describe the
-design and effect size; ask the LLM to compute
-required sample size and to verify against
-`zzpower`.
-
-*What to watch for.* The LLM may produce a
-formula-based answer that disagrees with `zzpower`.
-The reasons are usually different assumptions
-(unbalanced allocation, attrition, paired vs.
-unpaired). Reconcile by stating assumptions
-explicitly.
-
-*Verification.* Compute by hand for a simple case;
-verify the LLM and `zzpower` agree.
-
-## Principle in use
-
-Three habits make a plan binding rather than decorative:
-
-1. **Specify with enough detail that a second
-   analyst would produce the same result.** Vague
-   pre-specification is barely pre-specification.
-2. **Tag the SAP at data access.** Git tag plus
-   trial-registry deposit gives an audit trail of
-   when the analysis was committed.
-3. **Distinguish pre-specified from exploratory in
-   the paper.** Reader interpretation of evidence
-   strength depends on this label.
-
-## Exercises
-
-1. Use `zzpower` to compute the required sample
-   size for a two-arm comparison under three
-   plausible effect sizes (small, medium, large).
-   Then inflate each for a cluster randomized
-   design with 20 patients per practice and an
-   intracluster correlation of 0.02, and report
-   the number of clusters required.
-
-**Documents, not computations.** No answer key; a good
-answer is a document, and what makes it good is stated
-rather than computed.
-
-2. Draft a SAP (skeleton only) for a hypothetical
-   cluster randomized trial of a patient-education
-   intervention. Use the 243B template, and include
-   the table from exercise 1.
-3. Locate a published paper with a publicly
-   available SAP. Audit whether the paper's
-   analyses match the SAP. Identify any deviations;
-   classify them as amendments, exploratory, or
-   unreported.
-4. Take an analysis you completed without a SAP and
-   write a retrospective SAP describing what should
-   have been pre-specified. Note which choices were
-   data-driven; flag those as exploratory.
-5. Write an amendment to a SAP that revises the
-   missing-data strategy following a blinded data
-   review. Tag both versions in git; verify the
-   timeline is auditable.
-
-::: {.callout-tip icon=false collapse=true}
-## Solution to exercise 1
-
-**The individual-level requirement first.**
+::: {.callout-tip title='Verification'}
+The running study's randomization file was generated from this
+plan, so the randomized count per arm should equal the SAP's
+computed `n_rand`:
 
 ```{r}
-#| label: soln-18-1
-#| message: false
-library(zzpower)
-
-per_arm <- vapply(
-  c(small = 0.2, medium = 0.5, large = 0.8),
-  \(d) power_calc("ttest_2groups",
-                  target_power  = 0.80,
-                  effect_size   = d,
-                  effect_method = "cohens_d",
-                  alpha         = 0.05)$sample_sizes$n,
-  numeric(1))
-
-ceiling(per_arm)          # analytic n per arm
+#| label: sap-hfhome-verify
+table(hf_rand$arm)
+stopifnot(all(table(hf_rand$arm) == n_rand))
 ```
-
-Note `sample_sizes` rather than `sample_size`: the element
-is a list, because a two-arm calculation returns per-arm
-and total figures separately, along with an ITT-inflated
-version. Reading `$n` gives the analytic requirement per
-arm, which is what the design effect below scales.
-
-**Then the design effect.** A cluster randomized trial
-does not randomize patients; it randomizes practices, and
-patients within a practice resemble one another. The
-variance inflation is
-$\text{DEFF} = 1 + (m - 1)\rho$, with $m$ patients per
-cluster and $\rho$ the intracluster correlation:
-
-```{r}
-#| label: soln-18-1b
-m   <- 20      # patients per practice
-rho <- 0.02    # intracluster correlation
-
-deff <- 1 + (m - 1) * rho
-
-total <- 2 * per_arm                 # both arms
-
-data.frame(
-  effect       = names(per_arm),
-  n_total      = ceiling(total),
-  deff         = round(deff, 2),
-  n_cluster    = ceiling(total * deff),
-  clusters     = ceiling(ceiling(total * deff) / m),
-  row.names    = NULL
-)
-```
-
-An intracluster correlation of 0.02 sounds negligible and
-is not. With 20 patients per practice it inflates the
-required sample by 38%, because the design effect depends
-on $\rho$ and cluster size jointly. Doubling the cluster
-size to 40 would inflate it by 78% instead, so recruiting
-more patients per practice buys progressively less.
-
-Two things belong in the SAP alongside this table. The
-value of $\rho$ is an assumption, not a measurement, and
-it should be attributed to a source and given a
-sensitivity range. And the number that gets recruited is
-`clusters`, rounded up, so the realized sample is
-generally larger than `n_cluster_adj`; quoting the latter
-as the target understates what the trial must enroll.
 :::
+
+::: {.callout-important title='LLM prompt'}
+> **Context.** I am drafting sections 2 and 8 of a SAP for a
+> two-arm randomized trial. Attached: the protocol synopsis
+> (population, interventions, outcome definition, visit schedule)
+> and the design assumptions (control risk, effect worth
+> detecting, power, $\alpha$, expected unascertained fraction).
+>
+> **Constraints.** State the estimand by all five ICH E9(R1)
+> attributes, naming each intercurrent event and its strategy.
+> Specify the primary estimator and say whether its summary is
+> marginal or conditional. Compute the sample size with
+> `power.prop.test()` and show the code; inflate for the
+> unascertained fraction.
+>
+> **Criteria.** Every attribute is present and specific enough to
+> compute from the data dictionary; the population-level summary
+> matches the estimator; the sample-size code runs and reproduces
+> the stated number.
+
+*Failure mode.* The draft lists 'ITT population' in place of the
+estimand, calls the adjusted odds ratio 'the treatment effect' when
+the summary is a marginal risk difference, or quotes a sample size
+from memory that the code does not reproduce; this chapter's own
+earlier draft was underpowered in exactly that way. *Check.* Run the
+code; compare every attribute with @tbl-estimand-attributes; confirm
+that the estimator's output is the summary the estimand names.
+:::
+
+## The data management and sharing plan {#sec-federal-dmsp}
+
+The SAP is not the only plan written before the data exist. The
+Data Management and Sharing Plan (DMSP) is due with the grant
+application, two years before the first dataset exists, and NIH
+program staff approve it as a term of the award. The other federal
+requirements (@sec-federal) arrive at the end of a project, when
+almost everything they ask for exists: a compendium
+(@sec-rrtools), a lockfile (@sec-renv), a container
+(@sec-docker), a pipeline that rebuilds the analysis
+(@sec-targets). The DMSP is the exception. Its timing runs
+opposite to everything else there, which is why it belongs with
+the other planning documents, beside the SAP: both are written
+before the work, and both are checked, at publication, against
+what was done.
+
+### The six elements
+
+```{r}
+#| label: federal-hf-size
+#| include: false
+hf_dir   <- file.path("..", "data", "raw_data", "hfhome")
+hf_n     <- nrow(readr::read_csv(file.path(hf_dir, "randomization.csv"),
+                                 col_types = readr::cols(.default = "c")))
+hf_files <- list.files(hf_dir, pattern = "\\.csv$", full.names = TRUE)
+hf_mb    <- ceiling(sum(file.size(hf_files)) / 1e6)
+```
+
+Since January 2023, every NIH application for research that will
+generate scientific data must include a DMSP, recommended to run
+no more than two pages. The plan is assessed by NIH program
+staff, not scored by peer reviewers: reviewers do not factor it
+into the overall impact score unless the funding opportunity says
+otherwise. The approved plan becomes a term of the award,
+program officers can require updates, and compliance is monitored
+after the award. @tbl-federal-dmsp-elements lists the six
+elements, what each must say to be checkable, and what HF-HOME
+says.
+
+| Element | What to write | HF-HOME |
+|---|---|---|
+| 1. Data type | What data, in what format and volume, and which will be shared | Case report form (CRF), outcome, and laboratory data for `r format(hf_n, big.mark = ",")` patients, about `r hf_mb` MB as CSV; participant-level data shared after de-identification |
+| 2. Related tools, software, code | What is needed to use the data; whether code is shared | R and Quarto; `renv.lock` and a Dockerfile in the deposit; code shared |
+| 3. Standards | Data and metadata standards | CDISC SDTM domains; the codebook as the data dictionary |
+| 4. Preservation, access, timelines | Named repository, persistent identifier, when | De-identified data in a controlled-access clinical-trial repository; code on Zenodo; at the primary publication or the end of the award, whichever is first |
+| 5. Access, distribution, reuse | Access conditions, license, limitations from consent | Data use agreement (DUA) for participant-level data; CC BY 4.0 for summaries; MIT license for code |
+| 6. Oversight | Who is responsible and how compliance is checked | PI and trial statistician; reported in the annual progress report |
+
+: The six DMSP elements. The middle column is the test: a
+sentence that names no file, repository, or date cannot be
+checked. {#tbl-federal-dmsp-elements}
+
+### Treat the plan as a workflow document
+
+A plan that says 'data will be deposited at Zenodo at
+publication' is compliant on paper and provides no mechanism to
+make it happen. A plan that builds deposition into the pipeline
+(a tagged release that mints a digital object identifier, or
+DOI, at every preprint; a continuous-integration job that checks
+the data DOI resolves) enforces itself. Two judgments decide
+whether the plan can be carried out:
+
+- **Public access does not mean unsupervised release.** PHI,
+  contractually restricted data, and preliminary unverified data
+  are inappropriate for unconditional public release. The
+  standard response is tiered access: de-identified
+  participant-level data under controlled access, with a
+  synthetic or summary dataset for open access.
+- **Point to the environment; do not describe it.** 'Analysis
+  used standard R packages' is uselessly vague. 'The deposit
+  includes `renv.lock` and a Dockerfile' is verifiable. Why a
+  lockfile and not the `Imports:` field of a `DESCRIPTION` file
+  is the subject of @sec-renv; the DMSP needs only the pointer,
+  and the deposit needs the files.
+
+### Worked example: the HF-HOME DMSP
+
+> **1. Data type.** Participant-level data from the
+> `r format(hf_n, big.mark = ",")` patients to be randomized:
+> demographics, randomization, baseline, visit, laboratory,
+> medication, and 30-day outcome records, as CSV files of about
+> `r hf_mb` MB in total. As collected, the files contain PHI.
+> Only de-identified data will be shared: participant-level
+> data de-identified by Expert Determination, so that day offsets
+> from discharge survive (@sec-deident), and summary data
+> (Table 1 and the primary results).
+>
+> **2. Related tools, software, and code.** Data captured in the
+> trial's electronic data capture system and exported to CSV.
+> Analysis in R and Quarto; the deposit includes `renv.lock`, a
+> Dockerfile, and the code that rebuilds every reported number.
+> Code is shared under the MIT license.
+>
+> **3. Standards.** CDISC Study Data Tabulation Model (SDTM)
+> domains for demographics, exposure, and disposition
+> (@sec-cdisc); the trial codebook as the data dictionary.
+>
+> **4. Data preservation, access, and timelines.** De-identified
+> participant-level data deposited under controlled access in a
+> clinical-trial data repository agreed with the program officer
+> (BioLINCC if the funding institute is NHLBI and it requests the
+> data; otherwise Vivli). Summary data and the synthetic HF-HOME
+> generator on Zenodo under CC BY 4.0. Code on GitHub, archived
+> to Zenodo at each tagged release for a DOI. Deposit at the
+> primary publication or the end of the award, whichever comes
+> first.
+>
+> **5. Access, distribution, and reuse.** Controlled-access data:
+> the requester signs the repository's DUA and meets its approval
+> requirements, which may include review by their own
+> institutional review board (IRB). The consent form permits
+> sharing of de-identified data for research; no data are
+> released beyond its terms.
+>
+> **6. Oversight.** The PI is responsible for the plan; the trial
+> statistician maintains the deposit manifest and checks it
+> before each release. Progress is reported in the annual
+> progress report.
+
+This is the specificity program staff look for, and every
+sentence can be checked at publication. Vague language ('data
+will be shared appropriately') gets flagged. If an analysis
+needed actual dates rather than offsets, a limited data set
+shared under a DUA is the alternative; it remains PHI, so it is
+shared only with recipients who sign that agreement and only as
+the consent form and IRB permit. Confirm that a repository accepts
+limited data sets before naming one in the plan.
+
+::: {.callout-tip title='Verification'}
+The plan promises that only de-identified data leave the
+institution. Before writing that sentence, check which of the
+running study's files carry a Safe Harbor identifier as received,
+using the identifier list of @sec-deident-worked:
+
+```{r}
+#| label: federal-manifest
+#| message: false
+library(dplyr)
+
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+identifiers <- c("mrn", "first_name", "last_name", "dob", "zip",
+                 "phone", "discharge_date", "rand_date",
+                 "visit_date", "event_date", "readmit_date",
+                 "death_date")
+
+files <- list.files(hf_dir, pattern = "\\.csv$")
+manifest <- tibble(
+  file = files,
+  identifier_columns = vapply(files, \(f) {
+    cols <- names(readr::read_csv(file.path(hf_dir, f), n_max = 0,
+                                  show_col_types = FALSE))
+    paste(intersect(cols, identifiers), collapse = ", ")
+  }, character(1))
+)
+manifest
+```
+
+`r sum(manifest$identifier_columns != "")` of the
+`r nrow(manifest)` files carry an identifier as received, because
+every file that records a date does, so they cannot be deposited
+as they are. The plan's
+first element has to promise de-identified data, and the
+deposit has to be built from a release such as the one in
+@sec-deident-worked.
+:::
+
+::: {.callout-important title='LLM prompt'}
+> **Context.** Attached: a draft NIH DMSP for a two-arm trial,
+> the consent form's data-sharing paragraph, and the funding
+> institute's name. No participant data.
+>
+> **Constraints.** Audit the draft against the six NIH elements.
+> Do not rewrite it. Do not name a repository I did not name.
+>
+> **Criteria.** For each element, list every sentence that names
+> no file, repository, date, or responsible person, and every
+> commitment that exceeds the consent form. Mark each item
+> 'missing', 'ambiguous', or 'conflicts with consent'.
+
+*Failure mode.* The standard elements are easy to audit, and the
+model does this well. It misses commitments that conflict with
+something it was not shown (a license that a third-party data
+source forbids, a repository that does not accept limited data
+sets), and it reports the plan as complete when every element is
+present but vague. *Check.* Apply the middle column of
+@tbl-federal-dmsp-elements to each sentence yourself, then give
+the audited plan to a colleague whose DMSP has been through NIH
+program staff (@sec-ai-governance).
+:::
+
+### Exercises
+
+5. Each sentence is from a draft DMSP. Say what is wrong and
+   rewrite it so that it can be checked: (a) 'Data will be made
+   available upon reasonable request.' (b) 'All data, including
+   CRFs, will be deposited in Zenodo at publication.'
+   (c) 'Standard statistical software will be used.'
+
+::: {.callout-note collapse='true' title='Solution'}
+(a) It names no repository, no timeline, and no access process,
+and 'upon request' is not deposit. Rewrite: 'De-identified
+participant-level data will be deposited under controlled access
+in [named repository] at the primary publication, available to
+requesters who sign its DUA.' (b) CRFs contain PHI as collected,
+and Zenodo is an open, general-purpose repository. Rewrite:
+'De-identified participant-level data under controlled access in
+[clinical-trial repository]; summary tables and code on Zenodo.'
+(c) Unverifiable. Rewrite: 'Analysis in R; the deposit includes
+`renv.lock`, a Dockerfile, and the code that rebuilds every
+reported number.'
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague argues that the DMSP can be written
+loosely because 'nobody scores it'. What is wrong with the
+argument?
+
+**Answer.** Being unscored at review is not being unenforced.
+Program staff assess the plan before award, the approved plan
+becomes a term of the award, and compliance is monitored
+afterward. A loose plan also fails its author: a plan written
+before the work is the only document that can commit the
+project to a deposit structure, and one that promises the wrong
+access mode is discovered at publication, when changing it means
+renegotiating with the program officer.
+:::
+
+## Rules of thumb
+
+1. **Habit 5: pre-specify, then tag.** Write the estimand and the
+   analysis before data access, tag the SAP, and push the tag.
+2. **Habit 10: every number in the prose is computed.** The
+   sample size, the power, and the odds ratio in the SAP come from
+   code, which is how the 750-per-arm error was caught.
+3. **Habit 3: version control from day one.** An amendment is a new
+   commit and a new tag, so that the order of plan and data stays
+   auditable.
+4. **Habit 5 applies to sharing too.** The DMSP is the
+   pre-specification of sharing; write it so that it can be
+   checked at publication, naming files, repositories, dates, and
+   responsible people.
+
+## Cumulative practice
+
+6. *Cumulative (uses @sec-git-solo and @sec-missing).* Draft a SAP
+   skeleton for a hypothetical cluster randomized trial of a
+   patient-education intervention, with every section of
+   @tbl-sap-sections. State the estimand by its five attributes,
+   include the cluster sample-size table from exercise 2, write
+   section 11 with a named primary assumption and two sensitivity
+   analyses, and commit and tag it in a repository.
+7. *On your own work (no key).* Take an analysis you completed
+   without a SAP and write the retrospective SAP that should have
+   preceded it. Mark each choice that was made after seeing the
+   data, and label the results that depend on those choices as
+   exploratory.
+
+## Cheat sheet
+
+| Task | Code or rule | Guards against |
+|---|---|---|
+| State the estimand | Population, treatment, variable, intercurrent events with strategy, summary | Analyzing toward an unstated target |
+| Sample size, binary outcome | `power.prop.test(p1, p2, power = 0.80)` | Typed, unchecked sample sizes |
+| Sample size, continuous | `power.t.test(delta, sd, power = 0.80)` | The same |
+| Power at a planned size | `power.prop.test(n = 750, p1, p2)$power` | An underpowered design |
+| Apply attrition | `ceiling(n / (1 - attrition))` | Stating attrition and enrolling as if none |
+| Standard errors | Pre-specify HC3, not a pretest | A combined rule with unknown error rate |
+| Multiplicity | Fixed-sequence or Holm, with the family named | Familywise error near 0.10 |
+| Lock the plan | `git tag -a sap-v1.0-locked`, then `git push origin` the tag | An undatable plan |
+| Label results | Pre-specified or exploratory, in methods | Exploratory findings read as confirmatory |
+| Write the DMSP | Name files, repositories, dates, responsible people | A plan that cannot be checked |
+| Plan data sharing | De-identified data under controlled access; synthetic or summary data open | PHI or participant-level data in an open repository |
+
+: Analysis plans at a glance. {#tbl-sap-cheat-sheet}
 
 ## Further reading
 
-- [@ich1998e9], *Statistical Principles for Clinical
-  Trials*, the regulatory baseline document, and
-  [@ich2019e9r1], its addendum on estimands.
-- [@chan2013spirit], the SPIRIT statement on
-  standard protocol items for clinical trials.
-- [@schulz2010consort], the CONSORT reporting
-  standard that interacts with SAP discipline, and
-  [@vonelm2007strobe] for observational studies.
-- [@simmons2011false], the canonical demonstration
-  of researcher degrees of freedom.
-- [@gelman2013garden], on why the problem persists
-  even without conscious p-hacking.
-- [@harrell2024checklist], the author checklist
-  described above; the shortest useful audit of a
-  draft SAP's analysis sections.
-- [@harrell2015rms], for the modeling decisions the
-  checklist presumes, in particular splines instead
-  of categorization and why stepwise selection
-  invalidates the inference that follows it.
-- [@harrell2025bbr] Chapter 22, on controlling the
-  error rate of a decision rather than of a test,
-  which reframes section 12 of the template.
+- [@gamble2017sap], the consensus guideline on what a clinical-trial
+  SAP must contain; its 55 items are the full checklist behind
+  @tbl-sap-sections.
+- [@ich2019e9r1], the ICH E9(R1) addendum on estimands and
+  sensitivity analysis, with its parent guideline [@ich1998e9].
+- [@harrell2024checklist], the shortest useful audit of a draft
+  SAP's analysis sections.
+- The NIH data management and sharing policy pages at
+  `grants.nih.gov`, the authoritative source for the six DMSP
+  elements.
 
 ## Prerequisites answers {#sec-quiz-answers-18}
 
-1. The SAP locks in the analysis plan before data
-   access, so that the eventual published results
-   reflect hypotheses formed in advance rather than
-   post-hoc choices made in the light of the data.
-   It limits the 'garden of forking paths' that
-   would otherwise inflate Type-I error and enable
-   p-hacking. Federally funded trials require it;
-   confirmatory analyses in any setting benefit
-   from it.
-2. (Any five of:) background and rationale;
-   research questions and hypotheses; study design /
-   cohort definition; inclusion/exclusion criteria;
-   primary outcome definition; secondary outcomes;
-   covariates; primary analysis; secondary
-   analyses; sensitivity analyses; missing-data
-   handling; multiple-testing correction; reporting/
-   publication plan.
-3. Pre-specified analyses represent commitments
-   made before data access; they carry the full
-   inferential authority of the study's sampling
-   plan. Exploratory analyses are generated after
-   seeing the data; they are hypothesis-generating,
-   not confirmatory, and should be reported with
-   appropriate caution. Conflating the two misleads
-   readers about the evidential strength of the
-   findings and is one of the most common sources
-   of reproducibility failure in biomedical
-   research.
+1. The SAP locks in the analysis plan before data access, so that
+   the eventual published results reflect hypotheses formed in
+   advance rather than post-hoc choices made in the light of the
+   data. It limits the 'garden of forking paths' that would
+   otherwise inflate Type I error and enable p-hacking. Federally
+   funded trials require it; confirmatory analyses in any setting
+   benefit from it.
+2. (Any five of:) background and rationale; research questions,
+   hypotheses, and estimands; study design and sample size;
+   inclusion/exclusion criteria; primary outcome definition;
+   secondary outcomes; covariates; primary analysis; secondary
+   analyses; sensitivity analyses; missing-data handling;
+   multiple-testing procedure; reporting plan.
+3. Pre-specified analyses represent commitments made before data
+   access; they carry the full inferential authority of the study's
+   design. Exploratory analyses are generated after seeing the
+   data; they are hypothesis-generating, not confirmatory, and
+   should be reported with appropriate caution. Conflating the two
+   misleads readers about the evidential strength of the findings
+   and is one of the most common sources of reproducibility failure
+   in biomedical research.
+4. Data type; related tools, software, and code; standards; data
+   preservation, access, and timelines; access, distribution, and
+   reuse considerations; and oversight. NIH program staff assess
+   the plan; peer reviewers do not score it unless the funding
+   opportunity says otherwise, and the approved plan becomes a
+   term of the award (@sec-federal-dmsp).

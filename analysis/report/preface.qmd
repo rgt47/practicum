@@ -210,20 +210,59 @@ cues used throughout the book.
 
 Instructors are welcome to assign individual chapters rather
 than the whole book, and the book is built to allow it. Every
-chapter opens with a `Sources` note, a prerequisites quiz whose
-answers appear at the end of the same chapter, and a statement
-of learning objectives, so that a chapter assigned on its own
-tells the reader what it assumes. Because the book is free, an
+chapter opens with a card listing what it assumes, what the
+reader will be able to do, and an outline, followed by a short
+quiz for readers who may be able to skip it, so that a chapter
+assigned on its own tells the reader what it assumes. Because the book is free, an
 instructor assigning three chapters incurs no cost that has to
 be justified to anyone.
 
 The dependency structure is real, though, and @fig-book-map in
-@sec-intro shows it. Parts I through III build the
-infrastructure that later parts use. A chapter from Part V or VI
+@sec-intro shows it. Parts I through III give the reader the
+reasons, the toolkit, and data in hand; Part IV makes that work
+reproducible; Parts V and VI apply it to analysis plans,
+testing, and industry standards. A chapter from Part V or VI
 can be assigned on its own to a reader who already has a working
 environment; assigned to one who does not, it will send them
-back several parts. The case studies in Part VII assume
-everything above them.
+back several parts. The case studies in Part VII and the
+capstone in Part VIII assume everything above them.
+
+## Course length and the one-quarter core
+
+The book is written for a two-quarter sequence at about two
+chapters a week. The first quarter covers why reproducibility
+matters, the working toolkit, and getting data in and into
+shape; the second covers documents and environments, analysis
+practice, industry standards, and the case studies, ending in a
+capstone. A semester course can cover most of the book at the
+same pace.
+
+A one-quarter course should use the core path below: twenty
+chapters, two a week for ten weeks. It keeps the skills a
+first-year analyst needs from the first week and the habits the
+rest of the book builds on. The remaining chapters are written
+to be picked up later, alone or in a second course.
+
+| Week | Core chapters |
+|---|---|
+| 1 | [Why Reproducible Research](#sec-why); [De-identification and Data Ethics](#sec-deident) |
+| 2 | [The Unix Shell](#sec-shell); [Setting Up Your Workstation](#sec-workstation) |
+| 3 | [Git and GitHub for Solo Developers](#sec-git-solo); [Git for Teams](#sec-git-teams) |
+| 4 | [AI-Assisted Coding](#sec-ai-coding); [Getting Data In](#sec-acquisition) |
+| 5 | [Data Wrangling Essentials](#sec-wrangling); [Joining and Reshaping](#sec-joins) |
+| 6 | [Plotting with ggplot2 and purrr](#sec-graphics); [Missing Data](#sec-missing) |
+| 7 | [Reproducible Reports with Quarto](#sec-quarto); [renv for Package Management](#sec-renv) |
+| 8 | [Docker for Reproducibility](#sec-docker); [Statistical Analysis Plans](#sec-analysis-plan) |
+| 9 | [Testing and Continuous Integration](#sec-testing); [Ethics Beyond Compliance](#sec-ethics) |
+| 10 | [Case Study: Palmer Penguins](#sec-penguins); [Communicating a Finished Analysis](#sec-communicating) |
+
+Outside the core, and suited to the second quarter or to
+independent reading: @sec-team-science, @sec-apis, @sec-types,
+@sec-databases, @sec-deident-practice, @sec-zzcollab,
+@sec-targets, @sec-cloud, @sec-cdisc, @sec-sas, @sec-adni,
+@sec-federal, and the capstone in @sec-synthesis. Students heading
+to the pharmaceutical industry should add @sec-cdisc and
+@sec-sas to the core.
 
 The prose, figures, and exercises are licensed CC BY 4.0, so
 adaptation, translation, and excerpting are permitted with

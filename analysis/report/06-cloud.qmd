@@ -1,5 +1,19 @@
 # Cloud Compute and Remote Servers {#sec-cloud}
 
+A doctoral student submitted a simulation study to the university
+cluster as 200 array tasks and went home. By morning the queue was
+empty and the results directory held 169 files: 31 tasks had
+exceeded the default memory request and been killed, and the
+scheduler had recorded the fact in a log nobody opened. The
+summary script averaged the files it found, and the power table in
+the draft reported the planned number of replicates for every
+scenario, including the largest trials, where the losses were
+concentrated. Running out of memory is ordinary; what made this
+failure expensive was that it was silent. This chapter is about
+running work on someone else's computer, a shared cluster or a
+rented cloud machine, without losing the job, the data
+governance, or the budget.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
@@ -15,116 +29,86 @@ is a public utility.*
 ```
 :::
 
-::: {.callout-note}
-## Sources
+```{r}
+#| label: cloud-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-Blog posts `22-serversetupawscli`,
-`23-serversetupawsconsole`, `48-ttyd_setup`, and
-`20-researchbackupsystem`.
+```{r}
+#| label: fig-cloud-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: remote compute moves the
+#|   Environment band onto a machine you do not own, and the
+#|   environment has to travel with the job."
+#| fig-alt: !expr pipeline_alt('environment')
+pipeline_diagram('environment')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 30 minutes.
+
+**You'll need.** @sec-shell for SSH (Secure Shell) and the command
+line, and
+@sec-docker for container images, which this chapter runs on a
+cluster and on a cloud instance. The executed examples use base R
+and `purrr`:
+
+```r
+library(purrr)
+```
+
+**You'll be able to.**
+
+- Name the resource a job has run out of (time, memory, or your
+  own machine) and choose a laptop, a cluster, or a cloud
+  instance accordingly.
+- Write a SLURM batch script and a job array for a simulation
+  study, and confirm from the scheduler's accounting that every
+  task completed.
+- Keep a remote job alive after you disconnect, and move data to
+  and from the machine.
+- Set a budget alert before provisioning cloud compute, and write
+  a job script that uploads its results and stops the instance
+  even when the analysis fails.
+
+**Outline.**
+
+- [Which resource ran out](#sec-cloud-shortage)
+- [Batch jobs on a cluster](#sec-cloud-hpc)
+- [Working on a remote machine](#sec-cloud-remote)
+- [The public cloud, minimally](#sec-cloud-aws)
+- [Cost and failure handling](#sec-cloud-cost)
+- [Worked example: the simulation on AWS](#sec-cloud-worked)
 :::
 
-## Prerequisites
-
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-06.
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-06.
 
 1. What is the main reason a biostatistician might move a
    long-running simulation to a cloud instance rather than
    running it on a laptop?
-2. What is the difference between the AWS Management
-   Console and the AWS CLI, and when would you use each?
-3. How do you run an R script on a remote server without
-   keeping your SSH session open?
+2. What is the difference between the Amazon Web Services (AWS)
+   Management Console and the AWS command line interface (CLI),
+   and when would you use each?
+3. How do you run an R script on a remote server without keeping
+   your SSH session open?
+:::
 
-## Learning objectives
-
-By the end of this chapter you should be able to:
-
-- Launch an EC2 instance appropriate for a statistical
-  workload (CPU, memory, storage).
-- Connect to a remote server by SSH and run an R session
-  there.
-- Run a long job with `nohup`, `screen`, or `tmux` so it
-  survives a dropped connection.
-- Estimate the cost of a cloud job before launching it.
-- Transfer data to and from an instance with `scp` or
-  `rsync`, and to S3 for archival storage.
-- Recognize when a university HPC cluster is a better fit
-  than a public cloud.
-
-## Orientation
+## Which resource ran out {#sec-cloud-shortage}
 
 Some analyses outgrow a laptop: multi-core simulations,
-genome-scale pipelines, multi-hour model fits. Whether to 'move
-to the cloud' is a procurement decision rather than an analytic
-one, and it is, we would argue, never the useful question. The
-useful question is which specific resource has run out.
-Wall-clock time, memory, and specialized hardware are three
-different shortages with three different answers. An analyst
-who has diagnosed the shortage correctly will usually find that
-the cheapest adequate remedy is not the public cloud at all.
-
-That matters because renting a machine introduces problems a
-laptop does not have. The instance bills by the hour whether or
-not it is doing anything. The data have to travel, and if they
-are protected health information they may not be permitted to
-travel to an account you opened yourself. The job dies when the
-connection does, unless you took a step nobody told you about.
-This chapter covers the minimum needed to use remote compute
-safely, and it argues throughout for trying an institutional
-cluster before a credit card.
-
-The dominant providers (AWS, Google Cloud, Azure)
-overlap heavily; this chapter uses AWS for concreteness.
-The concepts transfer. University HPC clusters serve a
-similar purpose with different pricing and access
-mechanisms; for many academic biostatisticians, an HPC
-cluster is the first choice when one is available.
-
-## The statistician's contribution {#sec-cloud-human}
-
-Provisioning a machine is a form to fill in. Deciding
-which machine, for how long, and with what data on it is
-where the money and the compliance exposure actually
-live:
-
-**Pick the right instance.** A simulation that uses 4
-cores does not benefit from a 32-core instance. A model
-fit that uses 50 GB of RAM cannot run on a 16 GB
-instance. Knowing the bottleneck before provisioning
-prevents both under-spending (slow) and over-spending
-(expensive idle cores).
-
-**Cost discipline.** A `g4dn.12xlarge` GPU instance left
-running for a weekend costs more than a small laptop.
-Set budget alerts; use spot instances for fault-tolerant
-work; auto-shutdown after job completion. Forgetting to
-shut down is the most common cloud-cost surprise.
-
-**Data hygiene.** Protected health data on a personal
-AWS account is a compliance violation in most
-institutions. Use institutional accounts; use VPC
-peering to keep data inside the institutional network;
-use S3 with appropriate access policies. Treat 'I'll
-just upload the CSV to my personal bucket for testing'
-as a red flag.
-
-**Reproducibility off the laptop.** A cloud instance
-needs the same environment specification as the laptop
-that ran the analysis. Docker (@sec-docker) is the
-standard answer; a `Dockerfile` plus an `renv.lock`
-makes the cloud instance setup automatable.
-
-These judgments determine whether cloud compute is a
-multiplier or a money pit.
-
-## When to use cloud compute
-
-The decision is driven by the bottleneck, not by the
-size of the dataset, and the right first question is
-which resource you have run out of. @fig-compute-tier
-puts the tiers in the order a working academic
+genome-scale pipelines, multi-hour model fits. Whether to 'move to
+the cloud' is a procurement question, and it is never the useful
+one. The useful question is which specific resource has run out.
+Wall-clock time, memory, and the availability of your own machine
+are three different shortages with three different remedies, and
+an analyst who has named the shortage correctly usually finds
+that the cheapest adequate remedy is not the public cloud.
+@fig-compute-tier puts the tiers in the order a working academic
 biostatistician should try them.
 
 ```{mermaid}
@@ -153,332 +137,790 @@ flowchart TD
   Q -->|"no, or queue<br/>too slow"| C
 ```
 
-The three cases where remote compute helps are three
-different shortages, and it repays being precise about
-which one you have, because they are relieved by
-different machines.
+The flowchart's abbreviations: HPC is high-performance computing,
+a university's shared cluster; SLURM is its most common job
+scheduler; RAM is random-access memory; and a GPU is a graphics
+processing unit. The three shortages differ in kind, not only in
+degree:
 
-The first is **compute-bound, parallelizable** work: a
-simulation with ten thousand independent replicates, a
-bootstrap, a permutation test. The shortage is
-wall-clock time and the remedy is cores. Be careful with
-the arithmetic here, because the naive version of it
-oversells the result: doubling the cores does not halve
-the time, since the serial portion of the job does not
-speed up at all and the coordination overhead grows with
-the core count. The gain is nonetheless real, and for a
-one-off job the cost is usually trivial against the
-hours it returns.
+| Shortage | Typical job | What relieves it | What you are buying |
+|---|---|---|---|
+| Wall-clock time, parallel work | Ten thousand independent simulation replicates, a bootstrap, a permutation test | More cores | Speed, but less than in proportion to the cores |
+| Memory | A genome-scale fit needing 128 GB on a 16 GB laptop | A node or instance with more RAM | Feasibility: the job did not run slowly, it did not run |
+| Your own machine | A 24-hour Markov chain Monte Carlo (MCMC) run you would rather not babysit | Any remote machine | A laptop you can close and take home |
 
-The second is **memory-bound** work, and it differs from
-the first in kind rather than in degree. A genome-scale
-analysis that needs 128 GB on a laptop with 16 does not
-run slowly. It does not run. Cloud instances reach into
-the terabytes, and the wall-clock time on one of them
-may be no better than the laptop would have managed had
-the laptop been able to manage it at all. What you are
-buying is feasibility, not speed, and the distinction
-matters when you are justifying the cost.
+: Three shortages and their remedies. {#tbl-cloud-shortages}
 
-The third is **long-running but robust** work: a
-twenty-four-hour MCMC, a fit that must not be
-interrupted. The shortage is neither cores nor memory
-but the availability of your own machine, which you
-would like to close, carry home, and use for something
-else.
+Be careful with the arithmetic of the first row, because the naive
+version oversells the result. Doubling the cores does not halve
+the time: the serial part of the job does not speed up at all, and
+the coordination overhead grows with the core count. A simulation
+that uses 4 cores does not benefit from a 32-core machine. The
+second row differs from the first in kind. On a large-memory
+machine the wall-clock time may be no better than the laptop's
+would have been had the laptop been able to run the job at all,
+and the distinction matters when you justify the cost.
 
-Set against these are three cases where remote compute
-is the wrong answer, and they share a single cause: the
-cost of a round trip to a machine that is not in front
-of you. **Interactive exploration** over SSH is laggy
-and unpleasant, and exploration is precisely the phase
-in which you issue many small commands and look at each
-result before deciding the next one. Anything
-**latency-sensitive**, a Shiny app under active
-debugging above all, is worse for the same reason. And a
-**short analysis** is not worth provisioning at any
-speed, because thirty seconds of computation is dwarfed
-by the several minutes of setup, transfer, and teardown
-wrapped around it.
+Remote compute is the wrong answer in three cases, and they share
+a cause: the round trip to a machine that is not in front of you.
+*Interactive exploration* over SSH is laggy, and
+exploration is exactly the phase in which you issue many small
+commands and look at each result. Anything *latency-sensitive*, a
+Shiny app under active debugging above all, is worse for the same
+reason. And a *short analysis* is not worth provisioning at any
+speed, because thirty seconds of computation is dwarfed by the
+minutes of setup, transfer, and teardown around it.
 
-## AWS in two pages
+### Exercises
 
-The Amazon Web Services landscape is vast; the subset
-you need for biostatistics is small.
+1. For each job, name the shortage in @tbl-cloud-shortages and the
+   first tier in @fig-compute-tier you would try. (a) A mixed
+   model that fails on your laptop with `cannot allocate vector of
+   size 24.0 Gb`. (b) A 2,000-replicate simulation of a trial
+   design, each replicate taking 40 seconds. (c) Tuning the
+   colors of a figure. (d) A one-chain MCMC fit that runs for 30
+   hours and uses one core.
 
-**EC2** (Elastic Compute Cloud): the virtual machines.
-Pick an instance type (`t3.large`, `c6i.4xlarge`, etc.)
-and pay per hour.
+::: {.callout-note collapse='true' title='Solution'}
+(a) Memory: the error is R failing to allocate, not running
+slowly. Try a large-memory node on the university cluster; the
+public cloud if none exists. (b) Wall-clock time on parallel
+work: 2,000 times 40 seconds is about 22 hours serially, and the
+replicates are independent, so a cluster job array
+(@sec-cloud-hpc) is the natural fit. (c) None: interactive work
+stays on the laptop. (d) Your own machine: the job uses one core,
+so more cores do not help, but any remote machine frees the
+laptop; a cluster batch job is the cheapest.
+:::
 
-**IAM** (Identity and Access Management): users, roles,
-and permissions. Create a user for yourself, generate
-access keys, configure them in the AWS CLI.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague proposes moving a 128 GB genomic fit
+from a 16 GB laptop to a 64-core cloud instance with 64 GB of
+memory 'because it has many more cores'. What is wrong with the
+plan?
 
-**S3** (Simple Storage Service): object storage. Cheaper
-than EBS for archival data; transfer to/from EC2 by
-`aws s3 cp` or `rsync` over SSH.
+**Answer.** The shortage is memory, not cores, and 64 GB is still
+less than the job needs, so it will fail on the new machine just
+as it failed on the laptop, now at an hourly rate. Name the
+shortage first: the job needs a machine with more than 128 GB of
+memory, and the core count is nearly irrelevant to whether it
+runs.
+:::
 
-**EBS** (Elastic Block Store): block storage for EC2.
-The instance's root volume is EBS; data persists when
-the instance is stopped, is gone when the instance is
-terminated.
+## Batch jobs on a cluster {#sec-cloud-hpc}
 
-**Security Groups**: virtual firewalls. Set rules to
-allow SSH (port 22) from your IP only.
+For most academic work the first stop is the university cluster:
+usually free to affiliated researchers, with R and the common
+scientific libraries already installed. The trade-offs are the
+queue, the shared environment, and a way of working, batch
+submission, that differs from the laptop's.
 
-**Key pairs**: SSH key pairs managed by AWS. Generate
-one when you launch your first instance.
+### Login nodes, compute nodes, and the scheduler
 
-The AWS Management Console (browser GUI) is good for
-learning the platform and for one-off operations. The
-AWS CLI (`aws ec2 run-instances ...`) is essential for
-automation and scripting.
+You SSH into a *login node*, which is shared by everyone on the
+cluster and is for editing files and submitting jobs, not for
+computing. The work runs on *compute nodes*, which a scheduler
+allocates. The most common scheduler is SLURM, originally the
+Simple Linux Utility for Resource Management
+[@yoo2003slurm].[^slurm-name] You describe the job (cores, memory,
+time limit) in a batch script; SLURM queues it, runs it when the
+resources are free, and kills it if it exceeds what it asked for.
+
+[^slurm-name]: The project now writes its name 'Slurm' and calls
+    it a workload manager; the book keeps the capitals most
+    cluster documentation still uses.
+
+Most clusters do not permit Docker, for a good reason: the Docker
+daemon runs as root, and a shared multi-user cluster cannot grant
+every user root. The standard substitute is [**Apptainer**](F-glossary.qmd#gloss-apptainer) (formerly
+Singularity), a container runtime that runs unprivileged and can
+build its image directly from your Docker image
+[@kurtzer2017singularity]. The reproducibility argument of
+@sec-docker survives the move intact: the image is the same image,
+and only the runtime changes.
+
+### A minimal batch script
+
+The script below runs one R script inside the project's image. It
+is display-only, like every SLURM and cloud command in this
+chapter, because it needs a cluster account.
 
 ```bash
-# install
-brew install awscli                  # macOS
-pip install awscli                   # cross-platform
+#!/bin/bash
+#SBATCH --job-name=hfhome-fit
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=4G
+#SBATCH --time=02:00:00
+#SBATCH --output=logs/%x_%j.out
 
-# configure once
-aws configure                        # prompts for key, secret, region
+set -euo pipefail
+apptainer exec analysis.sif Rscript analysis/scripts/fit.R
+```
 
-# list instances
+Convert the image once on the cluster, create the log directory,
+and submit (display-only):
+
+```bash
+apptainer pull analysis.sif docker://ghcr.io/you/analysis:v1.0
+mkdir -p logs
+sbatch fit.sbatch                    # prints: Submitted batch job <id>
+squeue -u "$USER"                    # pending (PD) or running (R)
+```
+
+Each `#SBATCH` line is a request, and each request is a way for
+the job to fail:
+
+| Directive | Requests | If it is too small or missing |
+|---|---|---|
+| `--cpus-per-task` | Cores for one task | Parallel code runs on one core, slowly, without an error |
+| `--mem` | Memory per node | The job is killed, and `sacct` reports `OUT_OF_MEMORY` |
+| `--time` | Wall-clock limit (hours:minutes:seconds) | The job is killed at the limit, and `sacct` reports `TIMEOUT` |
+| `--output` | Log file; `%x` is the job name, `%j` the job ID | SLURM does not create the directory; with no `logs/`, the job fails and leaves no log |
+
+: The `#SBATCH` requests that matter most. Cluster defaults vary;
+your cluster's documentation gives them. {#tbl-cloud-sbatch}
+
+::: {.callout-tip title='Verification'}
+Ask the scheduler how the job ended, rather than reading the log
+and assuming (display-only):
+
+```bash
+sacct -j <id> --format=JobID,State,ExitCode,Elapsed,MaxRSS,ReqMem
+```
+
+A clean run shows `COMPLETED` and exit code `0:0` on every line.
+`MaxRSS`, the peak memory the job used, should sit comfortably
+below `ReqMem`; if it is close, the next run with more data will
+be killed. Request about a third more than the peak you observed.
+:::
+
+### A simulation study as a job array
+
+A simulation study is the cluster's natural workload: many
+independent replicates, each small. A *job array* submits one
+script many times, and each copy, a *task*, reads its own index
+from `SLURM_ARRAY_TASK_ID`. The array below runs 40 tasks, at most
+10 at a time (display-only):
+
+```bash
+#!/bin/bash
+#SBATCH --job-name=hfhome-power
+#SBATCH --array=1-40%10
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=2G
+#SBATCH --time=00:30:00
+#SBATCH --output=logs/%x_%A_%a.out
+
+set -euo pipefail
+apptainer exec analysis.sif \
+  Rscript analysis/scripts/sim_task.R "$SLURM_ARRAY_TASK_ID"
+```
+
+`%A` is the array's job ID and `%a` the task index, so each task
+writes its own log. The R side is a function of the task index.
+The simulation below estimates the power of the HF-HOME design
+(@sec-analysis-plan-worked): a 25% event risk under usual care
+against 20% under home health, at the evaluable sample size the
+SAP (statistical analysis plan) computes for 80% power. Each task
+gets its own random-number stream, derived from one seed, so that
+tasks never share random numbers and any task can be rerun alone.
+
+```{r}
+#| label: cloud-sim-task
+n_per_arm <- ceiling(power.prop.test(p1 = 0.25, p2 = 0.20,
+                                     power = 0.80)$n)
+
+sim_task <- function(task_id, reps = 25, n = n_per_arm,
+                     risks = c(0.25, 0.20), seed = 20260423) {
+  old_kind <- RNGkind()[1]
+  on.exit(RNGkind(old_kind))
+  RNGkind("L'Ecuyer-CMRG")
+  set.seed(seed)
+  stream <- .Random.seed
+  for (i in seq_len(task_id - 1)) {
+    stream <- parallel::nextRNGStream(stream)
+  }
+  assign('.Random.seed', stream, envir = globalenv())
+  p_value <- replicate(reps, {
+    events <- rbinom(2, n, risks)
+    prop.test(events, c(n, n))$p.value
+  })
+  data.frame(task = task_id, rep = seq_len(reps), p_value = p_value)
+}
+```
+
+On the cluster, `sim_task.R` calls `sim_task()` with the index from
+the command line and saves the result as `results/task-<index>.rds`.
+Here the chunk runs eight tasks one after another, which is what the
+array does in parallel:
+
+```{r}
+#| label: cloud-sim-run
+results_dir <- file.path(tempdir(), 'results')
+dir.create(results_dir, showWarnings = FALSE)
+n_tasks <- 8
+for (id in seq_len(n_tasks)) {
+  saveRDS(sim_task(id),
+          file.path(results_dir, sprintf('task-%03d.rds', id)))
+}
+list.files(results_dir)
+```
+
+The step that combines the tasks is where the opening's failure
+happened, so it checks that every task it expects is present
+before it reads any of them:
+
+```{r}
+#| label: cloud-sim-combine
+library(purrr)
+
+combine_tasks <- function(dir, n_tasks) {
+  expected <- file.path(dir, sprintf('task-%03d.rds',
+                                     seq_len(n_tasks)))
+  missing <- basename(expected[!file.exists(expected)])
+  if (length(missing) > 0) {
+    stop(length(missing), ' of ', n_tasks, ' tasks missing: ',
+         paste(missing, collapse = ', '), call. = FALSE)
+  }
+  list_rbind(map(expected, readRDS))
+}
+
+sims <- combine_tasks(results_dir, n_tasks)
+power_hat <- mean(sims$p_value < 0.05)
+mc_se <- sqrt(power_hat * (1 - power_hat) / nrow(sims))
+power_exact <- power.prop.test(n = n_per_arm, p1 = 0.25,
+                              p2 = 0.20)$power
+c(replicates = nrow(sims), power = power_hat, mc_se = mc_se)
+```
+
+The estimate from `r nrow(sims)` replicates is
+`r round(power_hat, 3)`, with a Monte Carlo standard error of
+`r round(mc_se, 3)`; the analytic power at this sample size is
+`r sprintf('%.3f', power_exact)`. A real study runs enough
+replicates to make the Monte Carlo standard error small against
+the differences it reports, and states the replicate count it
+actually achieved.
+
+::: {.callout-warning title='Pitfall'}
+**Combining whatever files exist turns a killed task into a
+smaller study.** Delete one task's output, as an out-of-memory
+kill would, and the convenient idiom still returns a plausible
+estimate:
+
+```{r}
+#| label: cloud-sim-pitfall
+#| error: true
+file.remove(file.path(results_dir, 'task-003.rds'))
+naive <- list_rbind(map(list.files(results_dir, full.names = TRUE),
+                        readRDS))
+c(replicates = nrow(naive), power = mean(naive$p_value < 0.05))
+combine_tasks(results_dir, n_tasks)
+```
+
+`list.files()` found seven files and returned an estimate from
+`r nrow(naive)` replicates as readily as from `r nrow(sims)`, without
+a word; the guarded `combine_tasks()` names the missing task and
+stops.
+:::
+
+::: {.callout-tip title='Verification'}
+Before summarizing a job array, confirm it from both sides: the
+scheduler says every task completed, and the results directory
+holds one file per task. On the cluster (display-only):
+
+```bash
+sacct -j <array-id> --format=JobID,State,ExitCode -X \
+  | grep -v COMPLETED
+```
+
+prints only the header when every task completed; any line below
+it names a task that failed, timed out, or ran out of memory. In R,
+`combine_tasks()` is the second check: it refuses to summarize an
+incomplete set.
+:::
+
+Within one node, the parallelism is R's own. The `future`
+framework [@bengtsson2021future] runs the same code sequentially
+on a laptop and across a node's cores by changing one line, the
+plan, which keeps the parallel and serial versions of an analysis
+from diverging. A job array is the better tool when the tasks are
+independent and many; `future` is the better tool inside a single
+long task.
+
+### Exercises
+
+2. A colleague's batch script reads `#SBATCH --mem=500M` and
+   `#SBATCH --output=out/%x_%j.out`, and `sacct` reports
+   `OUT_OF_MEMORY` with `MaxRSS` of `499M`. A second attempt with
+   `--mem=8G` fails at once and leaves no log. Explain both
+   failures and fix the script.
+3. Run `sim_task(3)` twice, with other random draws in between,
+   and confirm that the two results are identical and differ from
+   `sim_task(4)`. Why does that matter when a cluster task is
+   killed?
+
+::: {.callout-note collapse='true' title='Solution'}
+2. The first run used all the memory it requested and was killed
+   at the limit. The second failed because SLURM does not create
+   the `out/` directory named in `--output`, so the job could not
+   open its log. Request memory with headroom (for example
+   `--mem=1G`, a third or more above the observed peak, or more
+   if the data will grow) and run `mkdir -p out` before `sbatch`.
+
+3. Each task's random-number stream is derived from the seed and
+   the task index alone, so the rerun matches exactly, whatever
+   happened to the session's random numbers in between:
+
+```{r}
+#| label: soln-06-3
+first_run <- sim_task(3)
+invisible(runif(100))
+rerun <- sim_task(3)
+stopifnot(identical(first_run, rerun),
+          !identical(rerun$p_value, sim_task(4)$p_value))
+head(rerun, 3)
+```
+
+When a task is killed, you resubmit only that index
+(`sbatch --array=3 sim.sbatch`) and get the replicates the full
+run would have produced, instead of rerunning the whole study or
+mixing streams.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Why does `sim_task()` derive a separate stream for
+each task with `parallel::nextRNGStream()` instead of calling
+`set.seed(20260423)` in every task?
+
+**Answer.** With the same seed in every task, every task draws the
+same random numbers, so 40 tasks of 25 replicates are 25
+replicates repeated 40 times, and the Monte Carlo standard error
+computed from 1,000 rows is far too small. The L'Ecuyer streams are
+distinct by construction and depend only on the seed and the task
+index, so the study is both correct and reproducible task by task.
+:::
+
+## Working on a remote machine {#sec-cloud-remote}
+
+Whether the machine is a cluster login node or a cloud instance,
+two everyday problems are the same: keeping a job alive after you
+disconnect, and moving data to and from the machine.
+
+### Keeping a job alive
+
+You SSH in, start a job, and your laptop goes to sleep or the
+wireless connection drops. The job dies with your shell, and whatever
+it had computed dies with it. The mechanism explains why each
+remedy works: when the connection closes, the shell receives a
+hangup signal, `SIGHUP`, and relays it to the processes it
+started, whose default response is to terminate. Each remedy
+either keeps the process from receiving the signal or gives it a
+parent other than the shell you are about to lose.
+
+| Remedy | How the job survives | Use when |
+|---|---|---|
+| `nohup` | The command ignores `SIGHUP`; output goes to a file | A single script you start and check later |
+| `tmux` (or the older `screen`) | The job runs in a session that outlives the connection | You want to reattach and watch, or work interactively |
+| `systemd` service | The system, not your shell, runs it | Something that runs on a schedule, in production |
+| `sbatch` | The scheduler runs it on a compute node | Any work on a cluster |
+
+: Ways to keep a remote job alive. {#tbl-cloud-detach}
+
+The first two, display-only:
+
+```bash
+nohup Rscript analysis.R > analysis.log 2>&1 &
+tail -f analysis.log                 # watch; Ctrl-C stops watching only
+
+tmux new -s analysis                 # start a named session
+Rscript analysis.R                   # inside tmux
+# detach with Ctrl-b d, log out, and later:
+tmux attach -t analysis
+```
+
+### Moving data
+
+To copy a file or a directory to the machine (display-only):
+
+```bash
+scp -i ~/.ssh/my-keypair.pem data.csv ubuntu@<ip>:/home/ubuntu/data/
+rsync -avz -e "ssh -i ~/.ssh/my-keypair.pem" \
+  ./data/ ubuntu@<ip>:/home/ubuntu/data/
+```
+
+`rsync` transfers only changed files, which helps when iterating.
+For larger or longer-term storage on AWS, the object store S3
+(@sec-cloud-aws) is cheaper than the instance's own disk:
+
+```bash
+aws s3 cp results.rds s3://my-bucket/project/results.rds
+aws s3 sync ./output s3://my-bucket/project/output/
+```
+
+Data leaving a cloud provider (egress) is charged and data
+arriving is free, so plan large downloads; @tbl-cloud-as-of gives
+the rate.
+
+::: {.callout-tip title='Verification'}
+After a transfer, compare checksums at both ends rather than file
+sizes (display-only):
+
+```bash
+shasum -a 256 data/visits.csv                        # on the laptop
+ssh ubuntu@<ip> sha256sum /home/ubuntu/data/visits.csv
+```
+
+The two hashes must match. A truncated transfer can leave a file
+that reads without error and is missing its last rows.
+:::
+
+### Exercises
+
+4. You start `Rscript analysis.R &` (without `nohup`) on a remote
+   server, and your wireless connection drops. You reconnect an
+   hour later. `ps aux | grep
+   analysis` shows nothing and `analysis.log` does not exist. What
+   happened, and which two changes would have prevented it?
+
+::: {.callout-note collapse='true' title='Solution'}
+The trailing `&` puts the job in the background of your shell but
+leaves it one of that shell's jobs. When the connection dropped,
+the shell received the hangup and relayed it to its jobs, which
+terminated the analysis. There is no log because the command
+never redirected its output to a file. Either `nohup Rscript analysis.R >
+analysis.log 2>&1 &`, which ignores the hangup and writes a log, or
+starting the job inside `tmux` would have kept it alive; on a
+cluster, `sbatch` replaces both.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You SSH into a cloud instance, start a long analysis
+with `Rscript analysis.R`, and close your laptop. What happens to
+the analysis?
+
+**Answer.** When the connection drops, the process receives a
+hangup signal and terminates, and the partial results are gone.
+`nohup`, `tmux`, a `systemd` service, or a scheduler would each
+have kept it running (@tbl-cloud-detach). Forgetting this is the
+classic 'I let it run overnight and it died' surprise.
+:::
+
+## The public cloud, minimally {#sec-cloud-aws}
+
+When the cluster is unavailable, its queue is too slow, or the job
+needs hardware it lacks, you rent. The dominant providers overlap
+heavily, and this chapter uses Amazon Web Services (AWS) for
+concreteness:
+
+| Provider | Note |
+|---|---|
+| AWS | The largest catalog; the examples below |
+| Google Cloud Platform (GCP) | Comparable services under different names |
+| Microsoft Azure | Convenient where the institution already uses Microsoft accounts |
+| Smaller providers (DigitalOcean, Linode) | Simpler and cheaper for small work; fewer features |
+| University HPC cluster | Usually free; queued; no Docker (@sec-cloud-hpc) |
+
+: Where to run a job that has outgrown the laptop. For most
+academic work the order is laptop, university cluster, public
+cloud. {#tbl-cloud-providers}
+
+### Before you provision anything: a budget and an alert
+
+A cloud account bills from the first minute, and nothing in it
+stops by default. The first step, before any instance exists, is
+a budget that emails you when spending crosses a threshold. In the
+console this is Billing, then Budgets; from the command line, with
+two small files describing the budget and the alert
+(display-only):
+
+```json
+{
+  "BudgetName": "practicum-monthly",
+  "BudgetLimit": {"Amount": "25", "Unit": "USD"},
+  "TimeUnit": "MONTHLY",
+  "BudgetType": "COST"
+}
+```
+
+```json
+[
+  {
+    "Notification": {
+      "NotificationType": "ACTUAL",
+      "ComparisonOperator": "GREATER_THAN",
+      "Threshold": 50,
+      "ThresholdType": "PERCENTAGE"
+    },
+    "Subscribers": [
+      {"SubscriptionType": "EMAIL", "Address": "you@example.edu"}
+    ]
+  }
+]
+```
+
+```bash
+aws budgets create-budget \
+  --account-id "$(aws sts get-caller-identity --query Account \
+                  --output text)" \
+  --budget file://budget.json \
+  --notifications-with-subscribers file://notify.json
+```
+
+A budget alerts; it does not stop anything, and billing data reach
+it hours after the spending. The stopping mechanisms are the
+idle alarm and the job script in @sec-cloud-cost.
+
+::: {.callout-tip title='Verification'}
+List the account's budgets and confirm yours, with its limit
+(display-only):
+
+```bash
+aws budgets describe-budgets \
+  --account-id "$(aws sts get-caller-identity --query Account \
+                  --output text)" \
+  --query 'Budgets[].[BudgetName,BudgetLimit.Amount]' --output table
+```
+
+Then confirm the subscription email arrived and that you accepted
+it; an alert sent to an unconfirmed address reaches no one.
+:::
+
+### The services you need
+
+The AWS catalog has hundreds of services; a biostatistician needs
+about six.
+
+| Term | What it is | What to know |
+|---|---|---|
+| EC2 (Elastic Compute Cloud) | Virtual machines, called instances | Billed per second of running time, whatever the machine is doing |
+| Instance type | The machine size, such as `c6i.4xlarge` | The family letter signals the balance: `c` compute, `r` memory, `t` small burstable, `g` GPU |
+| AMI (Amazon Machine Image) | The operating-system image an instance boots from | IDs differ by region and change often; look them up, never hard-code them |
+| EBS (Elastic Block Store) | The instance's disk | Persists when the instance is stopped; deleted when it is terminated |
+| S3 (Simple Storage Service) | Object storage for files | Cheaper than EBS for data the analysis has finished with |
+| IAM (Identity and Access Management) | Users, roles, and permissions | Give machines roles, people single sign-on, and nobody long-lived keys |
+| Security group | A firewall around an instance | Allow SSH (port 22) from your own address only |
+| Spot instance | Spare capacity at a discount | AWS can reclaim it with two minutes' notice |
+
+: AWS in one table. Prices and current instance types are in
+@tbl-cloud-as-of. {#tbl-cloud-glossary}
+
+### Credentials: single sign-on and instance roles
+
+Sign in through IAM Identity Center (single sign-on, SSO, which an
+institutional account usually provides) and let the AWS command
+line interface (CLI) fetch short-lived credentials. Give an
+instance the permissions it needs, to write to one S3 bucket, say,
+through an IAM role attached to the instance, never by copying
+access keys onto it. Long-lived access keys for an IAM user are
+the credential most often leaked, in a committed file or a pasted
+log, and the hardest to notice once leaked.
+
+Install version 2 of the CLI and configure it once (display-only):
+
+```bash
+brew install awscli                  # macOS (Homebrew ships v2)
+# Linux (x86_64): AWS's official installer; Windows has an MSI
+curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" \
+  -o awscliv2.zip
+unzip awscliv2.zip && sudo ./aws/install
+
+aws configure sso                    # short-lived SSO credentials
 aws ec2 describe-instances --query \
   'Reservations[].Instances[].[InstanceId,InstanceType,State.Name]' \
   --output table
 ```
 
-## Launching an EC2 instance
+Avoid `pip install awscli`, which many older tutorials show: the
+`awscli` package on PyPI is still version 1 of the CLI, which
+lacks `aws configure sso` among other things. The browser console
+is good for learning and one-off inspection; the CLI is what makes
+a job scripted and repeatable.
 
-Via the Console: EC2 → Launch Instance → choose AMI
-(Ubuntu LTS is a good default), choose type
-(`t3.large` is a reasonable starting point at 2 vCPU,
-8 GB RAM), choose a key pair, configure security
-group (SSH from your IP), launch.
+### Launching an instance
 
-Via the CLI:
+Launch from the CLI (display-only). The `resolve:ssm:` form looks
+up the parameter Canonical publishes in AWS Systems Manager (SSM)
+for the current Ubuntu 24.04 LTS (long-term support) image in
+whatever region you are using, so the command does not go stale:
 
 ```bash
+AMI=resolve:ssm:/aws/service/canonical/ubuntu/server/\
+24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
+
 aws ec2 run-instances \
-  --image-id ami-0c7217cdde317cfec \
+  --image-id "$AMI" \
   --instance-type t3.large \
   --key-name my-keypair \
   --security-group-ids sg-0abcd1234 \
   --subnet-id subnet-0abcd1234 \
   --tag-specifications \
-    'ResourceType=instance,Tags=[{Key=Project,Value=readmissions}]'
+    'ResourceType=instance,Tags=[{Key=Project,Value=hfhome}]'
 ```
 
-Connect:
+A literal AMI ID such as `ami-0c7217cdde317cfec` names one image in
+one region, and Ubuntu publishes a new one every few weeks, so a
+hard-coded ID is wrong in every other region and stale within a
+month. To see the ID the parameter resolves to, pass the path
+after `resolve:ssm:` to `aws ssm get-parameter --name <path>
+--query Parameter.Value`.
+
+Connect, and run the project's container rather than installing R
+by hand (display-only). A fresh Ubuntu instance does not have
+Docker, so install it first (Ubuntu's `docker.io` package, or
+Docker's own apt repository for a current release):
 
 ```bash
 ssh -i ~/.ssh/my-keypair.pem ubuntu@<public-ip>
-```
 
-Once on the instance:
-
-```bash
-# install R
 sudo apt update
-sudo apt install -y r-base r-base-dev git
-
-# clone your project
-git clone https://github.com/you/project.git
-cd project
-Rscript -e 'install.packages("renv"); renv::restore()'
+sudo apt install -y docker.io git
+sudo usermod -aG docker ubuntu       # log out and back in once
+git clone https://github.com/you/project.git && cd project
+docker run --rm -v "$(pwd)":/work my-analysis-image:v1.0 \
+  Rscript /work/analysis/scripts/main.R
 ```
 
-Or, more reproducibly, run a Docker container with the
-environment baked in (@sec-docker):
+The container is what makes the instance reproducible: a cloud
+machine needs the same environment specification as the laptop
+that ran the analysis, and the image of @sec-docker is that
+specification. Installing `r-base` from apt and running
+`renv::restore()` also works, but it gives you the R version
+Ubuntu packages, not the one your lockfile records.
+
+::: {.callout-tip title='Verification'}
+Confirm what you launched and that it is tagged, so that you can
+find it again (display-only):
 
 ```bash
-docker run -v $(pwd):/work my-analysis-image:v1.0 \
-  Rscript /work/scripts/main.R
+aws ec2 describe-instances \
+  --filters 'Name=tag:Project,Values=hfhome' \
+  --query 'Reservations[].Instances[].[InstanceId,InstanceType,State.Name]' \
+  --output table
 ```
 
-## Long-running jobs
-
-You SSH in, start a job, and your laptop goes to sleep
-or the hotel WiFi drops. The job dies with your shell,
-and whatever it had computed dies with it.
-
-The mechanism is worth knowing, because it explains why
-each of the three remedies works and why they are not
-interchangeable. When the connection closes, the shell
-receives a hangup signal, `SIGHUP`, and relays it to the
-processes it started; the default response to `SIGHUP`
-is to terminate. Each solution below either stops the
-process from receiving that signal or arranges for its
-parent to be something other than the shell you are
-about to lose.
-
-**`nohup`** (no hangup): runs the command immune to
-hangup signals.
-
-```bash
-nohup Rscript analysis.R > analysis.log 2>&1 &
-disown                               # detach from shell
-```
-
-The process continues; output goes to `analysis.log`;
-you can reconnect later and check progress with
-`tail -f analysis.log`.
-
-**`tmux`** (or `screen`, the older equivalent): a
-terminal multiplexer. Start a tmux session, run the job
-inside; when you disconnect, the tmux session keeps
-running; reconnect with `tmux attach`.
-
-```bash
-ssh user@server
-tmux new -s analysis
-# inside tmux:
-Rscript analysis.R
-# detach with Ctrl-b d
-# logout safely; come back later with:
-ssh user@server
-tmux attach -t analysis
-```
-
-`tmux` is also useful interactively: split panes, named
-windows, persistent sessions.
-
-**`systemd` services** for production deployments: more
-involved, but appropriate when the analysis is something
-that should run on a schedule.
-
-For most ad-hoc biostatistical work, `nohup` or `tmux` is
-sufficient.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: detached jobs
-
-**Question.** You SSH into an EC2 instance, start a long
-analysis with `Rscript analysis.R`, and close your
-laptop. What happens to the analysis?
-
-**Answer.**
-
-When the SSH connection drops (or your shell exits),
-the analysis process receives a hangup (SIGHUP) signal
-and terminates. The job is dead; the partial output is
-gone. Three remedies: (1) `nohup Rscript analysis.R &`
-keeps the process running and writes its output to a
-file; (2) `tmux` and `screen` provide persistent
-sessions you can detach from and reattach to;
-(3) systemd services run as background daemons. The
-common solution for ad-hoc biostatistical work is
-`tmux`. Forgetting this is the classic 'I let it run
-overnight and it died' surprise.
-
+Every instance you started should appear, with the type you
+intended. An instance you cannot find by tag is one you will
+forget to stop.
 :::
 
-## Data transfer
+### Where the data may go
 
-To copy a file to the instance:
+Provisioning is a form to fill in. Deciding what data may sit on
+the machine is where the compliance exposure lives. Protected
+health information (PHI) on a personal AWS account is a violation
+in most institutions. Use the institutional account, keep data
+inside the institutional network where the account provides for
+it, and treat 'I'll just upload the CSV to my personal bucket for
+testing' as a red flag.
 
-```bash
-scp -i ~/.ssh/my-keypair.pem data.csv ubuntu@<ip>:/home/ubuntu/data/
-```
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Your simulation study is too slow on a laptop, so you
+plan to move it to EC2. The data are de-identified under Safe
+Harbor. Is that sufficient to proceed?
 
-For directories or incremental sync:
+**Answer.** No. De-identification answers one of three separate
+questions, and the other two are the ones that stop projects.
 
-```bash
-rsync -avz -e "ssh -i ~/.ssh/my-keypair.pem" \
-  ./data/ ubuntu@<ip>:/home/ubuntu/data/
-```
+The first is contractual. A data use agreement (DUA) typically
+names where data may be stored and processed, and many prohibit
+third-party cloud entirely or require specific arrangements. Safe
+Harbor de-identification does not release you from a DUA you
+signed, and an institutional review board (IRB) protocol naming
+institutional servers is a commitment you cannot vary alone.
 
-`rsync` only transfers changed files; useful when
-iterating.
+The second is regulatory. Under HIPAA (the Health Insurance
+Portability and Accountability Act), using a cloud provider for PHI
+requires a Business Associate Agreement (BAA). Your institution may
+hold one covering specific AWS accounts under specific
+configurations; the personal account you opened with a credit card
+is not covered by it.
 
-For larger or longer-term storage, S3:
+The third is the one @sec-deident already made: Safe Harbor
+produces data that are de-identified, not anonymous. Residual
+re-identification risk is why the DUA and the BAA exist at all.
 
-```bash
-# from instance to S3
-aws s3 cp results.rds s3://my-bucket/project/results.rds
-
-# from S3 to laptop
-aws s3 cp s3://my-bucket/project/results.rds .
-
-# sync directories
-aws s3 sync ./output s3://my-bucket/project/output/
-```
-
-S3 is much cheaper than EBS for cold data ($0.023/GB/month
-vs. $0.10 for general-purpose EBS). For data the analysis
-finishes with, archive to S3.
-
-Egress (data leaving AWS) is charged; ingress is free.
-Plan large transfers accordingly.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: should PHI go to the cloud?
-
-**Question.** Your simulation study is too slow on a
-laptop, so you plan to move it to EC2. The data are
-de-identified under Safe Harbor. Is that sufficient to
-proceed?
-
-**Answer.**
-
-No. De-identification addresses one of three separate
-questions, and the other two are the ones that stop
-projects.
-
-The first is contractual. A data use agreement typically
-names where data may be stored and processed, and many
-prohibit third-party cloud entirely or require specific
-arrangements. Safe Harbor de-identification does not
-release you from a DUA you signed, and an IRB protocol
-naming institutional servers is a commitment you cannot
-vary alone.
-
-The second is regulatory. Under HIPAA, using a cloud
-provider for PHI requires a Business Associate Agreement.
-Your institution may hold one covering specific AWS
-accounts under specific configurations, and the personal
-account you opened with a credit card is not covered by
-it.
-
-The third is the one @sec-deident already made: Safe
-Harbor produces data that is de-identified, not anonymous.
-Residual re-identification risk is why the DUA and the BAA
-exist at all, rather than being redundant with the
-de-identification.
-
-The practical order is therefore: read the DUA, ask
-whether your institution has a covered account, and only
-then compare instance prices. Reversing that order is how
-people discover at submission that their analysis ran
-somewhere it should not have.
-
-Note that a simulation study on synthetic data raises none
-of this, which is often the cheapest way through.
+The practical order is: read the DUA, ask whether your institution
+has a covered account, and only then compare instance prices. A
+simulation study on synthetic data raises none of this, which is
+often the cheapest way through.
 :::
 
-## Cost control
+## Cost and failure handling {#sec-cloud-cost}
 
-Cloud billing surprises share a structure. The meter
-runs on elapsed time rather than on work done, so an
-idle instance costs exactly what a busy one costs, and
-nothing in the system produces an event when your
-analysis finishes. A laptop that has completed its job
-sits there quietly; a rented machine that has completed
-its job sits there quietly and bills you for the
-privilege, over a weekend, in a browser tab you closed
-on Friday. Every habit below is a way of supplying the
-stopping event that the platform does not.
+Cloud billing surprises share a structure. The meter runs on
+elapsed time rather than on work done, so an idle instance costs
+exactly what a busy one costs, and nothing in the system produces
+an event when your analysis finishes. A laptop that has finished
+its job sits there quietly; a rented machine that has finished its
+job sits there quietly and bills you for it, over a weekend, from a
+browser tab you closed on Friday. Every practice in this section
+supplies the stopping event the platform does not.
 
-**Set budget alerts.** AWS Budgets → set a monthly
-threshold; get an email when spend exceeds it.
-Catches forgotten instances quickly.
+### What it costs
 
-**Use spot instances** for fault-tolerant work. Spot
-instances are excess capacity sold at a steep discount
-(60--80% off on-demand prices); the catch is that AWS
-can reclaim them with two minutes' notice. For
-embarrassingly-parallel simulations with checkpointing,
-spot is essentially free money.
+Prices, instance types, and image paths are the most perishable
+facts in this book, so they live in one dated table, and every
+cost quoted in this chapter is computed from it.
+
+```{r}
+#| label: cloud-as-of-data
+#| include: false
+aws_as_of <- data.frame(
+  item = c('t3.large', 'c6i.xlarge', 'c6i.4xlarge', 'r6i.4xlarge',
+           'g4dn.12xlarge', 'S3 Standard storage',
+           'EBS gp3 volume', 'Data transfer out to the internet'),
+  spec = c('2 vCPU, 8 GiB', '4 vCPU, 8 GiB', '16 vCPU, 32 GiB',
+           '16 vCPU, 128 GiB', '48 vCPU, 192 GiB, 4 GPUs',
+           'Object storage, first 50 TB a month',
+           'General-purpose solid-state disk',
+           'First 10 TB a month, after 100 GB free'),
+  usd = c(0.0832, 0.17, 0.68, 1.008, 3.912, 0.023, 0.08, 0.09),
+  unit = c(rep('hour', 5), 'GB-month', 'GB-month', 'GB'),
+  checked = as.Date('2026-10-10')
+)
+price <- function(x) aws_as_of$usd[aws_as_of$item == x]
+hours_per_month <- 730
+```
+
+```{r}
+#| label: tbl-cloud-as-of
+#| echo: false
+#| tbl-cap: "AWS facts this chapter relies on: on-demand Linux
+#|   prices in the us-east-1 region. Every price was checked on the
+#|   date shown against AWS's published price-list data; none is an
+#|   estimate. The 100 GB of free transfer out is pooled across
+#|   services and regions each month. Prices change and differ
+#|   by region; check the AWS pricing pages before you budget. Spot
+#|   capacity is advertised at up to 90 percent below on-demand, and
+#|   the actual discount varies by type, region, and week. Free-tier
+#|   eligibility also changes: check the console for eligible types
+#|   (`t3.medium` is not among them). Ubuntu 24.04 images: the SSM
+#|   path in the launch example, not a literal AMI ID."
+knitr::kable(
+  data.frame(Item = aws_as_of$item, Specification = aws_as_of$spec,
+             `Price (USD)` = sprintf('%.4g per %s', aws_as_of$usd,
+                                     aws_as_of$unit),
+             Checked = format(aws_as_of$checked),
+             check.names = FALSE)
+)
+```
+
+vCPU is a virtual CPU (central processing unit), usually one
+hardware thread, so 16 vCPU is typically 8 physical cores. GiB is a
+gibibyte, 2^30^ bytes. At these rates a `g4dn.12xlarge` left
+running for a week costs
+\$`r format(round(price('g4dn.12xlarge') * 24 * 7), big.mark = ',')`,
+more than a small laptop.
+
+### Spot instances
+
+Spot instances are spare capacity sold at a steep discount, and the
+catch is that AWS can reclaim them with two minutes' notice. For
+embarrassingly parallel simulations that save their results as
+they go, spot is usually the cheapest option available, provided
+the job can resume from its last saved state: the job array of
+@sec-cloud-hpc, writing one file per task, has exactly this
+property (display-only):
 
 ```bash
 aws ec2 run-instances --instance-type c6i.xlarge \
@@ -486,234 +928,321 @@ aws ec2 run-instances --instance-type c6i.xlarge \
   ...
 ```
 
-**Auto-shutdown.** End your job script with `sudo shutdown -h now`
-on the instance, and configure the instance to stop
-(not terminate) on shutdown. The instance stops billing
-once stopped (you still pay for EBS, much cheaper).
+### A job script that always stops the instance
 
-For a typical job:
+End every job by uploading its results and shutting the instance
+down, and configure the instance to *stop* (not terminate) on
+shutdown; a stopped instance bills only for its disk. The upload
+and shutdown must happen whether the analysis succeeded or failed
+(display-only):
 
 ```bash
-# wrapper script
 #!/usr/bin/env bash
-Rscript analysis.R
-aws s3 cp results/ s3://my-bucket/project/results/ --recursive
-sudo shutdown -h now
+# run-job.sh: upload and shut down even if the analysis fails
+set -euo pipefail
+
+finish() {
+  aws s3 cp analysis.log s3://my-bucket/project/ || true
+  aws s3 cp results/ s3://my-bucket/project/results/ --recursive || true
+  sudo shutdown -h now
+}
+trap finish EXIT
+
+Rscript analysis.R > analysis.log 2>&1
 ```
 
-The instance does the analysis, uploads results, shuts
-down. You wake up to results in S3 and a stopped
-instance.
+The `#!` line must be the first line of the file, or it is an
+ordinary comment. `set -e` stops the script at the first failing
+command, and without the `trap` that would mean stopping before the
+upload and the shutdown. The `trap` runs `finish` whenever the
+script exits, so an error in `analysis.R` no longer leaves an idle
+instance billing over the weekend, and the log reaches S3 either
+way, which is where you will look first.
 
-## Alternatives to AWS
-
-**Google Cloud Platform** (GCP). Comparable to AWS;
-slightly different terminology. Strong for ML-heavy
-workloads via Vertex AI.
-
-**Azure**. Microsoft's cloud. Strong if your
-institution is in the Microsoft ecosystem (Office 365
-single-sign-on, Active Directory).
-
-**DigitalOcean**, **Linode**. Simpler, cheaper for
-small-scale work. Less to learn; fewer features.
-
-**University HPC clusters**. SLURM-based job
-submission, often free for affiliated researchers,
-typically have R, Python, and standard scientific
-libraries pre-installed. The right first stop for
-academic work when available; the queue waits and
-shared environment are the trade-offs.
-
-One trade-off deserves more than a mention, because it
-collides with @sec-docker. Most HPC clusters do not permit
-Docker, and for a good reason: the Docker daemon runs as
-root, and a shared multi-tenant cluster cannot grant every
-user root. The standard substitute is **Apptainer**
-(formerly Singularity), a container runtime designed for
-exactly this setting, which runs unprivileged and can build
-its image directly from your Docker image
-[@kurtzer2017singularity]:
+A second, independent stop is an alarm on the instance itself,
+which stops it after an hour below 5% CPU use, whatever the script
+did (display-only):
 
 ```bash
-# on the cluster, convert the image you already built
-apptainer pull analysis.sif docker://ghcr.io/you/analysis:v1.0
-
-# run the pipeline inside it, under SLURM
-srun apptainer exec analysis.sif Rscript scripts/main.R
+aws cloudwatch put-metric-alarm \
+  --alarm-name "idle-stop-$INSTANCE_ID" \
+  --namespace AWS/EC2 --metric-name CPUUtilization \
+  --dimensions Name=InstanceId,Value="$INSTANCE_ID" \
+  --statistic Average --period 300 --evaluation-periods 12 \
+  --threshold 5 --comparison-operator LessThanThreshold \
+  --alarm-actions "arn:aws:automate:$(aws configure get region):ec2:stop"
 ```
 
-The reproducibility argument of @sec-docker survives the
-move intact: the image is the same image, and the pinned
-environment is the same environment. Only the runtime
-changes. Discovering this at the point of submitting your
-first cluster job, rather than in advance, is a common and
-avoidable afternoon.
+::: {.callout-important title='LLM prompt'}
+Use a model to draft the job script, and test its failure path
+yourself.
 
-Within a single node, the parallelism is R's own. The
-`future` framework [@bengtsson2021future] lets the same
-code run sequentially on your laptop and across the
-cluster's cores by changing one line, the plan, which keeps
-the parallel and serial versions of an analysis from
-diverging.
+> **Context.** I run `Rscript analysis.R` on an EC2 instance
+> launched with `--instance-initiated-shutdown-behavior stop` and an
+> instance profile that may write to `s3://my-bucket/project/`. The
+> script writes `results/` and a log.
+>
+> **Constraints.** Bash with `set -euo pipefail`; the `#!` line
+> first. Use the instance role; never read, write, or ask me for
+> access keys. Do not hard-code an AMI ID, a price, or a region.
+> Do not launch, terminate, or modify any resource other than this
+> instance's own shutdown.
+>
+> **Criteria.** Whether `analysis.R` succeeds or fails, the log and
+> any results reach S3 and the instance shuts down. List every
+> command that could fail and what happens to the upload and the
+> shutdown if it does.
 
-For most academic biostatistics work, the priority
-ordering is: laptop (interactive), university HPC
-(batch), AWS/GCP (when HPC is unavailable or
-inadequate).
+*Failure mode.* Drafts commonly put the upload and `shutdown`
+after the `Rscript` line, where `set -e` skips them on the first
+error, so a failed analysis leaves a running instance and no log.
+Prices, AMI IDs, and instance types in a model's answer come from
+its training data and are stale by construction; take them from
+@tbl-cloud-as-of and the SSM path. *Check.* Add `quit(status = 1)`
+as the first line of `analysis.R`, run the script, and confirm
+that the instance reaches `stopped` and that the log is in S3. Put
+the budget alert in place before any agent or script provisions
+anything, and never paste keys into a prompt (@sec-ai-governance).
+:::
 
-## Worked example: a simulation on AWS
+::: {.callout-tip title='Verification'}
+Test the failure path, not only the success path. With the
+deliberate failure in place (display-only):
 
 ```bash
-# 1. provision
+aws ec2 describe-instances --instance-ids "$INSTANCE_ID" \
+  --query 'Reservations[].Instances[].State.Name' --output text
+aws s3 ls s3://my-bucket/project/analysis.log
+```
+
+The first should print `stopped` within a few minutes; the second
+should list the log, whose last lines show the R error.
+:::
+
+### Exercises
+
+5. Using @tbl-cloud-as-of, what does a `c6i.xlarge` cost if it runs
+   a 3-hour job and is then forgotten, running idle, until Monday
+   morning 60 hours later? What would the job script above have
+   cost instead, ignoring the disk?
+6. A job script ends with the two lines `Rscript analysis.R >
+   analysis.log 2>&1` and `sudo shutdown -h now`, and begins with
+   `set -euo pipefail`. What happens when `analysis.R` fails?
+
+::: {.callout-note collapse='true' title='Solution'}
+5. The forgotten instance runs 63 hours:
+
+```{r}
+#| label: soln-06-5
+forgotten <- price('c6i.xlarge') * (3 + 60)
+scripted <- price('c6i.xlarge') * 3
+round(c(forgotten = forgotten, scripted = scripted), 2)
+```
+
+The idle weekend costs
+`r round(forgotten / scripted)` times the job itself. The number
+is small for this instance and large for the GPU types in the same
+table; the habit is the same.
+
+6. `Rscript` exits with a non-zero status, `set -e` stops the
+   script, and `shutdown` never runs: the instance keeps billing
+   and the only log is on its disk. The `trap ... EXIT` form runs
+   the upload and the shutdown on every exit path.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You set a monthly budget of \$25 with an alert at 50
+percent. Does it protect you from a `g4dn.12xlarge` left running
+over a weekend?
+
+**Answer.** It tells you, late; it does not stop anything. Budget
+data lag spending by hours, and the alert is an email. At the rate
+in @tbl-cloud-as-of the instance passes \$12.50 within a few hours
+of launch and keeps billing until someone acts. The stop has to
+come from the job script's `trap`, the idle alarm, or both; the
+budget is the backstop that tells you one of them failed.
+:::
+
+## Worked example: the simulation on AWS {#sec-cloud-worked}
+
+The job array of @sec-cloud-hpc, run instead on one cloud
+instance because the cluster queue is days long. The whole
+sequence is display-only.
+
+```bash
+# 0. the budget alert exists (see above)
+
+# 1. provision ($AMI as set in the launch example)
 aws ec2 run-instances \
-  --image-id ami-0c7217cdde317cfec \
+  --image-id "$AMI" \
   --instance-type c6i.4xlarge \
   --key-name my-keypair \
   --security-group-ids sg-0abcd1234 \
   --subnet-id subnet-0abcd1234 \
+  --iam-instance-profile Name=sim-s3-writer \
   --instance-initiated-shutdown-behavior stop \
   --user-data file://bootstrap.sh \
   --tag-specifications \
     'ResourceType=instance,Tags=[{Key=Project,Value=sim2026}]'
 
-# bootstrap.sh installs R, clones the repo, runs the simulation,
-# uploads results to S3, and shuts down
+# bootstrap.sh installs Docker, clones the repository, runs the
+# simulation in the project image, uploads results to S3, and
+# shuts down (with a trap, as above); the instance profile lets it
+# write to S3 without access keys
 
 # 2. wait for it to finish (and shut down)
 aws ec2 describe-instances --instance-ids <id> \
   --query 'Reservations[].Instances[].State.Name'
 
 # 3. retrieve results
-aws s3 cp s3://my-bucket/sim2026/results.rds .
+aws s3 cp s3://my-bucket/sim2026/results/ results/ --recursive
 
-# 4. terminate the instance (delete it for good)
+# 4. terminate the instance (delete it and its disk for good)
 aws ec2 terminate-instances --instance-ids <id>
 ```
 
-The cost: a 4-hour run on `c6i.4xlarge` (16 vCPU, 32 GB)
-at $0.68/hour is about $2.72. EBS storage another
-$0.50. S3 egress for the results, pennies.
+```{r}
+#| label: cloud-worked-cost
+#| include: false
+run_hours <- 4
+disk_gb <- 30
+compute_cost <- price('c6i.4xlarge') * run_hours
+disk_cost <- price('EBS gp3 volume') * disk_gb * run_hours /
+  hours_per_month
+laptop_hours <- 32
+```
 
-For a simulation that took 32 hours on a laptop, this is
-a 8× speedup at $3 in costs. The judgment is whether
-the time saved is worth $3.
+The cost, from @tbl-cloud-as-of: a `r run_hours`-hour run on a
+`c6i.4xlarge` is \$`r sprintf('%.2f', compute_cost)`. A
+`r disk_gb` GB disk for those hours is
+\$`r sprintf('%.3f', disk_cost)`, although a stopped instance keeps
+billing for its disk until step 4 terminates it. Downloading the
+results costs pennies.
 
-## Collaborating with an LLM on cloud setup
+Suppose the same simulation took `r laptop_hours` hours on a
+laptop. The cloud run cuts the wall-clock time by a factor of
+`r laptop_hours / run_hours` for about \$`r round(compute_cost)`,
+and the judgment is whether the time saved is worth it. Read that
+factor as an observation about this one job, not as a rate to
+expect: the 16 vCPU of a `c6i.4xlarge` are 8 physical cores, a
+recent laptop has several cores of its own, and the serial part of
+the job keeps the gain below the ratio of core counts. Time a short
+pilot on both machines before deciding.
 
-LLMs handle AWS recipes well; they sometimes generate
-shell scripts with subtle cost or security issues.
+::: {.callout-tip title='Verification'}
+Before you report anything from the cloud run, apply the checks
+that would have caught the opening's failure: the results
+directory holds one file per task, `combine_tasks()` runs without
+error, and the replicate count in the methods section is
+`nrow()` of what it returned. Then confirm that nothing is still
+billing:
 
-**Prompt 1: choosing an instance.** Describe the
-workload (cores, memory, expected runtime, parallel
-nature) and ask: 'recommend an EC2 instance type and
-estimate the cost.'
+```bash
+aws ec2 describe-instances --filters 'Name=tag:Project,Values=sim2026' \
+  --query 'Reservations[].Instances[].State.Name' --output text
+```
 
-*What to watch for.* Verify against the current AWS
-pricing page (LLMs may quote out-of-date prices).
-Double-check the instance type matches the workload
-type (compute-optimized vs. memory-optimized).
+It should print `terminated` or nothing at all.
+:::
 
-*Verification.* The AWS pricing calculator is the
-ground truth.
+## Rules of thumb
 
-**Prompt 2: scripting a cloud job.** Describe the job
-and ask the LLM to write a shell script that
-provisions, runs, and cleans up.
+1. **Habit 8: a missing task produces a plausible number.** Before
+   summarizing a job array, confirm from the scheduler and from
+   the files that every task completed, and report the replicate
+   count you achieved.
+2. **Habit 4: pin the environment.** Run remote jobs in the
+   project's image (Apptainer on a cluster, Docker on a cloud
+   instance), not in whatever R the machine happens to have.
+3. **Habit 12: every model output is a hypothesis until
+   verified.** Prices, AMI IDs, and scripts from a model are
+   checked against the dated table and a deliberate failure, and
+   a model never sees your keys.
 
-*What to watch for.* Failure handling: what if the
-script crashes partway? Does the instance still shut
-down? Does the data still upload to S3? LLM scripts
-often miss these.
+## Cumulative practice
 
-*Verification.* Run the script with a deliberate failure
-inserted; verify cleanup still happens.
+7. *Cumulative (uses @sec-docker and @sec-analysis-plan).* Package
+   `sim_task()` and `combine_tasks()` from this chapter as
+   `analysis/scripts/sim_task.R` in a project with the canonical
+   Dockerfile (@sec-docker-canonical). Write the job-array script
+   for 40 tasks of 25 replicates, and, if you have cluster access,
+   run it. Whether or not you run it, write the two checks you
+   would make before reporting the power estimate, and the
+   sentence of the methods section that reports the replicate
+   count and the Monte Carlo standard error.
+8. *On your own work (no key).* Take a long-running analysis of
+   yours, name its shortage using @tbl-cloud-shortages, estimate
+   its cost on the cheapest suitable tier from @tbl-cloud-as-of or
+   your cluster's documentation, and run it there with a budget
+   alert (if in the cloud) and a script that stops the machine on
+   every exit path. Record the cost and the wall-clock time.
 
-**Prompt 3: diagnosing AWS errors.** Paste the error
-message and ask the LLM to diagnose.
+::: {.callout-note collapse='true' title='Solution'}
+7. The two checks are the two sides of the job-array Verification:
+   `sacct ... -X | grep -v COMPLETED` prints only its header, and
+   `combine_tasks(results_dir, 40)` returns 1,000 rows without
+   error. The methods sentence states the achieved count and the
+   precision, computed rather than typed, for example:
 
-*What to watch for.* Common errors (security group not
-allowing SSH, instance not yet running, key pair
-mismatch) are easy. Less common errors (IAM role
-issues, VPC peering) get mixed answers; verify against
-AWS documentation.
+   ```qmd
+   Power was estimated from `{{r}} nrow(sims)` simulated trials
+   (Monte Carlo standard error `{{r}} round(mc_se, 3)`).
+   ```
 
-*Verification.* The AWS console is the source of truth
-for instance state; check it before assuming the LLM is
-right.
+   The script should create `logs/` and `results/` before
+   `sbatch`, request memory with headroom over a measured peak,
+   and derive each task's random-number stream from the seed and
+   the task index.
+:::
 
-## Principle in use
+## Cheat sheet
 
-Three habits keep the bill and the science both under control:
+| Task | Command | Guards against |
+|---|---|---|
+| Submit a batch job | `sbatch job.sbatch` | Computing on the login node |
+| Submit a job array | `#SBATCH --array=1-40%10` | Hand-launching many jobs |
+| See how jobs ended | `sacct -j <id> --format=JobID,State,MaxRSS,ReqMem` | Out-of-memory and timeout kills going unnoticed |
+| Run a container on a cluster | `apptainer exec analysis.sif Rscript ...` | A different R on the cluster |
+| Refuse an incomplete array | `combine_tasks(dir, n_tasks)` | Summarizing a smaller study than planned |
+| Survive a disconnect | `nohup ... &` or `tmux new -s name` | `SIGHUP` killing the job |
+| Copy or sync data | `rsync -avz`, `aws s3 sync` | Re-sending unchanged files |
+| Set a budget alert | `aws budgets create-budget` | Discovering the bill a month later |
+| Get credentials | `aws configure sso` | Long-lived keys that leak |
+| Look up the current Ubuntu image | `resolve:ssm:/aws/service/canonical/...` | Stale or wrong-region AMI IDs |
+| Always upload and stop | `trap finish EXIT` | An idle instance after a failure |
+| Stop an idle instance | `aws cloudwatch put-metric-alarm ... ec2:stop` | A script that never ran its trap |
 
-1. **Provision deliberately, shut down promptly.** The
-   instance is billed every hour it runs, including
-   while you sleep.
-2. **Script it.** A shell script that provisions, runs,
-   and cleans up is the only way to make a cloud job
-   reproducible.
-3. **Use the right tier.** University HPC for free
-   academic compute; AWS/GCP when scale demands; spot
-   instances for fault-tolerant parallel work; on-demand
-   only when you must.
-
-## Exercises
-
-**On your own machine, data, or collaborations.** These exercises
-provision compute you pay for or are granted, so no answer key is
-possible. Cost and wall-clock time are what you compare.
-
-1. Launch a `t3.medium` EC2 instance in the AWS free
-   tier (or equivalent). Install R, clone a GitHub
-   repository, and run a simple analysis. Shut the
-   instance down when finished. Document every cost.
-2. Run a 1-hour simulation on an EC2 instance using
-   `nohup`. Disconnect your laptop and reconnect; verify
-   the simulation is still running.
-3. Set up an S3 bucket and transfer a dataset to and
-   from your EC2 instance. Compute the data-transfer
-   charge.
-4. Compare the cost of running a 4-hour simulation on
-   AWS spot vs. on-demand vs. on a university HPC.
-   Document each.
-5. Write a wrapper script that provisions, runs, and
-   shuts down an EC2 instance for a single R script.
-   Test that it cleans up even when the script fails.
+: Remote compute at a glance. {#tbl-cloud-cheat-sheet}
 
 ## Further reading
 
-- AWS EC2 documentation at `aws.amazon.com/ec2`,
-  authoritative platform reference.
-- The RStudio AMI on AWS Marketplace, one-click
-  RStudio in the cloud.
-- The `googleComputeEngineR` package, GCP
-  provisioning from R.
-- *AWS in Action*, 2nd ed. (Wittig & Wittig, Manning)
- , accessible book-length introduction.
+- The SLURM documentation at `slurm.schedmd.com`, in particular
+  the `sbatch` page and the job-array guide.
+- [@kurtzer2017singularity], the container runtime you will use on
+  a shared cluster where Docker is not permitted.
+- [@wittig2018aws], a book-length introduction to AWS; its prices
+  and service names are dated, its concepts are not.
 
 ## Prerequisites answers {#sec-quiz-answers-06}
 
-1. Cloud compute provides more resources (CPU, RAM,
-   storage) than a laptop, on demand, without capital
-   investment. A 10-hour simulation on a laptop can be
-   a 1-hour simulation on an 8-core cloud instance, and
-   the laptop stays free for other work. Cloud compute
-   also keeps research data off personal machines and
-   provides audit logs. The trade-off is cost, security
-   complexity, and data-transfer overhead.
-2. The AWS Management Console is a browser-based GUI;
-   good for one-off instance launches, inspecting
-   state, and learning the platform. The AWS CLI is a
-   command-line tool; essential for automation,
-   scripting, and reproducible infrastructure setup.
-   Most professional workflows use the CLI for routine
-   work and the Console for debugging. The CLI also
-   composes naturally with shell scripts and `make`.
-3. Use `nohup Rscript analysis.R > analysis.log 2>&1 &`
-   to detach the process from the shell, or launch
-   inside a `tmux` or `screen` session that persists
-   after logout. The process continues running; its
-   output goes to the log file; you reconnect later
-   with `tail -f analysis.log` or `tmux attach`.
-   Without one of these, closing your shell kills the
-   job.
+1. Remote compute supplies a resource the laptop has run out of:
+   cores for parallel work, memory for a job that cannot run at
+   all on the laptop, or simply a machine that is not your own,
+   so the laptop stays free. A simulation that takes 10 hours on
+   one laptop core might take between 1.25 hours (the eightfold
+   ideal, never quite reached) and 2 hours on an 8-core machine.
+   For academic work, a university cluster is usually the first
+   choice and the public cloud the second. The trade-offs are
+   cost, data governance, and transfer overhead.
+2. The AWS Management Console is a browser interface, good for
+   learning the platform, one-off launches, and inspecting state.
+   The AWS CLI (command line interface) is a command-line tool,
+   essential for automation, scripting, and repeatable setup. Most
+   professional workflows use the CLI for routine work and the
+   console for inspection and debugging.
+3. Use `nohup Rscript analysis.R > analysis.log 2>&1 &` to make
+   the process ignore the hangup signal sent at logout, or run it
+   inside a `tmux` or `screen` session that persists after logout;
+   on a cluster, submit it with `sbatch`. Reconnect later with
+   `tail -f analysis.log` or `tmux attach`. Without one of these,
+   closing your shell kills the job.

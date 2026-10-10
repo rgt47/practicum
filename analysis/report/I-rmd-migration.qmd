@@ -1,0 +1,539 @@
+# Migrating from R Markdown {#sec-rmd-migration}
+
+## R Markdown and Quarto {#sec-rmd-workflow}
+
+The converted paper rendered without an error, and the PDF went to
+the co-authors. In the methods section, 'as Figure 2 shows' had
+become `?@fig-flow shows`, and three other references pointed at
+nothing, because the chunk labels had kept their old R Markdown
+names. Nobody noticed for a week, because a clean render looks
+exactly like a correct one.
+
+Quarto (@sec-quarto) succeeds R Markdown, and a great deal of
+existing work, including most `bookdown` books, is written in the
+older format. This appendix is reference material for the work
+around a literate document rather than inside it: converting
+between formats, deciding whether to migrate a project and doing
+so without breaking its cross-references, and running other
+languages beside R. Placing floats in a PDF and diagnosing a
+render, which apply to every Quarto document, are in
+@sec-rmd-workflow-floats and @sec-rmd-workflow-troubleshoot. The
+code below uses `knitr`, which Quarto installs with R support,
+and calls each function with its namespace (`knitr::spin()`), so
+it needs no `library()` call.
+
+
+## Converting between formats {#sec-rmd-workflow-convert}
+
+A project that mixes `.R` scripts, `.Rmd` reports, and `.qmd`
+papers is harder to maintain than any one of them. Pick a primary
+format (`.qmd` for new work) and convert to it, and convert early:
+a 100-line document converts in minutes, and a 1,000-line one
+takes an afternoon of checking. This section uses a short HF-HOME
+script, written to a temporary directory so that the conversions
+below run for real.
+
+```{r}
+#| label: rmd-convert-setup
+work <- file.path(tempdir(), "convert")
+unlink(work, recursive = TRUE)
+dir.create(work)
+writeLines(c(
+  "#' # HF-HOME: primary outcome by arm",
+  "#' Read the randomization list and the outcomes.",
+  "trial <- merge(read.csv('data/randomization.csv'),",
+  "               read.csv('data/outcomes.csv'))",
+  "#' Observed risk of the primary outcome in each arm.",
+  "#+ risk-by-arm, echo = FALSE",
+  "tapply(trial$event_30d, trial$arm, mean, na.rm = TRUE)"
+), file.path(work, "analysis.R"))
+```
+
+### `.R` to `.qmd` with `knitr::spin()`
+
+In a script written for `spin()`, a comment that begins `#'` is
+prose, a comment that begins `#+` holds chunk options for the code
+that follows, and everything else is code.
+
+```{r}
+#| label: rmd-convert-spin
+invisible(knitr::spin(file.path(work, "analysis.R"), knit = FALSE,
+                      format = "qmd"))
+cat(readLines(file.path(work, "analysis.qmd")), sep = "\n")
+```
+
+`format = "Rmd"` writes an `.Rmd` instead. Notice that the `#+`
+line became chunk options in the old in-brace style, not `#|`
+lines; the next step moves them.
+
+### `.Rmd` to `.R` with `knitr::purl()`
+
+```{r}
+#| label: rmd-convert-purl
+invisible(knitr::spin(file.path(work, "analysis.R"), knit = FALSE,
+                      format = "Rmd"))
+invisible(knitr::purl(file.path(work, "analysis.Rmd"),
+                      output = file.path(work, "extracted.R"),
+                      documentation = 0, quiet = TRUE))
+cat(readLines(file.path(work, "extracted.R")), sep = "\n")
+```
+
+`documentation = 1` (the default) also writes each chunk
+header as a comment but drops the prose; `2` keeps the
+prose as roxygen-style `#'` comments.
+
+### `.Rmd` to `.qmd` by renaming
+
+Rename the file, then optionally rewrite the chunk headers with
+`knitr::convert_chunk_header()`. In a repository, the rename is
+`git mv paper.Rmd paper.qmd`, so that Git records the history as
+one file's; here it is a copy.
+
+```{r}
+#| label: rmd-convert-header
+invisible(file.copy(file.path(work, "analysis.Rmd"),
+                    file.path(work, "paper.qmd")))
+knitr::convert_chunk_header(file.path(work, "paper.qmd"),
+                            output = file.path(work, "paper.qmd"),
+                            type = "yaml")
+cat(readLines(file.path(work, "paper.qmd")), sep = "\n")
+```
+
+There is no `quarto convert` step here. That command
+converts between `.ipynb` and `.qmd`; given an `.Rmd`
+it writes Jupyter notebook JSON into whatever file you
+name, `paper.qmd` included. Quarto renders a renamed
+`.Rmd` with knitr as it stands, so the rename alone
+produces a working document. The `convert_chunk_header()`
+call moves options such as `echo = FALSE` and
+`fig.cap = "..."` out of the braces into `#| echo: false`
+and `#| fig-cap:` lines. It does not add the `fig-` prefix
+to labels or touch cross-references. @tbl-rmd-vs-quarto lists
+what the rename and `convert_chunk_header()` handle, and what is
+left for you.
+
+| Aspect | R Markdown | Quarto | Converted for you? |
+|---|---|---|---|
+| Output format | `output: html_document` | `format: html` | No |
+| Chunk options | In the braces: `{r name, echo = FALSE}` | One option per line at the top of the chunk, as `label: name` and `echo: false` after the comment prefix | Yes, by `convert_chunk_header()` |
+| Option names | `fig.cap`, `fig.pos` | `fig-cap`, `fig-pos` | Yes, by `convert_chunk_header()` |
+| Figure and table labels | Any chunk name | Must begin `fig-` or `tbl-` to be referenceable | No |
+| Cross-references | `\@ref(fig:scatter)` | `@fig-scatter` (syntax in @sec-quarto-chunks) | No |
+| Book configuration | `_bookdown.yml` and `_output.yml` | One `_quarto.yml` | No |
+
+: What changes between R Markdown and Quarto, and what the
+conversion tools do. {#tbl-rmd-vs-quarto}
+
+### `.ipynb` to and from `.qmd`
+
+```bash
+quarto convert notebook.ipynb -o notebook.qmd
+quarto convert notebook.qmd -o notebook.ipynb
+```
+
+For collaborators who prefer Jupyter, this conversion is lossless:
+text becomes Markdown, code becomes cells, and metadata
+round-trips.
+
+::: {.callout-important title='LLM prompt'}
+A model can convert a long document faster than you can, provided
+you forbid the wrong tool and define 'converted' as a check.
+
+> **Context.** Below is an R Markdown file from a `bookdown`
+> project, with knitr chunk options in braces and
+> `\@ref(fig:...)` and `\@ref(tab:...)` cross-references.
+>
+> **Constraints.** Produce a `.qmd`. Do not use or suggest
+> `quarto convert`, which is for Jupyter notebooks. Change no
+> code inside chunks and add no prose. Move chunk options to `#|`
+> lines, add the `fig-` or `tbl-` prefix to every label that is
+> cross-referenced, and rewrite every reference to `@fig-...` or
+> `@tbl-...`.
+>
+> **Criteria.** List every label you renamed. The output contains
+> no `\@ref(`, and every `@fig-` and `@tbl-` reference has a
+> matching label.
+
+*Failure mode.* Models invent connecting prose, tidy the code
+while they are in it, or rename a label without updating every
+reference to it. *Check.* Diff the code chunks against the
+original (`knitr::purl()` both files with `documentation = 0` and
+compare), then render and run the two counts in the Verification
+of @sec-rmd-workflow-migrate. The document's text and code are
+structure; keep the data out of the prompt (@sec-ai-governance).
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You rename `paper.Rmd` to `paper.qmd`, run
+`convert_chunk_header()`, and render. The render succeeds. What
+has not been converted, and how would you find out?
+
+**Answer.** The YAML (`output:` still has to become `format:`),
+every label that lacks a `fig-` or `tbl-` prefix, and every
+`\@ref()` cross-reference. Neither step touches them, and none of
+them stops the render. Grep the source for `\@ref(` and the
+rendered output for `?@`, as @sec-rmd-workflow-migrate shows.
+:::
+
+### Exercises
+
+1. Which lines of `analysis.R` does the round trip through
+   `spin()` and `purl(documentation = 0)` fail to reproduce, and
+   why?
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-rmd-1
+setdiff(readLines(file.path(work, "analysis.R")),
+        readLines(file.path(work, "extracted.R")))
+```
+
+Every prose line (`#'`) and the chunk-option line (`#+`).
+`spin()` turned the prose into Markdown and the `#+` line into
+chunk options, and `purl()` with `documentation = 0` extracts only
+code. With `documentation = 2` the prose returns as `#'` comments.
+:::
+
+## Migrating an R Markdown project {#sec-rmd-workflow-migrate}
+
+The conversion above is a file operation. Migrating a
+*project* is a different exercise, and the first question
+is whether to do it at all.
+
+### Whether to convert
+
+The reflex is to say yes, on the grounds that Quarto is
+the successor and current tools are better than superseded
+ones. That reflex is wrong often enough to be worth
+resisting, because it mistakes currency for value. A
+finished analysis that renders correctly under a pinned
+environment already does everything this book asks of it.
+Migrating it produces the same output from newer
+machinery, and in exchange you accept a window in which
+the document does not render and the numbers have not yet
+been checked against the old ones. There is no
+reproducibility argument for the change, and there is a
+small reproducibility argument against it.
+
+@fig-rmd-migrate is the decision.
+
+```{mermaid}
+%%| echo: false
+%%| label: fig-rmd-migrate
+%%| fig-alt: "Decision flowchart on whether to migrate an R Markdown
+%%|   project. If the document is finished and published, leave it.
+%%|   Otherwise, if a Quarto-only capability is needed, convert. If
+%%|   not, a third question asks whether the document will grow or
+%%|   change hands: yes leads to convert, no leads back to leaving
+%%|   it alone."
+%%| fig-cap: "Whether to migrate an R Markdown project. Currency is
+%%|   not a reason on its own. The cases that justify the work are a
+%%|   document that is still growing, a Quarto-only capability you
+%%|   actually need, or a handover to someone who will maintain it
+%%|   after you."
+flowchart TD
+  A{"Is the document<br/>finished and published?"}
+  A -->|"Yes"| B["Leave it<br/><i>it renders; migration<br/>buys nothing</i>"]
+  A -->|"No"| C{"Do you need a<br/>Quarto-only capability?"}
+  C -->|"Yes"| D["Convert<br/><i>multi-language, freeze,<br/>cross-format fidelity</i>"]
+  C -->|"No"| E{"Will it grow, or<br/>change hands?"}
+  E -->|"Yes"| D
+  E -->|"No"| B
+```
+
+Anything tagged at submission (@sec-git-solo) belongs in
+the left branch without further thought. The tagged commit
+is the record of what was reported, and it should render
+with the toolchain that produced it.
+
+### What the rename leaves for you
+
+Renaming the file and running
+`knitr::convert_chunk_header()` handles the chunk headers.
+Neither touches the YAML (`output:` still has to become
+`format:`), neither touches cross-references, neither knows
+that a project is a `bookdown` project, and neither audits
+what your packages assumed about knitr. Budget for those
+by hand.
+
+Quarto is also stricter about labels than `bookdown` was.
+A figure is only referenceable if its label carries the
+`fig-` prefix, a table if it carries `tbl-`. A chunk named
+`scatter` that was addressable as `fig:scatter` under
+`bookdown` becomes addressable as nothing at all until it
+is renamed `fig-scatter`.
+
+::: {.callout-warning title='Pitfall'}
+**Cross-references fail silently.** A `\@ref(fig:scatter)` left
+unconverted does not stop the render. It emits a broken reference
+into the output, and a document with thirty figures can acquire a
+dozen of them without a single error. A reference whose syntax
+you updated but whose target label you did not (`@fig-scatter`
+pointing at a chunk still named `scatter`) renders as
+`?@fig-scatter`, with a warning in a log nobody reads.
+:::
+
+::: {.callout-tip title='Verification'}
+After converting, count the old references left in the source and
+the unresolved references Quarto wrote into the output. Both
+counts must be zero. From the project root (display-only):
+
+```r
+src <- unlist(lapply(list.files(pattern = "[.]qmd$", recursive = TRUE),
+                     readLines))
+sum(grepl("\\@ref(", src, fixed = TRUE))
+
+out <- unlist(lapply(list.files("_book", pattern = "[.]html$",
+                                recursive = TRUE, full.names = TRUE),
+                     readLines))
+sum(grepl("?@", out, fixed = TRUE))
+```
+
+The second count catches the converse error, a reference whose
+syntax you updated but whose target label you did not. Change
+`_book` to your project's output directory.
+:::
+
+**Package assumptions are the quiet cost.** Code that
+reached around `knitr` rather than through it does not
+convert, because there is nothing to convert: it simply
+behaves differently. The recurring cases are
+`kableExtra`'s LaTeX-specific options, any output format
+in the `bookdown::` namespace, and custom `knit_hooks`.
+Each has to be replaced rather than translated.
+
+### `bookdown` projects
+
+A single `.Rmd` is a file. A `bookdown` project is a
+build system, and it is the case most readers who want to
+migrate actually have.
+
+The mapping is mostly mechanical. `_bookdown.yml` and
+`_output.yml` collapse into the single `_quarto.yml` of
+@sec-quarto, chapter files are listed under `chapters:`
+rather than inferred from filenames, and `index.Rmd`
+becomes an ordinary `index.qmd` whose YAML carries the
+book metadata. Part divisions, which `bookdown` expressed
+as a specially formatted heading, become `part:` entries.
+
+What is not mechanical is the numbering. Cross-file
+references, chapter numbers appearing in prose, and any
+figure numbered by hand will all move, and they will move
+silently for the same reason described above. The
+discipline that makes this tractable is to convert one
+chapter at a time and keep the `bookdown` build working
+until the Quarto build matches it. Render both, and
+compare the outputs rather than trusting that a clean
+render means a correct one. A clean render means the
+document compiled.
+
+### The boundary you may not control
+
+Migration is rarely unilateral. A co-author may still be
+editing `.Rmd` in RStudio, a journal template you depend
+on may exist only as an `rticles` output format, and a
+continuous-integration workflow (@sec-ci) may invoke
+`rmarkdown::render` on a path that no longer exists. Each
+of these is a reason the sensible unit of migration is a
+project rather than a file: converting half of something
+leaves two toolchains to maintain, which is worse than
+either one alone.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A converted chapter renders cleanly, and a grep of
+the source finds no `\@ref(`. Is it safe to ship?
+
+**Answer.** Not yet. The source check finds references in the old
+syntax; it cannot find a new-syntax reference to a label that was
+never renamed. Grep the rendered output for `?@` as well, and
+compare the chapter's figure and table numbers with the `bookdown`
+build, because numbering moves silently too.
+:::
+
+### Exercises
+
+2. The `bookdown` fragment below is to become Quarto. Count the
+   references to convert, and name the labels to rename.
+
+```{r}
+#| label: rmd-migrate-fragment
+fragment <- c(
+  "As \\@ref(fig:flow) shows, most exclusions were at screening.",
+  "Baseline characteristics are in Table \\@ref(tab:baseline).",
+  "```{r flow, fig.cap = 'CONSORT flow'}",
+  "```{r baseline}",
+  "Outcomes by arm are in \\@ref(fig:outcomes)."
+)
+cat(fragment, sep = "\n")
+```
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-rmd-2
+refs <- unlist(regmatches(fragment,
+                          gregexpr("\\\\@ref\\([^)]+\\)", fragment)))
+refs
+```
+
+Three references, to become `@fig-flow`, `@tbl-baseline`, and
+`@fig-outcomes`. The chunks `flow` and `baseline` must be renamed
+`fig-flow` and `tbl-baseline`. There is no chunk for `outcomes` in
+the fragment: find it before converting, or the converted
+reference will render as `?@fig-outcomes`.
+:::
+
+3. Take a `bookdown` project, your own or any public one, and
+   convert a single chapter of it to Quarto while leaving the
+   `bookdown` build working. Render both and compare the chapter's
+   output. (This changes files in that project; work on a branch.)
+
+::: {.callout-note collapse='true' title='Solution'}
+A complete conversion leaves both counts in the Verification
+above at zero and the same figure and table numbers in both
+builds. Expect breaks that produced no message in either render:
+references to labels in other chapters, which resolve only when
+the whole Quarto book is built, and numbers typed into the prose.
+Record each break and whether any message reported it.
+:::
+
+## Engines and other languages {#sec-rmd-workflow-engines}
+
+Quarto chooses an engine from a document's executable cells. A
+document with any `{r}` cell runs under knitr, which also runs
+Python cells through the `reticulate` package; a document whose
+executable cells are all Python runs under Jupyter; and an
+`engine:` key in the YAML overrides the choice. `knitr` documents
+support every chunk option you know from R Markdown, in either
+syntax. For most R work, the engine choice is invisible.
+
+With `reticulate` (R and Python) and `JuliaCall` (R and Julia),
+chunks can pass values across languages in one render:
+
+````qmd
+---
+format: html
+---
+
+```{{r}}
+library(reticulate)
+x <- 1:10
+```
+
+```{{python}}
+import numpy as np
+arr = np.array(r.x)
+print(arr.mean())
+```
+
+```{{r}}
+print(py$arr)
+```
+````
+
+In Python, `r.x` reads R's `x`; in R, `py$arr` reads Python's
+`arr`. Common types (numeric vectors, data frames, lists) convert
+automatically. Whether a mix is *helpful* depends on whether the
+languages do genuinely different jobs, such as R for the
+statistics and Python for a deep-learning model. For a typical
+biostatistical analysis, stay in one language: each additional one
+is another runtime to install, pin, and debug.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A `.qmd` with a `{python}` chunk renders
+correctly on your machine. A colleague clones the
+repository, runs `renv::restore()`, and the render fails
+with `ModuleNotFoundError`. What went wrong, and what
+would have prevented it?
+
+**Answer.** `renv` pins R packages. It says nothing about Python,
+so the document depended on whatever interpreter and packages
+happened to be installed on your machine, which is exactly the
+ambient state the book argues against everywhere else. It worked
+for you by accident of history: you had `pandas` from some earlier
+project.
+
+The fix is to declare the dependency in the document, so that
+provisioning is part of the build rather than a precondition of
+it:
+
+```r
+reticulate::py_require("pandas")
+```
+
+Modern `reticulate` reads those declarations and provisions an
+ephemeral environment, which means the requirement travels with
+the source.
+
+The alternative many projects reach for, a `requirements.txt` plus
+an instruction to run `pip install -r`, is weaker for a reason
+worth generalizing. It puts the requirement in a file the render
+does not read, so nothing enforces the connection, and the failure
+appears on someone else's machine rather than yours. A dependency
+the build declares is checked on every render; a dependency
+documented in a README is checked when someone reads the README.
+:::
+
+### Exercises
+
+4. Build a `.qmd` that computes one number in a Python chunk
+   through `reticulate`, declares its Python packages with
+   `py_require()`, and uses the number in the prose. Verify that
+   the number is faithful to the same computation in R.
+
+::: {.callout-note collapse='true' title='Solution'}
+Read the Python value back into R and compare it with the R
+computation in a chunk that stops the render if they disagree,
+for example `stopifnot(isTRUE(all.equal(py$arr_mean,
+mean(1:10))))`. Exact equality (`==`) is the wrong test for
+floating-point results computed by two runtimes; `all.equal()`
+allows for the last-digit differences they can produce. Render
+once in a fresh session to confirm that `py_require()`, not an
+interpreter already on your machine, supplied the packages.
+:::
+
+## Further practice
+
+5. *Cumulative (uses @sec-quarto).* Convert a short `.R` script of
+   yours to `.qmd` with `knitr::spin()`, add one captioned figure
+   with a cross-reference to it, and render to HTML and PDF. Apply
+   the Verification of @sec-rmd-workflow-troubleshoot to both
+   outputs.
+6. *On your own work (no key).* Find an R Markdown analysis of
+   yours that is finished and published. Write a short argument
+   for *not* migrating it, in terms of what migration would and
+   would not change about its reproducibility.
+
+## Rules of thumb
+
+1. **Habit 8: a clean render is not a correct render.** After
+   every conversion or migration, grep the output for `?@` and
+   compare figure and table numbers with the old build.
+2. **Habit 3: version control from day one.** Migrate on a branch,
+   and leave anything tagged at submission on the toolchain that
+   produced it.
+3. **Habit 4: pin the environment.** Declare every language's
+   packages in the document (`py_require()`) or the lockfile, not
+   in a README.
+
+## Cheat sheet
+
+| Task | Code |
+|---|---|
+| `.R` to `.qmd` (`#'` prose, `#+` options) | `knitr::spin("a.R", knit = FALSE, format = "qmd")` |
+| `.Rmd` to `.R` | `knitr::purl("a.Rmd", documentation = 0)` |
+| `.Rmd` to `.qmd` | `git mv a.Rmd a.qmd`, then `knitr::convert_chunk_header("a.qmd", output = "a.qmd", type = "yaml")` |
+| `.ipynb` to and from `.qmd` | `quarto convert notebook.ipynb` |
+| Find unconverted references | `grep -rn '\\@ref(' --include='*.qmd' .` |
+| Find unresolved references | `grep -rn '?@' _book/` |
+| Declare Python packages | `reticulate::py_require("pandas")` |
+
+: Migrating from R Markdown at a glance. {#tbl-rmd-cheat-sheet}
+
+## Further reading
+
+- [@xie2020cookbook], *R Markdown Cookbook*, the recipe book.
+- [@xie2016bookdown], *bookdown: Authoring Books and Technical
+  Documents with R Markdown*, for long-form documents.
+- Quarto's `quarto convert` documentation for `.ipynb` to `.qmd`
+  conversion, and the knitr help page
+  `?knitr::convert_chunk_header` for `.Rmd` chunk headers.

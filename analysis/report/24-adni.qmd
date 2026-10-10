@@ -1,174 +1,587 @@
 # Case Study: ADNI MCI Prediction {#sec-adni}
 
+A neurologist tells a 74-year-old woman and her daughter that the
+memory testing shows mild cognitive impairment (MCI), and the
+daughter asks what every family asks: will it become Alzheimer's
+disease, and how soon? An honest answer is a probability, and the
+probability comes from a model fitted to a cohort like the
+Alzheimer's Disease Neuroimaging Initiative (ADNI). If that model
+counted the participants who left the study early as people who
+never progressed, the number the family hears is too low, and
+nothing in the code or its output says so. This chapter builds the
+compendium for such a model end to end, so that each quiet decision
+is written down, pre-specified, and checkable by a reviewer who
+cannot see the data.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
 ```
 *In God we trust; all others must bring data.*
 
-[W. Edwards Deming]{.smallcaps}, *attributed*
+[W. Edwards Deming]{.smallcaps}, attributed; no source in
+his writings is known (in print by 1978)
 ```{=latex}
 \end{flushright}
 ```
 :::
 
-::: {.callout-note}
-## Sources
+```{r}
+#| label: adni-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-Adapted from author's lecture notes and supporting
-materials for a graduate practicum in biostatistics.
+```{r}
+#| label: fig-adni-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: the case study runs every stage
+#|   on restricted data. The Analyze stage is highlighted because its
+#|   decisions (who is in the cohort, how the model is validated) are
+#|   the ones a reader cannot check without the code."
+#| fig-alt: !expr pipeline_alt('analyze')
+pipeline_diagram('analyze')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 40 minutes.
+
+**You'll need.** @sec-analysis-plan for the statistical analysis
+plan, @sec-missing for complete-case reasoning, @sec-deident for
+data-use agreements, @sec-zzcollab for the compendium, and
+@sec-graphics for trajectory plots. The code uses:
+
+```r
+library(dplyr)
+library(ggplot2)
+library(gtsummary)
+library(glmnet)
+```
+
+**You'll be able to.**
+
+- Derive an analytic cohort from longitudinal visits so that
+  participants with an unobserved outcome are excluded or censored,
+  never counted as non-converters, and report the count removed at
+  each step.
+- Pre-specify a prediction analysis (predictors, model,
+  participant-level validation, discrimination, and calibration)
+  and map it to the TRIPOD+AI reporting items.
+- Run the whole pipeline against a synthetic stand-in, so that a
+  reviewer without data access can verify the code.
+- Structure a compendium whose code is public while its data stay
+  under the data-use agreement.
+
+**Outline.**
+
+- [The question and the data](#sec-adni-question)
+- [Working under a data-use agreement](#sec-adni-dua)
+- [Building the analytic cohort](#sec-adni-cohort)
+- [Describing the cohort](#sec-adni-describe)
+- [The pre-specified analysis plan](#sec-adni-sap)
+- [Modeling on the synthetic cohort](#sec-adni-model)
+- [Reporting and deposit](#sec-adni-report)
 :::
 
-## Prerequisites
-
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-24.
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-24.
 
 1. What is the scientific question posed by the ADNI MCI
-   prediction project, and why is it clinically
-   meaningful?
-2. What features of the ADNI data make a reproducible
-   compendium especially important relative to a typical
-   pilot dataset?
-3. Why must ADNIMERGE data be preprocessed before
-   modeling, and what preprocessing step is most
-   commonly overlooked?
+   prediction project, and why is it clinically meaningful?
+2. What features of the ADNI data make a reproducible compendium
+   especially important relative to a typical pilot dataset?
+3. Why must ADNIMERGE data be preprocessed before modeling, and
+   what preprocessing step is most commonly overlooked?
+:::
 
-## Learning objectives
+## The question and the data {#sec-adni-question}
 
-By the end of this chapter you should be able to:
+### The research question
 
-- Frame a concrete clinical prediction question from a
-  longitudinal cohort dataset.
-- Scaffold an ADNI compendium using `zzcollab`.
-- Produce a Table 1 (demographics, baseline clinical
-  variables) using the in-house `zztable1` package.
-- Produce trajectory plots for cognitive outcomes
-  using `zzlongplot` with CDISC-style formatting.
-- Pre-specify an analysis plan that distinguishes
-  primary from exploratory analyses.
-- Deliver a reproducible report that satisfies
-  federal data-sharing requirements (@sec-federal).
-- Handle the data-use-agreement constraint that
-  shapes ADNI deposition.
+The case study predicts conversion from MCI to Alzheimer's disease
+(AD) dementia within three years, from baseline sociodemographic,
+clinical, and neuropsychological measures. The aim is not to solve
+the prediction problem, which would be a book-length exercise, but
+to demonstrate the workflow around it: scaffolding, planning,
+wrangling, describing, modeling, reporting, and depositing. The
+modeling itself is deliberately light; the companion book,
+*Statistical Computing in the Age of AI*, covers it.
 
-## Orientation
+From the statistical analysis plan (SAP), drafted with the template
+of @sec-analysis-plan-template:
 
-We work through in this chapter a single end-to-end case
-study: predicting conversion from Mild Cognitive Impairment
-(MCI) to Alzheimer's disease (AD) dementia within a
-three-year horizon. The predictors are baseline
-sociodemographic, clinical, and neuropsychological measures.
-Our goal is not to solve the
-prediction problem, which would be a book-length exercise in
-its own right, but to demonstrate the Practicum workflow
-end-to-end: scaffolding, planning, wrangling, figuring,
-reporting, and depositing.
+> Can baseline sociodemographic characteristics, clinical scales,
+> and neuropsychological test scores predict conversion from MCI to
+> AD dementia within 3 years?
 
-The statistical modeling details are deliberately
-light; for those, consult the companion book
-*Statistical Computing in the Age of AI*. Here, the
-focus is on everything *around* the modeling.
+Two secondary questions come from the same template: which
+predictor categories (sociodemographic, clinical,
+neuropsychological) contribute most to prediction accuracy, and
+whether performance differs between early MCI (EMCI) and late MCI
+(LMCI).
 
-## The statistician's contribution {#sec-adni-human}
+MCI is a heterogeneous state. Some people progress to AD within
+months; others remain stable for years. Identifying those at
+highest risk enables targeted intervention trials, earlier
+counseling, and informed family planning. A model with modest
+discrimination (an area under the receiver operating
+characteristic (ROC) curve, AUC, of 0.75 to 0.80)
+is useful clinically; one with an AUC of 0.95 has probably been
+trained or evaluated wrong. Prior work [@grassi2019novel] has
+established age, education, APOE4 status, and baseline ADAS13 as
+reliable predictors; the question is whether a multivariable model
+outperforms any one of them.
 
-ADNI is a substantive case study, and the
-substantive judgments are what matter.
+### The ADNI dataset
 
-**Define the cohort with care.** EMCI and LMCI
-participants who drop out before the three-year
-window have *not* been observed for the outcome.
-Treating them as non-converters biases the
-analysis toward better-than-true sensitivity.
-The correct handling is either (a) censor them
-and use time-to-event methods, or (b) exclude
-them and report the resulting smaller cohort.
-Each is defensible; treating dropout as
-non-conversion is not.
+ADNI is a longitudinal multicenter cohort study funded since 2004.
+Its data are obtained under a data-use agreement (DUA) at
+<https://adni.loni.usc.edu/>. The `ADNIMERGE` package is the
+community-standard R interface: a single long-format table of
+roughly 15,000 visits on about 2,000 participants, with over a
+hundred variables spanning demographics, APOE genotype, clinical
+scales such as the Clinical Dementia Rating (CDR) and Functional
+Activities Questionnaire (FAQ), and neuropsychological tests.
 
-**Pre-register the analysis.** ADNI is large
-enough and well-studied enough that an
-unprincipled analyst can find any signal they
-want. The SAP locks the predictor set, the model
-class, the validation strategy, and the metric.
-Anything not pre-registered is exploratory.
+| Variable | Description | Scale |
+|---|---|---|
+| `RID` | Participant ID | Integer |
+| `VISCODE` | Visit code | `bl`, `m06`, `m12`, ... |
+| `DX` | Diagnosis at the visit | CN (cognitively normal), MCI, Dementia |
+| `DX_bl` | Baseline diagnosis | CN, SMC (subjective memory complaint), EMCI, LMCI, AD |
+| `AGE`, `PTGENDER`, `PTEDUCAT` | Age, sex, years of education | Demographics |
+| `APOE4` | Number of APOE $\varepsilon$4 alleles | 0, 1, 2 |
+| `ADAS13` | 13-item Alzheimer's Disease Assessment Scale, cognitive subscale: memory, language, praxis | 0 to 85, higher worse |
+| `RAVLT.immediate` | Rey Auditory Verbal Learning Test, immediate recall: list learning | Higher better |
+| `MMSE` | Mini-Mental State Examination: a cognitive screen | 0 to 30, higher better |
+| `LDELTOTAL` | Logical Memory II delayed recall: story recall | Higher better |
 
-**ADNI version pinning.** The `ADNIMERGE` package
-gets updated periodically. New participants are
-added; variables are sometimes renamed. An
-analysis from 2024 may not reproduce on the 2026
-package without effort. Pin the package version
-in `renv.lock` (install from a specific GitHub
-commit), and freeze a copy of the data file in
-the compendium at the moment of analysis.
+: Key ADNIMERGE variables for this case study. {#tbl-adni-vars}
 
-**Data sharing is asymmetric.** The code can be
-public; the data cannot. The compendium therefore
-ships in two parts: the public code-only
-deposition (Zenodo, GitHub) plus the path for
-collaborators to obtain the data (ADNI's data-use
-agreement). The README must make this distinction
-explicit.
+APOE $\varepsilon$4 (apolipoprotein E, allele 4) is the most
+established genetic risk factor for late-onset AD. Relative to
+non-carriers, one copy raises risk roughly three-fold and two
+copies roughly eight- to twelve-fold in the large case-control
+meta-analyses, with estimates that vary by age, sex, and ancestry.
+The instruments are correlated but not redundant: each captures a
+different aspect of cognition or risk, and the predictive question
+is whether their combination outperforms any one alone.
 
-**Cross-validation at the participant level.**
-ADNI has many observations per participant.
-Cross-validation that splits at the observation
-level leaks information across folds (the same
-participant in train and test). Splits must be
-at the `RID` level. Forgetting this produces
-optimistic AUCs that the model cannot achieve in
-true held-out evaluation.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague reports a cross-validated AUC of 0.96 for
+three-year conversion from baseline measures alone. What is your
+first hypothesis?
 
-These judgments are what distinguish a
-defensible ADNI analysis from one that
-over-claims.
+**Answer.** That something leaks. The published range from baseline
+clinical and cognitive measures is far lower, and MCI's
+heterogeneity limits how well any baseline profile can predict.
+Look first for an outcome-derived predictor (a variable measured
+after baseline) and for folds that split one participant's visits
+across training and test.
+:::
 
-## The research question
+## Working under a data-use agreement {#sec-adni-dua}
 
-From the 243B analysis-plan template:
+### Why the compendium matters more here
 
-> Can baseline sociodemographic characteristics,
-> clinical scales, and neuropsychological test
-> scores predict conversion from MCI to AD
-> dementia within 3 years?
+ADNI analyses have three properties that make reproducibility
+harder and more valuable at once, and each has an answer in the
+compendium.
 
-This is a well-posed prediction question.
-Secondary questions from the same template:
+| Property | Consequence | What the compendium does |
+|---|---|---|
+| Data-use agreement | The data cannot be shared | Public code, `renv.lock`, and a synthetic stand-in; collaborators obtain the data under their own DUA |
+| Long time horizon | Reviewer requests and follow-up analyses arrive years later | A Docker-pinned environment reruns the original analysis on the same R and package versions |
+| Version churn in `ADNIMERGE` | New participants appear and variables are renamed between releases | The installed version recorded in `renv.lock`, the source tarball kept, and a frozen copy of the data file |
 
-- Which predictor categories (sociodemographic,
-  clinical, neuropsychological) contribute most
-  to prediction accuracy?
-- Does prediction performance differ between
-  Early MCI (EMCI) and Late MCI (LMCI)
-  subgroups?
+: Three properties of ADNI analyses and the compendium's answer to
+each. {#tbl-adni-properties}
 
-The clinical context: MCI is a heterogeneous
-state. Some participants progress rapidly to AD;
-others remain stable for years. Identifying
-those at highest risk enables targeted
-intervention trials, earlier patient
-counseling, and informed family planning. A
-prediction model that achieves modest
-discrimination (AUC 0.75--0.80) is useful
-clinically; one with AUC 0.95 has likely been
-trained or evaluated wrong.
+Data sharing is therefore asymmetric. The code can be public; the
+data cannot. The compendium ships in two parts, a public code-only
+deposit and the documented route by which a collaborator obtains
+the data, and the README states the distinction explicitly.
 
-Prior work [@grassi2019novel] has
-established that age, education, APOE4 status,
-and baseline ADAS13 are reliable predictors;
-the question is whether a multivariable model
-can outperform any one of them.
+### Scaffolding
 
-The analytic cohort is not the enrolled cohort, and
-the gap between the two is itself a reportable result.
-@fig-adni-cohort traces the derivation in the manner of
-a CONSORT flow diagram: from the full ADNIMERGE roster,
-we restrict to the MCI strata of interest, require
-sufficient follow-up to observe the three-year outcome,
-and drop records with missing key predictors. Each
-exclusion is a number the manuscript must state, because
-a reader cannot judge selection bias without it.
+Assemble the compendium by hand (@sec-zzcollab-assemble) or with a
+framework. With the in-house `zzcollab` (@sec-zzcollab-optional),
+the session is (display-only):
+
+```bash
+mkdir adni-mci
+cd adni-mci
+zzc tidyverse            # scaffold the Five Pillars
+make r                   # enter R inside the container
+```
+
+`zzcollab` has no modeling profile. Install the modeling packages
+inside the container (`glmnet` for penalized regression, `survival`
+for time-to-event handling of dropout), record them with
+`make snapshot`, and rebuild the image with `make docker-build`.
+
+`ADNIMERGE` is not on CRAN (the Comprehensive R Archive Network)
+or public GitHub. It is distributed as a source tarball through the
+LONI (Laboratory of Neuro Imaging) Image and Data Archive to
+investigators whose data-use application has been approved.[^adnimerge2]
+Install the file you downloaded (display-only):
+
+[^adnimerge2]: As of October 2026, ADNI also distributes a
+    successor package, `ADNIMERGE2`; check which one your approval
+    covers.
+
+```r
+renv::install('~/Downloads/ADNIMERGE_0.0.1.tar.gz')
+renv::snapshot()
+```
+
+`renv.lock` now records the `ADNIMERGE` version, with a local
+rather than a repository source. `renv::restore()` cannot download
+it for a collaborator: each collaborator obtains the same tarball
+from LONI under their own DUA and places it where `renv` looks for
+local sources (see `?renv::paths`, `RENV_PATHS_LOCAL`), after which
+the restore installs the same version.
+
+Under `analysis/`, the compendium grows:
+
+```
+analysis/
+├── data/
+│   ├── raw/adnimerge_20260301.rds      # frozen copy, gitignored
+│   └── derived/
+│       ├── analytic_cohort.rds         # one row per RID
+│       ├── adnimerge_clean.rds         # visits of the cohort
+│       └── predictions.rds             # held-out predictions
+├── paper/paper.qmd
+└── scripts/
+    ├── 00-simulate.R                   # the synthetic stand-in
+    ├── 01-build-cohort.R
+    ├── 02-table1.R
+    ├── 03-trajectories.R
+    └── 04-model.R
+```
+
+`data/raw/adnimerge_20260301.rds` is a frozen snapshot of the data
+on the date of analysis, so the analysis reruns against the same
+data even after `ADNIMERGE` updates. The file is gitignored, and
+the README documents how a collaborator with DUA access recreates
+it.
+
+::: {.callout-warning title='Pitfall'}
+**Participant-level rows leave the enclave without an error.** A
+`head(adnimerge)` pasted into a chat window, a CSV attached to an
+issue, or a data file committed and pushed to a public repository
+each discloses DUA-restricted data, and nothing in R, Git, or the
+chat interface stops it. The ADNI DUA limits the data to the uses
+in your approved application and forbids passing them on, and a
+language-model service is a third party like any other. Send
+structure: column names, types, the
+schema of the synthetic stand-in, and aggregate summaries. Add the
+data directories to `.gitignore` before the first commit, not after
+the first push.
+:::
+
+### A synthetic stand-in
+
+The real analysis cannot execute in this book, and a reviewer
+without a DUA cannot run it either. Both problems have the same
+answer: a generator that produces data with the schema of
+`ADNIMERGE`, so that every script runs end to end without any ADNI
+file present. The generator below writes long-format visits for
+the five baseline diagnoses, with conversion to dementia among the
+MCI participants depending on APOE4 dose, LMCI status, and baseline
+ADAS13, and with dropout that by default does not depend on
+anything. Only `ADAS13` changes over time; the other measures are
+baseline values repeated, which is all the scripts need.
+
+```{r}
+#| label: adni-simulate
+#| message: false
+library(dplyr)
+
+#' Simulate visit-level data with the ADNIMERGE schema
+#'
+#' @param n Number of participants.
+#' @param seed Random seed.
+#' @param dropout_rate Yearly dropout hazard; 0 means no dropout.
+#' @param dropout_adas Log-hazard increase in dropout per ADAS13
+#'   point above 15; 0 makes dropout uninformative.
+#' @return A tibble with one row per visit.
+simulate_adnimerge <- function(n = 1500, seed = 41, dropout_rate = 0.12,
+                               dropout_adas = 0) {
+  set.seed(seed)
+  dx_bl <- sample(c('CN', 'SMC', 'EMCI', 'LMCI', 'AD'), n,
+                  replace = TRUE, prob = c(0.25, 0.10, 0.25, 0.30, 0.10))
+  apoe4 <- sample(0:2, n, replace = TRUE, prob = c(0.55, 0.36, 0.09))
+  adas_bl <- pmax(0, round(rnorm(n, c(CN = 9, SMC = 9, EMCI = 12,
+                                      LMCI = 18, AD = 30)[dx_bl], 5)))
+  # conversion risk rises with APOE4 dose, LMCI, and ADAS13: the
+  # associations the analysis is meant to find
+  rate <- exp(-2.6 + 0.5 * apoe4 + 0.6 * (dx_bl == 'LMCI') +
+                0.05 * (adas_bl - 15))
+  t_convert <- ifelse(dx_bl %in% c('EMCI', 'LMCI'), rexp(n, rate), Inf)
+  # scaling one draw keeps the same participants when the rate is 0
+  t_drop <- rexp(n) / (dropout_rate * exp(dropout_adas * (adas_bl - 15)))
+
+  tibble(
+    RID = seq_len(n), DX_bl = dx_bl, APOE4 = apoe4,
+    AGE = round(rnorm(n, 73, 7), 1),
+    PTGENDER = sample(c('Male', 'Female'), n, replace = TRUE),
+    PTEDUCAT = pmin(20L, pmax(6L, as.integer(round(rnorm(n, 16, 2.7))))),
+    RAVLT.immediate = as.integer(pmax(0, round(rnorm(n, 45 - adas_bl, 8)))),
+    MMSE = as.integer(pmin(30, pmax(18, round(30 - adas_bl / 6 +
+                                               rnorm(n, 0, 1.5))))),
+    LDELTOTAL = ifelse(runif(n) < 0.04, NA_integer_,
+                       as.integer(pmax(0, round(rnorm(n, 14 - adas_bl / 2,
+                                                      3))))),
+    bl_date = as.Date('2010-01-01') + sample(0:2500, n, replace = TRUE),
+    adas_bl = adas_bl, t_convert = t_convert, t_drop = t_drop
+  ) |>
+    tidyr::crossing(month = c(0, 6, 12, 24, 36, 48)) |>
+    filter(month == 0 | month / 12 <= t_drop) |>
+    mutate(
+      years = month / 12,
+      VISCODE = ifelse(month == 0, 'bl', sprintf('m%02d', month)),
+      # ADNI visit windows: a scheduled visit can fall weeks early or late
+      EXAMDATE = bl_date + round(month * 30.44) +
+        ifelse(month == 0, 0, sample(-45:45, n(), replace = TRUE)),
+      DX = case_when(
+        DX_bl == 'AD' ~ 'Dementia',
+        DX_bl %in% c('CN', 'SMC') ~ 'CN',
+        years >= t_convert ~ 'Dementia',
+        .default = 'MCI'
+      ),
+      DX = ifelse(month > 0 & runif(n()) < 0.05, NA, DX),
+      ADAS13 = round(pmax(0, adas_bl + years * (1 + 0.8 * APOE4 +
+                                                  3 * (years >= t_convert)) +
+                            rnorm(n(), 0, 2.5)), 1)
+    ) |>
+    select(RID, VISCODE, EXAMDATE, DX_bl, DX, AGE, PTGENDER, PTEDUCAT,
+           APOE4, ADAS13, RAVLT.immediate, MMSE, LDELTOTAL)
+}
+
+adnimerge <- simulate_adnimerge()
+glimpse(adnimerge)
+```
+
+::: {.callout-tip title='Verification'}
+The assertions, not the generator, are the deliverable. A reviewer
+needs to know the synthetic frame can stand in for the real one,
+and that claim is made by checking it:
+
+```{r}
+#| label: adni-simulate-verify
+stopifnot(
+  !anyDuplicated(adnimerge[c('RID', 'VISCODE')]),
+  all(adnimerge$DX_bl %in% c('CN', 'SMC', 'EMCI', 'LMCI', 'AD')),
+  all(adnimerge$DX %in% c('CN', 'MCI', 'Dementia', NA)),
+  all(adnimerge$APOE4 %in% 0:2),
+  all(adnimerge$MMSE >= 0 & adnimerge$MMSE <= 30),
+  all(adnimerge$ADAS13 >= 0 & adnimerge$ADAS13 <= 85),
+  inherits(adnimerge$EXAMDATE, 'Date'),
+  all(table(adnimerge$RID[adnimerge$VISCODE == 'bl']) == 1)
+)
+```
+
+Three rules apply to every generator of this kind. Schema
+constraints (types, levels, ranges, one baseline per participant)
+matter more than distributions; whether `ADAS13` is realistic is
+irrelevant, and pretending otherwise invites the generator to be
+mistaken for a model of the disease. Build in the associations the
+analysis claims to find, because a pure-noise generator runs the
+pipeline without exercising it. And never present synthetic output
+as a result: every number computed from `adnimerge` in this
+chapter recovers parameters written into the generator, which
+checks the code and says nothing about Alzheimer's disease.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A reviewer asks for 'the data' so that they can
+check your code. What can you send, and what can you not?
+
+**Answer.** You can send the public compendium (code, `renv.lock`,
+Dockerfile, README) and the synthetic generator with its
+assertions, which together let the reviewer run every script. You
+cannot send ADNI data, extracts, or derived participant-level
+files, however small, because the DUA does not permit it. A
+reviewer who needs the real data applies to ADNI and runs the same
+code.
+:::
+
+## Building the analytic cohort {#sec-adni-cohort}
+
+### From visits to one row per participant
+
+In the real project, `scripts/01-build-cohort.R` begins
+(display-only):
+
+```r
+library(tidyverse)
+library(ADNIMERGE)
+raw <- adnimerge
+```
+
+Everything after that line runs unchanged against the synthetic
+`adnimerge`. The cohort logic is wrapped in a function so that it
+can be tested (exercise 6).
+
+```{r}
+#| label: adni-build-cohort
+predictors <- c('AGE', 'PTGENDER', 'PTEDUCAT', 'APOE4', 'ADAS13',
+                'RAVLT.immediate', 'MMSE', 'LDELTOTAL')
+
+#' Derive the three-year conversion outcome for baseline MCI
+#'
+#' @param raw Visit-level data with the ADNIMERGE schema.
+#' @param horizon_days Length of the outcome window.
+#' @param tolerance_days How early a month-36 visit may fall and
+#'   still close the window.
+#' @return One row per baseline EMCI or LMCI participant, with
+#'   `converted_by_3y`, `last_dx_days`, and `outcome_observed`.
+build_cohort <- function(raw, horizon_days = 3 * 365.25,
+                         tolerance_days = 90) {
+  baseline <- raw |>
+    filter(VISCODE == 'bl', DX_bl %in% c('EMCI', 'LMCI')) |>
+    select(RID, all_of(predictors), DX_bl, EXAMDATE)
+
+  visits <- raw |>
+    filter(RID %in% baseline$RID) |>
+    arrange(RID, EXAMDATE) |>
+    group_by(RID) |>
+    mutate(days_since_bl = as.numeric(EXAMDATE - first(EXAMDATE))) |>
+    ungroup()
+
+  followup <- visits |>
+    group_by(RID) |>
+    summarize(
+      converted_by_3y = any(DX == 'Dementia' &
+                              days_since_bl <= horizon_days,
+                            na.rm = TRUE),
+      last_dx_days    = max(days_since_bl[!is.na(DX)]),
+      .groups = 'drop'
+    )
+
+  # outcome observed: converted within 3 years (whenever they left),
+  # or followed through the 3-year visit without converting
+  baseline |>
+    left_join(followup, by = 'RID', relationship = 'one-to-one') |>
+    mutate(outcome_observed = converted_by_3y |
+             last_dx_days >= horizon_days - tolerance_days)
+}
+
+cohort <- build_cohort(adnimerge)
+
+analytic_cohort <- cohort |>
+  filter(outcome_observed) |>
+  filter(if_all(all_of(predictors), \(x) !is.na(x))) |>
+  mutate(converted_3y = converted_by_3y) |>
+  select(RID, all_of(predictors), DX_bl, EXAMDATE, converted_3y)
+
+stopifnot(!anyDuplicated(analytic_cohort$RID),
+          !anyNA(analytic_cohort$converted_3y))
+
+# long-format visits of the same participants, for trajectories
+adnimerge_clean <- adnimerge |>
+  filter(RID %in% analytic_cohort$RID) |>
+  group_by(RID) |>
+  mutate(
+    years_since_baseline = as.numeric(EXAMDATE - min(EXAMDATE)) / 365.25,
+    visit_month = as.integer(sub('^m', '', sub('^bl$', 'm0', VISCODE))),
+    APOE4_any = factor(APOE4 > 0, levels = c(FALSE, TRUE),
+                       labels = c('No APOE4 allele', 'Any APOE4 allele'))
+  ) |>
+  ungroup()
+
+derived <- file.path(tempdir(), 'derived')
+dir.create(derived, showWarnings = FALSE)
+saveRDS(analytic_cohort, file.path(derived, 'analytic_cohort.rds'))
+saveRDS(adnimerge_clean, file.path(derived, 'adnimerge_clean.rds'))
+```
+
+In the project, `derived` is `analysis/data/derived`. The
+non-obvious step is `outcome_observed`. A participant who converted
+within three years is a converter whether or not they stayed in
+the study afterward. A participant who has not converted counts as
+a non-converter only if followed through the three-year visit; one
+who left earlier without converting has an unobserved outcome.
+
+The code excludes those participants, which is simple and common,
+and which removes the misclassification. It is not neutral.
+Converters who left early stay in, while non-converters who left
+early go, so the excluded cohort over-represents converters and
+overstates the three-year risk, by less than counting dropouts as
+non-converters understates it (exercise 1 measures both). The
+alternative is a time-to-event analysis that censors early leavers
+at their last visit: a Kaplan-Meier estimate for the three-year
+risk, and a Cox or discrete-time model for prediction, which are
+unbiased when dropout is unrelated to the risk of conversion. The
+SAP pre-specifies which is primary, the other is a sensitivity
+analysis, and the excluded count goes in the follow-up box of
+@fig-adni-cohort.
+
+```{r}
+#| label: adni-naive-rate
+#| echo: false
+naive_pct <- round(100 * mean(cohort$converted_by_3y))
+correct_pct <- round(100 * mean(analytic_cohort$converted_3y))
+n_unobserved <- sum(!cohort$outcome_observed)
+```
+
+::: {.callout-warning title='Pitfall'}
+**Dropouts counted as non-converters lower the risk without an
+error.** Skip the `outcome_observed` filter and every one of the
+`r n_unobserved` participants who left early without converting
+becomes a non-converter. On the synthetic data the three-year
+conversion proportion is then `r naive_pct`%, against
+`r correct_pct`% among participants whose outcome was observed
+(exercise 1 compares both with the truth), and every model fitted
+to that outcome inherits the understatement. The code runs, the
+table looks plausible, and the family in the opening hears a
+number that is too low.
+:::
+
+::: {.callout-important title='LLM prompt'}
+Use a model to draft the inclusion and exclusion section of the
+SAP, and check it against the code.
+
+> **Context.** Below are the 'Cohort definition' template from my
+> SAP and the variable table of the ADNIMERGE schema (names,
+> types, levels; no data). The population is participants with
+> baseline EMCI or LMCI; the outcome is a diagnosis of dementia at
+> any visit within three years of baseline. Visits fall up to 90
+> days from schedule.
+>
+> **Constraints.** Do not treat participants who leave before
+> three years without converting as non-converters. Keep a
+> participant who converted and then left as a converter.
+>
+> **Criteria.** Write each criterion so that it maps to one
+> filter in code. List, for each criterion, the count the
+> manuscript must report. State the alternative to exclusion
+> (censoring in a time-to-event analysis) and the question it
+> answers instead.
+
+*Failure mode.* Models often write 'participants with at least
+three years of follow-up', which wrongly excludes early converters
+who then left, or 'participants who did not convert were
+classified as stable', which reintroduces the dropout bias.
+*Check.* Translate each drafted criterion into a filter, run it on
+the synthetic data, and compare its counts with @tbl-adni-flow;
+then have a clinical collaborator read the draft. Send the
+template and the schema, never rows (@sec-ai-governance).
+:::
+
+### The cohort flow
+
+The analytic cohort is not the enrolled cohort, and the gap between
+the two is itself a reportable result. @fig-adni-cohort traces the
+derivation in the manner of a CONSORT (Consolidated Standards of
+Reporting Trials) flow diagram, and @tbl-adni-flow gives the counts
+the code produced. Each exclusion is a number the manuscript must
+state, because a reader cannot judge selection bias without it.
 
 ```{mermaid}
 %%| echo: false
@@ -191,685 +604,801 @@ flowchart TD
   D --> E["Analytic cohort"]
 ```
 
-## The ADNI dataset
-
-**Source.** ADNI (Alzheimer's Disease
-Neuroimaging Initiative) is a longitudinal
-multicenter cohort study funded since 2004.
-Data are obtained under a data-use agreement at
-<https://adni.loni.usc.edu/>.
-
-**The `ADNIMERGE` package** is the
-community-standard R interface, a single
-long-format tibble of approximately 15,000
-observations on ~2000 participants, with 115
-variables spanning demographics, APOE genotype,
-clinical scales (CDR, FAQ), and
-neuropsychological tests (ADAS, RAVLT, logical
-memory, MMSE).
-
-**Key variables for this case study:**
-
-| Variable      | Description                                   |
-| ------------- | --------------------------------------------- |
-| `RID`         | Participant ID                                |
-| `VISCODE`     | Visit code (`bl`, `m06`, `m12`, …)            |
-| `DX`          | Diagnosis at visit (CN/MCI/Dementia)          |
-| `DX_bl`       | Baseline diagnosis (CN/SMC/EMCI/LMCI/AD)      |
-| `AGE`, `PTGENDER`, `PTEDUCAT` | Demographics                  |
-| `APOE4`       | Number of APOE4 alleles (0/1/2)               |
-| `ADAS13`      | 13-item Alzheimer's Disease Assessment Scale  |
-| `RAVLT.immediate` | Rey Auditory Verbal Learning Test        |
-| `MMSE`        | Mini-Mental State Examination                 |
-| `LDELTOTAL`   | Logical Memory II delayed recall              |
-
-**About the instruments.** ADAS13 is a 13-item
-clinical assessment of memory, language, and
-praxis; scores 0--85, higher worse.
-RAVLT is a list-learning task assessing verbal
-memory. MMSE is a 30-point cognitive screen
-(higher better; 24+ typically considered
-normal). Logical Memory II is a story-recall
-task. APOE4 is the most established genetic
-risk factor for late-onset AD; carrying one
-copy approximately doubles risk and two copies
-triples or more.
-
-These instruments are correlated but not
-redundant: each captures a different aspect of
-cognition or risk, and the predictive question
-is whether their combination outperforms any
-one alone.
-
-## Why a compendium matters here
-
-ADNI analyses have three properties that make
-reproducibility especially critical:
-
-1. **Data-use agreement.** Data cannot be shared,
-   but the analysis code and the `renv.lock`
-   can. Collaborators reproduce the work by
-   independently obtaining the data and running
-   the same code.
-
-2. **Long time horizon.** Papers using ADNI are
-   often revisited years later (reviewer
-   comments, follow-up analyses). A
-   Docker-pinned environment means the original
-   analysis can be rerun at year 3 on the exact
-   same R and package versions.
-
-3. **Version churn in ADNIMERGE.** The dataset
-   is updated periodically; new participants
-   are added and variables are renamed.
-   Analyses must pin to a specific ADNIMERGE
-   version (documented in `renv.lock` if
-   installed from GitHub, or captured as a
-   processed data file in the compendium).
-
-## Scaffolding the compendium with zzcollab
-
-```bash
-mkdir adni-mci
-cd adni-mci
-zzc modeling             # modeling profile: glmnet, survival
-make r                   # enter the container
-```
-
-The `modeling` profile (rather than `analysis`)
-adds the regression machinery (`glmnet` for
-penalized regression, `lme4` for mixed models,
-`survival` for time-to-event handling of
-dropout) and the system libraries that compile
-them.
-
-Inside the container, add the ADNI data access
-layer:
-
-```r
-# One-off: install ADNIMERGE from GitHub (pinned in renv.lock)
-renv::install('ADNI/ADNIMERGE')
-renv::snapshot()
-```
-
-The `renv.lock` now records the specific
-ADNIMERGE commit. Collaborators who clone the
-compendium and run `renv::restore()` get the
-same version.
-
-Under `analysis/`, the compendium grows:
-
-```
-analysis/
-├── data/
-│   ├── raw/adnimerge_20260301.rds      # frozen copy
-│   └── derived/analytic_cohort.rds     # processed
-├── paper/paper.qmd                     # the manuscript
-└── scripts/
-    ├── 01-build-cohort.R
-    ├── 02-table1.R
-    ├── 03-trajectories.R
-    └── 04-model.R
-```
-
-The `data/raw/adnimerge_20260301.rds` is a
-frozen snapshot of the data on the date of
-analysis. Even if `ADNIMERGE` updates later,
-the analysis can be rerun against the same
-data. (The data file itself is gitignored if
-sharing restrictions apply; the README
-documents how a collaborator with DUA access
-recreates it.)
-
-## Building the analytic cohort
-
-```r
-# scripts/01-build-cohort.R
-library(tidyverse)
-library(ADNIMERGE)
-
-raw <- adnimerge
-
-# baseline measurements
-baseline <- raw |>
-  filter(VISCODE == 'bl', DX_bl %in% c('EMCI', 'LMCI')) |>
-  select(RID, AGE, PTGENDER, PTEDUCAT, APOE4,
-         ADAS13, RAVLT.immediate, MMSE, LDELTOTAL,
-         DX_bl, EXAMDATE)
-
-# 3-year follow-up window: did they convert?
-followup <- raw |>
-  filter(RID %in% baseline$RID) |>
-  group_by(RID) |>
-  arrange(EXAMDATE) |>
-  mutate(
-    days_since_bl = as.numeric(EXAMDATE - first(EXAMDATE)),
-    in_window     = days_since_bl <= 3 * 365.25
-  ) |>
-  filter(in_window) |>
-  summarize(
-    converted_3y = any(DX == 'Dementia', na.rm = TRUE),
-    last_visit_days = max(days_since_bl, na.rm = TRUE),
-    .groups = 'drop'
-  )
-
-# combine; flag participants with insufficient follow-up
-cohort <- baseline |>
-  left_join(followup, by = 'RID') |>
-  mutate(
-    sufficient_followup = last_visit_days >= 2 * 365.25,
-    converted_3y_clean  = if_else(sufficient_followup,
-                                  converted_3y, NA)
-  )
-
-# the analytic cohort
-analytic <- cohort |>
-  filter(sufficient_followup) |>
-  select(-sufficient_followup, -converted_3y, -last_visit_days)
-
-stopifnot(all(!is.na(analytic$converted_3y_clean)))
-saveRDS(analytic, 'analysis/data/derived/analytic_cohort.rds')
-```
-
-The non-obvious step: filtering on
-`sufficient_followup`. Participants observed for
-fewer than two years cannot reliably be classified
-as non-converters at three years. The conservative
-choice is to exclude them; a less conservative
-choice is to use a survival model with censoring.
-The SAP pre-specifies which.
-
-## Table 1: demographics with `zztable1`
-
-```r
-library(zztable1)
-
-zztable1::table1(
-  AGE + PTGENDER + PTEDUCAT + APOE4 + ADAS13 + MMSE ~
-    converted_3y,
-  data    = analytic_cohort,
-  totals  = TRUE,
-  layout  = 'latex'
+```{r}
+#| label: tbl-adni-flow
+#| tbl-cap: "Counts at each step of the cohort derivation, synthetic
+#|   data. The real counts come from the same code run on
+#|   ADNIMERGE."
+flow <- tibble(
+  step = c('Roster', 'Baseline EMCI or LMCI',
+           'Outcome observed within 3 years', 'Predictors complete'),
+  n = c(n_distinct(adnimerge$RID), nrow(cohort),
+        sum(cohort$outcome_observed), nrow(analytic_cohort))
 ) |>
-  zzobj2fig::o2f(filename = 'table1',
-                 sub_dir = 'analysis/paper/tables')
+  mutate(excluded = ifelse(is.na(lag(n)), '', format(lag(n) - n)))
+knitr::kable(flow)
 ```
 
-The left side of the formula lists the variables to
-summarize and the right side the stratifying variable.
-`zztable1` defaults to mean (SD) for continuous
-variables and n (%) for categorical ones. For a
-right-skewed continuous variable, and ADAS13 is one in
-this cohort, override with
-`numeric_summary = 'median_iqr'`. The `theme` argument
-selects a journal style from `console`, `nejm`,
-`lancet`, `jama`, `bmj`, and `simple`; `pvalue = FALSE`
-suppresses the row tests, which a descriptive Table 1
-should generally not carry.
-
-The Table 1 produced should match the formatting
-expected by the target journal. For a methods
-paper, defaults are fine; for an oncology or
-neurology journal, follow the journal's
-template.
-
-## Cognitive trajectories with `zzlongplot`
-
-```r
-library(zzlongplot)
-
-zzlongplot::lplot(
-  adnimerge_clean,
-  form               = ADAS13 ~ years_since_baseline | DX_bl,
-  facet_form         = ~ APOE4_any,
-  cluster_var        = 'RID',
-  summary_statistic  = 'mean',
-  confidence_interval = 0.95,
-  clinical_mode      = TRUE,
-  theme              = 'fda',
-  xlab               = 'Years since baseline',
-  ylab               = 'ADAS13',
-  title              = 'ADAS13 trajectories by baseline diagnosis',
-  subtitle           = 'Stratified by any APOE4 allele (ADNI 1/GO/2/3)'
-)
-```
-
-The formula reads outcome by time, split after the bar
-by group; `facet_form` adds the panel variable, and
-`cluster_var` names the column that identifies a
-subject, without which the function cannot tell repeated
-measures from independent ones. The
-`summary_statistic` and `confidence_interval` arguments
-compute the group-wise mean and Wald 95% CI at each
-visit. `clinical_mode` switches on the trial-oriented
-defaults, and `theme` selects a publication style from
-the set the package ships, `fda` here and `nejm`,
-`lancet`, `jama`, `nature`, `science`, or `jco` if you
-are writing for one of those, so that journal figure
-standards are met without custom `ggplot2::theme()`
-code.
-
-The plot reveals: ADAS13 trajectories diverge
-by baseline diagnosis (LMCI worse than EMCI),
-and within each, APOE4 carriers worsen faster.
-Both observations are expected from the
-literature; the plot is a sanity check that
-the cohort matches.
-
-## Pre-specified analysis plan
-
-Before touching the analytic cohort, the team
-writes an SAP (@sec-analysis-plan). For ADNI,
-the 243B template includes placeholders for:
-
-1. Background and rationale
-2. Research questions and hypotheses
-3. Cohort definition (inclusion/exclusion)
-4. Exposure, outcome, and covariate definitions
-5. Primary analysis: pre-specified predictor set,
-   model, metric
-6. Secondary analyses: EMCI vs LMCI, predictor-
-   category contributions
-7. Missing-data handling
-8. Sensitivity analyses
-
-What is pre-specified (locked before data
-access):
-
-- **Predictor set.** The seven baseline
-  variables listed above; no later additions
-  during model selection.
-- **Model class.** Penalized logistic
-  regression with elastic net; tuning over
-  $\alpha \in \{0, 0.5, 1\}$ and a grid of
-  $\lambda$.
-- **Validation.** 10-fold CV at the participant
-  level; outer 80/20 holdout for final
-  performance.
-- **Metric.** AUC with bootstrap 95% CI
-  (1000 resamples).
-- **Decision threshold.** Pre-specified at the
-  Youden index of the training data; held
-  fixed for evaluation.
-
-What is exploratory (documented but not
-pre-registered):
-
-- Stratified analysis by EMCI vs LMCI.
-- Variable-importance plot from the elastic-net
-  fit.
-- Calibration plots.
-
-The distinction is what makes the primary
-finding inferentially valid: it was not
-selected on the basis of having looked at the
-data.
-
-## Modeling (summary only)
-
-The modeling step itself belongs to the
-companion book; for Practicum purposes, the key
-operational points are:
-
-- Use `tidymodels` for the cross-validated
-  predictive pipeline, with the outer CV fold
-  defined at the `RID` level (not the
-  observation level). The `vfold_cv(strata = ...)`
-  argument helps preserve class balance across
-  folds.
-- Report AUC with bootstrap CIs.
-- Decision threshold should be reported
-  alongside sensitivity, specificity, PPV, and
-  NPV.
-- Store predictions in the compendium as
-  `analysis/data/derived/predictions.rds` so
-  figures and tables can be regenerated without
-  refitting (refitting is expensive; the
-  cached predictions enable fast iteration on
-  reporting).
-
-## Reporting
-
-The manuscript lives at
-`analysis/paper/paper.qmd`. Its frontmatter
-imports a journal template from `rticles` and
-the bibliography from `references.bib`.
-Rendering is driven by `make render`, which
-invokes Quarto inside the Docker container so
-that the environment matches the `renv.lock`.
-
-What gets deposited with the paper:
-
-- **Public deposition (Zenodo).** The
-  compendium without the data file: code,
-  scripts, paper, README, Dockerfile,
-  renv.lock, ADaM-style derivation scripts.
-  This DOI is what the paper cites.
-- **Docker image.** Pushed to GitHub Container
-  Registry; pull with `docker pull ghcr.io/...`.
-- **Synthetic test data.** A small dataset
-  with the schema of the analytic cohort but
-  randomly-generated values; let reviewers
-  verify the code runs.
-
-What requires DUA approval:
-
-- The actual ADNI data. Collaborators with
-  DUA access can run the full analysis;
-  reviewers without it can verify the code on
-  the synthetic test data.
-
-## Verifying reproducibility
-
-Before submitting:
-
-1. `make check-renv` to audit the lockfile.
-2. `docker image prune` then `make docker-build`
-   to verify the image builds from scratch.
-3. `make render` to verify the paper builds
-   from scratch.
-4. On a colleague's machine: `git clone`,
-   `make r`, `make render`. Expected: bit-
-   identical output for the deterministic
-   parts; rounding-noise differences only for
-   floating-point sensitive parts.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: dropout handling
-
-**Question.** A participant in your cohort
-attends only the baseline and 12-month visits,
-then drops out. They were diagnosed as MCI at
-both visits. How should they appear in the
-analytic cohort for the 3-year conversion
-outcome?
-
-**Answer.**
-
-They have insufficient follow-up. The 3-year
-window has not closed; they were observed
-event-free for 1 year only. Two defensible
-options:
-
-1. **Exclude.** Cleanest. The cohort becomes
-   participants observed for $\geq$ some
-   threshold (often 24 or 30 months), and
-   the analysis is on a subset.
-2. **Censor in time-to-event analysis.** Use
-   a Cox model or Kaplan-Meier with the
-   participant censored at their last
-   observation. Preserves the participant
-   but answers a slightly different
-   question (rate of conversion, not
-   3-year incidence).
-
-The wrong option: treating them as a non-
-converter. They are *not* observed to be
-non-converters at 3 years; they are observed
-to be event-free at 1 year, which is
-different. Treating them as non-converters
-biases the prediction toward over-confident
-non-conversion at 3 years. The pre-registered
-analysis plan should specify which of the two
-defensible options is the primary analysis;
-the alternative is a sensitivity analysis.
-
-:::
-
-## Collaborating with an LLM on ADNI
-
-LLMs can help with the substantial
-boilerplate; the substantive cohort decisions
-need clinical judgment.
-
-**Prompt 1: drafting the inclusion/exclusion.**
-Paste the 243B ADNI analysis-plan template and
-ask the LLM to draft the
-'Inclusion/Exclusion' section for EMCI and
-LMCI participants with a 3-year follow-up
-requirement.
-
-*What to watch for.* Whether it correctly
-handles dropouts: a participant who dies or
-withdraws before year 3 is *not* observed for
-the outcome and must either be excluded or
-handled with time-to-event methods. Treating
-them as non-converters is a classic bias the
-LLM may overlook.
-
-*Verification.* Have a clinical collaborator
-read the draft. Their experience catches the
-operationalizations that look right on paper
-but not in the data.
-
-**Prompt 2: critiquing a Table 1 call.** Paste
-your `zztable1::table1()` call and the data
-dictionary, ask the LLM to spot issues.
-
-*What to watch for.* Numeric encoding of
-categorical variables (e.g., `APOE4` as 0/1/2)
-that should be a factor in Table 1 to display
-counts. Skewed continuous variables that
-should be summarized as median (IQR) rather
-than mean (SD).
-
-*Verification.* Render the table; spot-check
-the cells. If means and SDs disagree
-substantially with the data's medians and
-IQRs, the variable is skewed and the summary
-is wrong.
-
-**Prompt 3: missing-data section.** Describe
-the missingness profile and ask the LLM to
-draft the SAP's missing-data section.
-
-*What to watch for.* The recommendation should
-match the missingness fraction and likely
-mechanism. For 30% missingness on a
-predictor: complete-case is bad; multiple
-imputation is the default; sensitivity to
-MNAR is essential.
-
-*Verification.* Compare to @sec-missing's
-recommendations and to van Buuren (2018)
-worked examples for similar fractions.
-
-## Principle in use
-
-Three habits hold the analysis to what the cohort
-supports:
-
-1. **Pre-register the analysis.** The cohort
-   is large and well-studied enough that
-   exploratory selection produces apparent
-   findings. The SAP guards against this.
-2. **Censor or exclude dropouts; never treat
-   as non-converters.** The classic bias.
-   Pre-register which.
-3. **Cross-validate at the participant
-   level.** Observation-level CV leaks
-   information across folds and produces
-   inflated AUCs.
-
-## Exercises
-
-1. Write a synthetic ADNI cohort generator
-   that matches the analytic cohort's
-   schema, so that reviewers can verify the
-   code without DUA approval. Assert that
-   every column has the type and range the
-   real cohort would have.
-
-**Requires ADNI access.** No answer key; these need the
-data and the DUA that governs it.
-
-2. Reproduce this chapter's compendium
-   scaffold for a different ADNI outcome
-   (e.g., progression from CN to MCI). Adapt
-   the SAP template accordingly.
-2. Add a second table to the compendium using
-   `zztable1`: comparison of baseline
-   cognitive scores between converters and
-   non-converters. Produce both LaTeX and
-   HTML output.
-3. Use `zzlongplot::lplot()` to produce an MMSE
-   trajectory plot stratified by `DX_bl`, with
-   `theme = 'fda'` overriding the default color
-   palette. Save at 300 DPI for journal submission.
-4. Implement the participant-level
-   cross-validation in `tidymodels` for the
-   primary model. Confirm fold sizes are
-   roughly equal and no `RID` appears in both
-   train and test of any fold.
-6. Deposit the generator from exercise 1
-   alongside the public compendium, and confirm
-   the analysis scripts run against it end to
-   end without any ADNI file present.
-
-::: {.callout-tip icon=false collapse=true}
-## Solution to exercise 1
-
-**A generator matching the analytic cohort's schema.**
+::: {.callout-tip title='Verification'}
+Confirm that every participant excluded for follow-up neither
+converted within the window nor reached the three-year visit, and
+that every participant kept satisfies one or the other.
 
 ```{r}
+#| label: adni-cohort-verify
+excluded <- filter(cohort, !outcome_observed)
+stopifnot(
+  !any(excluded$converted_by_3y),
+  all(excluded$last_dx_days < 3 * 365.25 - 90),
+  all(analytic_cohort$RID %in% cohort$RID[cohort$outcome_observed]),
+  nrow(analytic_cohort) == tail(flow$n, 1)
+)
+```
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A participant attends only the baseline and 12-month
+visits, then drops out, diagnosed MCI at both. How should they
+appear in the analysis of the three-year outcome?
+
+**Answer.** They were observed event-free for one year, not three,
+so their three-year outcome is unknown. Treating them as a
+non-converter is wrong, and biases the risk downward. Two options
+remain. *Censor* them at month 12 in a time-to-event analysis,
+which keeps the year they were observed; the Kaplan-Meier estimate
+at three years is then the three-year risk. Or *exclude* them, as
+the code does; the cohort becomes participants who either converted
+within three years or were followed through the three-year visit
+(a shorter threshold, such as 24 months, would readmit the
+problem), at the cost of the upward bias described above. The SAP
+names one option as primary and the other as a sensitivity
+analysis.
+:::
+
+### Exercises
+
+1. Compare four estimates of the three-year conversion risk on
+   synthetic data where the truth is known: the proportion with no
+   dropout at all (`dropout_rate = 0`, the target); dropouts
+   counted as non-converters; dropouts excluded; and the
+   Kaplan-Meier estimate with dropouts censored. Average over 20
+   simulated cohorts so that the pattern is not one draw's noise.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
 #| label: soln-24-1
-#| message: false
-library(dplyr)
+km_risk <- function(raw, horizon_days = 3 * 365.25) {
+  event_times <- raw |>
+    filter(DX_bl %in% c('EMCI', 'LMCI')) |>
+    arrange(RID, EXAMDATE) |>
+    group_by(RID) |>
+    mutate(days = as.numeric(EXAMDATE - first(EXAMDATE))) |>
+    summarize(
+      event = any(DX == 'Dementia', na.rm = TRUE),
+      time = if (event) min(days[DX %in% 'Dementia'])
+             else max(days[!is.na(DX)]),
+      .groups = 'drop'
+    )
+  km <- survival::survfit(survival::Surv(time, event) ~ 1,
+                          data = event_times)
+  1 - summary(km, times = horizon_days)$surv
+}
 
-simulate_adni_cohort <- function(n = 300, seed = 41) {
-  set.seed(seed)
-  apoe4 <- sample(0:2, n, replace = TRUE,
-                  prob = c(0.55, 0.36, 0.09))
-  dx_bl <- sample(c("EMCI", "LMCI"), n, replace = TRUE,
-                  prob = c(0.55, 0.45))
-
-  # conversion risk rises with APOE4 dose and LMCI status,
-  # which is the association the analysis is meant to find
-  lp <- -1.9 + 0.55 * apoe4 + 0.85 * (dx_bl == "LMCI")
-
-  tibble(
-    RID                 = seq_len(n),
-    AGE                 = round(rnorm(n, 72, 7), 1),
-    PTGENDER            = factor(sample(c("Male", "Female"), n,
-                                        replace = TRUE)),
-    PTEDUCAT            = pmin(20L, pmax(6L,
-                            as.integer(round(rnorm(n, 16, 2.7))))),
-    APOE4               = apoe4,
-    ADAS13              = round(pmax(0, rnorm(n, 18, 7)), 1),
-    RAVLT.immediate     = as.integer(pmax(0,
-                            round(rnorm(n, 32, 10)))),
-    MMSE                = as.integer(pmin(30, pmax(20,
-                            round(rnorm(n, 27, 2))))),
-    LDELTOTAL           = as.integer(pmax(0,
-                            round(rnorm(n, 6, 3)))),
-    DX_bl               = factor(dx_bl, levels = c("EMCI", "LMCI")),
-    EXAMDATE            = as.Date("2010-01-01") +
-                            sample(0:2000, n, replace = TRUE),
-    converted_3y_clean  = as.logical(rbinom(n, 1, plogis(lp)))
+risk_estimates <- function(seed) {
+  observed <- simulate_adnimerge(seed = seed)
+  target <- build_cohort(simulate_adnimerge(seed = seed,
+                                            dropout_rate = 0))
+  sim_cohort <- build_cohort(observed)
+  100 * c(
+    target   = mean(target$converted_by_3y),
+    naive    = mean(sim_cohort$converted_by_3y),
+    excluded = mean(sim_cohort$converted_by_3y[
+      sim_cohort$outcome_observed]),
+    censored = km_risk(observed)
   )
 }
 
-synth <- simulate_adni_cohort()
-glimpse(synth)
+risk <- rowMeans(sapply(1:20, risk_estimates))
+round(risk, 1)
 ```
 
-**The assertions are the deliverable, not the generator.**
-A reviewer needs to know the synthetic frame is
-substitutable for the real one, and that claim is made by
-checking it:
+With no dropout every outcome is observed, so the first number is
+the target, `r round(risk[['target']], 1)`%. Counting dropouts as
+non-converters gives `r round(risk[['naive']], 1)`%, far below it.
+Excluding them gives `r round(risk[['excluded']], 1)`%, above it:
+early converters who left are kept and early non-converters who
+left are not, so converters are over-represented. The
+Kaplan-Meier estimate, `r round(risk[['censored']], 1)`%, is
+closest, because censoring uses each participant's observed time
+without guessing the outcome after it; its remaining gap is small
+next to the other two errors. Censoring relies on dropout being
+unrelated to the risk of conversion, as it is in this generator.
+When it may not be, rerun the comparison with
+`dropout_adas = 0.08` and plan a sensitivity analysis accordingly.
+:::
+
+## Describing the cohort {#sec-adni-describe}
+
+### Table 1
+
+`gtsummary` [@sjoberg2021gtsummary] builds the Table 1 from the
+analytic cohort. Two choices need stating. `APOE4` is stored as
+0, 1, 2 and is summarized as counts, not as a mean, so it is
+declared categorical. `ADAS13` is right-skewed in MCI cohorts, so
+continuous variables are summarized as median and quartiles, which
+is `gtsummary`'s default.
 
 ```{r}
-#| label: soln-24-1b
-stopifnot(
-  nrow(synth) == 300,
-  !anyDuplicated(synth$RID),
-  is.factor(synth$DX_bl),
-  all(levels(synth$DX_bl) == c("EMCI", "LMCI")),
-  all(synth$APOE4 %in% 0:2),
-  all(synth$MMSE >= 20 & synth$MMSE <= 30),
-  all(synth$PTEDUCAT >= 6 & synth$PTEDUCAT <= 20),
-  inherits(synth$EXAMDATE, "Date"),
-  is.logical(synth$converted_3y_clean),
-  !any(is.na(synth$converted_3y_clean))
-)
+#| label: tbl-adni-table1
+#| tbl-cap: "Baseline characteristics of the synthetic analytic
+#|   cohort by three-year conversion, median (first quartile, third
+#|   quartile) or n (%)."
+#| message: false
+library(gtsummary)
 
-# the association the analysis is meant to detect is present
-glm(converted_3y_clean ~ APOE4 + DX_bl,
-    family = binomial, data = synth) |>
-  broom::tidy() |>
-  mutate(across(where(is.numeric), \(x) round(x, 3)))
+analytic_cohort |>
+  mutate(converted_3y = factor(converted_3y, c(FALSE, TRUE),
+                               c('Did not convert', 'Converted'))) |>
+  tbl_summary(
+    by = converted_3y,
+    include = c(AGE, PTGENDER, PTEDUCAT, APOE4, ADAS13, MMSE, DX_bl),
+    type = list(APOE4 ~ 'categorical')
+  ) |>
+  add_overall() |>
+  as_kable()
 ```
 
-Three points about generators of this kind.
+A descriptive Table 1 carries no row p-values. One way to automate
+a journal-styled version is the in-house `zztable1` package
+(@sec-lab-software), with a formula interface (display-only):
 
-The schema constraints matter more than the distributions.
-A reviewer running the pipeline needs the columns to have
-the right types, levels, and ranges; whether `ADAS13` is
-exactly normal is irrelevant, and pretending otherwise
-invites the generator to be mistaken for a model of the
-disease.
+```r
+zztable1::table1(
+  AGE + PTGENDER + PTEDUCAT + APOE4 + ADAS13 + MMSE ~ converted_3y,
+  data = analytic_cohort, totals = TRUE, pvalue = FALSE,
+  numeric_summary = 'median_iqr', theme = 'nejm'
+)
+```
 
-Build in the association the analysis claims to find. A
-generator producing pure noise will run the pipeline
-without exercising it, and a coefficient near zero tells
-the reviewer nothing about whether the code can detect
-anything.
+Its `pvalue` argument defaults to `TRUE`, and `theme` selects a
+journal style from `console`, `nejm`, `lancet`, `jama`, `bmj`, and
+`simple`. Whichever tool you use, match the target journal's
+template.
 
-Never present synthetic output as a result. The
-coefficients above recover the parameters written into
-`lp` a few lines earlier, which is a check on the code and
-not evidence about Alzheimer's disease. Label such output
-clearly wherever it is deposited.
+### Cognitive trajectories
+
+The trajectory plot is a sanity check that the cohort behaves as
+the literature says it should. `ggplot2` draws it from the
+visit-level data; the mean and a 95% confidence interval at each
+scheduled visit are computed first, so the plot shows exactly the
+numbers in the summary.
+
+```{r}
+#| label: fig-adni-trajectories
+#| fig-cap: "Mean ADAS13 by scheduled visit, by baseline diagnosis,
+#|   for participants with and without an APOE4 allele, with 95%
+#|   confidence intervals. Synthetic data: the pattern recovers the
+#|   generator's parameters."
+#| fig-alt: "Two panels, no APOE4 allele and any APOE4 allele. Each
+#|   shows mean ADAS13 from baseline to month 48 for EMCI and LMCI
+#|   participants. LMCI lines start higher than EMCI lines, all
+#|   lines rise over time, and they rise more steeply in the
+#|   APOE4-carrier panel. Intervals widen at later visits."
+#| fig-scap: "ADAS13 trajectories by baseline diagnosis and APOE4"
+#| fig-width: 7
+#| fig-height: 3.5
+library(ggplot2)
+
+trajectory <- adnimerge_clean |>
+  group_by(APOE4_any, DX_bl, visit_month) |>
+  summarize(mean = mean(ADAS13), se = sd(ADAS13) / sqrt(n()),
+            n = n(), .groups = 'drop')
+
+ggplot(trajectory, aes(visit_month, mean, color = DX_bl)) +
+  geom_line() +
+  geom_pointrange(aes(ymin = mean - 1.96 * se, ymax = mean + 1.96 * se),
+                  size = 0.2) +
+  facet_wrap(~ APOE4_any) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_x_continuous(breaks = c(0, 6, 12, 24, 36, 48)) +
+  labs(x = 'Months since baseline', y = 'ADAS13 (higher is worse)',
+       color = 'Baseline') +
+  theme_minimal()
+```
+
+LMCI participants start worse than EMCI participants, and within
+each, APOE4 carriers worsen faster. Both observations are expected
+from the literature (and here, from the generator); if the real
+cohort did not show them, the cohort derivation would be the first
+suspect. The later visits average over fewer participants, the
+ones who stayed, which is the dropout problem again in graphical
+form.
+
+One way to automate a trial-style version of this figure is the
+in-house `zzlongplot` package (@sec-lab-software). Its formula
+reads outcome by time, split after the bar by group, and
+`cluster_var` names the column that identifies a participant
+(display-only):
+
+```r
+zzlongplot::lplot(
+  adnimerge_clean,
+  form = ADAS13 ~ visit_month | DX_bl,
+  facet_form = ~ APOE4_any,
+  cluster_var = 'RID',
+  summary_statistic = 'mean',
+  confidence_interval = 0.95,
+  clinical_mode = TRUE,
+  theme = 'fda',
+  xlab = 'Months since baseline',
+  ylab = 'ADAS13'
+)
+```
+
+`theme` selects a publication style (`fda`, `nejm`, `lancet`,
+`jama`, `nature`, `science`, `jco`).[^fda-theme]
+
+[^fda-theme]: `fda` is the package's label for a plain,
+    high-contrast style intended for clinical study reports. The
+    FDA (US Food and Drug Administration) publishes no figure style
+    standard; its PDF specifications constrain page size, fonts,
+    and resolution of submitted documents, not the look of a plot.
+
+### Exercises
+
+2. Add a second table to the compendium comparing baseline
+   cognitive scores (`ADAS13`, `RAVLT.immediate`, `MMSE`,
+   `LDELTOTAL`) between EMCI and LMCI participants, with means and
+   standard deviations, and produce it as both a Markdown and an
+   HTML table.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-24-2
+#| message: false
+table_cog <- analytic_cohort |>
+  tbl_summary(
+    by = DX_bl,
+    include = c(ADAS13, RAVLT.immediate, MMSE, LDELTOTAL),
+    statistic = all_continuous() ~ '{mean} ({sd})'
+  )
+as_kable(table_cog)
+html_file <- file.path(tempdir(), 'table-cognition.html')
+gt::gtsave(as_gt(table_cog), html_file)
+file.exists(html_file)
+```
+
+`statistic` overrides the default median and quartiles for every
+continuous variable at once. One `tbl_summary()` object renders to
+any format (`as_kable()`, `as_gt()`, `as_flex_table()` for Word),
+so the table is computed once and only its rendering differs.
+State in the caption which summary you used, because means and
+medians of a skewed score can differ by several points.
 :::
+
+3. Draw the ADAS13 trajectory stratified by three-year conversion
+   rather than baseline diagnosis, and save it at 300 DPI (dots
+   per inch) for journal submission.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-24-3
+#| fig-show: hide
+by_outcome <- adnimerge_clean |>
+  left_join(select(analytic_cohort, RID, converted_3y), by = 'RID',
+            relationship = 'many-to-one') |>
+  group_by(converted_3y, visit_month) |>
+  summarize(mean = mean(ADAS13), se = sd(ADAS13) / sqrt(n()),
+            .groups = 'drop')
+
+p <- ggplot(by_outcome, aes(visit_month, mean, color = converted_3y)) +
+  geom_line() +
+  geom_pointrange(aes(ymin = mean - 1.96 * se, ymax = mean + 1.96 * se)) +
+  labs(x = 'Months since baseline', y = 'ADAS13',
+       color = 'Converted by 3 years') +
+  theme_minimal()
+
+out <- file.path(tempdir(), 'adas13-by-outcome.png')
+ggsave(out, p, width = 6, height = 4, dpi = 300)
+dim(png::readPNG(out))
+```
+
+The saved file is 1,800 by 1,200 pixels, six by four inches at 300
+DPI. Converters' curves rise more steeply, as they must, because
+the outcome partly defines the trajectory: a plot stratified by an
+outcome measured later describes the outcome, and it is not
+evidence that baseline measures predict it.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Why is `APOE4` declared categorical in the Table 1
+call, when it is a count?
+
+**Answer.** Because a mean of 0.6 alleles describes no participant
+and hides the share of homozygotes, which is the clinically
+important group. As n (%) for 0, 1, and 2 alleles, the table shows
+the distribution a reader needs. `gtsummary` would otherwise treat
+a numeric column with three values as categorical anyway; stating
+it makes the choice visible and stable if a future extract has
+only two observed values.
+:::
+
+## The pre-specified analysis plan {#sec-adni-sap}
+
+ADNI is large and well studied, so an unprincipled analyst can
+find any signal they want in it. The SAP, written before the
+analytic cohort is opened (@sec-analysis-plan), locks the predictor
+set, the model class, the validation strategy, and the metrics;
+anything not pre-specified is exploratory. For ADNI, the SAP
+template of @sec-analysis-plan-template has sections for background
+and rationale; research questions; cohort definition; exposure,
+outcome, and covariate definitions; the primary analysis; secondary
+analyses; missing-data handling; and sensitivity analyses.
+@tbl-adni-prespecified separates what is locked from what is
+exploratory.
+
+| Element | Pre-specified (locked before data access) | Exploratory (documented, not pre-specified) |
+|---|---|---|
+| Predictors | The eight baseline predictors in the cohort script, `AGE` through `LDELTOTAL`; no additions during model selection | Variable-importance plot from the fitted model |
+| Model | Penalized logistic regression with elastic net, tuning $\alpha \in \{0, 0.5, 1\}$ and a grid of $\lambda$ | Other model classes, reported as such |
+| Validation | 10-fold cross-validation at the participant level; outer 80/20 holdout for final performance | Repeated or nested resampling |
+| Metrics | AUC with bootstrap 95% confidence interval (CI; 1,000 resamples); calibration plot with calibration slope and intercept, as TRIPOD+AI expects | Decision-curve analysis |
+| Threshold | Youden index on the training data, held fixed for evaluation; sensitivity, specificity, PPV, and NPV at that threshold | Alternative thresholds |
+| Subgroups | None | Performance by EMCI and LMCI |
+| Missing data | Complete case for predictors, with counts; dropout handled as in @sec-adni-cohort | Multiple imputation as a sensitivity analysis |
+
+: Pre-specified versus exploratory elements of the ADNI SAP. PPV
+and NPV are the positive and negative predictive values.
+{#tbl-adni-prespecified}
+
+The distinction is what makes the primary finding valid: it was
+not selected on the basis of having looked at the data. Tag the SAP
+commit before the cohort is built (@sec-analysis-plan-tagging), so
+that the order is provable.
+
+::: {.callout-important title='LLM prompt'}
+Draft the SAP's missing-data section with a model, sending only an
+aggregate profile.
+
+> **Context.** Prediction model for three-year MCI-to-AD
+> conversion; eight baseline predictors. Missingness profile
+> (aggregate counts only): `LDELTOTAL` missing in 4% of the
+> cohort, other predictors complete; dropout before three years in
+> about 30% of participants. No participant-level data are
+> attached.
+>
+> **Constraints.** Do not recommend an approach by the fraction
+> missing alone. Do not describe complete-case analysis as biased
+> under MAR as a rule.
+>
+> **Criteria.** For predictor missingness, state the condition
+> under which complete case gives unbiased coefficients and what
+> it costs in precision; specify multiple imputation with the
+> outcome in the imputation model as the sensitivity analysis.
+> Name at least one analysis of sensitivity to data missing not at
+> random (MNAR). Handle dropout separately from predictor
+> missingness.
+
+*Failure mode.* Models recommend multiple imputation because '30%
+is a lot', call complete case biased whenever data are missing at
+random (MAR), or merge dropout (an outcome problem) with predictor
+missingness. *Check.* Compare the draft with
+@sec-missing-complete-case: complete case is unbiased for the
+coefficients when missingness does not depend on the outcome given
+the covariates, whatever the fraction. Check the DUA before sending
+anything, and send aggregates, never rows (@sec-ai-governance).
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** After fitting the pre-specified model, you find that
+adding hippocampal volume raises the AUC by 0.04. Can it go in the
+primary analysis?
+
+**Answer.** No. It was not in the locked predictor set, and a
+predictor added after seeing performance turns the primary
+analysis into a selected one. Report it as exploratory, labeled as
+such, with the pre-specified model as the primary result. If it
+matters, it is the primary hypothesis of the next study's SAP.
+:::
+
+## Modeling on the synthetic cohort {#sec-adni-model}
+
+### Participant-level validation
+
+Cross-validation that splits at the observation level leaks
+information whenever a participant contributes several rows: the
+same person sits in training and test, and the AUC is optimistic
+in a way no held-out evaluation can match. The analytic cohort has
+exactly one row per `RID`, so ordinary fold assignment is already
+participant-level here. The rule bites as soon as a later visit
+enters the modeling frame; then assign folds by `RID`, which in
+`tidymodels` is `rsample::group_vfold_cv(group = RID)`.
+`rsample::vfold_cv(strata = converted_3y)` stratifies, preserving
+the class balance across folds, but it does not group.
+
+The code below runs the pre-specified analysis with `glmnet`
+directly, assigning folds explicitly so that their level is visible.
+In the project it is `scripts/04-model.R`.
+
+```{r}
+#| label: adni-model
+#| message: false
+library(glmnet)
+
+set.seed(2026)
+test_rid <- analytic_cohort |>
+  group_by(converted_3y) |>
+  slice_sample(prop = 0.2) |>
+  pull(RID)
+train <- filter(analytic_cohort, !RID %in% test_rid)
+test  <- filter(analytic_cohort, RID %in% test_rid)
+
+design <- function(d) {
+  model.matrix(reformulate(predictors), data = d)[, -1]
+}
+foldid <- sample(rep_len(1:10, nrow(train)))
+
+fits <- lapply(c(0, 0.5, 1), \(a) {
+  cv.glmnet(design(train), train$converted_3y, family = 'binomial',
+            alpha = a, foldid = foldid)
+})
+best <- fits[[which.min(vapply(fits, \(f) min(f$cvm), numeric(1)))]]
+
+p_train <- as.numeric(predict(best, design(train), s = 'lambda.min',
+                              type = 'response'))
+p_test  <- as.numeric(predict(best, design(test), s = 'lambda.min',
+                              type = 'response'))
+
+predictions <- tibble(RID = test$RID, observed = test$converted_3y,
+                      predicted = p_test)
+saveRDS(predictions, file.path(derived, 'predictions.rds'))
+```
+
+Storing the held-out predictions lets the figures and tables be
+regenerated without refitting, which matters when refitting is
+expensive.
+
+### Discrimination, calibration, and the threshold
+
+```{r}
+#| label: adni-performance
+auc <- function(y, p) {
+  r <- rank(p)
+  n1 <- sum(y)
+  n0 <- sum(!y)
+  (sum(r[y]) - n1 * (n1 + 1) / 2) / (n1 * n0)
+}
+
+auc_test <- auc(test$converted_3y, p_test)
+auc_boot <- replicate(1000, {
+  i <- sample(nrow(test), replace = TRUE)
+  auc(test$converted_3y[i], p_test[i])
+})
+
+lp <- qlogis(p_test)
+cal_slope <- coef(glm(test$converted_3y ~ lp, family = binomial))[['lp']]
+cal_intercept <- coef(glm(test$converted_3y ~ offset(lp),
+                          family = binomial))[[1]]
+
+youden <- vapply(sort(unique(p_train)), \(t) {
+  mean(p_train[train$converted_3y] >= t) +
+    mean(p_train[!train$converted_3y] < t) - 1
+}, numeric(1))
+threshold <- sort(unique(p_train))[which.max(youden)]
+flagged <- p_test >= threshold
+y <- test$converted_3y
+
+round(c(
+  auc = auc_test, auc_lower = quantile(auc_boot, 0.025, names = FALSE),
+  auc_upper = quantile(auc_boot, 0.975, names = FALSE),
+  calibration_slope = cal_slope, calibration_intercept = cal_intercept,
+  threshold = threshold,
+  sensitivity = mean(flagged[y]), specificity = mean(!flagged[!y]),
+  ppv = mean(y[flagged]), npv = mean(!y[!flagged])
+), 2)
+```
+
+The AUC is computed in its rank-sum form, the probability that a
+randomly chosen converter has a higher predicted risk than a
+randomly chosen non-converter. The calibration slope is the
+coefficient of the logit of the predicted risk in a logistic
+regression of the outcome on it, and the calibration intercept is
+that regression's intercept with the slope fixed at 1; a slope
+below 1 means the predictions are too extreme, above 1 too
+cautious. @fig-adni-calibration shows calibration directly.
+
+```{r}
+#| label: fig-adni-calibration
+#| fig-cap: "Calibration of the held-out predictions: observed
+#|   conversion proportion against mean predicted risk, by fifth of
+#|   predicted risk, with 95% confidence intervals. Synthetic data."
+#| fig-alt: "Calibration plot with predicted risk on the horizontal
+#|   axis and observed proportion converted on the vertical axis,
+#|   both from 0 to 1. Five points with vertical interval bars lie
+#|   near the dashed diagonal line of perfect calibration, rising
+#|   from low predicted risk to high."
+#| fig-scap: "Calibration of held-out predictions"
+#| fig-width: 4.5
+#| fig-height: 4
+calibration <- predictions |>
+  mutate(fifth = ntile(predicted, 5)) |>
+  group_by(fifth) |>
+  summarize(predicted = mean(predicted), observed = mean(observed),
+            n = n(), .groups = 'drop') |>
+  mutate(se = sqrt(observed * (1 - observed) / n))
+
+ggplot(calibration, aes(predicted, observed)) +
+  geom_abline(linetype = 'dashed', color = 'grey50') +
+  geom_pointrange(aes(ymin = pmax(0, observed - 1.96 * se),
+                      ymax = pmin(1, observed + 1.96 * se))) +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(x = 'Mean predicted risk', y = 'Observed proportion converted') +
+  theme_minimal()
+```
+
+::: {.callout-tip title='Verification'}
+Confirm that no participant is in both the training and the test
+set, that the folds cover every training participant, and that the
+performance numbers come from the test set alone.
+
+```{r}
+#| label: adni-model-verify
+stopifnot(
+  length(intersect(train$RID, test$RID)) == 0,
+  nrow(train) + nrow(test) == nrow(analytic_cohort),
+  length(foldid) == nrow(train),
+  all(table(foldid) >= floor(nrow(train) / 10)),
+  nrow(predictions) == nrow(test)
+)
+```
+
+These numbers recover the generator's parameters and are a check
+on the code. They are not evidence about Alzheimer's disease, and
+must never be reported as such.
+:::
+
+### Exercises
+
+4. Suppose the modeling frame held every visit before month 12,
+   several rows per participant. Assign ten folds at the
+   participant level, and verify that no `RID` appears in more than
+   one fold and that fold sizes are roughly equal.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-24-4
+early_visits <- adnimerge_clean |>
+  filter(visit_month < 12)
+
+set.seed(7)
+rid_fold <- tibble(RID = unique(early_visits$RID)) |>
+  mutate(fold = sample(rep_len(1:10, n())))
+early_visits <- left_join(early_visits, rid_fold, by = 'RID',
+                          relationship = 'many-to-one')
+
+folds_per_rid <- early_visits |>
+  distinct(RID, fold) |>
+  count(RID)
+stopifnot(all(folds_per_rid$n == 1))
+table(early_visits$fold)
+```
+
+Folds are assigned to participants, then joined to visits, so a
+participant's rows travel together. Fold sizes in rows vary a
+little, because participants contribute different numbers of
+visits; in participants they differ by at most one. Assigning
+`sample(rep_len(1:10, nrow(early_visits)))` to rows instead would
+put most participants' two visits in different folds, and the
+`stopifnot()` would fail.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Observation-level folds on a frame with two visits
+per participant give an AUC of 0.88; participant-level folds give
+0.74. Which do you report, and why is the first one higher?
+
+**Answer.** Report 0.74. With observation-level folds, a
+participant's second visit sits in the test fold while the first
+trained the model, and the two visits are nearly identical, so the
+model is partly recognizing people it has seen. A new patient is
+never someone the model has seen, so only participant-level
+validation estimates the performance the family in the opening
+would get.
+:::
+
+## Reporting and deposit {#sec-adni-report}
+
+### Reporting against TRIPOD+AI
+
+The manuscript lives at `analysis/paper/paper.qmd`. Its
+frontmatter uses a journal format from a Quarto journal extension
+(installed with `quarto use template` or `quarto add`; `rticles`
+provides the equivalent templates for R Markdown, not Quarto) and
+the bibliography from `references.bib`. A prediction model is
+reported against TRIPOD+AI (Transparent Reporting of a
+multivariable prediction model for Individual Prognosis Or
+Diagnosis, updated for artificial intelligence), whose 27-item
+checklist supersedes TRIPOD 2015 for regression and machine
+learning models alike [@collins2024tripodai]. @tbl-adni-tripod maps
+selected items, grouped by domain, to the place in the compendium
+that supplies them; the statement itself is the checklist to
+submit.
+
+| Domain | What to report | Where the compendium supplies it |
+|---|---|---|
+| Title and abstract | Development of a prediction model with internal validation; population, predictors, outcome | `paper.qmd` |
+| Data and participants | Source (ADNI phases, dates), eligibility, the flow with counts | `01-build-cohort.R`; @tbl-adni-flow |
+| Outcome | Conversion within three years: definition, ascertainment, handling of incomplete follow-up | SAP; `build_cohort()` |
+| Predictors | The eight baseline predictors, defined and measured at baseline | SAP; @tbl-adni-vars |
+| Sample size | Participants and events in training and test | @tbl-adni-flow; `04-model.R` |
+| Missing data | Method and numbers excluded | SAP; @tbl-adni-flow |
+| Analysis | Model class, tuning, participant-level resampling, holdout | `04-model.R` |
+| Performance | Discrimination with CI; calibration plot, slope, intercept | `predictions.rds`; @fig-adni-calibration |
+| Fairness | Performance in relevant subgroups, such as sex | Exploratory analyses, labeled |
+| Model specification | The fitted model in full, so that others can apply it | Coefficients at `lambda.min` |
+| Open science | Protocol or SAP, code availability, data access route | Zenodo deposit; README; the DUA route |
+
+: Selected TRIPOD+AI reporting items mapped to the compendium.
+{#tbl-adni-tripod}
+
+### What gets deposited
+
+| Deposit | Contents | Access |
+|---|---|---|
+| Zenodo (public) | Code, scripts, paper, README, Dockerfile, `renv.lock`, the synthetic generator with its assertions | Open; this DOI is what the paper cites |
+| Container registry | The built Docker image | Open; `docker pull` from the registry |
+| ADNI | The data | Under the DUA only |
+
+: The two-part deposit for a DUA-restricted analysis.
+{#tbl-adni-deposit}
+
+Collaborators with DUA access run the full analysis; reviewers
+without it run every script against the synthetic generator. Make
+that the default: `scripts/01-build-cohort.R` should read the
+frozen ADNI file when it exists and call the generator in
+`scripts/00-simulate.R` when it does not, saying which it used.
+
+### Verifying reproducibility
+
+Before submitting, in a `zzcollab` project (display-only; the
+tool-neutral equivalents are in @sec-zzcollab-audit):
+
+```bash
+make check-renv-no-fix      # code, DESCRIPTION, and renv.lock agree
+make docker-rebuild         # the image builds without the cache
+make docker-render REPORT=analysis/paper/paper.qmd
+```
+
+Then, on a colleague's machine: `git clone`, `make docker-build`,
+and the same render. Expect bit-identical output for the
+deterministic parts and rounding-level differences only where
+floating-point order matters.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A reviewer without ADNI access reruns your
+compendium and gets an AUC of `r round(auc_test, 2)`, different
+from the paper's. Is the compendium broken?
+
+**Answer.** Not necessarily: they ran the synthetic generator,
+whose AUC reflects its own parameters. The check they can make is
+that every script runs and every assertion passes. The README
+should say this in so many words, and the paper should never
+report a synthetic number, so that no reader can mistake one for
+the other.
+:::
+
+## Rules of thumb
+
+1. **Habit 5: pre-specify, then tag.** Lock predictors, model,
+   validation, and metrics in the SAP, and tag it before the cohort
+   is built.
+2. **Habit 8: a plausible number is the expensive bug.** Dropouts
+   counted as non-converters give a lower risk that looks entirely
+   reasonable; the `outcome_observed` filter and its assertion make
+   the choice loud.
+3. **Habit 12: send structure, not data.** Under a DUA, the
+   schema, the synthetic generator, and aggregates are all a model
+   or a reviewer ever needs to see.
+
+## Cumulative practice
+
+5. *Cumulative (uses @sec-testing).* Write a `tinytest` file for
+   `build_cohort()` with a fixture of four synthetic participants:
+   one who converted at month 24 and then left, one followed
+   through month 36 without converting, one who left after month
+   12 without converting, and one who converted at month 48.
+   Assert `outcome_observed` and `converted_by_3y` for each.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-24-5
+fixture_visits <- function(rid, months, dx) {
+  tibble(
+    RID = rid, VISCODE = ifelse(months == 0, 'bl',
+                                sprintf('m%02d', months)),
+    EXAMDATE = as.Date('2012-01-01') + round(months * 30.44),
+    DX_bl = 'LMCI', DX = dx, AGE = 70, PTGENDER = 'Female',
+    PTEDUCAT = 16L, APOE4 = 1L, ADAS13 = 18, RAVLT.immediate = 30L,
+    MMSE = 27L, LDELTOTAL = 6L
+  )
+}
+fixture <- bind_rows(
+  fixture_visits(1, c(0, 12, 24), c('MCI', 'MCI', 'Dementia')),
+  fixture_visits(2, c(0, 12, 24, 36), rep('MCI', 4)),
+  fixture_visits(3, c(0, 6, 12), rep('MCI', 3)),
+  fixture_visits(4, c(0, 12, 24, 36, 48),
+                 c('MCI', 'MCI', 'MCI', 'MCI', 'Dementia'))
+)
+out <- arrange(build_cohort(fixture), RID)
+
+library(tinytest)
+expect_equal(out$converted_by_3y, c(TRUE, FALSE, FALSE, FALSE),
+             info = 'only participant 1 converted within the window')
+expect_equal(out$outcome_observed, c(TRUE, TRUE, FALSE, TRUE),
+             info = 'the early leaver without conversion is unobserved')
+```
+
+Participant 1 shows that an early converter who left stays in as a
+converter; participant 3 that an early leaver without conversion
+is excluded; participant 4 that a conversion after the window is a
+non-conversion within it, because the participant was followed
+through month 36. Each fixture row is a decision from the SAP, so
+the test file doubles as its executable specification.
+:::
+
+6. *On your own work (requires ADNI access, no key).* With an
+   approved DUA, run the compendium against `ADNIMERGE` for a
+   different outcome (for example, progression from CN to MCI),
+   adapting the SAP, the cohort function, and its tests, and deposit
+   the code-only compendium with its synthetic generator.
+
+## Cheat sheet
+
+| Task | Code | Guards against |
+|---|---|---|
+| Synthetic stand-in | `simulate_adnimerge()` plus schema assertions | Code no reviewer can run |
+| Outcome observed | `converted_by_3y \| last_dx_days >= horizon - tolerance` | Dropouts counted as non-converters |
+| Cohort flow | Count after every `filter()` | Unreported selection |
+| Table 1 | `tbl_summary(by = ..., type = list(APOE4 ~ 'categorical'))` | Means of counts; row p-values |
+| Participant-level folds | Assign folds to `RID`, then join; `group_vfold_cv(group = RID)` | Leakage across folds |
+| Penalized model | `cv.glmnet(x, y, family = 'binomial', foldid = foldid)` | Tuning on the test set |
+| Discrimination | Rank-sum AUC with bootstrap CI | A point estimate without uncertainty |
+| Calibration | `glm(y ~ qlogis(p), family = binomial)`; binned plot | Discrimination reported alone |
+| DUA | Schema and aggregates only, `.gitignore` the data | Disclosure of participant rows |
+
+: The ADNI case study at a glance. {#tbl-adni-cheat-sheet}
 
 ## Further reading
 
-- The ADNI website at `adni.loni.usc.edu`,
-  study overview and data-use agreement.
-- [@weiner2017recent], an orientation to the
-  study's publication history.
-- [@grassi2019novel], one example of the
-  cohort-prediction approach this chapter
-  sketches.
-- [@vanbuuren2018flexible], for the missing-data
-  handling that any real ADNI cohort will
-  require.
+- [@collins2024tripodai], the TRIPOD+AI statement and checklist.
+- [@weiner2017recent], an orientation to ADNI and its publication
+  history.
+- [@grassi2019novel], one example of the cohort-prediction
+  approach this chapter sketches.
 
 ## Prerequisites answers {#sec-quiz-answers-24}
 
-1. The question is: *can baseline
-   sociodemographic, clinical, and
-   neuropsychological measures predict
-   conversion from MCI to AD within three
-   years?* It is clinically meaningful because
-   MCI is a heterogeneous state: only some
-   participants progress to AD on a meaningful
-   timescale, and identifying those at highest
-   risk enables targeted intervention trials
-   and earlier patient counseling.
-2. ADNI analyses carry three distinguishing
-   features: a data-use agreement that
-   prevents data sharing (so the compendium
-   must be code-only); long time horizons
-   (years between analysis and reviewer
-   response, during which the R ecosystem
-   drifts); and a dataset that updates
-   periodically with renamed variables. All
-   three increase the value of Docker-pinned
-   environments and `renv`-pinned R package
-   versions.
-3. ADNIMERGE is long-format (one row per
-   participant per visit), with mixed
-   diagnostic labels and inconsistent visit
-   codes across ADNI 1, GO, 2, and 3.
-   Analytic cohorts require derivation of
-   baseline-anchored follow-up windows,
-   careful handling of participants who drop
-   out before the outcome window closes, and
-   consistent visit alignment. The step most
-   commonly overlooked is *censoring dropouts
-   correctly*: a participant who leaves the
-   study after year 2 has not been observed
-   for the three-year outcome and must be
-   excluded or handled with time-to-event
-   methods, not treated as a non-converter.
+1. The question is: *can baseline sociodemographic, clinical, and
+   neuropsychological measures predict conversion from MCI to AD
+   within three years?* It is clinically meaningful because MCI is
+   a heterogeneous state: only some people progress to AD on a
+   meaningful timescale, and identifying those at highest risk
+   enables targeted intervention trials and earlier counseling.
+2. ADNI analyses carry three distinguishing features: a data-use
+   agreement that prevents data sharing (so the public compendium
+   is code-only, with a synthetic stand-in); long time horizons
+   (years between analysis and reviewer response, during which the
+   R ecosystem drifts); and a dataset that updates periodically
+   with renamed variables. All three increase the value of
+   Docker-pinned environments and `renv`-pinned package versions.
+3. ADNIMERGE is long-format (one row per participant per visit),
+   with mixed diagnostic labels and inconsistent visit codes across
+   ADNI 1, GO, 2, and 3. Analytic cohorts require baseline-anchored
+   follow-up windows, careful handling of participants who leave
+   before the outcome window closes, and consistent visit
+   alignment. The step most commonly overlooked is *handling
+   dropouts correctly*: a participant who leaves after year 2
+   without converting has not been observed for the three-year
+   outcome. Censor them in a time-to-event analysis, or exclude
+   them and state that exclusion overstates the risk; never treat
+   them as non-converters.
