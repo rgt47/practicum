@@ -717,3 +717,421 @@ Part 7 proposes merging this chapter with the Quarto chapter in
 Phase I; the sections are ordered so that the troubleshooting half
 can move as a block. Exercises 3 and 5 work on the student's own
 projects, so their keys describe a correct result.
+
+### Getting Data In: Files, APIs, and Scraping
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics. The checking
+argument follows Harrell's *R Workflow* [@harrell2025rworkflow],
+Chapters 7 and 8; the import mechanics follow R for Data Science
+[@wickham2023r4ds].
+
+*Rationale.* Every later data chapter begins with a data frame
+already in memory, and this chapter exists because getting it
+there is where a substantial share of the errors that survive into
+publication are introduced: a value silently misread at import is
+one no downstream test will catch. The chapter covers the three
+ways data arrive (a file, an interface, a page) and the discipline
+they share, and it owns the raw-data rule (Habit 2) that
+@sec-wrangling applies to cleaning. The file half is built on the
+HF-HOME raw export, so that the naive read, the specified read,
+and the differences between them are computed rather than asserted;
+the import checklist (@tbl-import-checklist) is the chapter's
+reusable artifact. The byte-order-mark discussion is deliberately
+qualified by reader and locale, because base R strips the mark in a
+UTF-8 locale and keeps it in the C locale; students who meet the
+common claim that the mark always breaks the first column name
+should be shown the three reads side by side. The chapter is
+structured for the planned split (decision 2): 'Reading files
+deliberately' and 'APIs, scraping, and freezing what you receive'
+are self-contained sections, and the opening section on the three
+routes would travel with the first half. The former 'Collaborating
+with an LLM' section is reduced to two callouts: the column
+specification (from the codebook, not the data) and the scraping
+prompt, which asks the model to argue against scraping and treats
+the page as untrusted input to an agent; the former JSON prompt is
+absorbed into the JSON Verification. The network exercises remain
+open (cumulative practice); the closed exercises use the running
+study and a local stand-in for a paginated API.
+
+### Factors, Strings, and Dates
+
+*Sources.* Stat 545, Chapters 10 to 13 (Jenny Bryan, University of
+British Columbia); the `forcats`, `stringr`, and `lubridate`
+packages and their documentation; Grolemund and Wickham (2011) for
+`lubridate`.
+
+*Rationale.* Numeric columns fail loudly; text, categories, and
+dates fail by producing plausible values, which is why they have a
+chapter of their own. Following decision 13, the generic API tours
+of the three packages are removed and the reader is pointed to R for
+Data Science [@wickham2023r4ds, chs. 14 to 17]; the full verb list
+survives as the cheat sheet, and the pandas side-by-side is cut.
+In their place the chapter works problem-then-verb on the running
+study: the HF-HOME sex and site codes (factors, declared levels, and
+the reference level of `arm`), the free-text dosing strings in
+`medications.csv` (drug class, dose with decimals, units and
+combination tablets, frequency codes), and the per-site date formats
+in `crf_export.csv`. It deliberately builds on @sec-wrangling, which
+recodes the same export with `case_when()`, and answers the question
+that chapter defers: why a single multi-order `parse_date_time()`
+call misreads some dates without a warning, and how to count the
+values at risk. The ambiguity demonstration shows that the reading
+of a value such as `03/04/2026` depends on the order of the
+`orders` list and on the other values in the vector, which corrects
+the earlier wording that the first-listed order always wins. The
+Phase E2 corrections (the daylight-saving example with `dhours()`,
+the `as.Date()` origin, factor joins matching labels) are retained.
+Every closed exercise has an adjacent key computed from the running
+study, several checked against its clean tables as answer keys.
+
+### Databases and SQL for Biostatisticians
+
+*Sources.* Authored for this book. The survey of peer programs
+(@sec-peer-survey) found relational databases and SQL taught as a
+core skill in several comparison courses, among them Berkeley
+STAT 243 [@berkeley-stat243-2024], UNC BIOS 735
+[@unc-bios735-2024], Michigan [@umich-biostat615-2024], Minnesota
+[@umn-biostat-2024], and the Johns Hopkins statistical-computing
+sequence [@hopkins-biostat776-2024], as well as in both Software
+and Data Carpentry.
+
+*Rationale.* Clinical data usually reach a statistician through a
+query against a warehouse, REDCap, or an EHR extract rather than
+as a file, and the failures that matter are the ones @sec-joins
+already teaches, without `dplyr`'s guard rails: SQL has no
+`relationship` argument, no many-to-many warning, and aggregates
+that skip `NULL` silently. The chapter therefore loads the HF-HOME
+tables into an in-memory SQLite database and reuses the two
+planted `labs.csv` defects (the duplicated visit-test rows and the
+orphan patient `2433`), which in the discharge NT-proBNP join
+nearly cancel and leave a count off by one. Two database-specific
+habits are added: parameterized queries (with an executed
+injection example on synthetic data) and a dated extract with its
+query and checksum as the raw data. The generic `DBI` and `dbplyr`
+tour is left to R for Data Science [@wickham2023r4ds, ch. 21];
+DuckDB and Parquet are a short, conditionally executed subsection
+because they are the current default for larger-than-memory files.
+The 'parity' framing that opened the earlier draft justified the
+chapter to a curriculum committee rather than to a reader, and is
+retained here only.
+
+### Clinical Data Standards: CDISC, SDTM, and ADaM
+
+*Sources.* Authored directly for this book rather than adapted
+from earlier course materials. Target audience: students heading
+to pharmaceutical or CRO statistical programming and
+biostatistics roles who have no prior exposure to CDISC. Written in
+response to reports from alumni that a gap in this area was felt
+on the first day of their industry positions.
+
+*Rationale.* The chapter builds SDTM and ADaM from the running
+HF-HOME trial (`hfhome_sdtm()` for `DM`, `EX`, and `DS`, and an
+`HO` domain built from the outcome file) instead of a separately
+fabricated study, so that its `ADSL` and `ADTTE` are the datasets
+@sec-sas reuses and every count can be checked against the raw
+CSV files. The time-to-event analysis is presented as supportive
+of the SAP's primary risk-difference analysis, runs on the ITT set
+from randomization, and is reported as inconclusive, consistent
+with the seeded draw. The CNSR convention, previously restated
+five times, is stated once as a Pitfall and once at the point of
+analysis; the HF-HOME `ADTTE` uses two censoring codes so that
+`CNSR == 0` is shown to matter rather than asserted. Industry
+practice (TLF packages, the R submission pilots, package
+validation, double programming) is one section; packages not in
+the book's environment (`rtables`, `tern`, `Tplyr`, `diffdf`,
+`riskmetric`) are shown display-only, and double programming is
+executed as an independent re-derivation of `ADTTE` from the raw
+files. The LLM callout frames an independent re-derivation by a
+model as the analogue of double programming. Two items deserve a
+second reader under house rule 14: the status of the R
+Consortium pilots (dated 2026-10 in a footnote) and the choice of
+`CNSR = 2` and last contact for subjects lost to follow-up.
+
+### Continuous Integration with GitHub Actions
+
+*Sources.* The GitHub Actions documentation, including 'Security
+hardening for GitHub Actions'; the `r-lib/actions` repository; the
+book's own workflow, `.github/workflows/render-book.yml`; and Humble
+and Farley's *Continuous Delivery* (2010), which supplies the
+epigraph and the argument the chapter applies to research code.
+
+*Rationale.* The book teaches tests (@sec-testing), dependency
+pinning (@sec-renv), and reproducible reports (@sec-quarto);
+continuous integration is what runs those checks on every change,
+so that a broken pipeline is caught within minutes rather than at
+submission. The peer survey (@sec-peer-survey) found the practice
+taught at almost none of the comparison courses, because their
+canonical curricula predate it. The chapter now opens with the
+failure it prevents: a package installed locally and never
+snapshotted, found by a red pull-request check. The red log
+(Finding 31) is real output: an executed chunk runs the CI test
+step in a fresh R process whose library holds only `tinytest`, and
+a table annotates it line by line, with the Verification asserting
+that the first error is the cause. The former Orientation and
+'statistician's contribution' are folded into the first section;
+the three 'what to check' paragraphs and the secrets judgment
+became the CI checklist table. The E1 and E2 corrections are kept:
+the test step's exit status through `tinytest::any_fail()`, the
+Quarto setup step, `setup-renv` versus `setup-r-dependencies` (now
+a two-row table), and the workflow's correct name,
+`render-book.yml`. The exit-status demonstration is not repeated;
+the chapter points to the executed one in @sec-testing-ci, so
+that the Phase I merge into 20 does not duplicate it. Phase K
+supply-chain basics form the last section: pinning actions by
+commit SHA (motivated by the March 2025 `tj-actions/changed-files`
+compromise, CVE-2025-30066), a `permissions:` block, OpenID Connect
+instead of stored cloud keys, and Dependabot for actions; the SHA
+shown for `actions/checkout` v4.4.0 was read with `git ls-remote`
+in October 2026. The five open exercises became offline
+exercises with keys: predicting which step fails, a scheduled
+trigger, reading an executed render log, diagnosing a
+system-library failure, and auditing the book's own workflow with an
+executed audit function (whose output currently reports every
+action pinned by tag and no `permissions:` block, a finding for
+the author). Two Pitfalls name real silent failures,
+`continue-on-error: true` and fixing a red restore with an install
+step in the workflow. The chapter is self-contained by section, so
+that Phase I can append its four sections to 20 after
+@sec-testing-ci.
+
+### AI-Assisted Coding
+
+*Sources.* The author's blog posts `46-ellmerinRcoding` (the
+`ellmer` package) and `36-simpleshinyappwithchatgpt`; the `ellmer`
+package from Posit; the `btw` package documentation; direct
+experience with Claude Code during the development of this book;
+and the LLM-section review recorded as Finding 24 of the
+refactoring plan.
+
+*Rationale.* Language models now produce working R for most of the
+book's exercises, and the chapter's position, kept from the
+original, is that they are an amplifier and not a replacement:
+every line of generated code is a hypothesis to test. Following
+decision 11, the chapter is ordered so that its durable core comes
+first and can move to Part II in Phase I as a unit: the four Cs
+(Context, Constraints, Criteria, Check) as the organizing protocol,
+with a table and the verify-first loop redrawn as a four-Cs loop
+(Finding 31); the failure modes, now a table of failure, example,
+and check, with ten executed mini-examples on the HF-HOME files,
+each with a planted bug and the assertion that catches it; data
+governance and agent safety (`sec-ai-governance`, which every
+chapter's LLM callouts cite), with a what-may-go-where table, the
+tests-off-limits rule, and hallucinated package names
+(slopsquatting); project instruction files, live documentation,
+and provenance and journal disclosure; and 'when not to reach for
+an LLM'. The perishable material (the `ellmer` API, coding-agent
+product names, the model identifier, and the `btw` and MCP setup)
+is gathered in a final section, 'Tooling as of October 2026', which
+Phase J can move to the dated appendix without edits elsewhere.
+The E1 and E2 corrections are kept: `chat_anthropic()` rather than
+`chat_claude()`, `chat$stream()` with `coro::loop()`, the model
+identifier in one variable with an 'as of' comment, `cor()`'s
+default of `use = "everything"`, and `stats::filter` as the
+time-series function masked by `dplyr::filter`. The 'Prompt
+patterns that work' section was folded into the four-Cs table; the
+'statistician's contribution' judgments into the opening of the
+first section; 'Readable code is auditable code' moved before the
+planted bugs, as Part 7 asks, with an executed `lintr` example; the
+book's own disclosure became the worked example of the provenance
+subsection. The first prerequisite question, which asked about
+`ellmer`, now asks what may be sent to a model, so that the quiz
+survives the move of the tooling section. Exercises gained keys: a
+four-Cs rewrite of a one-line request, an executed planted
+risk-difference bug whose sign depends on factor level order, a
+data-classification exercise, instruction-file rules, an `ellmer`
+function, and a cumulative `tinytest` exercise run against both
+versions. The `btw` and MCP commands are display-only because
+`btw` is not installed in the build library, and are hedged with a
+pointer to the package README. A new reference,
+`spracklen2025package`, supports the slopsquatting paragraph.
+
+### SAS for R Programmers
+
+*Sources.* A survey of the published curricula of peer US
+biostatistics MS programs (@sec-peer-survey, which lists every
+source) found that most require or strongly recommend SAS in their
+core or analysis-track coursework. Industry pharmaceutical, CRO,
+and regulatory-filing positions in the United States frequently
+filter screening on SAS experience, and R-only graduates from this
+program have reported being excluded at the screening stage.
+
+*Rationale.* The chapter is the minimum credible response: enough
+SAS to read code and a log, move data between SAS and R, and
+reproduce the procedures that appear in most clinical study
+reports. It is organized around the defaults that differ between
+the two languages (@tbl-sas-defaults), because those produce
+plausible, disagreeing numbers, and it reuses the HF-HOME `ADSL`
+and `ADTTE` from @sec-cdisc for the survival and transport
+examples. The ODA registration click-path was replaced by a link
+and a short summary, with limits in a dated footnote. The log
+exercises and the default-prediction exercises need no SAS
+installation, so every student can attempt them, and their keys
+are checked in R where a check is possible. No SAS code in the
+chapter has been run for this edition (SAS OnDemand access was
+deferred by the author); every SAS block is labeled display-only,
+and the annotated logs are constructed, not captured. Running the
+SAS blocks once on ODA, and capturing a real log for the annotated
+example, is the outstanding verification for this chapter.
+
+### Case Study: Palmer Penguins
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics. The dataset
+and its description are from Horst, Hill, and Gorman (2022); the
+causal-language subsection draws on Hernán and Robins (2016) and
+Hernán (2018).
+
+*Rationale.* The chapter is the worked model for the capstone in
+@sec-synthesis: it runs the whole arc once on data that impose no
+load of their own, and @tbl-penguins-arc labels every step with
+the chapter that taught it, so that students can reuse the table
+as their capstone checklist for HF-HOME. Penguins stays here (and
+in the early graphics chapter) as the deliberate non-clinical
+warm-up of plan 5.1. The former 'Orientation' and 'statistician's
+contribution' material is kept and folded into the steps where
+each judgment arises: complete-case reasoning in the cleaning
+section, the reference level and the adjusted-versus-raw species
+difference in the model section, 'resist over-modeling' in the
+interaction subsection, and 'treat the case study as a template'
+in the arc section. Three additions respond to the plan. The
+diagnostics are now interpreted panel by panel from computed
+statistics instead of 'should be nearly featureless', and a
+residuals-by-sex plot shows structure the four standard plots
+miss, which is the chapter's silent failure. Testing and CI steps
+were absent; the chapter now executes a `tinytest` file whose
+slope test re-derives the estimate from pooled within-species
+moments, and plants the `na.omit()` bug to show the suite failing.
+A one-page causal-language subsection (a DAG, the target trial,
+and the 'C-word' argument) is the Phase K item for this chapter.
+The literal `paper.qmd` listing was replaced by a description and
+pointers to @sec-quarto-worked and @sec-zzcollab-assemble, and
+`gtsummary` now carries Table 1, with `zztable1` shown as one way
+to automate it (decision 5). The scaffold command is
+`zzc tidyverse`; `zzc analysis` is a deprecated alias. Former
+exercise 6 (deposit to Zenodo) is the chapter's one 'on your own
+work' exercise; former exercise 4 (reproduce the compendium) is
+the cumulative exercise.
+
+### Case Study: ADNI MCI Prediction
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics. ADNI
+background is from Weiner et al. (2017); the prediction framing
+follows Grassi et al. (2019); the reporting map follows the
+TRIPOD+AI statement (Collins et al. 2024). The modeling details
+belong to the companion book, *Statistical Computing in the Age of
+AI*.
+
+*Rationale.* ADNI is the book's real-data case study and the one
+whose data students cannot see, so the chapter is built around
+what a reviewer without a data-use agreement can still check. It
+opens with the clinical stakes, a family asking whether MCI will
+progress, and makes every quiet decision behind that probability
+explicit. The worked example was display-only; it now executes
+end to end against `simulate_adnimerge()`, a seeded generator with
+the ADNIMERGE schema, and only the lines that load the restricted
+package remain display-only. The former 'statistician's
+contribution' judgments are kept and placed where each arises:
+cohort definition in the cohort section, pre-registration in the
+SAP section, version pinning and asymmetric sharing in the DUA
+section, participant-level cross-validation in the modeling
+section. A Pitfall on sending participant-level rows anywhere,
+including to a language model, was added. `gtsummary` and `ggplot2`
+are taught first, with `zztable1` and `zzlongplot` shown beside
+them as optional (decision 5). The pre-specified versus
+exploratory lists became a side-by-side table, and a TRIPOD+AI
+table maps reporting domains to the compendium. One statistical
+correction needs a second reader (house rule 14): excluding
+participants who leave early without converting, which the
+chapter previously called 'conservative' and 'cleanest', biases
+the three-year risk upward, because early converters who leave are
+kept; a Kaplan-Meier estimate with censoring is close to the
+target when dropout is uninformative. Exercise 1 demonstrates this
+by simulation over 20 seeds, and the chapter now presents
+censoring and exclusion with that bias stated. The cohort code
+itself (E2) is unchanged apart from being wrapped in
+`build_cohort()` so that the cumulative exercise can test it. The
+'requires ADNI access' exercises were merged into a single 'on
+your own work' exercise; the former synthetic-generator exercise
+became the chapter's executed stand-in. `vanbuuren2018flexible`
+was dropped from Further reading (it is cited in @sec-missing) to
+keep the list at three.
+
+### Communicating a Finished Analysis
+
+*Sources.* The author's lecture notes and supporting materials for
+a graduate practicum in biostatistics; Altman and Bland (1995) on
+absence of evidence; Harrell's author checklist; the CONSORT
+statement.
+
+*Rationale.* The book teaches the reader to produce a defensible
+analysis, and @sec-team-science covers the register in which a
+statistician speaks to a clinician, but neither addresses the
+artifacts a working biostatistician is judged on: the talk, the
+memo, and the response to reviewers. A book that gives a chapter to
+SAS on grounds of employability cannot be silent about the three
+documents that constitute the job. The chapter is built around
+HF-HOME's real result, which is inconclusive (decision 18): the
+memo, the narrative arc, the talk, and the reviewer responses all
+read the running study's files, and the null-results section is the
+center rather than an aside. The sensitivity analysis is the
+two-dimensional tipping point that SAP section 11 now specifies
+(decision 20), with the same code and seed as @sec-missing-trials,
+so the two chapters report the same grid. A hidden assertion stops
+the render if a data correction changes the pattern the memo's
+words describe; this is Habit 10 extended from numbers to the words
+that interpret them. The 'Collaborating with an LLM' section is
+reduced to two callouts (memo drafting; reviewer responses); the
+adversarial self-review prompt survives as a paragraph in the
+peer-review section.
+
+### Federal Requirements and Deposition
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics; the 2022 OSTP
+memorandum; the NIH data management and sharing and public access
+policy pages.
+
+*Rationale.* @sec-why argues that public-access compliance has
+become a biostatistical responsibility, because what must be shared
+moved from the paper to the things the statistician owns; this
+chapter is the operational half of that argument. It sits near the
+end because almost everything it asks for (compendium, lockfile,
+container, pipeline) exists by then, so deposition is a checklist
+against work already done. The DMSP is the exception, since it is
+written before the work begins, and the chapter now opens with it.
+The DMSP section is self-contained so that the planned Phase I move
+to @sec-analysis-plan is a clean cut along its section boundary.
+Perishable policy facts live in one dated table with a 'Verified'
+column; rows the author has not checked are left blank on purpose.
+The `renv` versus `Imports:` material, which repeated @sec-renv, is
+reduced to a pointer. The worked DMSP is HF-HOME's, with
+de-identified participant-level data under controlled access in a
+clinical-trial repository, correcting the earlier model plan's PHI
+deposit in dbGaP and TCIA (Part 6). The compliance statements should
+be read by a regulatory or privacy colleague before the chapter
+ships (house rule 14).
+
+### Ethics Beyond Compliance
+
+*Sources.* The author's lecture notes and supporting materials for
+a graduate practicum in biostatistics; the ASA Ethical Guidelines for
+Statistical Practice (2022); Obermeyer et al. (2019); Rothwell
+(2005); Hernan (2018) and Hernan and Robins (2016).
+
+*Rationale.* The book's treatment of ethics is otherwise regulatory:
+@sec-federal covers what the funders require, @sec-deident what the
+HIPAA Privacy Rule requires, and @sec-cdisc what the FDA requires.
+All three are necessary and none is sufficient, because an analysis
+can satisfy every one and still mislead every reader it reaches.
+This chapter is about the failures compliance does not prevent, for
+which the statistician, not the IRB, is the last line of defense.
+The 'where each failure is caught' table now opens the chapter as an
+advance organizer. Phase K adds the ASA guidelines, the federal
+definition of research misconduct, questionable research practices
+including HARKing, and a page of causal foundations (a DAG,
+target-trial emulation, and Hernan's 'C-word' argument) where the
+chapter already uses causal language. Each of the five failures
+belongs to an earlier chapter (02b, 12b, 16, 25b); Phase I seeds a
+flag in each home chapter that points here.

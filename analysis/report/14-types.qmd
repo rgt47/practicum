@@ -1,5 +1,41 @@
 # Factors, Strings, and Dates {#sec-types}
 
+```{r}
+#| label: types-opening
+#| include: false
+library(tidyverse)
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+opening_meds <- read_csv(file.path(hf_dir, "medications.csv"),
+                         col_types = cols(.default = col_character()))
+opening_match <- str_match(
+  opening_meds$med_text,
+  regex(paste0("(\\d+(?:\\.\\d+)?)(?:\\s*[/-]\\s*\\d+(?:\\.\\d+)?)?",
+               "\\s*(mg|mcg|meq|units)\\b"), ignore_case = TRUE)
+)
+opening_unit <- str_to_lower(opening_match[, 3])
+opening_mg <- case_when(
+  opening_unit == "mg" ~ as.numeric(opening_match[, 2]),
+  opening_unit == "mcg" ~ as.numeric(opening_match[, 2]) / 1000
+)
+opening_naive <- as.numeric(str_extract(opening_meds$med_text, "\\d+"))
+opening_n <- sum(!is.na(opening_mg))
+opening_wrong <- sum(opening_naive != opening_mg, na.rm = TRUE)
+```
+
+Numeric columns misbehave loudly: a value that should be a number
+and is not stops the analysis within the minute. Text, categories,
+and dates fail the other way. Take the first number in each HF-HOME
+discharge medication string as its dose in milligrams, and
+`r format(opening_wrong, big.mark = ",")` of the
+`r format(opening_n, big.mark = ",")` doses written in milligrams
+or micrograms are wrong, with no error: `Nitroglycerin 0.4 mg`
+becomes 0 mg, and `digoxin 125 mcg` becomes 125 mg, a thousand
+times the prescribed dose. A date parsed under the wrong convention
+is still a date, and a factor with an unintended reference level
+still fits a model. Each produces a result rather than an error,
+and the result looks exactly as it should; this chapter makes each
+of those failures loud.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
@@ -13,18 +49,57 @@ invalidation and naming things.*
 ```
 :::
 
-::: {.callout-note}
-## Sources
+```{r}
+#| label: types-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-Stat 545 Chapters 10--13 (Jenny Bryan, UBC); the
-`forcats`, `stringr`, and `lubridate` packages.
+```{r}
+#| label: fig-types-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: giving text, categories, and
+#|   dates their types is part of the Wrangle stage, between the raw
+#|   export and the derived analytic data."
+#| fig-alt: !expr pipeline_alt('wrangle')
+pipeline_diagram('wrangle')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 30 minutes.
+
+**You'll need.** @sec-acquisition for reading the HF-HOME files, and
+@sec-wrangling for the per-site recodes this chapter builds on. The
+code uses:
+
+```r
+library(tidyverse)   # includes forcats, stringr, and lubridate
+```
+
+**You'll be able to.**
+
+- Turn a variable coded several ways into a factor with a declared
+  level set and reference level, and verify the recode.
+- Extract drug, dose, unit, and frequency from free-text dosing
+  strings, and count what a careless pattern gets wrong.
+- Parse dates written in several formats, and detect the values
+  that a multi-format parser may silently misread.
+- Choose between a period and a duration, and between `with_tz()`
+  and `force_tz()`, for a given question.
+
+**Outline.**
+
+- [Factors: categories with a declared level set](#sec-types-factors)
+- [Strings: structure from free text](#sec-types-strings)
+- [Dates: formats, ambiguity, and time](#sec-types-dates)
+- [Worked example: a typed patient table](#sec-types-worked)
 :::
 
-## Prerequisites
-
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-14.
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-14.
 
 1. Why has `stringsAsFactors = FALSE` been the default
    since R 4.0, and what problems did the old default
@@ -32,103 +107,22 @@ chapter in @sec-quiz-answers-14.
 2. What does `stringr::str_detect()` return, and how
    does it differ from `stringr::str_extract()`?
 3. Given `c('2026-04-23', '04/23/2026', 'April 23, 2026')`,
-   write one `lubridate`/`readr` pipeline that parses
-   all three into `Date` objects.
+   write one `lubridate` call that parses all three into
+   dates, and say what could go wrong if a fourth value were
+   `'03/04/2026'`.
+:::
 
-## Learning objectives
+## Factors: categories with a declared level set {#sec-types-factors}
 
-By the end of this chapter you should be able to:
-
-- Manage factors idiomatically with `forcats`
-  (reorder, lump, relevel, drop, infreq).
-- Use `stringr` verbs confidently for detection,
-  extraction, replacement, splitting, and
-  interpolation.
-- Parse dates robustly with `lubridate`, including
-  mixed formats and time zones.
-- Diagnose and fix the common 'character vs. factor
-  vs. ordered factor' decision that causes modeling
-  errors downstream.
-- Recognize locale, time-zone, and Excel-date pitfalls.
-
-## Orientation
-
-Numeric columns misbehave loudly. A value that should be a
-number and is not will stop the analysis, and the fix follows
-within the minute. Text, categories, and dates are the opposite
-case, and that is why they merit a chapter of their own. A date
-parsed under the wrong convention is still a date. A factor
-with an unintended reference level still fits. A string with
-trailing whitespace still joins, to nothing. Each of these
-produces a result rather than an error. Unfortunately, the
-result is wrong in a way that no amount of staring at the
-output will reveal, because the output looks exactly as it
-should.
-
-We take up here the three packages that make these types
-tractable. Master them, and a large share of biomedical data
-cleaning becomes routine. More to the point, the failures that
-remain become the loud kind.
-
-The packages are:
-
-- **`forcats`** for factors (categorical variables with
-  defined levels).
-- **`stringr`** for character operations.
-- **`lubridate`** for dates and times.
-
-All three are part of the tidyverse, with consistent
-naming and pipe-friendly interfaces.
-
-## The statistician's contribution {#sec-types-human}
-
-The three packages are well documented and pleasant to
-use. The bugs they exist to prevent are not bugs of syntax.
-They are bugs of timing and assumption:
-
-**Factor or character?** A character vector is
-flexible: any value, any order, any new level later. A
-factor is constrained: a fixed set of levels, a defined
-order, attached metadata. For analysis, factors are
-correct: the model needs to know the reference level
-and the level set. For data cleaning and joining,
-characters are usually safer (no surprises when a
-new value arrives). Convert to factor late, near the
-modeling step.
-
-**Reference levels matter.** A logistic regression with
-factor `treatment` and reference 'high-dose' produces
-coefficients with a different interpretation from one
-with reference 'placebo'. The default (alphabetical) is
-rarely what you want. Set the reference deliberately,
-in writing, in the data-cleaning script.
-
-**Time zones are tricky.** A 'date' value '2026-04-23'
-without a time zone is fine for daily-resolution
-analyses. A 'time' value '2026-04-23 02:00:00' is
-ambiguous: which time zone? UTC? US/Pacific? The local
-time zone of the machine that recorded it? Time-zone
-errors propagate quietly through analyses; daylight-
-saving transitions cause spurious 1-hour gaps.
-
-**Excel dates.** When data come from Excel, dates may
-arrive as 5-digit serial numbers ('45405') rather than
-date strings. Converting them with `as.Date()` counts days
-from R's 1970 origin rather than Excel's 1900 one, so
-`as.Date(45405)` is 2094-04-25 instead of 2024-04-23: a
-plausible-looking date that is wrong by seventy years. The fix
-is `janitor::excel_numeric_to_date()` or careful
-import. Verify any column whose name suggests dates
-but whose values are numeric.
-
-These judgments are what distinguish a working data
-cleaning script from one that silently mishandles a
-common type.
-
-The factor-or-character decision is not a matter of taste.
-Nor is it a decision made once. It is a decision about *when*
-in the pipeline the conversion happens, and @fig-factor-timing
-gives the answer this chapter argues for.
+A character vector is flexible: any value, any order, any new value
+later. A factor is constrained: a fixed set of levels, a defined
+order, and a first level that a model treats as the reference. For
+analysis the constraints are correct, because the model needs the
+level set and the reference. For cleaning and joining they are a
+hazard, because a new or misspelled value has nowhere to go. The
+decision is therefore not whether to use factors but *when* to
+convert, and @fig-factor-timing gives the answer this chapter
+argues for (Habit 7).
 
 ```{mermaid}
 %%| echo: false
@@ -151,376 +145,714 @@ flowchart LR
   X --> P["Plot<br/><i>factor, ordered<br/>by fct_reorder</i>"]
 ```
 
-## Factors with `forcats`
+The generic tour of `forcats` is in R for Data Science
+[@wickham2023r4ds, ch. 16], and the full verb list is in the cheat
+sheet at the end of this chapter. The sections below start from a
+problem in the HF-HOME export and reach for the verb that solves
+it.
 
-The standard operations:
+### A variable coded four ways
 
-```{r}
-#| label: types-forcats
-#| message: false
-library(forcats)
-library(dplyr)
-library(palmerpenguins)
-
-f <- factor(c("low", "high", "low", "medium", "high"))
-
-# levels in current order
-levels(f)
-
-# alphabetical by default; reorder by frequency
-fct_infreq(f)
-
-# reorder by another variable
-penguins |>
-  mutate(species = fct_reorder(species, body_mass_g, mean,
-                               .na_rm = TRUE))
-
-# specify order explicitly
-fct_relevel(f, "low", "medium", "high")
-
-# combine rare levels
-fct_lump_n(f, n = 2)         # keep top 2; rest -> 'Other'
-fct_lump_min(f, min = 5)     # keep levels with >= 5 obs
-
-# drop unused levels
-fct_drop(f)
-
-# rename levels
-fct_recode(f, "L" = "low", "M" = "medium", "H" = "high")
-```
-
-When to convert character to factor:
-
-- Just before modeling: ensures the model knows the
-  level set and the reference.
-- Just before plotting: enables `fct_reorder` for
-  ordered axis labels.
-
-When to keep as character:
-
-- During data cleaning: avoids 'invalid factor level'
-  surprises when a new value arrives.
-- For joining: a join on factor keys matches labels, but
-  the key that comes out carries the union of both
-  tables' level sets, in an order neither table chose,
-  and the integer codes behind the labels differ between
-  tables.
-
-## Strings with `stringr`
-
-Pattern detection, extraction, replacement, and
-splitting:
+The case report form (CRF) export records sex as `F`/`M` at two sites, `Female`/`Male`
+at one, `f`/`m` at another, and `2`/`1` at Site D, whose codebook
+maps 1 to male and 2 to female. @sec-wrangling recoded these with
+`case_when()`; `forcats::fct_collapse()` does the same in the
+vocabulary of levels:
 
 ```{r}
-#| label: types-stringr
-library(stringr)
+#| label: types-sex
+library(tidyverse)
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
 
-s <- c("ABC123", "ABC", "XYZ-789", NA)
+crf_raw <- read_csv(file.path(hf_dir, "crf_export.csv"),
+                    col_types = cols(.default = col_character()),
+                    na = character()) |>
+  mutate(site_raw = site,
+         site = str_to_title(str_squish(site)),
+         patient_id = str_pad(patient_id, width = 4, pad = "0"))
 
-# detect: returns logical
-str_detect(s, "[0-9]")
-
-# extract: returns first match per input, or NA
-str_extract(s, "[0-9]+")
-
-# extract all matches per input (returns list)
-str_extract_all(s, "[0-9]+")
-
-# replace
-str_replace(s, "[0-9]+", "***")
-
-# split
-str_split("a,b,c,d", ",", simplify = TRUE)
-
-# interpolate
-name <- "World"
-str_glue("Hello, {name}!")
-
-# case
-str_to_lower("ABC")           # "abc"
-str_to_upper("abc")           # "ABC"
-str_to_title("hello world")   # "Hello World"
-
-# trim whitespace
-str_trim("  abc  ")           # "abc"
-str_squish("  a   b   c  ")   # "a b c"
+crf_typed <- crf_raw |>
+  mutate(sex = fct_collapse(sex,
+                            F = c("F", "Female", "f", "2"),
+                            M = c("M", "Male", "m", "1")) |>
+           fct_relevel("F", "M"))
+levels(crf_typed$sex)
+crf_typed |> count(site, raw = crf_raw$sex, sex)
 ```
 
-The regex fundamentals you need:
+The collapsed levels come out in the order of the raw codes they
+absorbed, so `fct_relevel()` states the order you want. More
+important, `fct_collapse()` leaves any code you did not list as a
+level of its own, without a warning. That is why the levels are
+printed, and why the verification below asserts them: an unexpected
+code, such as `U` arriving next quarter, then stops the script
+instead of becoming a third sex.
 
-- `[abc]`: any of a, b, c.
-- `[a-z]`, `[A-Z]`, `[0-9]`: ranges.
-- `\\d`, `\\w`, `\\s`: digit, word char, whitespace.
-- `*`, `+`, `?`: zero-or-more, one-or-more, zero-or-one.
-- `{n}`, `{n,m}`: exactly n, between n and m.
-- `^`, `$`: start, end of string.
-- `()`: capture group; `(?:...)` non-capturing.
-- `|`: alternation.
-- `\\`: escape; in R strings this is `\\\\` for a
-  literal backslash.
+::: {.callout-tip title='Verification'}
+The running study ships the clean `demographics.csv`, so the recode
+can be checked against an answer key:
 
-For complex regex, build incrementally and test each
-step.
+```{r}
+#| label: types-sex-verify
+demographics <- read_csv(file.path(hf_dir, "demographics.csv"),
+                         col_types = cols(patient_id = col_character()),
+                         show_col_types = FALSE)
+key <- match(crf_typed$patient_id, demographics$patient_id)
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: why character, then factor?
+stopifnot(
+  identical(levels(crf_typed$sex), c("F", "M")),
+  !anyNA(key),
+  all(as.character(crf_typed$sex) == demographics$sex[key])
+)
+```
 
-**Question.** This chapter argues for keeping categorical
-variables as character through reading, cleaning and
-joining, and converting to factor only at modeling and
-plotting. What actually goes wrong if you convert at read
+A real export has no answer key; there, the cross-tabulation above,
+read line by line against each site's codebook, is the check.
+:::
+
+### Declaring the level set
+
+The site labels arrive in fifteen spellings of five sites. A factor
+built with `factor()` and no levels accepts all fifteen, in
+alphabetical order. A factor built with the levels the protocol
+names turns every other spelling into `NA`, which an assertion can
+catch:
+
+```{r}
+#| label: types-site
+site_levels <- paste("Site", LETTERS[1:5])
+
+nlevels(factor(crf_raw$site_raw))
+
+crf_typed <- crf_typed |>
+  mutate(site = factor(site, levels = site_levels))
+stopifnot(!anyNA(crf_typed$site))
+fct_count(crf_typed$site)
+```
+
+Declared levels also fix the order of every table and figure. Use
+`fct_infreq()` or `fct_reorder()` when the order should follow the
+data, as in a bar chart sorted by count; keep the protocol's order
+when the reader will look for a site by name.
+
+### The reference level
+
+`randomization.csv` records the arm as `Usual care` or
+`Home health`. Left to `factor()`, the levels are alphabetical, so
+`Home health` becomes the reference and the model reports the effect
+of usual care:
+
+```{r}
+#| label: types-reference
+randomization <- read_csv(file.path(hf_dir, "randomization.csv"),
+                          col_types = cols(.default = col_character()))
+outcomes <- read_csv(file.path(hf_dir, "outcomes.csv"),
+                     col_types = cols(patient_id = col_character()),
+                     show_col_types = FALSE)
+trial <- randomization |>
+  inner_join(outcomes, by = "patient_id",
+             relationship = "one-to-one")
+
+levels(factor(trial$arm))
+
+fit_default <- glm(event_30d ~ arm, family = binomial,
+                   data = trial |> mutate(arm = factor(arm)))
+fit_declared <- glm(event_30d ~ arm, family = binomial,
+                    data = trial |> mutate(arm = factor(
+                      arm, levels = c("Usual care", "Home health"))))
+coef(fit_default)[2]
+coef(fit_declared)[2]
+```
+
+The two coefficients have the same size and opposite signs. Neither
+is wrong; a reader who assumes the usual-care arm is the comparison
+reads the first one's direction backwards. Declare the reference in
+the cleaning script, in writing, where a reviewer can see it.
+Whether the estimate is distinguishable from zero is a question for
+the analysis plan (@sec-analysis-plan), not for the factor.
+
+::: {.callout-important title='LLM prompt'}
+> **Context.** My model is `glm(event_30d ~ arm + site + sex,
+> family = binomial)`. The levels of each factor, as printed by
+> `levels()`, are below, with one sentence from the protocol naming
+> the control arm.
+>
+> **Constraints.** Do not refit or change the formula. Set levels
+> with `factor(..., levels = )` or `forcats::fct_relevel()` in the
+> data-cleaning step, not inside the model call.
+>
+> **Criteria.** For each factor, say which level is the reference
+> now, which it should be and why, and write the code that sets it.
+> Then state in one sentence what the `arm` coefficient will mean
+> after the change, including its sign convention.
+
+*Failure mode.* Models assert that 'the first level is the
+reference' without checking which level is first, or set the
+reference inside the formula with `relevel()` where the next model
+in the script does not inherit it. *Check.* Run `levels()` on each
+factor after the change, refit, and confirm that the coefficient's
+name (`armHome health`) names the treated arm. Send level names,
+never rows (@sec-ai-governance).
+:::
+
+### Factors in joins and arithmetic
+
+A `dplyr` join on factor keys compares labels, not the integer codes
+behind them, so the rows match correctly. Two subtler things happen,
+both without a warning:
+
+```{r}
+#| label: types-factor-join
+a <- tibble(site = factor(c("Site A", "Site B")), x = 1:2)
+b <- tibble(site = factor(c("Site B", "Site C")), y = 3:4)
+joined <- full_join(a, b, by = "site")
+levels(joined$site)
+as.integer(a$site[a$site == "Site B"])
+as.integer(b$site[b$site == "Site B"])
+
+site_number <- factor(c("10", "2", "3"))
+as.numeric(site_number)
+as.numeric(as.character(site_number))
+```
+
+The joined key acquires the union of both level sets, in an order
+neither table chose, and `Site B` is code 2 in one table and code 1
+in the other.
+
+::: {.callout-warning title='Pitfall'}
+**`as.numeric()` on a factor returns its codes, not its labels.**
+A site number stored as a factor, `10`, `2`, `3`, becomes 1, 2, 3,
+because the codes follow the alphabetical order of the labels. Any
+join or calculation on those codes pairs rows by position in the
+level set, with the wrong labels and no error. Convert through
+`as.character()`, or better, keep identifiers and numbers out of
+factors altogether.
+:::
+
+### Exercises
+
+1. Build `site` as a factor with the five protocol levels from the
+   raw labels after `str_squish()` only, without `str_to_title()`.
+   How many patients become `NA`, and under which raw spellings?
+2. Fit `lm(event_30d ~ arm, data = trial)` with the default levels
+   and with `fct_relevel(arm, "Usual care")`. Verify that the two
+   `arm` coefficients are equal in size and opposite in sign, and
+   say which one is the risk difference for home health against
+   usual care.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-14-1
+squished <- crf_raw |>
+  mutate(site_f = factor(str_squish(site_raw), levels = site_levels))
+sum(is.na(squished$site_f))
+squished |>
+  filter(is.na(site_f)) |>
+  count(spelling = str_squish(site_raw))
+```
+
+Every upper- and lower-case variant is refused, which is the point
+of declaring the levels: the `NA`s are a list of what the cleaning
+step still has to handle. With `factor()` and no levels, each of
+these spellings would have become a site of its own.
+:::
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-14-2
+lm_default <- lm(event_30d ~ arm, data = trial)
+lm_declared <- lm(event_30d ~ arm,
+                  data = trial |> mutate(arm = fct_relevel(arm,
+                                                           "Usual care")))
+stopifnot(all.equal(unname(coef(lm_default)[2]),
+                    -unname(coef(lm_declared)[2])))
+coef(lm_declared)[2]
+```
+
+With `Usual care` as the reference, the coefficient `armHome
+health` is the difference in the proportion with an event, home
+health minus usual care, among ascertained patients. A negative
+value favors home health. The default model reports the same number
+with the sign reversed, under the name `armUsual care`.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** This chapter keeps categorical variables as character
+through reading, cleaning, and joining, and converts to factor only
+for modeling and plotting. What goes wrong if you convert at read
 time instead?
 
-**Answer.**
-
-Two things, and the second is why the rule exists.
-
-Recoding becomes harder. A factor's permitted values are
-fixed at creation, so assigning a value that is not
-already a level yields `NA` with a warning rather than the
-value you assigned. Every cleaning step then has to
-manage levels alongside data, and `str_replace()` on a
-factor silently coerces to character anyway.
-
-Joining becomes harder to reason about. Two factors built
-independently from different sources almost never share a
-level set, and their underlying integer codes mean
-different things: `"Durham"` can be code 1 in one table
-and code 2 in the other. A `dplyr` join compares labels,
-not codes, so the rows themselves match correctly, but the
-joined key silently acquires the union of both level sets.
-The code mismatch bites as soon as anyone joins on
-`as.integer()` or `as.numeric()` of a factor key, for
-example a site number stored as a factor: rows then pair
-by code, with the wrong labels. Character comparison is on
-the text and has neither problem.
-
-The general principle: factor is a *modeling* type. It
-encodes a fixed set of categories and a reference level,
-which is exactly what a model needs and exactly what makes
-it brittle while the data are still moving.
+**Answer.** Recoding becomes harder: assigning a value that is not
+already a level yields `NA` with a warning rather than the value you
+assigned, and `str_replace()` on a factor silently returns
+character. Joining becomes harder to reason about: two independently
+built factors rarely share a level set, the joined key acquires the
+union of both, and the codes behind the labels differ between
+tables, which bites as soon as anyone calls `as.integer()` on a key.
+A factor encodes a fixed set of categories and a reference level,
+which is exactly what a model needs and exactly what makes it
+brittle while the data are still moving.
 :::
 
-## Dates with `lubridate`
+## Strings: structure from free text {#sec-types-strings}
 
-Parsing:
+`medications.csv` has one row per discharge medication, and its
+`med_text` column records each as the prescriber typed it. The
+`r format(nrow(opening_meds), big.mark = ",")` rows use
+`r n_distinct(opening_meds$med_text)` distinct strings, mixing brand
+and generic names, `mg` with and without a space, upper and lower
+case, combination doses, units other than milligrams, and a dozen
+ways to say how often. The generic tour of `stringr` and regular
+expressions is in R for Data Science [@wickham2023r4ds, chs. 14 and
+15]; this section answers three questions a statistician asks of
+this column.
 
 ```{r}
-#| label: types-lubridate-parse
-library(lubridate)
-
-# fixed format
-ymd("2026-04-23")
-mdy("4/23/2026")
-dmy("23 April 2026")
-
-# mixed formats: try each
-parse_date_time(c("2026-04-23", "04/23/2026", "April 23, 2026"),
-                orders = c("ymd", "mdy", "Bdy"))
-
-# date-time
-ymd_hms("2026-04-23 14:30:00")
-ymd_hm("2026-04-23 14:30")
+#| label: types-meds-read
+meds <- read_csv(file.path(hf_dir, "medications.csv"),
+                 col_types = cols(patient_id = col_character(),
+                                  med_seq = col_integer(),
+                                  med_text = col_character()))
+meds |> filter(patient_id == "0001") |> pull(med_text)
 ```
 
-Components:
+### Which drug?
+
+How many discharge prescriptions are for furosemide? The obvious
+pattern undercounts twice, once for case and once for the brand
+name:
 
 ```{r}
-#| label: types-date-components
-d <- ymd("2026-04-23")
-year(d)         # 2026
-month(d)        # 4
-day(d)          # 23
-wday(d)         # 5 (1 = Sunday by default)
-wday(d, label = TRUE)  # Thu
+#| label: types-detect
+c(
+  case_sensitive = sum(str_detect(meds$med_text, "furosemide")),
+  ignore_case = sum(str_detect(meds$med_text,
+                               regex("furosemide", ignore_case = TRUE))),
+  with_brand = sum(str_detect(meds$med_text,
+                              regex("furosemide|lasix",
+                                    ignore_case = TRUE)))
+)
 ```
 
-Arithmetic:
+Each count is a plausible number of prescriptions, and only the
+last is right. A drug question therefore starts with a lookup that
+names every spelling, brand and generic, for each class the
+analysis needs. For a heart-failure trial, three classes matter
+first: sodium-glucose cotransporter 2 (SGLT2) inhibitors, the
+angiotensin receptor-neprilysin inhibitor (ARNI)
+sacubitril-valsartan, and loop diuretics.
 
 ```{r}
-#| label: types-date-arithmetic
-d + days(7)              # 2026-04-30
-d %m+% months(3)         # 2026-07-23 (handles month length safely)
-
-# differences
-ymd("2026-12-31") - ymd("2026-01-01")  # Time difference of 364 days
-as.numeric(ymd("2026-12-31") - ymd("2026-01-01"), units = "days")
+#| label: types-classes
+meds <- meds |>
+  mutate(drug_class = case_when(
+    str_detect(med_text,
+               regex("dapagliflozin|farxiga|empagliflozin|jardiance",
+                     ignore_case = TRUE)) ~ "SGLT2 inhibitor",
+    str_detect(med_text, regex("sacubitril|entresto",
+                               ignore_case = TRUE)) ~ "ARNI",
+    str_detect(med_text, regex("furosemide|lasix|torsemide",
+                               ignore_case = TRUE)) ~ "Loop diuretic"
+  ))
+meds |>
+  filter(!is.na(drug_class)) |>
+  count(drug_class, med_text)
 ```
 
-Time zones:
+The cross-tabulation is the verification: every spelling that
+matched is listed beside its class, so a reader can see that
+`Farxiga` was counted and that nothing else was.
+
+### What dose?
+
+The dose is a number, possibly with a decimal point, possibly a
+pair for a combination tablet (`49/51`, `24-26`), followed by a
+unit. The pattern below captures each part with a group, and
+`str_match()` returns one column per group:
 
 ```{r}
-#| label: types-timezone
-# parse as a specific time zone
-t <- ymd_hms("2026-04-23 14:30:00", tz = "America/Los_Angeles")
-t
+#| label: types-dose
+dose_pattern <- regex(
+  paste0("(\\d+(?:\\.\\d+)?)",
+         "(?:\\s*[/-]\\s*(\\d+(?:\\.\\d+)?))?",
+         "\\s*(mg|mcg|meq|units)\\b"),
+  ignore_case = TRUE
+)
+dose_parts <- str_match(meds$med_text, dose_pattern)
 
-# convert
-with_tz(t, "UTC")          # same instant, different zone
-force_tz(t, "UTC")         # same wall clock, different zone
+meds <- meds |>
+  mutate(
+    dose    = as.numeric(dose_parts[, 2]),
+    dose_2  = as.numeric(dose_parts[, 3]),
+    unit    = str_to_lower(dose_parts[, 4]),
+    dose_mg = case_when(unit == "mg" ~ dose,
+                        unit == "mcg" ~ dose / 1000)
+  )
+meds |> count(unit)
+meds |> filter(!is.na(dose_2)) |> count(med_text, dose, dose_2)
 ```
 
-`with_tz` changes the displayed zone without changing
-the instant; `force_tz` changes the instant by
-declaring the wall clock was always in the new zone.
-Confusing them is a common source of 1- to 24-hour
-errors.
+@tbl-regex-constructs reads the pattern piece by piece.
 
-## A runnable example: parsing a messy clinical field
+| Piece | Matches | Why it is there |
+|---|---|---|
+| `\\d+(?:\\.\\d+)?` | `40`, `0.4`, `12.5` | A dose with or without a decimal part; `(?: )` groups without capturing |
+| `(?:\\s*[/-]\\s*(...))?` | `/51`, `-26`, or nothing | The second component of a combination tablet, captured separately |
+| `\\s*` | Zero or more spaces | `40mg` and `40 mg` alike |
+| `(mg\|mcg\|meq\|units)` | The unit | Requiring a unit stops `q5min` from being read as a dose |
+| `\\b` | A word boundary | `mg` but not the start of a longer word |
+| `ignore_case = TRUE` | `MG`, `mEq` | Prescribers' capitalization varies |
 
-The three tools of this chapter earn their place on the
-free-text fields that clinical data are full of. To illustrate,
-consider a single column recording a dosing instruction as the
-site typed it, with the drug, the amount, and the start date
-all run together and formatted inconsistently. We use a
-regular expression to pull out the structured pieces, and
-`lubridate` to parse the dates, which arrive in three
-different formats.
+: The constructs in the dose pattern. In an R string each regular
+expression backslash is written twice. {#tbl-regex-constructs}
+
+::: {.callout-warning title='Pitfall'}
+**A pattern that takes the first number misreads decimals, units,
+and combination doses, and returns a number every time.**
+`str_extract(x, "\\d+")` reads `0.4 mg` as 0, `12.5 mg` as 12, and
+`digoxin 125 mcg` as 125, which a later step treats as milligrams.
+`24-26 mg` is a combination tablet, 24 mg of sacubitril and 26 mg
+of valsartan, not a range and not 24 mg. Require the unit in the
+pattern, capture the decimal part, and convert units explicitly.
+:::
+
+::: {.callout-tip title='Verification'}
+Every row should yield a dose and a unit from a known set, and two
+spellings of the same prescription should agree once units are
+converted:
 
 ```{r}
-#| label: types-regex-dates
-#| message: false
-reticulate::py_require("pandas")
-library(tidyverse)
+#| label: types-dose-verify
+digoxin <- meds |>
+  filter(str_detect(med_text, regex("digoxin", ignore_case = TRUE)))
+stopifnot(
+  !anyNA(meds$dose),
+  setequal(unique(meds$unit), c("mg", "mcg", "meq", "units")),
+  n_distinct(digoxin$dose_mg) == 1
+)
+digoxin |> count(med_text, dose_mg)
+```
 
-dosing <- tibble(
-  raw = c("Metformin 500mg started 2026-01-14",
-          "Lisinopril 10 mg started 01/22/2026",
-          "Atorvastatin 20mg started Feb 3 2026",
-          "Aspirin 81 mg started 2026-02-19")
+`0.125 mg` and `125 mcg` are the same dose, and the assertion says
+so. A first-number parse fails this check by a factor of a thousand.
+:::
+
+### How often?
+
+The frequency is written as Latin abbreviations with and without
+periods (`BID`, `b.i.d.`), as English (`twice daily`,
+`once a day`), and as timing (`QAM`, `qhs`, `at bedtime`). Remove
+the periods and the case, then map each phrase to doses per day.
+`PRN` (as needed) has no fixed daily count and stays `NA`.
+
+```{r}
+#| label: types-frequency
+freq_pattern <- paste(
+  "\\bprn\\b", "\\bbid\\b", "twice daily", "\\btid\\b", "\\bqd\\b",
+  "once daily", "once a day", "every day", "daily", "\\bqam\\b",
+  "\\bqhs\\b", "at bedtime", sep = "|"
 )
 
-parsed <- dosing |>
+meds <- meds |>
   mutate(
-    drug   = str_extract(raw, "^[A-Za-z]+"),
-    dose   = as.integer(str_extract(raw, "\\d+(?=\\s?mg)")),
-    date_s = str_extract(raw, "(?<=started ).*$"),
-    start  = parse_date_time(date_s, orders = c("ymd", "mdy", "bdy")) |>
-             as_date()
-  ) |>
-  select(drug, dose, start)
-
-parsed
+    freq_text = med_text |> str_to_lower() |> str_remove_all("\\."),
+    freq_code = str_extract(freq_text, freq_pattern),
+    per_day = case_when(
+      freq_code == "prn" ~ NA_real_,
+      freq_code %in% c("bid", "twice daily") ~ 2,
+      freq_code == "tid" ~ 3,
+      freq_code %in% c("qd", "once daily", "once a day", "every day",
+                       "daily", "qam", "qhs", "at bedtime") ~ 1
+    )
+  )
+meds |> count(per_day, freq_code)
 ```
 
-Three regular-expression constructs do the work. The anchor
-`^[A-Za-z]+` takes the leading word, the drug. The lookahead
-`\\d+(?=\\s?mg)` takes the digits that precede `mg` without
-capturing the `mg` itself. The lookbehind `(?<=started )`
-takes everything after the word `started`, which is the date
-in whatever format the site used. `parse_date_time` then
-tries each candidate format in turn. The result is a tidy
-three-column table drawn from a single messy string.
+Two details carry the weight. `str_extract()` returns the leftmost
+match, so `twice daily` is found before the `daily` inside it; a
+`case_when()` that tested `str_detect(x, "daily")` first would call
+every twice-daily prescription once daily. And the word boundaries
+in `\\bqd\\b` and `\\bbid\\b` keep the codes from matching inside
+longer words.
 
-### The same parsing in Python
-
-`pandas` exposes the same operations through its `.str`
-accessor and `to_datetime`. The regular expressions are
-identical, because the regex dialect is shared. Only the
-surrounding idiom differs.
-
-```{python}
-#| label: types-py
-import pandas as pd
-
-dosing = r.dosing            # the R tibble, via reticulate
-
-out = pd.DataFrame({
-    "drug": dosing["raw"].str.extract(r"^([A-Za-z]+)")[0],
-    "dose": dosing["raw"].str.extract(r"(\d+)\s?mg")[0].astype(int),
-    "start": pd.to_datetime(
-        dosing["raw"].str.extract(r"started (.*)$")[0],
-        format="mixed"),
-})
-out
-```
-
-The `format="mixed"` argument is `pandas`' counterpart to
-supplying several `orders` to `parse_date_time`. It lets each
-value be parsed by whichever format fits. The lesson is that
-regex and date parsing are portable skills. The drug, dose,
-and date fall out the same way in either language, and a
-biostatistician who knows the constructs can work in
-whichever the project uses.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: factor reference level
-
-**Question.** You fit
-`glm(outcome ~ treatment, family = binomial)` where
-`treatment` is a character vector with values `"placebo"`,
-`"low"`, `"high"`, which `glm()` converts to a factor. The
-default reference is alphabetical (`"high"`). The intercept
-estimates 0.8 and the `treatmentplacebo` coefficient is -1.1.
-What is the estimated probability of the outcome under
-high-dose treatment?
-
-**Answer.**
-
-The intercept estimates the log-odds at the reference level
-(`"high"`), so the high-dose probability is
-`plogis(0.8)`, about 0.69. The `treatmentplacebo`
-coefficient (-1.1) is a log odds ratio relative to
-high-dose, so the placebo log-odds are 0.8 - 1.1 = -0.3, a
-probability of `plogis(-0.3)`, about 0.43. The coefficient
-is not a difference in probabilities; `exp(-1.1)`, about
-0.33, is the odds ratio for placebo against high dose.
-
-For clinical reporting, it is usually clearer to set the
-reference deliberately to `"placebo"`, so the intercept gives
-the placebo baseline and the treatment coefficients give the
-increments from baseline:
+::: {.callout-tip title='Verification'}
+Every row has a frequency code, and the only rows without a daily
+count are the as-needed ones:
 
 ```{r}
-#| label: types-reference-level
-treatment <- c("high", "placebo", "low", "high", "placebo")
-
-treatment <- factor(treatment,
-                    levels = c("placebo", "low", "high"))
-
-levels(treatment)      # placebo is now the reference
-
+#| label: types-frequency-verify
+stopifnot(
+  !anyNA(meds$freq_code),
+  all(is.na(meds$per_day) == (meds$freq_code == "prn"))
+)
 ```
-
-The default alphabetical ordering is, unfortunately, a
-frequent source of misreported effect direction.
-
 :::
 
-## Common pitfalls
+### Exercises
 
-**Excel dates as serial numbers.** A date column from
-Excel may arrive as `45405` (= 2024-04-23 in Excel's
-1900-epoch numbering). Parse with:
+3. Count *patients*, not prescriptions, discharged on an SGLT2
+   inhibitor in each arm. Join to `randomization.csv` with a
+   declared relationship.
+4. Compute the daily furosemide dose (`dose_mg * per_day`) for every
+   furosemide prescription, in any spelling. Then recompute
+   `per_day` with a `case_when()` that tests for `daily` before
+   `twice daily`, and count the prescriptions, across all drugs,
+   whose daily count changes.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-14-3
+sglt2_patients <- meds |>
+  filter(drug_class == "SGLT2 inhibitor") |>
+  distinct(patient_id)
+
+randomization |>
+  left_join(sglt2_patients |> mutate(on_sglt2 = TRUE),
+            by = "patient_id", relationship = "one-to-one") |>
+  mutate(on_sglt2 = coalesce(on_sglt2, FALSE)) |>
+  count(arm, on_sglt2) |>
+  mutate(share = n / sum(n), .by = arm)
+```
+
+`distinct()` comes first because a patient could hold two SGLT2
+prescriptions; without it the join would be one-to-many and the
+declared relationship would refuse it. The shares in the two arms
+are within a few percentage points of each other, as randomization
+leads you to expect for a medication prescribed before the arm
+could influence it; a large difference would be worth a data query.
+:::
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-14-4
+meds |>
+  filter(str_detect(med_text, regex("furosemide|lasix",
+                                    ignore_case = TRUE))) |>
+  mutate(daily_mg = dose_mg * per_day) |>
+  count(med_text, daily_mg)
+
+wrong_order <- case_when(
+  str_detect(meds$freq_text, "\\bprn\\b") ~ NA_real_,
+  str_detect(meds$freq_text, "daily") ~ 1,
+  str_detect(meds$freq_text, "\\bbid\\b|twice daily") ~ 2,
+  str_detect(meds$freq_text, "\\btid\\b") ~ 3,
+  str_detect(meds$freq_text,
+             "\\bqd\\b|once a day|every day|\\bqam\\b|\\bqhs\\b|at bedtime") ~ 1
+)
+sum(wrong_order != meds$per_day, na.rm = TRUE)
+meds |>
+  filter(wrong_order != per_day) |>
+  count(med_text)
+```
+
+Every `twice daily` prescription is halved, including the `Lasix
+40 mg twice daily` rows, whose daily furosemide dose drops from 80
+mg to 40 mg. No value is `NA` and no assertion on types fails;
+only the cross-tabulation of codes against counts shows it.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague flags beta-blockers with
+`str_detect(med_text, "olol")`, because their generic names end that
+way. What does the flag count in this file, and what does it miss?
+
+**Answer.** Tabulate it against the spellings you know to be
+beta-blockers:
+
+```{r}
+#| label: types-olol
+meds |>
+  filter(str_detect(med_text, regex("olol|coreg|toprol",
+                                    ignore_case = TRUE))) |>
+  count(med_text, flagged = str_detect(med_text, "olol"))
+```
+
+The flag counts metoprolol written generically and misses
+carvedilol, whose name ends in `-dilol`, and the brands `Coreg` and
+`Toprol XL`. A suffix is a property of some names, not of the class.
+Build class flags from a lookup that names each drug, brand and
+generic, with `ignore_case = TRUE`, and print the matched spellings
+beside the class, as in `types-classes`, so a reader can see what
+was counted.
+:::
+
+## Dates: formats, ambiguity, and time {#sec-types-dates}
+
+The CRF export writes dates in four formats: `YYYY-MM-DD` at Sites
+A and B, `MM/DD/YYYY` at Site C, `DD-MON-YYYY` at Site D, and
+`YYYYMMDD` at Site E. @sec-wrangling parsed them site by site, and
+noted that a single call to `lubridate::parse_date_time()` with a
+list of formats returns a date for every row and gets some of them
+wrong. This section shows why, and how to find the rows at risk.
+The generic tour is in R for Data Science [@wickham2023r4ds,
+ch. 17].
+
+### One parser, several formats
+
+`parse_date_time()` accepts several `orders` and returns, for each
+value, a date under one of them. The per-site parse uses one order
+per site, as each site's codebook states:
+
+```{r}
+#| label: types-dates
+parse_site_date <- function(x, site) {
+  case_when(
+    site %in% c("Site A", "Site B", "Site E") ~ ymd(x, quiet = TRUE),
+    site == "Site C" ~ mdy(x, quiet = TRUE),
+    site == "Site D" ~ dmy(x, quiet = TRUE)
+  )
+}
+
+dates <- crf_raw |>
+  transmute(
+    site, discharge_raw = discharge_date,
+    by_site = parse_site_date(discharge_date, site),
+    one_call = as_date(parse_date_time(discharge_date,
+                                       orders = c("ymd", "mdy", "dmy"),
+                                       quiet = TRUE))
+  )
+
+dates |> count(site, wrong = by_site != one_call)
+dates |> filter(by_site != one_call) |> distinct() |> head(4)
+
+misread <- dates |>
+  filter(by_site != one_call) |>
+  summarize(n = n(),
+            in_period = sum(between(one_call, min(dates$by_site),
+                                    max(dates$by_site))))
+misread
+```
+
+The single call parses every value and returns no `NA`, and every
+disagreement is at Site D. The rows shown are consistent with
+`03-FEB-2024` being read as month 03, with `FEB` skipped and `2024`
+split into a day, 20, and a two-digit year, 24. Of the
+`r misread$n` misread discharge dates, `r misread$in_period` fall
+inside the trial's enrollment period, so a range check on discharge
+dates catches only `r misread$n - misread$in_period` of them.
+
+### Ambiguous values
+
+Site D's failure comes from a format the orders did not describe
+well. Site C's risk is subtler: `03/04/2026` is a valid date under
+both `mdy` and `dmy`. `parse_date_time()` chooses an order by
+training on the whole vector, so the reading of one value depends on
+the order you list and on its neighbors:
+
+```{r}
+#| label: types-ambiguous
+parse_date_time("03/04/2026", orders = c("mdy", "dmy"))
+parse_date_time("03/04/2026", orders = c("dmy", "mdy"))
+parse_date_time(c("03/04/2026", "25/04/2026"), orders = c("mdy", "dmy"))
+```
+
+Alone, with `mdy` listed first, the value is March 4. Beside a value
+that only `dmy` can read, the same value becomes April 3, under the
+same call and with no warning. A column's dates can therefore change
+when rows are added to it. The defense is to count the values a
+second convention would read differently:
+
+```{r}
+#| label: types-ambiguous-count
+ambiguous <- function(x) {
+  as_mdy <- mdy(x, quiet = TRUE)
+  as_dmy <- dmy(x, quiet = TRUE)
+  !is.na(as_mdy) & !is.na(as_dmy) & as_mdy != as_dmy
+}
+
+crf_raw |>
+  filter(site == "Site C") |>
+  summarize(n = n(), ambiguous = sum(ambiguous(discharge_date)))
+```
+
+Only Site C's codebook can resolve those values, which is why the
+parse is per site and the order is stated, not guessed.
+
+::: {.callout-warning title='Pitfall'}
+**A multi-format parser never says it guessed.** `parse_date_time()`
+with several orders returns a date for every value it can read under
+any of them. Day-month swaps produce valid dates in the same month
+range, and a misread such as Site D's produces a plausible date in
+the same year. Parse each source with its single documented order,
+and count the ambiguous values before trusting any multi-order
+parse.
+:::
+
+::: {.callout-important title='LLM prompt'}
+> **Context.** A date column from three sources. Below are twenty
+> synthetic values in each source's format, and each source's
+> codebook line stating its format.
+>
+> **Constraints.** Parse each source with its single documented
+> order (`ymd()`, `mdy()`, `dmy()`), not `parse_date_time()` with
+> several orders and not nested `ifelse()`. Use `quiet = TRUE` and
+> count failures explicitly.
+>
+> **Criteria.** Return a function `parse_source_date(x, source)` and
+> a check that reports, per source, the number of `NA`s and the
+> number of values that `mdy()` and `dmy()` would read as different
+> dates.
+
+*Failure mode.* The model's default answer is `parse_date_time(x,
+orders = c("ymd", "mdy", "dmy"))`, often called the robust choice.
+It returns a date for every value, so an `NA` count finds nothing,
+and it misreads exactly the values this section counts. *Check.*
+Compare the model's parse with the per-site parse row by row, as in
+`types-dates`; any disagreement is a misread by one of them. Send
+synthetic values in the source's format, not real dates of birth
+(@sec-ai-governance).
+:::
+
+### Excel serial dates
+
+A date column from a spreadsheet may arrive as five-digit numbers,
+Excel's count of days from its own origin. Converting with
+`as.Date()` counts from R's origin instead:
 
 ```{r}
 #| label: types-excel-date
+as.Date(45405)
+as.Date(45405, origin = "1899-12-30")
 janitor::excel_numeric_to_date(45405)
 ```
 
-Verify: any 'date' column whose values are 5-digit
-numbers should ring an alarm.
+`as.Date(45405)` is a valid date seventy years from now, and nothing
+about it is `NA`.[^excel-origin] Any column whose name says date and
+whose values are numbers is a bug until shown otherwise; the
+assertion is a range check against the study period.
 
-**Mixed-locale month names.** `lubridate::dmy()` can
-read 'avril' (French April) only if the locale
-supports it. For multi-language data:
+[^excel-origin]: Since R 4.3.0, `as.Date()` on a number uses
+    1970-01-01 as the origin when none is given; earlier versions
+    required an `origin`. The Excel origin of 1899-12-30, rather
+    than 1900-01-01, absorbs Excel's treatment of 1900 as a leap
+    year, which holds for dates after February 1900 in the
+    default Windows date system.
 
-```r
-lct <- Sys.getlocale("LC_TIME")
-Sys.setlocale("LC_TIME", "fr_FR.UTF-8")
-dmy("23 avril 2026")
-Sys.setlocale("LC_TIME", lct)             # restore
+### Time zones and daylight saving
+
+HF-HOME records dates without times, which is the safe case for
+daily-resolution analyses. Device data, electronic health record
+audit logs, and infusion pumps record date-times, and a date-time
+without a time zone is ambiguous: Coordinated Universal Time (UTC),
+the site's zone, or the zone
+of the server that wrote it? `lubridate` parses a date-time without
+a zone as UTC; base R uses the session's zone. Say which:
+
+```{r}
+#| label: types-timezone
+t <- ymd_hms("2026-04-23 14:30:00", tz = "America/Los_Angeles")
+t
+with_tz(t, "UTC")
+force_tz(t, "UTC")
 ```
 
-Or use explicit format strings.
+`with_tz()` changes the displayed zone without changing the instant;
+`force_tz()` changes the instant by declaring that the clock reading
+was always in the new zone. Confusing them shifts times by the
+offset between the zones, here seven hours.
 
-**Time-zone-naïve datetimes.** A datetime read without
-a time zone defaults to UTC (lubridate) or the system
-zone (base R). Be explicit; never assume.
-
-**Daylight-saving transitions.** Adding 24 hours and
-adding 1 day are not always the same. In most US time zones,
-daylight-saving time began at 2:00 a.m. on March 8, 2026, so
+Daylight-saving transitions add a second trap. In most US time
+zones, daylight-saving time began at 2:00 a.m. on March 8, 2026, so
 an interval that starts at noon the day before crosses it:
 
 ```{r}
@@ -531,389 +863,323 @@ start + hours(24)
 start + dhours(24)
 ```
 
-`days(1)` and `hours(24)` are both *periods*: they advance
-the clock, and land at noon on March 8. `dhours(24)` is a
-*duration* of exactly 86,400 seconds, and lands at 1:00
-p.m., because the night of the transition was only 23 hours
-long. Use a period for a calendar notion of a day and a
-duration for elapsed time, whichever the analysis at hand
-requires.
+`days(1)` and `hours(24)` are both *periods*: they advance the
+clock, and land at noon on March 8. `dhours(24)` is a *duration* of
+exactly 86,400 seconds, and lands at 1:00 p.m., because the night of
+the transition was only 23 hours long. Use a period for a calendar
+notion of a day and a duration for elapsed time, whichever the
+analysis requires.
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: which date bug is silent?
+### Exercises
 
-**Question.** Three things go wrong with dates in this
-chapter: a mixed-format column parsed with a single
-format, an Excel serial number read as a number, and
-`days(1)` used across a daylight-saving boundary. Which of
-the three will your code tell you about, and which will it
-not?
+5. Parse `dob` per site and verify it against `demographics.csv`.
+   Then parse it with the single `parse_date_time()` call of
+   `types-dates`, and count the dates of birth it gets wrong and how
+   many of those fall after the patient's discharge date.
+6. Count the ambiguous dates of birth at Site C. For one of them,
+   show the date `mdy()` and `dmy()` each return.
+7. Create a date-time in `America/Los_Angeles` and convert it to UTC
+   with `with_tz()` and with `force_tz()`. Explain the difference,
+   and say when each is the right call.
 
-**Answer.**
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-14-5a
+dob <- crf_raw |>
+  transmute(
+    patient_id, site,
+    by_site = parse_site_date(dob, site),
+    one_call = as_date(parse_date_time(dob,
+                                       orders = c("ymd", "mdy", "dmy"),
+                                       quiet = TRUE)),
+    discharge = parse_site_date(discharge_date, site)
+  )
+stopifnot(identical(dob$by_site,
+                    demographics$dob[match(dob$patient_id,
+                                           demographics$patient_id)]))
 
-Only the first announces itself, and even then partially.
-`as.Date(x, format = "%Y-%m-%d")` on `03/14/2026` returns
-`NA`, so the failure is visible if anyone counts the `NA`s
-afterward. If the pipeline filters missing dates without
-counting, it disappears too.
+dob_wrong <- dob |>
+  filter(by_site != one_call) |>
+  summarize(wrong = n(), after_discharge = sum(one_call > discharge),
+            .by = site)
+dob_wrong
+```
 
-The other two are silent by construction.
-
-An Excel serial date is a perfectly valid number. `45405`
-reads as 45405, sorts, means, and plots without complaint;
-nothing marks it as a date at all. It is only wrong
-relative to an intention the data do not record.
-
-The DST case is worse, because both answers are correct.
-`d + days(1)` gives the same clock time the next calendar
-day; `d + dhours(24)` gives the instant 24 hours later.
-Across a spring-forward boundary these differ by an hour,
-and which you want depends on whether your interval is a
-*calendar* day or a *duration*. R cannot know which you
-meant, so it cannot warn you.
-
-The lesson generalizes past dates: a bug that produces
-`NA` is cheap, and a bug that produces a plausible number
-is expensive. Assertions exist for the second kind.
+The per-site parse agrees with the answer key for every patient. The
+single call misreads only Site D's dates of birth. Of its
+`r dob_wrong$wrong` misreads, `r dob_wrong$after_discharge` place
+the birth after the discharge, which a range check catches; the
+other `r dob_wrong$wrong - dob_wrong$after_discharge` are plausible
+ages and are caught by nothing but the comparison.
 :::
 
-## Common antipatterns
-
-**Hand-coded `ifelse` chains for date parsing**:
-
+::: {.callout-note collapse='true' title='Solution'}
 ```{r}
-#| label: types-antipattern-dates
-x <- c("04/23/2026", "2026-04-23")
-
-# bad: ifelse strips the Date class and returns bare numbers
-ifelse(grepl("/", x),
-       as.Date(x, format = "%m/%d/%Y"),
-       as.Date(x, format = "%Y-%m-%d"))
-
-# good
-parse_date_time(x, orders = c("mdy", "ymd"))
+#| label: soln-14-6
+site_c_dob <- crf_raw |> filter(site == "Site C") |> pull(dob)
+sum(ambiguous(site_c_dob))
+example <- site_c_dob[ambiguous(site_c_dob)][1]
+c(raw = example, mdy = format(mdy(example)),
+  dmy = format(dmy(example)))
 ```
 
-**Letting characters become factors silently in old
-code**:
+Site C's codebook says `MM/DD/YYYY`, so `mdy()` is right. Nothing in
+the values says so: for each ambiguous date, both readings are real
+dates.
+:::
 
-```{r}
-#| label: types-read-strings
-#| message: false
-f <- file.path(tempdir(), "file.csv")
-write.csv(data.frame(site = "A", n = 3), f, row.names = FALSE)
-
-# always specify
-class(read.csv(f, stringsAsFactors = FALSE)$site)
-class(readr::read_csv(f, show_col_types = FALSE)$site)  # readr default
-```
-
-**Comparing factors by value when levels differ**:
-
-```{r}
-#| label: types-factor-compare
-f1 <- factor("a", levels = c("a", "b"))
-f2 <- factor("a", levels = c("a", "c"))
-f1 == f2                          # works, but levels differ
-# better: convert to character for cross-table comparisons
-as.character(f1) == as.character(f2)
-```
-
-## Worked example: cleaning a CRF export
-
-```{r}
-#| label: types-worked-cleanup
-#| message: false
-#| warning: false
-library(tidyverse)
-library(janitor)
-library(lubridate)
-library(forcats)
-
-# A stand-in for the messy export: mixed date formats, one Excel
-# serial date, inconsistent treatment spellings, a rare site that
-# should be lumped, and blank sex entries. Twenty-four rows, so that
-# fct_lump_min's threshold of 10 has something to bite on.
-crf_path <- file.path(tempdir(), "crf_export.csv")
-set.seed(3)
-tibble(
-  `Visit Date`       = rep(c("2026-01-14", "02/19/2026",
-                             NA, "2026-03-02"), 6),
-  `Visit Date Excel` = rep(c(NA, NA, 45405, NA), 6),
-  Treatment          = rep(c("placebo", "PBO",
-                             "low dose", "HIGH DOSE"), 6),
-  Site               = c(rep("A", 12), rep("B", 10), "Y", "Z"),
-  Sex                = rep(c("F", "M", "", "F"), 6)
-) |>
-  write_csv(crf_path, na = "")
-
-# na = "NA" keeps blank Sex as an empty string rather than NA, which
-# is what the fct_recode below is there to handle.
-raw <- read_csv(crf_path, na = "NA", show_col_types = FALSE)
-
-clean <- raw |>
-  clean_names() |>
-  mutate(
-    # parse mixed-format date column
-    visit_date = parse_date_time(visit_date,
-                                 orders = c("ymd", "mdy")),
-
-    # convert numeric Excel dates if any
-    visit_date = if_else(is.na(visit_date) & !is.na(visit_date_excel),
-                         excel_numeric_to_date(visit_date_excel),
-                         visit_date),
-
-    # standardize treatment text
-    treatment = str_to_title(treatment),
-    treatment = str_replace(treatment, "^Pbo$", "Placebo"),
-
-    # convert to factor with deliberate reference
-    treatment = factor(treatment,
-                       levels = c("Placebo", "Low Dose", "High Dose")),
-
-    # collapse small categories
-    site = fct_lump_min(site, min = 10, other_level = "Other"),
-
-    # recode missing-as-unknown
-    sex = fct_recode(factor(sex), "Unknown" = "")
-  ) |>
-  filter(!is.na(visit_date), !is.na(treatment))
-
-count(clean, treatment, site, sex)
-```
-
-The cleaned data have dates parsed from mixed formats,
-treatment standardized and explicitly factored, small sites
-collapsed, and missing sex coded explicitly. That is, the
-script documents every transformation as code, rather than
-leaving it to memory.
-
-## Collaborating with an LLM on types
-
-LLMs handle these packages well. The trap, as far as we have
-observed, is silent type coercion.
-
-**Prompt 1: parsing dates.** Paste a sample of date
-strings (10 examples covering the formats present)
-and ask: 'parse these robustly, flagging any that fail.'
-
-*What to watch for.* `parse_date_time()` with multiple
-orders is the canonical answer. If the LLM produces
-nested `ifelse` or `case_when`, push back. But multiple
-orders are safe only when they cannot both match the same
-string. With `orders = c("mdy", "dmy")`, a value such as
-`03/04/2026` fits both, and `parse_date_time()` returns
-one reading (here April 3) with no warning, whichever
-order is listed first. That is this chapter's silent
-failure arriving through the recommended tool. Ask which
-convention each source uses, and parse each source with
-its single order.
-
-*Verification.* Run on the full column. Count NAs
-produced; investigate any unexpected ones. Then count the
-values whose day and month are both 12 or less, since NA
-counts cannot detect a misparse among them.
-
-**Prompt 2: regex extraction.** Describe the pattern
-you want and provide examples. Ask the LLM to write a
-regex.
-
-*What to watch for.* Test the regex on edge cases the
-LLM may not have considered (empty strings, unusual
-separators, mixed case). LLM regexes often fail at
-the margins.
-
-*Verification.* `str_detect` and `str_extract` on a
-test set; count mismatches.
-
-**Prompt 3: factor reference level.** Paste a
-modeling formula and ask: 'is the default reference
-level for `treatment` clinically sensible? If not,
-how should it be set?'
-
-*What to watch for.* The LLM should know that
-alphabetical reference is rarely what you want.
-Specifying via `factor(..., levels = ...)` or
-`fct_relevel` is the canonical fix.
-
-*Verification.* Re-fit the model with the explicit
-reference; check coefficients match the intended
-interpretation.
-
-## Principle in use
-
-Three habits keep text, categories, and dates from becoming
-entries on the project's bug list:
-
-1. **Convert to factor late.** Cleaning in
-   character; modeling in factor. Specify reference
-   levels deliberately.
-2. **Parse dates with named formats.**
-   `parse_date_time` with explicit orders, not
-   guesses. Watch for Excel serial numbers.
-3. **Be explicit about time zones.** A datetime
-   without a zone is a bug waiting to happen.
-
-## Exercises
-
-1. Using `palmerpenguins::penguins`, reorder the
-   `species` factor by mean body mass (ascending)
-   using `fct_reorder()`. Produce a bar plot that
-   reflects the new order.
-2. A character column contains hospital names like
-   `'General Hospital Main Campus'`,
-   `'Gen. Hospital'`, `'GENHOSP'`. Write a
-   regex-based cleaning pipeline that collapses
-   these into a single canonical level.
-3. A dataset has a `visit_date` column in mixed
-   formats. Write a pipeline that parses everything
-   with `parse_date_time()` and flags rows that fail
-   to parse.
-4. Write a function that takes any character column
-   and returns a tibble of value, count, and
-   proportion.
-5. Create a dataset with a datetime in PST and convert
-   it to UTC two ways: with `with_tz` and
-   `force_tz`. Explain the difference.
-
-**On your own data.** No answer key; the answer depends
-on your data.
-
-6. Use the function from exercise 4 to audit the
-   categorical variables in a recent analysis of
-   yours. Report any level you did not expect.
-
-::: {.callout-tip icon=false collapse=true}
-## Solutions to exercises 1 to 5
-
-**1. Reorder a factor by a summary of another variable.**
-
-```{r}
-#| label: soln-14-1
-#| fig-cap: "Mean body mass by species, with the factor reordered so
-#|   the bars ascend. The ordering is a property of the data, not of
-#|   the alphabet."
-#| fig-alt: "Bar chart of mean body mass for three penguin species,
-#|   ascending from Chinstrap through Adelie to Gentoo."
-#| fig-width: 5
-#| fig-height: 3
-#| message: false
-library(ggplot2)
-
-penguins |>
-  filter(!is.na(body_mass_g)) |>
-  mutate(species = fct_reorder(species, body_mass_g, mean)) |>
-  ggplot(aes(species, body_mass_g)) +
-  stat_summary(fun = mean, geom = "col")
-```
-
-`fct_reorder()` changes the level order, and the plot
-follows because ggplot2 draws factors in level order.
-Sorting the data frame instead would not have worked.
-
-**2. Collapsing spelling variants to a canonical level.**
-
-```{r}
-#| label: soln-14-2
-hosp <- c("General Hospital Main Campus", "Gen. Hospital",
-          "GENHOSP", "Mercy Regional")
-
-canonical <- case_when(
-  str_detect(str_to_lower(str_remove_all(hosp, "[^A-Za-z]")),
-             "^gen") ~ "General Hospital",
-  .default = hosp
-)
-tibble(raw = hosp, canonical)
-```
-
-Stripping punctuation and case before matching is what
-lets one pattern cover all three variants. Note that this
-collapses `GENHOSP` correctly and leaves `Mercy Regional`
-alone, which is the behavior to check.
-
-**3. Parsing mixed formats and flagging failures.**
-
-```{r}
-#| label: soln-14-3
-#| warning: false
-visit_raw <- c("2026-01-14", "02/19/2026", "Feb 3 2026",
-               "not recorded")
-
-parsed <- tibble(visit_raw) |>
-  mutate(
-    visit_date = parse_date_time(visit_raw,
-                                 orders = c("ymd", "mdy", "Bdy")),
-    failed = is.na(visit_date)
-  )
-parsed
-```
-
-The fourth value cannot parse, and the point of the
-`failed` column is that it is now data rather than a
-warning nobody reads. Filtering silently on
-`!is.na(visit_date)` would lose the count.
-
-**4. A reusable level audit.**
-
-```{r}
-#| label: soln-14-4
-audit_levels <- function(df, col) {
-  df |>
-    count({{ col }}, sort = TRUE) |>
-    mutate(proportion = n / sum(n))
-}
-
-audit_levels(penguins, island)
-```
-
-**5. `with_tz` against `force_tz`.**
-
+::: {.callout-note collapse='true' title='Solution'}
 ```{r}
 #| label: soln-14-5
 t <- ymd_hms("2026-04-23 14:30:00", tz = "America/Los_Angeles")
 
-with_tz(t, "UTC")    # same instant, clock reads differently
-force_tz(t, "UTC")   # same clock reading, different instant
+with_tz(t, "UTC")
+force_tz(t, "UTC")
 ```
 
-`with_tz` preserves the moment and relabels it; `force_tz`
-preserves the digits and moves the moment. Use `with_tz`
-when combining data recorded in different zones, and
-`force_tz` only to repair a timestamp that was stamped with
-the wrong zone to begin with.
+`with_tz` preserves the moment and relabels it; `force_tz` preserves
+the digits and moves the moment. Use `with_tz` when combining data
+recorded in different zones, and `force_tz` only to repair a
+timestamp that was stamped with the wrong zone to begin with.
 :::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Three things go wrong with dates in this chapter: a
+multi-format column parsed with one `parse_date_time()` call, an
+Excel serial number read with `as.Date()`, and `days(1)` used where
+a duration was meant. Which will your code tell you about?
+
+**Answer.** None of them. The single parse returns a date for every
+Site D value and is wrong for some; an `NA` count finds nothing. The
+Excel number becomes a valid date seventy years out. The daylight
+saving case returns a correct answer to a different question:
+`days(1)` gives the same clock time the next day, `dhours(24)` the
+instant 24 hours later, and R cannot know which you meant. A bug
+that produces `NA` is cheap; a bug that produces a plausible date is
+expensive, and the comparison against a per-source parse or a range
+check is the assertion that makes it loud (Habit 8).
+:::
+
+## Worked example: a typed patient table {#sec-types-worked}
+
+The script below gathers the chapter into one patient-level table:
+site and sex as factors with declared levels, the discharge date
+parsed per site, the arm with its reference set, and three
+medication summaries. It reuses `crf_typed`, `parse_site_date()`,
+and the parsed `meds` from the sections above.
+
+```{r}
+#| label: types-worked-example
+med_summary <- meds |>
+  summarize(
+    n_meds    = n(),
+    on_sglt2  = any(drug_class == "SGLT2 inhibitor", na.rm = TRUE),
+    on_arni   = any(drug_class == "ARNI", na.rm = TRUE),
+    loop_mg_day = sum(
+      if_else(str_detect(med_text, regex("furosemide|lasix",
+                                         ignore_case = TRUE)),
+              dose_mg * per_day, 0)
+    ),
+    .by = patient_id
+  )
+
+patients <- crf_typed |>
+  transmute(
+    patient_id, site, sex,
+    discharge_date = parse_site_date(discharge_date,
+                                     as.character(site))
+  ) |>
+  left_join(randomization |> select(patient_id, arm),
+            by = "patient_id", relationship = "one-to-one",
+            unmatched = "error") |>
+  left_join(med_summary, by = "patient_id",
+            relationship = "one-to-one") |>
+  mutate(
+    arm = factor(arm, levels = c("Usual care", "Home health")),
+    across(c(n_meds, loop_mg_day), \(x) coalesce(x, 0)),
+    across(c(on_sglt2, on_arni), \(x) coalesce(x, FALSE))
+  )
+
+glimpse(patients)
+patients |>
+  summarize(n = n(), sglt2 = mean(on_sglt2), arni = mean(on_arni),
+            furosemide = mean(loop_mg_day > 0), .by = arm) |>
+  arrange(arm)
+```
+
+Two judgments are written into the code. Patients with no
+medication rows get `n_meds = 0` and `FALSE` flags, which is the
+codebook's meaning of an absent row; in a file where absence could
+mean 'not recorded', the right value would be `NA`. And
+`loop_mg_day` counts furosemide only, because torsemide is about
+twice as potent per milligram and adding the two would mix units of
+effect; a dose-equivalence rule belongs in the analysis plan, not
+in a cleaning script's arithmetic.
+
+::: {.callout-tip title='Verification'}
+Confirm the types and levels, and check the medication count against
+the clean `baseline.csv`, which records each patient's number of
+discharge medications:
+
+```{r}
+#| label: types-worked-verify
+baseline <- read_csv(file.path(hf_dir, "baseline.csv"),
+                     col_types = cols(patient_id = col_character()),
+                     show_col_types = FALSE)
+
+stopifnot(
+  nrow(patients) == nrow(randomization),
+  identical(levels(patients$arm), c("Usual care", "Home health")),
+  identical(levels(patients$site), site_levels),
+  inherits(patients$discharge_date, "Date"),
+  !anyNA(patients$discharge_date),
+  all(patients$n_meds ==
+        baseline$discharge_med_count[match(patients$patient_id,
+                                           baseline$patient_id)])
+)
+sum(patients$n_meds == 0)
+```
+
+The last assertion checks the string work end to end: a patient
+whose medication rows were lost or duplicated would fail it.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** The worked example converts `arm` to a factor at the
+end of the script, after both joins. Why not at the start, when
+`randomization.csv` is read?
+
+**Answer.** Here the arm is not a join key, so converting early
+would do no harm; the reason is where the declaration sits.
+Converting at the end keeps every column that a join, filter, or
+recode touches in its plain type, and puts the reference level
+beside the analysis that depends on it, where a reviewer looks for
+it. Had `arm` been a key, or been recoded after the read, an early
+factor would have needed its levels managed at every step, and a
+join would have given it the union of two level sets.
+:::
+
+## Rules of thumb
+
+1. **Habit 7: convert late, validate early.** Keep categories as
+   character until the model, then declare the levels and the
+   reference in writing, and assert them.
+2. **Habit 8: a parser that always returns a value cannot tell you
+   it guessed.** A first-number regex, a multi-order date parse,
+   and an Excel serial date all produce plausible values; compare
+   against a second, stricter reading and count the disagreements.
+3. **Habit 12: every model output is a hypothesis until verified.**
+   A model's regular expression or date parser is checked on the
+   full column, with a cross-tabulation of what it matched.
+
+## Cumulative practice
+
+8. *Cumulative (uses @sec-joins).* Add each patient's discharge
+   potassium from `labs.csv` (visit `-01`, test `K`) to `patients`,
+   with a declared relationship, after handling the duplicated
+   discharge potassium that @sec-wrangling found. Flag the patients
+   discharged on a potassium supplement (`K-Dur`, `KCl`, or
+   `potassium chloride`, in any case) and compare their median
+   discharge potassium with everyone else's.
+9. *On your own work (no key).* Write a function that takes any
+   character column and returns each value with its count and
+   proportion, and use it to audit the categorical variables in a
+   recent analysis of yours. Report every level you did not expect.
+
+::: {.callout-note collapse='true' title='Solution to exercise 8'}
+```{r}
+#| label: soln-14-8
+labs <- read_csv(file.path(hf_dir, "labs.csv"),
+                 col_types = cols(patient_id = col_character()),
+                 show_col_types = FALSE)
+discharge_k <- labs |>
+  filter(str_ends(visit_id, "-01"), test_code == "K") |>
+  distinct() |>
+  filter(n() == 1, .by = patient_id) |>
+  select(patient_id, k_discharge = value)
+
+k_supplement <- meds |>
+  filter(str_detect(med_text, regex("k-dur|\\bkcl\\b|potassium chloride",
+                                    ignore_case = TRUE))) |>
+  distinct(patient_id) |>
+  mutate(on_k = TRUE)
+
+with_k <- patients |>
+  left_join(discharge_k, by = "patient_id",
+            relationship = "one-to-one") |>
+  left_join(k_supplement, by = "patient_id",
+            relationship = "one-to-one") |>
+  mutate(on_k = coalesce(on_k, FALSE))
+
+stopifnot(nrow(with_k) == nrow(patients))
+with_k |>
+  summarize(n = n(), missing_k = sum(is.na(k_discharge)),
+            median_k = median(k_discharge, na.rm = TRUE), .by = on_k)
+```
+
+`distinct()` removes the exact duplicate, and the `n() == 1` filter
+sets aside the potassium that was re-run with a different value, as
+@sec-wrangling did, so that patient's potassium is missing rather
+than invented; the `missing_k` column shows it. The orphan patient
+in `labs.csv` never reaches `patients`, because the left join keeps
+only randomized patients. Whether supplemented patients differ is
+descriptive here; potassium supplements are prescribed in response
+to low potassium, so any difference is confounded by indication.
+:::
+
+## Cheat sheet
+
+| Task | Code | Guards against |
+|---|---|---|
+| Collapse spellings to levels | `fct_collapse(x, F = c("F", "f", "2"), M = c(...))` | Several codes for one category |
+| Rename levels | `fct_recode(x, Female = "F")` | Codes in tables and figures |
+| Declare the level set | `factor(x, levels = site_levels)` | Variant spellings becoming categories |
+| Set the reference | `fct_relevel(arm, "Usual care")` | Effects reported in the wrong direction |
+| Order by frequency or value | `fct_infreq(x)`, `fct_reorder(x, y, median)` | Alphabetical order in plots |
+| Lump rare levels | `fct_lump_min(x, min = 10)` | Unstable estimates for tiny groups |
+| Count levels, including empty | `fct_count(x)` | Dropped or unexpected levels |
+| Detect, ignoring case | `str_detect(x, regex("lasix", ignore_case = TRUE))` | Undercounts from capitalization |
+| Capture parts | `str_match(x, "(\\d+(?:\\.\\d+)?)\\s*(mg\|mcg)")` | First-number parsing |
+| Normalize text | `str_to_lower()`, `str_squish()`, `str_remove_all(x, "\\.")` | Spellings that differ only in form |
+| Parse one known format | `ymd()`, `mdy()`, `dmy()` | Guessed conventions |
+| Find ambiguous dates | `!is.na(mdy(x)) & !is.na(dmy(x)) & mdy(x) != dmy(x)` | Silent day-month swaps |
+| Excel serial dates | `janitor::excel_numeric_to_date(x)` | Dates seventy years off |
+| Change displayed zone | `with_tz(t, "UTC")` | Mixing zones across sources |
+| Repair a wrong zone | `force_tz(t, "UTC")` | Timestamps stamped in the wrong zone |
+| Calendar day versus elapsed time | `days(1)` versus `ddays(1)` | One-hour errors at daylight-saving transitions |
+| Add months safely | `d %m+% months(3)` | Invalid dates such as February 30 |
+
+: Factors, strings, and dates at a glance. {#tbl-types-cheat-sheet}
 
 ## Further reading
 
-- [@wickham2023r4ds] Chapters 14--18, `forcats`,
-  `stringr`, `lubridate`.
-- [@bryan2019stat545] Chapters 10--13, detailed
-  type-specific coverage.
-- [@grolemund2011dates], the `lubridate` paper, for
-  the date and time-zone handling in this chapter.
-- The `regular-expressions.info` website,
-  comprehensive regex reference.
+- [@wickham2023r4ds] Chapters 14 to 17: strings, regular
+  expressions, factors, and dates and times.
+- [@bryan2019stat545] Chapters 10 to 13, detailed type-specific
+  coverage.
+- [@grolemund2011dates], the `lubridate` paper, for the date and
+  time-zone handling in this chapter.
 
 ## Prerequisites answers {#sec-quiz-answers-14}
 
 1. Before R 4.0, `read.csv()` and `data.frame()` converted
-   character columns to factors by default. This caused
-   surprise when levels were invented, ordered, or appeared
-   where a character string was expected, for example as
-   merge keys. Downstream analysts had to remember
-   `stringsAsFactors = FALSE` or suffer silent coercion.
-   R 4.0 made `FALSE` the default, and the old default is
-   remembered now only when reading elderly code.
-2. `str_detect(string, pattern)` returns a logical vector of
-   the same length as `string`: `TRUE` where the pattern
-   matched, `FALSE` elsewhere. `str_extract()` returns a
-   character vector, namely the first matching substring per
-   input, or `NA_character_` where there was no match. In
-   short, `str_detect` is for filtering and `str_extract` is
-   for pulling out parts.
-3. `parse_date_time(x, orders = c('ymd', 'mdy', 'Bdy'))`
-   (or `readr::parse_date` with multiple format strings)
-   is the tool. `lubridate::parse_date_time()` tries each
-   order against each input and returns the first that
-   parses. Inputs that match no format produce `NA`, which
-   lets you flag and inspect them.
+   character columns to factors by default. Levels appeared where a
+   character string was expected, for example as merge keys, new
+   values could not be assigned without first adding a level, and
+   `as.numeric()` on a numeric-looking column returned codes rather
+   than values. R 4.0 made `FALSE` the default, and the old default
+   now matters only when reading older code.
+2. `str_detect(string, pattern)` returns a logical vector of the
+   same length as `string`: `TRUE` where the pattern matched,
+   `FALSE` elsewhere. `str_extract()` returns a character vector,
+   the first matching substring per input, or `NA` where there was
+   no match. `str_detect()` is for filtering and flagging;
+   `str_extract()` is for pulling out parts.
+3. `parse_date_time(x, orders = c('ymd', 'mdy', 'Bdy'))` parses all
+   three. A fourth value `'03/04/2026'` is valid as March 4 and as
+   April 3. With only `mdy` among the slash orders it is read as
+   March 4, but if `dmy` were also listed, the reading would depend
+   on the order of the list and on the other values in the vector,
+   with no warning. Parse each source with its single documented
+   order, and count the values that a second convention would read
+   differently.

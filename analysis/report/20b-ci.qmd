@@ -1,5 +1,17 @@
 # Continuous Integration with GitHub Actions {#sec-ci}
 
+You install `janitor` in March to clean column names, the analysis
+renders on your laptop, and you never run `renv::snapshot()`. In
+June you open a pull request, and a red cross appears beside it.
+The log ends with `Error: Process completed with exit code 1.`,
+which tells you nothing; a dozen lines above it is the line that
+tells you everything, `there is no package called 'janitor'`. Your
+laptop remembered the package and the lockfile did not, so without
+the red cross a collaborator would have found out at submission.
+Continuous integration runs the analysis on a machine that is not
+yours, from a clean state, on every push; this chapter is about
+making it check what matters and reading what it reports.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
@@ -14,115 +26,166 @@ Delivery* (2010)
 ```
 :::
 
-::: {.callout-note}
-## Why this chapter exists
+```{r}
+#| label: ci-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-The book has taught tests (@sec-testing), dependency
-pinning (@sec-renv), and reproducible reports
-(@sec-quarto). Continuous integration is what runs those
-checks automatically on every change, so that a broken
-pipeline is caught within minutes rather than discovered at
-submission. The peer survey (@sec-peer-survey) found this
-taught at almost none of the comparison courses, because
-the canonical curricula predate the practice; adding it
-places the Practicum ahead of its peers rather than merely
-level with them.
+```{r}
+#| label: fig-ci-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: continuous integration reruns
+#|   the Analyze stage, its tests and its rendered report, on a clean
+#|   machine every time the code changes."
+#| fig-alt: !expr pipeline_alt('analyze')
+pipeline_diagram('analyze')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 20 minutes.
+
+**You'll need.** @sec-testing for `tinytest` and test exit
+statuses, @sec-renv for the lockfile, @sec-quarto for rendering,
+and @sec-git-teams for pull requests. The chunks run R in fresh
+processes and need only `tinytest` and `knitr` installed; the
+chapter attaches no packages.
+
+**You'll be able to.**
+
+- Read a GitHub Actions workflow and name its triggers, jobs, and
+  steps.
+- Write a workflow that restores `renv.lock`, runs the tests with
+  an exit status that fails the job, and renders the report.
+- Find the cause of a red run from the first error in its log, and
+  fix it in the lockfile rather than in the workflow.
+- Harden a workflow: actions pinned by commit, a `permissions:`
+  block, and no long-lived credentials.
+
+**Outline.**
+
+- [What CI proves](#sec-ci-proves)
+- [Anatomy of a workflow](#sec-ci-anatomy)
+- [Reading a failing run](#sec-ci-reading)
+- [Securing the workflow](#sec-ci-security)
 :::
 
-## Prerequisites
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-20b.
 
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-20b.
+1. What is continuous integration, and what does it automate that
+   a disciplined analyst might otherwise do by hand?
+2. In a GitHub Actions workflow, what triggers a run, and where
+   does the run execute?
+3. Why is 'it renders on my machine' an insufficient guarantee
+   that a collaborator can reproduce your analysis, and how does
+   CI address the gap?
+:::
 
-1. What is continuous integration, and what does it
-   automate that a disciplined analyst might otherwise do by
-   hand?
-2. In a GitHub Actions workflow, what triggers a run, and
-   where does the run execute?
-3. Why is 'it renders on my machine' an insufficient
-   guarantee that a collaborator can reproduce your
-   analysis, and how does CI address the gap?
+## What CI proves {#sec-ci-proves}
 
-## Learning objectives
-
-By the end of this chapter you should be able to:
-
-- Explain what continuous integration provides and why it
-  matters for reproducible analysis.
-- Read a GitHub Actions workflow file and identify its
-  triggers, jobs, and steps.
-- Configure a workflow that restores an `renv` environment,
-  runs the test suite, and renders the report on every
-  push.
-- Interpret a failing check and locate the step that broke.
-- Use CI as a reproducibility guarantee rather than merely
-  a testing convenience.
-
-## Orientation
-
-Continuous integration is the practice of automatically
-building and checking a project every time it changes.
-When you push a commit, a fresh machine in the cloud checks
-out the code, reconstructs the environment, runs the tests,
-and renders the report; if anything fails, you are told
-within minutes. The value for the biostatistician is
-specific: CI runs your analysis on a machine that is not
-yours, from a clean state. That is the closest thing to a
-proof that a collaborator could reproduce it.
-
-This chapter uses GitHub Actions, the CI system built into
-GitHub, because it is free for public repositories and
-integrates with the R tooling the book already uses. The
-concepts, triggers, jobs, and steps run on a clean
-machine, transfer to GitLab CI, Jenkins, and the other
+Continuous integration (CI) is the practice of building and
+checking a project automatically every time it changes. When you
+push a commit, a fresh machine in the cloud checks out the code,
+reconstructs the environment, runs the tests, and renders the
+report; if anything fails, you are told within minutes. This
+chapter uses GitHub Actions, the CI system built into GitHub,
+because it is free for public repositories and the R community
+maintains ready-made steps for it. Triggers, jobs, and steps on a
+clean machine transfer unchanged to GitLab CI and the other
 systems.
 
-## The statistician's contribution {#sec-ci-human}
+For a statistician the value is specific. A passing test suite
+says the code does what its tests check. A passing CI run says
+more: that the analysis reconstructs from `renv.lock` on a machine
+that is not yours and produces the report. That second guarantee
+is the one that matters when a reviewer, or you in a year, must
+rerun the work. The workflow file is boilerplate and can be
+copied; what it checks, and therefore what a green check entitles
+you to claim, is a decision.
 
-The YAML is boilerplate and can be copied. What the
-workflow checks, and therefore what a green check
-entitles you to claim, is a decision:
+### What a green check is worth
 
-**CI proves reproducibility, not just correctness.** A
-passing test suite says the code does what its tests check.
-A passing CI run says more: that the analysis reconstructs
-from `renv.lock` on a machine that is not yours and
-produces the report. That second guarantee is the one that
-matters when a reviewer, or a future you, must re-run the
-work.
+A green check is only as good as what the workflow runs.
+@tbl-ci-checklist lists the four things a workflow for an analysis
+compendium should establish, in the order the steps run.
 
-**A green check is only as good as what it runs.** CI that
-renders the report but runs no tests proves the report
-compiles, not that the numbers are right. Decide
-deliberately what the workflow checks: at minimum, restore
-the environment and render; better, run the statistical
-tests of @sec-testing as well.
+| Check | Step | What a pass proves | What it does not prove |
+|---|---|---|---|
+| The environment restores | `setup-renv` (`renv::restore()`) | Every package in `renv.lock` installs on a clean machine | That the lockfile lists every package the code uses |
+| The tests pass | `tinytest`, with an exit status | The statistical checks of @sec-testing hold on known inputs | Anything the tests do not assert |
+| The report renders | `quarto render` | Every chunk runs from committed files, with no manual step | That the numbers in it are right |
+| No secrets in the repository | Review, and the platform's encrypted secrets | Credentials live outside version control | That printed values are masked; see @sec-ci-security |
 
-**Fail loudly and early.** The purpose of CI is to surface
-a break at the moment it is introduced, when the cause is
-one small commit, rather than at submission, when the cause
-is buried in months of history. Configure the workflow to
-fail the build on a test failure, not to warn and continue.
+: The CI checklist for an analysis compendium. A workflow that
+restores and renders but does not test proves that the report
+compiles, not that it is correct. {#tbl-ci-checklist}
 
-**Keep secrets out of the workflow.** Credentials, tokens,
-and any protected data belong in the platform's encrypted
-secrets, never in the workflow file, which is
-version-controlled and often public. The de-identification
-discipline of @sec-deident applies to the pipeline as much
-as to the data.
+The first row has a gap that the opening story falls into. A
+restore installs what the lockfile lists, so a package the
+lockfile omits does not fail the restore; it fails the first later
+step that loads it. That is why the rows are a stack, not a menu:
+the test and render steps are what discover that the restore was
+incomplete.
 
-These judgments are what make CI a reproducibility
-instrument rather than a decorative badge.
+Fail loudly and early. The purpose of CI is to surface a break at
+the commit that introduced it, when the cause is one small diff,
+rather than at submission, when the cause is buried in months of
+history. Every step must fail the job when its check fails, not
+warn and continue.
 
-## Anatomy of a workflow
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Your workflow restores `renv` and renders the
+report, and the check is green. A collaborator reports that a
+figure differs from yours. What does the green check tell you, and
+what does it not?
 
-A GitHub Actions workflow is a YAML file in
-`.github/workflows/`. It names the events that trigger it,
-one or more jobs, and the steps within each job. The steps
-run in order on a fresh virtual machine that GitHub
-provisions for the run. @fig-ci-anatomy is the shape
-before the syntax.
+**Answer.** It tells you that the analysis reconstructs from
+`renv.lock` on a clean machine and that the report renders, so the
+discrepancy is not a missing package or an uncommitted file. It
+does not tell you the figure is correct, because nothing in the
+workflow tests the figure's content. Suspect an unseeded random
+step, a different data version, or a genuine analytic difference,
+and add a test that pins the figure's underlying numbers so that CI
+catches the change next time.
+:::
+
+### Exercises
+
+1. A workflow restores `renv.lock`, runs a `tinytest` suite whose
+   only test checks that the analytic dataset has the expected
+   columns, and renders the report. For each change below, say
+   which step turns the run red, or whether the run stays green.
+   (a) The code calls `janitor`, which is installed on your laptop
+   but absent from the lockfile. (b) A chunk reads
+   `data/derived/cohort.rds`, a file listed in `.gitignore`. (c)
+   The primary analysis computes a median where the plan specifies
+   a mean. (d) Someone pastes an API token into the workflow file.
+
+::: {.callout-note collapse='true' title='Solution'}
+(a) Not the restore, which succeeds because it installs only what
+the lockfile lists; the run turns red at the first step that loads
+`janitor`, the tests if they call it, otherwise the render. (b) The
+render: the file exists on your machine and not on the runner. (c)
+Nothing; the run stays green, because the only test checks the
+shape of the data, not a value (Habit 9). (d) Nothing; the run
+stays green, and the token is now in the Git history of a
+repository that may be public. Revoke it, then move it to the
+platform's encrypted secrets. Two of the four failures pass every
+step, which is the point of the last column of @tbl-ci-checklist.
+:::
+
+## Anatomy of a workflow {#sec-ci-anatomy}
+
+A GitHub Actions workflow is a YAML (YAML Ain't Markup Language)
+file in `.github/workflows/`. It names the events that trigger it,
+one or more jobs, and the steps within each job. The steps run in
+order on a fresh virtual machine, called a runner, that GitHub
+provisions for the run. @fig-ci-anatomy is the shape before the
+syntax.
 
 ```{mermaid}
 %%| echo: false
@@ -153,6 +216,9 @@ flowchart TD
   P -->|"no"| R["red cross,<br/>log names the failing step"]
 ```
 
+The workflow below implements the checklist (display-only; it runs
+on GitHub, not in this book):
+
 ```yaml
 name: Check analysis
 
@@ -171,7 +237,7 @@ jobs:
         with:
           use-public-rspm: true
 
-      - uses: r-lib/actions/setup-renv@v2   # restore renv.lock
+      - uses: r-lib/actions/setup-renv@v2
 
       - uses: quarto-dev/quarto-actions/setup@v2
 
@@ -184,176 +250,602 @@ jobs:
         run: quarto render
 ```
 
-Read it top to bottom. The `on` block says the workflow
-runs on every push to `main` and on every pull request. The
-single job, `check`, runs on a fresh Ubuntu machine. Its
-steps check out the code, install R, restore the exact
-package versions from `renv.lock`, install Quarto, run the
-test suite, and render the report. If any step exits with a
-nonzero status, the job fails and GitHub marks the commit
-with a red cross; if all pass, a green check.
+Read it top to bottom. The `on` block runs the workflow on every
+push to `main` and on every pull request. The single job, `check`,
+runs on a fresh Ubuntu runner. Its steps check out the code,
+install R, restore the exact package versions in `renv.lock`,
+install Quarto, run the test suite, and render the report. If any
+step exits with a nonzero status, the job fails and GitHub marks
+the commit with a red cross; if every step exits zero, a green
+check.
 
-Two details in that file are easy to get wrong. First, a
-fresh runner has R only because `setup-r` installed it, and
-Quarto only because `quarto-actions/setup` installed it;
-drop that step and `quarto render` fails with 'command not
-found'. Second, `tinytest::test_all()` prints its failures
-but returns normally, so `Rscript -e 'tinytest::test_all()'`
-exits with status 0 and the job stays green when tests
-fail. The second `-e` expression turns 'any test failed'
-into a nonzero exit status, which is the only signal CI
-reads.
+### Three details that decide the result
 
-The `r-lib/actions` collection supplies the R-specific
-steps, `setup-r`, `setup-renv`, `setup-r-dependencies`, so
-that a working R-on-CI configuration is a few lines rather
-than a hand-built installation. The last two are
-alternatives, not companions. `setup-renv` restores the
-exact versions recorded in `renv.lock`, so CI tests the
-environment you pinned; `setup-r-dependencies` installs
-current versions of the packages a `DESCRIPTION` file
-names, so CI tests against whatever CRAN offers today. A
-compendium with a lockfile wants the first, and every
-package the tests call, `tinytest` included, must
-therefore be in the lockfile.
+**The runner has only what the workflow installs.** R is there
+because `setup-r` installed it and Quarto because
+`quarto-actions/setup` did; drop the Quarto step and the render
+fails with 'command not found'.
 
-## What to check
+**The test step must fail on a failed test.**
+`tinytest::test_all()` prints its failures but returns normally,
+so `Rscript -e 'tinytest::test_all()'` exits with status 0 and the
+job stays green however many tests fail. The second `-e`
+expression turns 'any test failed' into a nonzero exit status,
+which is the only signal CI reads; @sec-testing-ci runs both
+versions and compares their exit statuses.
 
-A useful workflow for an analysis compendium checks three
-things, in increasing order of value.
+**Restore the lockfile, not the latest versions.** The
+`r-lib/actions` collection supplies two ways to provide packages,
+and they are alternatives, not companions:
 
-First, that the *environment restores*: `setup-renv`
-rebuilds the library from `renv.lock` on a clean machine.
-This alone catches the most common reproducibility failure,
-a package the analyst had installed locally but never
-recorded.
+| Step | Installs | CI then tests |
+|---|---|---|
+| `setup-renv` | The exact versions recorded in `renv.lock` | The environment you pinned |
+| `setup-r-dependencies` | Current versions of the packages a `DESCRIPTION` file names | Whatever CRAN offers today |
 
-Second, that the *report renders*: `quarto render` runs the
-whole document, executing every code chunk. A chunk that
-depends on a file that is not in the repository, or on a
-manual step, fails here.
+A compendium with a lockfile wants `setup-renv`, and every package
+the tests call, `tinytest` included, must therefore be in the
+lockfile.
 
-Third, that the *tests pass*: the statistical checks of
-@sec-testing run, confirming not merely that the code runs
-but that it produces the right answers on known inputs.
-
-A workflow that does all three turns every push into a
-reproducibility audit.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: what a green check proves
-
-**Question.** Your CI workflow restores `renv` and renders
-the report, and the check is green. A collaborator still
-reports that a figure differs from yours. What does the
-green check tell you, and what does it not?
-
-**Answer.**
-
-The green check tells you that the analysis reconstructs
-from `renv.lock` on a clean machine and that the report
-renders without error, so the discrepancy is not a missing
-package or an uncommitted file. It does not tell you the
-figure is correct, because the workflow renders but does
-not test the figure's content. If the collaborator's figure
-differs, suspect an unseeded random step, a data version
-mismatch, or a genuine analytic difference, and add a test
-that pins the figure's underlying numbers so that CI would
-catch the change next time.
-
+::: {.callout-warning title='Pitfall'}
+**`continue-on-error: true` turns a red step green.** The setting
+is sometimes added to a test step 'until the tests are fixed'. The
+step still fails, but the job is reported as passing, so the
+commit gets a green check, branch protection lets the pull request
+merge, and nobody opens the log. Remove the setting and fix or
+delete the failing test instead.
 :::
 
-## Reading a failing check
+::: {.callout-tip title='Verification'}
+Before you push, run the two R steps the way CI will, in a fresh
+process from the project root (display-only):
 
-When a check fails, GitHub shows the log of the job, with
-the failing step highlighted. The discipline is to read the
-log from the failing step, not the top: the first error is
-usually the cause, and the cascade below it is
-consequence. Common failures and their meaning:
+```bash
+Rscript -e 'renv::status()'
+Rscript -e 'res <- tinytest::test_all()' \
+  -e 'quit(status = as.integer(tinytest::any_fail(res)))'
+echo $?
+```
 
-- A `setup-renv` failure means `renv.lock` references a
-  package that will not install on the clean machine, often
-  a system dependency the workflow did not provide.
-- A render failure with 'object not found' means a code
-  chunk depends on something created outside the document,
-  a manual step that reproducibility requires be made
-  explicit.
-- A test failure means the statistical check did not hold;
-  read the expectation and the observed value in the log.
+`renv::status()` should report no issues, and the last line should
+print 0. Plant one failing test and run the second command again;
+it should print 1.
+:::
 
-The book you are reading is itself built this way: a
-workflow restores its packages, provisions Python, and
-renders the whole book on every push, so that a broken
-chunk is caught before it reaches the published site.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A teammate replaces `setup-renv` with
+`setup-r-dependencies` because the restore 'kept failing', and the
+run turns green. What has the green check stopped proving?
 
-## Principle in use
+**Answer.** That the analysis reproduces with the package versions
+in `renv.lock`. The run now tests whatever versions CRAN serves
+today, so a result that changed because a dependency changed would
+pass without notice, which is the silent regression @sec-renv
+exists to prevent. Find out why the restore failed (usually a
+system library, @sec-ci-reading) and fix that instead.
+:::
 
-Three habits decide what a green check is worth:
+### Exercises
 
-1. **Let CI prove reproducibility.** A clean-machine
-   restore-and-render is the closest thing to a guarantee
-   that a collaborator can reproduce the work.
-2. **Check what matters.** Restore the environment, render
-   the report, and run the tests; a workflow that renders
-   but does not test proves too little.
-3. **Fail early and read the first error.** The point is to
-   catch a break at the commit that caused it, and the first
-   log error is usually the cause.
+2. Add a weekly scheduled run, at 06:00 UTC (Coordinated Universal
+   Time) every Monday, to the workflow above, and explain what a
+   scheduled run catches in a project whose packages are pinned.
 
-## Exercises
+::: {.callout-note collapse='true' title='Solution'}
+Add a `schedule` trigger to the `on` block:
 
-**On your own machine, data, or collaborations.** These exercises
-configure continuous integration on a repository you control, so no
-answer key is possible. A green or red run is the verification.
+```yaml
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'
+```
 
-1. Add a GitHub Actions workflow to an existing analysis
-   compendium that restores `renv` and renders the report
-   on every push. Confirm it runs and turns green.
-2. Deliberately commit a change that removes a package from
-   `renv.lock` but leaves its use in the code. Observe the
-   CI failure and read the log to locate the cause.
-3. Extend the workflow to run a `tinytest`
-   suite. Add a test that pins a key numeric result and
-   confirm CI fails when you change that result.
-4. Introduce a code chunk that reads a file not committed
-   to the repository. Show that CI catches the missing
-   dependency even though the report renders on your own
-   machine.
-5. Read the `.github/workflows/render-book.yml` workflow in
-   this book's own repository. Identify its triggers, the
-   conditions under which it provisions R and Python, and
-   the step that renders the book.
+The five fields are minute, hour, day of month, month, and day of
+week (1 is Monday), in UTC. A pinned lockfile does not mean
+nothing changes: the runner image is updated, archived package
+sources move, and an external data source or URL the report reads
+can disappear. A weekly run finds these on a quiet Monday rather
+than on the day you need to rerun the analysis.
+:::
+
+## Reading a failing run {#sec-ci-reading}
+
+When a run fails, GitHub shows the job's log with the failing step
+expanded. Read it from the first error, not from the bottom: the
+first error is usually the cause, and everything below it is
+consequence. The chunk below reproduces the opening story. It
+builds a two-file test suite in which one file uses `janitor`,
+then runs the CI test step in a fresh R process whose library
+holds `tinytest` and nothing else, as a runner restored from a
+lockfile that omits `janitor` would.
+
+```{r}
+#| label: ci-red-log
+ci_run <- function(args, libs = NULL) {
+  env <- character()
+  if (!is.null(libs)) {
+    empty <- file.path(tempdir(), "ci-empty-lib")
+    dir.create(empty, showWarnings = FALSE)
+    env <- c(paste0("R_LIBS=", libs), paste0("R_LIBS_USER=", empty),
+             paste0("R_LIBS_SITE=", empty))
+  }
+  suppressWarnings(system2(file.path(R.home("bin"), "Rscript"),
+                           shQuote(c("--vanilla", args)), env = env,
+                           stdout = TRUE, stderr = TRUE))
+}
+
+proj <- file.path(tempdir(), "ci-demo")
+dir.create(file.path(proj, "tests"), recursive = TRUE,
+           showWarnings = FALSE)
+writeLines("expect_equal(1 + 1, 2)",
+           file.path(proj, "tests", "test-arith.R"))
+writeLines(c(
+  "library(janitor)",
+  "raw <- data.frame(`Patient ID` = '0001', check.names = FALSE)",
+  "expect_equal(names(clean_names(raw)), 'patient_id')"
+), file.path(proj, "tests", "test-clean.R"))
+
+ci_lib <- file.path(tempdir(), "ci-lib")
+dir.create(ci_lib, showWarnings = FALSE)
+if (!file.exists(file.path(ci_lib, "tinytest"))) {
+  file.symlink(find.package("tinytest"), file.path(ci_lib, "tinytest"))
+}
+
+red_log <- ci_run(c(
+  "-e", sprintf("res <- tinytest::run_test_dir('%s')",
+                file.path(proj, "tests")),
+  "-e", "quit(status = as.integer(tinytest::any_fail(res)))"
+), libs = ci_lib)
+cat(sprintf("%2d  %s", seq_along(red_log), red_log), sep = "\n")
+```
+
+GitHub then appends one line of its own,
+`Error: Process completed with exit code 1.`, marks the step with a
+red cross, and skips the render step. @tbl-ci-log annotates the
+lines.
+
+| Line | Text begins | What it is | Act on it? |
+|---|---|---|---|
+| 1 | `test-arith.R` | A test file that ran and passed | No |
+| 2 | `Error in library(janitor)` | **The first error: the cause** | Yes: the package is not installed on the runner |
+| 3 | `Calls:` | The call stack that led to the error | Only to find which file raised it |
+| 4 | `Execution halted` | R stopping because of line 2 | No |
+| last | `Error: Process completed with exit code 1.` | GitHub's summary of the step | No; it is the same for every failure |
+
+: The red log, line by line. The line people read is the last one,
+and it is the only line that is identical for every failure.
+{#tbl-ci-log}
+
+::: {.callout-tip title='Verification'}
+Confirm that the step failed for the reason the log names, by
+checking the exit status and extracting the first error line:
+
+```{r}
+#| label: ci-red-log-verify
+first_error <- grep("^Error", red_log, value = TRUE)[1]
+stopifnot(attr(red_log, "status") == 1, grepl("janitor", first_error),
+          identical(first_error, red_log[2]))
+first_error
+```
+
+On a real run, search the log for the first line that begins with
+`Error` (or `ERROR`, or `!` for an `rlang` error) in the failing
+step, and read up to three lines around it.
+:::
+
+### The fix belongs in the lockfile
+
+The cause is that `renv.lock` omits a package the code uses, so the
+fix is on your machine: `renv::status()` reports the package as
+used but not recorded, `renv::snapshot()` records it, and you
+commit the lockfile (@sec-renv-honest). The run turns green
+because the environment is now pinned, not because CI was made to
+tolerate it.
+
+::: {.callout-warning title='Pitfall'}
+**Installing the missing package in the workflow makes the run
+green and the analysis irreproducible.** A step such as
+`Rscript -e 'install.packages("janitor")'` before the tests fixes
+the red cross in one line. The runner now has a package the
+lockfile does not record, at whatever version CRAN serves that day,
+and the green check proves exactly what it was meant to disprove:
+that the analysis depends on something outside `renv.lock`. Fix
+the lockfile, never the workflow.
+:::
+
+### Common failures
+
+| Failing step | First error looks like | Usual cause | Fix |
+|---|---|---|---|
+| `setup-renv` | A compiler or `configure` error naming a system library | A package needs a system library the runner lacks | Install it with `apt-get` in a step before `setup-renv` |
+| Tests | `there is no package called 'x'` | Package used but not in `renv.lock` | `renv::snapshot()` locally; commit the lockfile |
+| Tests | `expect_equal` failure with observed and expected values | A statistical check did not hold | Read both values; find the change that moved them |
+| Render | `cannot open the connection`, or `object 'x' not found` | A chunk depends on a file or object made outside the document | Build it in the pipeline, or commit the input if it is raw data |
+| Render | `quarto: command not found` | No Quarto setup step | Add `quarto-dev/quarto-actions/setup` |
+
+: Reading a red run. {#tbl-ci-failures}
+
+The book you are reading is built this way: its workflow,
+`.github/workflows/render-book.yml`, restores its packages,
+provisions R and Python when the book needs them, and renders the
+whole book on every push and pull request, so that a broken chunk
+is caught before it reaches the published site.
+
+::: {.callout-important title='LLM prompt'}
+> **Context.** Below are the failing step of a GitHub Actions log,
+> `.github/workflows/check.yml`, and the output of
+> `git diff main -- renv.lock` for an R analysis compendium that
+> uses `renv` and `tinytest`.
+>
+> **Constraints.** Do not edit the workflow file, add an install
+> step, or change or skip any test. Propose changes only to
+> `renv.lock` (through `renv` commands) or to the analysis code.
+>
+> **Criteria.** Quote the first error line in the log and say which
+> step raised it. Name the cause in one sentence and give the
+> commands that fix it on my machine. State what `renv::status()`
+> and `git diff --stat` should show after the fix.
+
+*Failure mode.* The model proposes the one-line install step of the
+Pitfall above, or `continue-on-error: true`, because either makes
+the run green. *Check.* After the fix, `git diff --stat` should
+list `renv.lock` and nothing under `.github/` or `inst/tinytest/`,
+and the next run should be green. Logs are safe to send when they
+contain only code, package names, and test messages; a test that
+prints data rows puts data in the log (@sec-ai-governance).
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A log shows `Error in library(janitor)` on line 2
+and twenty more errors below it, each saying an object is not
+found. Which do you fix?
+
+**Answer.** Line 2. The later errors are consequences: the objects
+were never created because the code that would have created them
+needed `janitor`. Fixing them one at a time patches symptoms of a
+single cause, and they disappear when the package is in the
+lockfile.
+:::
+
+### Exercises
+
+3. The chunk below runs the render step of a two-chunk document in
+   a fresh process, as CI would. Read the log and identify the
+   cause, why the document renders on its author's machine, and
+   the fix.
+
+```{r}
+#| label: ci-render-log
+render_dir <- file.path(tempdir(), "ci-render")
+dir.create(render_dir, showWarnings = FALSE)
+writeLines(c(
+  "---", "title: Primary analysis", "---", "",
+  "```{r}", "#| label: load-cohort",
+  "cohort <- readRDS('data/derived/cohort.rds')", "```", "",
+  "```{r}", "#| label: primary",
+  "mean(cohort$event_30d, na.rm = TRUE)", "```"
+), file.path(render_dir, "paper.qmd"))
+
+render_log <- ci_run(c("-e", sprintf(paste0(
+  "setwd('%s'); options(cli.unicode = FALSE); ",
+  "knitr::opts_chunk$set(error = FALSE); ",
+  "knitr::knit('paper.qmd', quiet = TRUE)"), render_dir)))
+cat(render_log, sep = "\n")
+```
+
+::: {.callout-note collapse='true' title='Solution'}
+The first error, `cannot open the connection`, does not name the
+file; the backtrace beneath it does: `readRDS()` could not find
+`data/derived/cohort.rds`, in the chunk labeled `load-cohort`.
+The file exists on the author's machine because they built it
+once, by hand or with a script the document does not run, and it
+is a derived file, so it is (correctly) not committed. The fix is
+to make the pipeline build it: run the script that writes it in a
+step before the render, or have the document call that script, so
+that a clean checkout can produce it (Habit 2). Committing the
+`.rds` file instead would make the run green while leaving a build
+product that nobody can regenerate.
+
+```{r}
+#| label: soln-20b-3
+stopifnot(attr(render_log, "status") == 1,
+          any(grepl("cohort.rds", render_log, fixed = TRUE)))
+```
+:::
+
+4. A run fails in the `setup-renv` step. Two hundred lines into the
+   log, the first error reads
+   `configure: error: gdal-config not found or not executable.`
+   What failed, and what do you change?
+
+::: {.callout-note collapse='true' title='Solution'}
+A package that links to GDAL (the Geospatial Data Abstraction
+Library), such as `sf`, was being compiled from source, and its
+configure script could not find the GDAL development files on the
+runner. Nothing is wrong with the lockfile. Add a step before
+`setup-renv` that installs the system libraries, for example
+`sudo apt-get install -y libgdal-dev libgeos-dev libproj-dev`, or
+build in the project's Docker image (@sec-docker), which already
+has them. This is the case @sec-renv-docker describes: `renv`
+pins R packages, not the system libraries beneath them.
+:::
+
+## Securing the workflow {#sec-ci-security}
+
+A workflow file is code that runs with access to your repository
+and to any secrets you give it, and it is version-controlled and
+often public. Credentials, tokens, and any protected data belong in
+the platform's encrypted secrets, never in the workflow file; the
+de-identification discipline of @sec-deident applies to the
+pipeline as much as to the data. Three further habits come from
+software supply-chain security, and each is a few lines of YAML.
+
+**Pin actions by commit, not by tag.** `uses: actions/checkout@v4`
+names a tag, and the owner of a repository can move a tag to
+different code. In March 2025 the tags of the widely used
+`tj-actions/changed-files` action were repointed to a malicious
+commit that printed the secrets of the workflows using it into
+their run logs.[^tj-actions] A full 40-character commit SHA (secure
+hash algorithm identifier) cannot be moved.
+
+**Grant the workflow token the least permission that works.** Each
+run receives a `GITHUB_TOKEN` whose default permissions depend on
+repository and organization settings. A `permissions:` block at the
+top of the workflow sets them explicitly; a workflow that only
+reads code and runs checks needs `contents: read`.
+
+**Use OIDC instead of stored cloud keys.** A workflow that uploads
+to a cloud bucket should not hold a long-lived access key in its
+secrets. With OpenID Connect (OIDC), the run asks the cloud
+provider for short-lived credentials for one role, and the
+provider trusts only runs from your repository and branch.
+
+| Practice | Risk it removes | YAML |
+|---|---|---|
+| Pin by SHA | A moved tag runs code you never reviewed | `uses: owner/action@<40-hex SHA> # v4.4.0` |
+| Least permission | A compromised step writes to the repository | `permissions:` with `contents: read` |
+| OIDC | A leaked long-lived key works until someone revokes it | `id-token: write` and the provider's login action |
+| Dependabot | SHA pins go stale and miss security fixes | `.github/dependabot.yml`, ecosystem `github-actions` |
+| Secrets, never values | A token in Git history is public forever | `${{ secrets.NAME }}` |
+
+: Supply-chain basics for a workflow. {#tbl-ci-security}
+
+[^tj-actions]: The incident is CVE-2025-30066. The SHA shown for
+    `actions/checkout` in the next listing was read from the
+    action's repository with `git ls-remote` in October 2026.
+
+The hardened top of the workflow, with one action pinned
+(display-only):
+
+```yaml
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+```
+
+The comment keeps the version readable. Pins do not update
+themselves, so add a Dependabot configuration that opens a pull
+request when a pinned action has a new release, with the SHA and
+the comment both updated (display-only):
+
+```yaml
+# .github/dependabot.yml
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+```
+
+A job that needs cloud access requests the OIDC token and nothing
+else beyond reading the code (display-only; the role and the
+provider's trust policy are configured on the cloud side, and the
+login step is the provider's action):
+
+```yaml
+permissions:
+  contents: read
+  id-token: write
+```
+
+::: {.callout-tip title='Verification'}
+List every action reference in a workflow that is not pinned to a
+full commit SHA, and check for a `permissions:` block. The chunk
+writes the hardened example to a file and audits it.
+
+```{r}
+#| label: ci-audit-pins
+audit_workflow <- function(path) {
+  lines <- readLines(path)
+  uses <- trimws(sub(".*uses:\\s*", "",
+                     grep("uses:", lines, value = TRUE)))
+  uses <- sub("\\s*#.*$", "", uses)
+  list(unpinned = uses[!grepl("@[0-9a-f]{40}$", uses)],
+       has_permissions = any(grepl("^permissions:", lines)))
+}
+
+hardened <- file.path(tempdir(), "check.yml")
+writeLines(c(
+  "permissions:", "  contents: read", "jobs:", "  check:",
+  "    runs-on: ubuntu-latest", "    steps:",
+  paste0("      - uses: actions/checkout@",
+         "11d5960a326750d5838078e36cf38b85af677262 # v4.4.0")
+), hardened)
+audit <- audit_workflow(hardened)
+stopifnot(length(audit$unpinned) == 0, audit$has_permissions)
+audit
+```
+
+Run `audit_workflow()` on each file in your `.github/workflows/`;
+an empty `unpinned` and `TRUE` are what you want.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Your workflow pins every action to a tag such as
+`@v2`, the actions come from well-known organizations, and none of
+your secrets has leaked. Why pin by SHA anyway?
+
+**Answer.** Because a tag is a pointer its owner, or anyone who
+compromises the owner's account, can move, and your workflow
+follows it without a change to your repository. The
+`tj-actions` compromise reached many repositories that had never
+changed a line. A SHA pin means the code that runs is the code you
+pinned, and Dependabot turns each update into a pull request you
+review.
+:::
+
+### Exercises
+
+5. Audit this book's own workflow,
+   `.github/workflows/render-book.yml`, with `audit_workflow()`.
+   Then read the file and answer: what triggers it, when does it
+   provision R and Python, which step renders the book, and which
+   step receives secrets?
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-20b-5
+book_wf <- file.path("..", "..", ".github", "workflows",
+                     "render-book.yml")
+if (file.exists(book_wf)) audit_workflow(book_wf)
+```
+
+At the time of writing every action in the file is pinned by tag,
+not SHA, and there is no `permissions:` block; the output above
+shows the current state. The workflow runs on a push to `main`, on
+a pull request against `main`, and on manual dispatch
+(`workflow_dispatch`). If a `Dockerfile` is present it builds the
+project's image and renders inside it; otherwise a detection step
+searches `analysis/report` and provisions R when any file contains
+an `{r}` chunk or a `renv.lock` exists, and Python when any file
+contains a `{python}` chunk.
+The step named 'Render book (host)' or 'Render book (container)'
+runs `quarto render analysis/report --to html`. The deploy step,
+which runs only on a push to `main`, is the one that receives the
+Netlify secrets, and it is a third-party action: the strongest
+case in the file for a SHA pin.
+:::
+
+## Rules of thumb
+
+1. **Habit 4: pin the environment, including the CI's own.**
+   Restore from the lockfile, pin actions by SHA, and fix a red
+   restore in `renv.lock`, never with an install step in the
+   workflow.
+2. **Habit 8: make the quiet failure loud.** The exit status is
+   the only signal CI reads; turn failed tests into a nonzero
+   status, and never set `continue-on-error` on a check.
+3. **Habit 9: a green check is only as good as what it runs.**
+   Restore, test the statistics, and render; a workflow that
+   renders without testing proves the report compiles.
+
+## Cumulative practice
+
+6. *Cumulative (uses @sec-renv and @sec-testing).* Write the
+   complete workflow for the HF-HOME compendium: it runs on pull
+   requests and on pushes to `main`, sets `contents: read`,
+   restores `renv.lock`, installs Quarto, fails on any failed
+   `tinytest` test, and renders `analysis/report`. Add the
+   Dependabot file, and check both against @tbl-ci-checklist and
+   @tbl-ci-security.
+
+::: {.callout-note collapse='true' title='Solution'}
+```yaml
+# .github/workflows/check.yml
+name: Check analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<sha> # v4.4.0
+      - uses: r-lib/actions/setup-r@<sha> # v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-renv@<sha> # v2
+      - uses: quarto-dev/quarto-actions/setup@<sha> # v2
+      - name: Run tests
+        run: |
+          Rscript -e 'res <- tinytest::test_all()' \
+            -e 'quit(status = as.integer(tinytest::any_fail(res)))'
+      - name: Render report
+        run: quarto render analysis/report
+```
+
+Replace each `<sha>` with the commit the tag points to, from
+`git ls-remote https://github.com/<owner>/<repo> refs/tags/<tag>`;
+for a tag that `git ls-remote` lists twice, use the line ending in
+`^{}`, which is the commit. The Dependabot file is the one in
+@sec-ci-security. Against the checklist: restore, test, and render
+are each a step that fails the job, no secret appears, the token
+can only read, and every action is pinned. The workflow needs no
+secrets at all, which is the best case.
+:::
+
+7. *On your own work (no key).* Add a workflow to a compendium of
+   yours, push it, and confirm the run is green. Then remove one
+   package from `renv.lock` while leaving its use in the code, push
+   to a branch, find the first error in the log, and restore the
+   lockfile.
+
+## Cheat sheet
+
+| Task | YAML or command | Guards against |
+|---|---|---|
+| Run on every change | `on: push` and `pull_request` | Breaks found at submission |
+| Restore pinned packages | `r-lib/actions/setup-renv` | Testing versions you never used |
+| Install Quarto | `quarto-dev/quarto-actions/setup` | `quarto: command not found` |
+| Fail on a failed test | `quit(status = as.integer(tinytest::any_fail(res)))` | A green job with failing tests |
+| Run weekly | `schedule: - cron: '0 6 * * 1'` | Drift outside the lockfile |
+| Pin an action | `uses: owner/action@<40-hex SHA> # vX` | A moved tag |
+| Least permission | `permissions: contents: read` | A step that can write to the repository |
+| Short-lived cloud access | `id-token: write` (OIDC) | Long-lived keys in secrets |
+| Keep pins current | `.github/dependabot.yml`, `github-actions` | Stale pins |
+| Read a red run | First `Error` line in the failing step | Fixing consequences |
+
+: CI at a glance. {#tbl-ci-cheat-sheet}
 
 ## Further reading
 
-- [@humble2010continuous], *Continuous Delivery*, the
-  book that made the argument this chapter applies to
-  research code.
-- The GitHub Actions documentation at
-  `docs.github.com/actions`, the platform reference.
-- The `r-lib/actions` repository at
-  `github.com/r-lib/actions`, with ready-made R workflows
-  and examples.
-- @sec-testing, @sec-renv, and @sec-quarto, the checks that
-  a workflow automates.
+- [@humble2010continuous], *Continuous Delivery*, the book that
+  made the argument this chapter applies to research code.
+- The GitHub Actions documentation at `docs.github.com/actions`,
+  in particular 'Security hardening for GitHub Actions'.
+- The `r-lib/actions` repository at `github.com/r-lib/actions`,
+  with ready-made R workflows and examples.
 
 ## Prerequisites answers {#sec-quiz-answers-20b}
 
 1. Continuous integration automatically builds and checks a
-   project on every change: it reconstructs the environment,
-   runs the tests, and renders the report. It automates the
-   clean-state re-run that a disciplined analyst might do by
-   hand occasionally, but does it on every push and on a
-   machine that is not theirs.
-2. A workflow is triggered by events, commonly a push to a
-   branch or the opening of a pull request, declared in the
-   `on` block. The run executes on a fresh virtual machine
-   that GitHub provisions for the purpose, starting from a
-   clean checkout of the repository.
-3. 'It renders on my machine' depends on packages, files,
-   and manual steps that exist only on your machine and may
-   not be recorded. CI reconstructs the analysis from the
-   committed sources and `renv.lock` on a clean machine, so
-   a passing run demonstrates that the analysis is
-   reproducible from what is actually in the repository, not
-   from the state of your laptop.
+   project on every change: it reconstructs the environment, runs
+   the tests, and renders the report. It automates the clean-state
+   rerun that a disciplined analyst might do by hand occasionally,
+   but does it on every push and on a machine that is not theirs.
+2. A workflow is triggered by events, commonly a push to a branch
+   or the opening of a pull request, declared in the `on` block.
+   The run executes on a fresh virtual machine that GitHub
+   provisions for the purpose, starting from a clean checkout of
+   the repository.
+3. 'It renders on my machine' depends on packages, files, and
+   manual steps that exist only on your machine and may not be
+   recorded. CI reconstructs the analysis from the committed
+   sources and `renv.lock` on a clean machine, so a passing run
+   demonstrates that the analysis is reproducible from what is
+   actually in the repository, not from the state of your laptop.

@@ -1257,17 +1257,18 @@ $\delta$ are credible.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
-**Question.** The HF-HOME SAP's tipping-point rule increases
-$\delta$ in the home-health arm from 1 'until the 95% interval
-includes zero'. What does that rule report for this draw of the
-data?
+**Question.** A common one-directional tipping-point rule increases
+$\delta$ in the active arm 'until the 95% interval includes zero'.
+What would that rule report for this draw of the HF-HOME data, and
+why does the HF-HOME analysis plan (@sec-analysis-plan) use the
+two-dimensional grid instead?
 
 **Answer.** Nothing useful: the interval already includes zero at
 $\delta = 1$, so there is nothing to tip. A one-directional rule
 quietly assumes the primary result will be positive. The
 two-dimensional grid answers the question for any result, which is
-why it is the better thing to pre-specify: it shows which departures
-would change the conclusion in either direction.
+why the plan pre-specifies it: it shows which departures would
+change the conclusion in either direction.
 :::
 
 ## Going further {#sec-missing-further}

@@ -1006,14 +1006,37 @@ ggplot(power_curve, aes(n, power)) +
 > ascertained outcome and averaged over all
 > randomized patients, which is valid if
 > missingness is independent of the outcome given
-> arm and the adjustment covariates. Sensitivity:
-> delta-adjustment tipping-point analysis. In the
-> home-health arm, unascertained patients are
-> assigned a risk $\delta$ times that of their
-> observed peers, with $\delta$ increased from 1
-> until the 95% CI includes zero; in the usual-care
-> arm they are assigned the observed risk. Missing
-> patients stay in the denominator. Covariates:
+> arm and the adjustment covariates.
+>
+> Sensitivity: a two-dimensional tipping-point
+> analysis. Unascertained patients in each arm are
+> assigned a risk equal to that arm's observed risk
+> multiplied by its own factor, $\delta_U$ for
+> usual care and $\delta_H$ for home health, each
+> varied independently over 0.5 to 2.0 in steps of
+> 0.25 (49 combinations; $\delta_U = \delta_H = 1$
+> is missing at random, MAR). Both arms are varied
+> because the rule must locate a change of
+> conclusion in either direction, whatever the
+> primary result. In each combination the outcomes
+> of unascertained patients are multiply imputed
+> ($M = 50$; the arm's risk drawn from its beta
+> posterior under a uniform prior given the
+> ascertained patients, then multiplied by the
+> arm's $\delta$ and capped at 1), the unadjusted
+> risk difference is computed over all randomized
+> patients, and the results are
+> pooled by Rubin's rules. Missing patients stay in
+> the denominator. Each combination is classified as
+> benefit (95% CI above zero), harm (below zero), or
+> inconclusive. We will report the full grid as a
+> figure and name every combination whose
+> classification differs from that of the primary
+> analysis, in either direction, together with the
+> smallest departure from MAR that produces it; the
+> report states in words whether such departures are
+> clinically plausible. Seed for the imputation:
+> 20260423. Covariates:
 > $<5\%$ missing expected; imputed by the pooled
 > mean (continuous) or mode (categorical), which is
 > valid for baseline covariates in a randomized
