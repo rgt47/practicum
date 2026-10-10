@@ -46,6 +46,8 @@ MISC = {
     'defence': 'defense', 'offence': 'offense', 'licence': 'license',
     'licences': 'licenses', 'programme': 'program', 'programmes': 'programs',
     'cheque': 'check', 'cheques': 'checks', 'catalogue': 'catalog',
+    'catalogues': 'catalogs', 'catalogued': 'cataloged',
+    'cataloguing': 'cataloging',
     'manoeuvre': 'maneuver', 'manoeuvring': 'maneuvering',
     'aluminium': 'aluminum', 'grey': 'gray', 'greyscale': 'grayscale',
     'whilst': 'while', 'amongst': 'among', 'learnt': 'learned',
@@ -203,8 +205,22 @@ def _emdash_seg(seg, changes):
     return DASH.sub(one, seg)
 
 
+# Two-word British forms, fixed like MISC entries.
+PHRASE = re.compile(r'\b([Pp])er cent\b')
+# British words with no single US replacement: reported, never rewritten.
+REVIEW = re.compile(r'\b[Ff]ortnight(?:ly|s)?\b')
+
+
 def transform_prose(seg, changes, flags, force):
     seg = _emdash_seg(seg, changes)
+    for m in REVIEW.finditer(seg):
+        changes.append(('REVIEW', m.group(0)))
+
+    def phrase(m):
+        r = m.group(1) + 'ercent'
+        changes.append((m.group(0), r))
+        return r
+    seg = PHRASE.sub(phrase, seg)
     def sub(m):
         w = m.group(0)
         r = usize_word(w)
@@ -280,6 +296,9 @@ def check(paths):
                     if a == 'EM':
                         print(f"{f}:{n}: em dash (use a comma, semicolon, "
                               f"colon, or a sentence break)")
+                    elif a == 'REVIEW':
+                        print(f"{f}:{n}: British '{b}' (rephrase, e.g. "
+                              f"'every two weeks')")
                     else:
                         print(f"{f}:{n}: British '{a}' -> US '{b}'")
                     findings += 1
@@ -305,8 +324,12 @@ def fix(paths, force):
                 w.write(new)
             shutil.copyfile(tmp, f)
             os.remove(tmp)
-            total += len(ch)
-            print(f"{f}: {len(ch)} fixed")
+            nfix = sum(1 for a, _ in ch if a != 'REVIEW')
+            total += nfix
+            print(f"{f}: {nfix} fixed")
+        for a, b in ch:
+            if a == 'REVIEW':
+                print(f"  {f}: review (not rewritten): {b}")
         if flags:
             uniq = sorted({(a, b) for a, b in flags})
             print(f"  {f}: review (capitalized, left as-is): "

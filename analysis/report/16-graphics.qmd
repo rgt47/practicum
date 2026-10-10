@@ -109,8 +109,9 @@ impulse.
 with 5,000 points obscures any pattern. The same
 relationship as a hex-binned plot or a 2D density
 contour shows the structure without the visual
-noise. Choose encoding for legibility, not
-faithfulness to the raw data.
+noise. Choose the encoding for legibility: at that
+density the binned display is more faithful to the
+distribution than overplotted raw points, not less.
 
 **Show the distribution, not a summary of it.** A bar
 chart of group means with error bars is the default
@@ -436,9 +437,13 @@ style, and with `theme_set()` the only way to do that is
 to remember to reset it.
 
 The cost is real, so the honest position is that
-`theme_set()` is fine in a self-contained analysis script
-and wrong in a book, a package, or anything whose chunks
-might be reordered or reused.
+`theme_set()` belongs once, in the setup chunk at the top
+of an analysis script or document, where anyone reading
+the source sees it before the first plot. Anything whose
+pieces travel, a package, a function that returns a plot,
+a figure that will be lifted into slides, should add the
+theme explicitly, as the diagnostic figure later in this
+chapter does.
 :::
 
 ## Export formats
@@ -459,13 +464,16 @@ ggsave("figure1.png", plot = p, width = 6, height = 4,
 ggsave("figure1.svg", plot = p, width = 6, height = 4)
 ```
 
-DPI considerations:
+DPI considerations are rules of thumb, not standards; the
+journal's author instructions govern:
 
-- 72 DPI: web display only.
-- 96 DPI: monitor default.
-- 300 DPI: print quality (the standard for journal
-  submission as PNG).
-- 600 DPI: high-quality scientific figures.
+- On screens, the DPI value is largely ignored and the
+  pixel dimensions are what matter. The familiar 72 and
+  96 DPI figures are legacy conventions, not targets.
+- 300 DPI at the final printed size is a common minimum
+  for raster figures in print.
+- Line art and figures dominated by text are often
+  requested at 600 DPI or more when they must be raster.
 
 For LaTeX submission, prefer PDF (vector). For Word,
 prefer PNG at 300 DPI. For web, SVG (vector).
@@ -485,6 +493,13 @@ opinionated longitudinal-study plots: spaghetti plots
 with confidence ribbons, mean trajectories with
 group-specific overlays, ICC-aware error bars. The
 defaults match this practicum's conventions.
+
+The block below is shown, not run. `zzlongplot` is not in the
+book's lockfile, and `adni_long` stands for a long-format extract
+you would supply, with one row per participant visit and columns
+`RID` (participant), `VISIT`, `ADAS` (the score), and `DX`
+(diagnostic group). The trajectory example later in this chapter
+builds the same kind of figure in plain `ggplot2`.
 
 ```r
 library(zzlongplot)
@@ -529,8 +544,6 @@ generation; covered in the analysis-plan chapter
 #| fig-scap: "A composed regression-diagnostic figure"
 #| fig-width: 7
 #| fig-height: 6
-theme_set(theme_practicum())
-
 fit <- lm(body_mass_g ~ flipper_length_mm + species,
           data = na.omit(penguins))
 diag <- augment(fit)
@@ -540,24 +553,26 @@ p_resid <- ggplot(diag, aes(.fitted, .resid)) +
   geom_smooth(method = "loess", se = FALSE,
               color = "red", linewidth = 0.6) +
   geom_hline(yintercept = 0, linetype = "dashed") +
-  labs(title = "A. Residuals vs. fitted",
+  labs(title = "Residuals vs. fitted",
        x = "Fitted (g)", y = "Residual")
 
 p_qq <- ggplot(diag, aes(sample = .std.resid)) +
   geom_qq(alpha = 0.5) +
   geom_qq_line(color = "red") +
-  labs(title = "B. Normal Q-Q",
+  labs(title = "Normal Q-Q",
        x = "Theoretical", y = "Standardized residual")
 
 p_cook <- ggplot(diag, aes(seq_len(nrow(diag)), .cooksd)) +
   geom_col(width = 0.6) +
   geom_hline(yintercept = 4 / nrow(diag),
              linetype = "dashed", color = "red") +
-  labs(title = "C. Cook's distance",
+  labs(title = "Cook's distance",
        x = "Observation", y = "Cook's distance")
 
 (p_resid + p_qq) / p_cook +
-  plot_layout(heights = c(1, 0.7))
+  plot_layout(heights = c(1, 0.7)) +
+  plot_annotation(tag_levels = "A") &
+  theme_practicum()
 ```
 
 To write the composed figure to disk for a manuscript,
@@ -570,8 +585,11 @@ ggsave("figures/diagnostics.pdf", width = 7, height = 6,
 
 The composition reads naturally: top row two related
 diagnostics, bottom row a single observation-level
-diagnostic. House theme applied via
-`theme_set(theme_practicum())`. Saved as a
+diagnostic. The house theme is added with
+`& theme_practicum()`, which `patchwork` applies to every
+panel, so the figure carries its style into any document the
+chunk is lifted into; `plot_annotation(tag_levels = "A")`
+letters the panels. Saved as a
 publication-quality PDF.
 
 ## Worked example: a longitudinal trajectory figure
@@ -721,9 +739,12 @@ ask: 'combine these into a 2x2 grid with shared
 legend, panel labels A through D.'
 
 *What to watch for.* `patchwork::plot_layout(guides = "collect")`
-for the legend. Panel labels usually go in `labs(title = "A. ...")`
-rather than `tag_levels`. The LLM may use either; both
-work.
+for the legend. For panel labels, prefer
+`plot_annotation(tag_levels = "A")`, which letters the
+panels in layout order and keeps the letters correct when
+panels are added or rearranged. Labels typed into
+`labs(title = "A. ...")` also work, but they must be
+renumbered by hand after every change to the layout.
 
 *Verification.* Render the combined plot. Are
 legends shared? Are panels labeled in the right
@@ -748,7 +769,9 @@ Three habits carry from the first figure to the last:
 1. **One plot, one message.** Resist combining
    relationships into one figure.
 2. **Set the theme once.** `theme_set(theme_practicum())`
-   at the top of every analysis script.
+   in the setup chunk of every analysis script, and
+   `+ theme_practicum()` explicitly on any plot that
+   will travel to another document.
 3. **Export for the destination.** PDF for LaTeX,
    PNG at 300 DPI for Word, SVG for web. Embed fonts
    in PDFs.
@@ -914,9 +937,12 @@ inside the book; render to each format and compare.
    to produce a named list of plots, one per group.
    Alternatively, in a tidyverse pipeline:
    `data |> group_by(group) |> group_map(\(d, k) ggplot(d, aes(x, y)) + geom_point())`
-   (note: `group_map` returns a list, with names
-   taken from the group keys if you pass
-   `.keep = TRUE` and post-process).
+   (note: `group_map` returns an unnamed list;
+   `.keep = TRUE` only keeps the grouping column
+   inside each group's data. To name the list, add
+   the keys afterward, for example with
+   `set_names(group_keys(grouped)$group)` on the
+   result, where `grouped` is the grouped data).
 2. `facet_wrap()` splits a single plot into panels
    by a factor. Every panel shares the same `aes`
    mapping, same geom, same scales.

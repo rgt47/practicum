@@ -16,10 +16,10 @@ choose from.*
 ::: {.callout-note}
 ## Sources
 
-Authored directly for this book at
-`~/Dropbox/prj/tch/01-phb228-stat-computing/phb228-2026/textbook/19-cdisc.qmd`.
-Target audience: students heading to pharma or CRO statistical
-programming roles who have no prior exposure to CDISC. Written
+Authored directly for this book rather than adapted from
+earlier course materials. Target audience: students heading
+to pharma or CRO statistical programming roles who have no
+prior exposure to CDISC. Written
 in response to reports from alumni that a gap in this area was
 felt on the first day of their industry positions.
 :::
@@ -30,8 +30,8 @@ Answer the following questions to see if you can bypass this
 chapter. You can find the answers at the end of the chapter in
 @sec-quiz-answers-19.
 
-1. What is the difference between SDTM and ADaM, and which one
-   does a biostatistician typically build?
+1. What is the difference between SDTM and ADaM, and who
+   typically specifies and builds ADaM?
 2. In the CDISC convention, does `CNSR = 1` indicate a censored
    observation or an event?
 3. What is the role of `ADSL` relative to other ADaM datasets
@@ -74,10 +74,15 @@ Tabulation Model) and ADaM (Analysis Data Model).
 
 The organizing insight for the chapter is this: SDTM is how the
 data arrives at the statistician's desk, and ADaM is what the
-statistician builds, documents, and analyzes. Your deliverables
-as an industry biostatistician will, with high probability, be
-either ADaM datasets and their specifications, or the tables
-derived from them.
+analysis team specifies, builds, documents, and analyzes. In
+most sponsors and CROs the work is divided. The biostatistician
+writes the statistical analysis plan (SAP) and, often, the ADaM
+specifications; statistical programmers implement the ADaM
+datasets and the tables against those specifications, usually
+with independent double programming for validation. Whichever
+role you take, your deliverables will, with high probability,
+be ADaM specifications, ADaM datasets, or the tables derived
+from them.
 
 ## The statistician's contribution {#sec-cdisc-human}
 
@@ -102,14 +107,27 @@ boundary (when reading ADTTE into R) with
 at all silently produces wrong survival curves. Verify
 on every analysis.
 
-**Population flags carry inferential meaning.** A
-modified intent-to-treat (mITT) analysis includes
-patients who took at least one dose; a per-protocol
-(PP) analysis excludes protocol violations. The
-SAP pre-specifies which population each analysis
-uses; the ADSL flags (`ITTFL`, `SAFFL`, `EFFFL`,
-`PPROTFL`) implement the choice. Using the wrong
-flag at analysis time changes the estimand.
+**Population flags carry inferential meaning.** The
+intent-to-treat (ITT) set, or full analysis set
+(FAS), includes every randomized patient, analyzed
+as randomized. A modified ITT (mITT) set excludes a
+small number of randomized patients by a rule the
+protocol states in advance (for example, no
+post-baseline assessment); its definition varies by
+sponsor and must be read, not assumed. The safety
+set includes every patient who received at least
+one dose, analyzed as treated. A per-protocol (PP)
+set excludes patients with important protocol
+deviations. The SAP pre-specifies which analysis
+set each analysis uses; the ADSL flags (`ITTFL`,
+`FASFL`, `SAFFL`, `EFFFL`, `PPROTFL`) implement the
+choice. An analysis set is not the estimand's
+population, which ICH E9(R1) defines at the level
+of the scientific question, but the set should be
+chosen to estimate that estimand. Using the wrong
+flag at analysis time analyzes a different group
+of patients than the SAP promised, and may no
+longer target the stated estimand.
 
 **ADaM specifications are written, then built.**
 The standard workflow: write the ADaM spec
@@ -134,9 +152,10 @@ follows a standardized pipeline:
 3. **SDTM** domains are built by data management from the
    collected CRF data and submitted to the FDA as the raw
    tabulations layer.
-4. **ADaM** datasets are derived from SDTM by biostatistics
-   programmers. They are analysis-ready and also submitted to
-   the FDA.
+4. **ADaM** datasets are derived from SDTM by statistical
+   programmers, against specifications the biostatistician
+   writes or reviews. They are analysis-ready and also
+   submitted to the FDA.
 5. **TLFs** (Tables, Listings, and Figures) are produced from
    ADaM for the Clinical Study Report (CSR) that accompanies
    the submission.
@@ -184,7 +203,8 @@ dataset covering one topic area. Core domains you will see
 include:
 
 - `DM`: demographics (one row per subject).
-- `EX`: exposure or dosing (one row per dose).
+- `EX`: exposure or dosing (one row per dose or constant-dosing
+  interval).
 - `AE`: adverse events (one row per event).
 - `LB`: laboratory results (one row per test result).
 - `VS`: vital signs.
@@ -314,10 +334,15 @@ n <- 100
 ### Fabricate SDTM domains
 
 Real SDTM has many more required variables per domain. We keep
-only what ADaM needs so that the pipeline is visible.
+only what ADaM needs so that the pipeline is visible. The
+`--DTC` dates are built as ISO 8601 character strings, as SDTM
+stores them; conversion to `Date` happens in ADaM.
 
 ```{r}
 #| label: cdisc-sdtm
+
+ref_start <- as.Date('2024-01-01') +
+  sample(0:180, n, replace = TRUE)
 
 dm <- tibble(
   USUBJID = sprintf('STUDY01-%03d', 1:n),
@@ -328,14 +353,8 @@ dm <- tibble(
     n, replace = TRUE, prob = c(0.70, 0.20, 0.10)),
   ARM     = sample(c('Placebo', 'Drug 50mg'), n,
                    replace = TRUE),
-  RFSTDTC = as.Date('2024-01-01') +
-            sample(0:180, n, replace = TRUE)
+  RFSTDTC = format(ref_start)
 )
-
-ex <- dm |>
-  mutate(EXSTDTC = RFSTDTC + sample(0:3, n(), replace = TRUE),
-         EXTRT   = ARM) |>
-  select(USUBJID, EXSTDTC, EXTRT)
 
 ds <- dm |>
   mutate(
@@ -345,29 +364,48 @@ ds <- dm |>
     obs_time = pmin(tt_event, t_admin),
     DSDECOD  = if_else(tt_event <= t_admin,
                        'DEATH', 'COMPLETED'),
-    DSSTDTC  = RFSTDTC + round(obs_time)
+    DSSTDTC  = format(as.Date(RFSTDTC) + round(obs_time))
   ) |>
   select(USUBJID, DSDECOD, DSSTDTC)
+
+# dosing stops at a planned 52 weeks, or earlier at death
+ex <- dm |>
+  left_join(ds, by = 'USUBJID') |>
+  mutate(
+    start   = as.Date(RFSTDTC),
+    EXSTDTC = format(start),
+    EXENDTC = format(pmin(start + 364, as.Date(DSSTDTC))),
+    EXTRT   = ARM
+  ) |>
+  select(USUBJID, EXTRT, EXSTDTC, EXENDTC)
+
+stopifnot(is.character(dm$RFSTDTC), is.character(ex$EXSTDTC),
+          is.character(ds$DSSTDTC))
 ```
 
 ### Derive ADSL
 
 `ADSL` has exactly one row per subject. Every population flag,
 every treatment variable, and every demographic that a
-downstream analysis will stratify on is placed here.
+downstream analysis will stratify on is placed here. Here the
+character `--DTC` dates become `Date` values: `TRTSDT` is the
+first exposure start and `TRTEDT` the last exposure end, both
+taken from `EX`, not from the disposition date in `DS`.
 
 ```{r}
 #| label: cdisc-adsl
 
+exposure <- ex |>
+  group_by(USUBJID) |>
+  summarise(TRTSDT = min(as.Date(EXSTDTC)),
+            TRTEDT = max(as.Date(EXENDTC)),
+            .groups = 'drop')
+
 adsl <- dm |>
-  left_join(ex |> select(USUBJID, EXSTDTC),
-            by = 'USUBJID') |>
-  left_join(ds, by = 'USUBJID') |>
+  left_join(exposure, by = 'USUBJID') |>
   mutate(
     TRT01P = ARM,
     TRT01A = ARM,
-    TRTSDT = EXSTDTC,
-    TRTEDT = DSSTDTC,
     AGEGR1 = cut(AGE, c(-Inf, 65, Inf),
                  labels = c('<65', '>=65')),
     SAFFL  = if_else(!is.na(TRTSDT), 'Y', 'N'),
@@ -389,6 +427,15 @@ overall survival (OS). A real `ADTTE` might stack additional
 rows for progression-free survival (PFS), disease-free survival
 (DFS), or time to treatment failure (TTF).
 
+The example is a simplification in one respect worth naming. In
+a randomized trial, OS is usually measured from the
+randomization date (`RANDDT` in ADSL, derived from the
+randomization record in `DS`) and analyzed on the ITT set,
+because dosing happens after randomization and may never
+happen. Our fabricated subjects are all randomized and dosed on
+the same day, so `TRTSDT` stands in for the randomization date;
+on real data it should not.
+
 ```{r}
 #| label: cdisc-adtte
 
@@ -398,14 +445,14 @@ adtte <- adsl |>
     PARAMCD  = 'OS',
     PARAM    = 'Overall Survival (days)',
     STARTDT  = TRTSDT,
-    ADT      = DSSTDTC,
+    ADT      = as.Date(DSSTDTC),
     AVAL     = as.numeric(ADT - STARTDT),
     CNSR     = if_else(DSDECOD == 'DEATH', 0L, 1L),
     EVNTDESC = if_else(CNSR == 0L, 'Death',
                        'Administrative censoring'),
     ANL01FL  = 'Y'
   ) |>
-  select(USUBJID, TRT01P, TRT01A, SAFFL, EFFFL,
+  select(USUBJID, TRT01P, TRT01A, ITTFL, SAFFL, EFFFL,
          PARAMCD, PARAM, STARTDT, ADT, AVAL, CNSR,
          EVNTDESC, ANL01FL)
 
@@ -427,7 +474,7 @@ as 1, 2, and 3.
 #| label: cdisc-survival
 
 analysis <- adtte |>
-  filter(EFFFL == 'Y', PARAMCD == 'OS')
+  filter(ITTFL == 'Y', PARAMCD == 'OS')
 
 fit <- survfit(Surv(AVAL, CNSR == 0) ~ TRT01P,
                data = analysis)
@@ -473,7 +520,9 @@ ggsurvplot(fit, data = analysis,
 
 The progression of row granularity across the pipeline is the
 concept to retain: `dm` is one row per subject, `ex` is one row
-per dose, `ds` is one row per disposition event, `adsl` returns
+per dosing interval (one per subject here, many in a real
+trial, which is why `ADSL` summarizes it before joining), `ds`
+is one row per disposition event, `adsl` returns
 to one row per subject, and `adtte` is one row per subject per
 parameter. Tracking this at every join is how you avoid
 silently duplicating subjects; the `stopifnot()` calls above
@@ -505,8 +554,10 @@ it from ADaM specifications.
 ## The pharmaverse
 
 Until the late 2010s, most ADaM work in industry was done in
-SAS. Since approximately 2020, a coordinated open-source
-initiative called the **pharmaverse** has produced R packages
+SAS. Since the early 2020s (the cross-company collaboration
+took shape around 2022, the year `admiral` first reached CRAN),
+a coordinated open-source initiative called the
+**pharmaverse** has produced R packages
 that implement ADaM derivations with validation intended for
 regulatory use. The principal packages include:
 
@@ -610,7 +661,8 @@ synthetic rows that match it (@sec-ai-governance).
 2. Build a minimal `ADAE` (OCCDS structure) from a fabricated
    `AE` SDTM domain. Include `AEDECOD`, `AESER`, `AESEV`, and
    a treatment-emergent flag `TRTEMFL` derived from whether
-   `AESTDTC >= TRTSDT`.
+   the analysis start date `ASTDT` (from `AESTDTC`) is on or
+   after `TRTSDT`.
 **Beyond this book's dependencies.** No answer key; these
 need packages the book does not ship, or a document you write.
 
@@ -643,8 +695,9 @@ set.seed(31)
 ds_pfs <- ds |>
   mutate(
     prog_time = rexp(n(), rate = 0.0035),
-    PROGDT    = DSSTDTC - round(pmin(prog_time, 200)),
-    had_prog  = PROGDT > (DSSTDTC - 200) & DSDECOD == 'COMPLETED'
+    DSDT      = as.Date(DSSTDTC),
+    PROGDT    = DSDT - round(pmin(prog_time, 200)),
+    had_prog  = PROGDT > (DSDT - 200) & DSDECOD == 'COMPLETED'
   ) |>
   select(USUBJID, PROGDT, had_prog)
 
@@ -656,8 +709,9 @@ adtte_pfs <- adsl |>
     PARAM    = 'Progression-Free Survival (days)',
     STARTDT  = TRTSDT,
     # first of progression or death; else censor at last contact
+    DSDT     = as.Date(DSSTDTC),
     ADT      = if_else(had_prog & !is.na(PROGDT),
-                       pmin(PROGDT, DSSTDTC), DSSTDTC),
+                       pmin(PROGDT, DSDT), DSDT),
     AVAL     = as.numeric(ADT - STARTDT),
     CNSR     = if_else(had_prog | DSDECOD == 'DEATH', 0L, 1L),
     EVNTDESC = case_when(
@@ -704,16 +758,17 @@ ae <- adsl |>
                       prob = c(0.9, 0.1)),
     AESEV    = sample(c('MILD', 'MODERATE', 'SEVERE'), n(),
                       replace = TRUE, prob = c(.6, .3, .1)),
-    AESTDTC  = TRTSDT + sample(-10:200, n(), replace = TRUE)
+    AESTDTC  = format(TRTSDT + sample(-10:200, n(), replace = TRUE))
   ) |>
   select(USUBJID, AEDECOD, AESER, AESEV, AESTDTC)
 
 adae <- ae |>
   left_join(select(adsl, USUBJID, TRT01A, TRTSDT, SAFFL),
             by = 'USUBJID') |>
-  mutate(TRTEMFL = if_else(AESTDTC >= TRTSDT, 'Y', NA_character_)) |>
+  mutate(ASTDT   = as.Date(AESTDTC),
+         TRTEMFL = if_else(ASTDT >= TRTSDT, 'Y', NA_character_)) |>
   select(USUBJID, TRT01A, SAFFL, AEDECOD, AESER, AESEV,
-         AESTDTC, TRTSDT, TRTEMFL)
+         AESTDTC, ASTDT, TRTSDT, TRTEMFL)
 
 count(adae, TRTEMFL)
 head(adae, 4)
@@ -733,6 +788,16 @@ day of first dose is treatment-emergent. Using `>` drops
 exactly the events most likely to be attributed to the
 drug, and the count above shows how many rows that
 decision moves.
+
+This flag is deliberately incomplete. A protocol's
+definition of treatment-emergent usually also closes the
+window, at `TRTEDT` plus a stated lag (often 30 days
+after the last dose), and counts a pre-existing event
+that worsens in severity after first dose. Partial
+`AESTDTC` dates, such as `'2024-03'`, need an imputation
+rule before `ASTDT` can be compared at all. The SAP
+states all three; the code above implements only the
+lower bound.
 :::
 
 ## Further reading
@@ -746,8 +811,8 @@ decision moves.
   Conformance Guide, which states what a submission must
   contain.
 - [@ich2019e9r1], for the estimand framework that
-  determines which population flag an analysis should
-  use.
+  informs which analysis set, and so which population
+  flag, an analysis should use.
 
 ## Prerequisites answers {#sec-quiz-answers-19}
 
@@ -755,8 +820,10 @@ decision moves.
    view of the raw, collected clinical data, organized into
    domains such as `DM`, `AE`, `LB`, and `EX`. ADaM (Analysis
    Data Model) holds analysis-ready datasets derived from
-   SDTM. A biostatistician typically builds ADaM; SDTM is
-   built by data management or clinical programmers.
+   SDTM. In industry, statistical programmers typically build
+   ADaM against specifications written or reviewed by the
+   biostatistician, who also writes the SAP; SDTM is built by
+   data management or clinical programmers.
 2. `CNSR = 1` indicates a censored observation. `CNSR = 0`
    indicates the event of interest, and a sponsor may use
    other positive integers for other censoring reasons. This

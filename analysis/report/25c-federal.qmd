@@ -132,7 +132,8 @@ directing all federal agencies that fund research to:
    publications and data.
 
 Agencies were directed to publish updated public-access
-plans and implement them by the end of 2025. The result
+plans and to have them in effect by December 31, 2025. As
+of this writing (2026), the result
 is a moving compliance target: NIH, NSF, DOE, NASA, and
 others have rolled out specific implementations on
 slightly different schedules. NIH's is the 2024 NIH Public
@@ -144,8 +145,8 @@ Details of these policies change; check `sharing.nih.gov`
 for the current requirements rather than relying on any
 summary, this one included.
 
-For a researcher submitting in 2026 or later, the
-practical implications are:
+For a researcher submitting under these policies as they
+stood in 2026, the practical implications are:
 
 - Plan for the publication to be open access from day
   one (no embargo). This affects journal selection.
@@ -380,8 +381,11 @@ For projects with non-R dependencies (a particular LaTeX
 distribution, a system library, an external command-line
 tool), `renv.lock` is necessary but not sufficient.
 Docker (@sec-docker) extends the environment specification
-to system level, giving a fully bit-for-bit reproducible
-environment at the cost of more complex tooling.
+to system level, giving a much more fully specified
+environment at the cost of more complex tooling. It is
+not a guarantee of bit-for-bit identical output: base
+images, CPU architecture, and numerical libraries can
+still differ unless they too are pinned.
 
 ::: {.callout-note icon=false collapse=true}
 ## Check your understanding: `renv` vs. `Imports:`
@@ -419,8 +423,8 @@ infection rates:
 
 > **Data type.** Patient-level CRF data (demographics,
 > baseline labs, surgical details, postoperative
-> outcomes), approximately 1 MB per patient
-> ($\approx$ 200 MB total). Imaging data (CT scans)
+> outcomes), tens of kilobytes per patient (on the
+> order of 10 MB in total). Imaging data (CT scans)
 > separately, $\approx$ 200 GB total. Both contain PHI
 > as collected; neither is deposited until it has been
 > de-identified (@sec-deident).
@@ -432,8 +436,12 @@ infection rates:
 > reproducibility.
 >
 > **Standards.** CDISC SDTM for the underlying CRF
-> structure. DICOM for imaging. Quarto for analytic
-> reports.
+> structure, which is unusual for an observational study
+> (SDTM is required for regulatory submissions, not for
+> this kind of deposit) and is chosen here to ease
+> pooling with trial data; a documented REDCap data
+> dictionary would also meet the requirement. DICOM for
+> imaging. Quarto for analytic reports.
 >
 > **Data preservation and access.** CRF data
 > de-identified under Expert Determination, so that

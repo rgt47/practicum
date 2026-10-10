@@ -293,11 +293,19 @@ for free.
 ### Protecting `main`
 
 The workflow is a convention until the repository enforces it.
-On GitHub, under Settings, Branches, add a protection rule for
-`main` that requires a pull request before merging, requires
-the status check from @sec-ci to pass, and forbids force
-pushes. On a team of one this is unnecessary; on a team of two
-it is the cheapest insurance available, because the failure it
+On GitHub, in the repository's settings, add a branch
+protection rule or a ruleset for `main` that requires a pull
+request before merging, requires the status check from @sec-ci
+to pass, and forbids force pushes. Three caveats, as of this
+writing (GitHub moves these settings between plans and pages
+from time to time): repository administrators can bypass a
+rule unless you also choose the option that applies it to them;
+on GitHub's free plan, rules are enforced on public
+repositories but not on private ones, which need a paid or
+organization plan; and the newer rulesets page offers the same
+protections under different names. On a team of one this is
+unnecessary; on a team of two it is the cheapest insurance
+available, because the failure it
 prevents (a hurried Friday push straight to `main` that breaks
 the render and is discovered on Monday) is the one that
 actually happens.
@@ -340,7 +348,7 @@ cohort-construction script:
 analytic <- visits |>
   filter(
 <<<<<<< HEAD
-    sbp <= 250,
+    sbp <= 250, dbp <= 150,
 =======
     sbp >= 50, sbp <= 220,
 >>>>>>> origin/main
@@ -356,22 +364,29 @@ should say, and to delete all three marker lines.
 The temptation here is to read the conflict as a contest between
 two blocks of text and to pick a winner. We would urge the
 reader to read it instead as two statements about the analysis.
-Yours drops implausibly high blood pressures; theirs adds a
-lower bound and tightens the upper one. These are not
-alternatives at all. They are, rather, two halves of a single
-decision that the two of you reached independently, and the
-resolution that preserves both intents is the following:
+Yours drops implausibly high systolic and diastolic pressures;
+theirs adds a lower bound on systolic pressure and tightens its
+upper bound from 250 to 220. Two of these three changes are not
+alternatives at all: the diastolic ceiling and the systolic
+floor are halves of a single decision that the two of you
+reached independently, and both belong in the result. The third,
+the systolic ceiling, is a genuine disagreement that no merge
+can settle. The resolution that preserves both intents, keeping
+the ceiling the analysis plan specifies (here 250) until the
+disagreement is resolved, is the following:
 
 ```r
 analytic <- visits |>
   filter(
-    sbp >= 50, sbp <= 220,
+    sbp >= 50, sbp <= 250, dbp <= 150,
     !is.na(outcome)
   )
 ```
 
-with a message to your colleague asking why 220, because one
-of you has a reason and the other should hear it. Note what
+It matches neither side, which is the sign that it was written
+rather than chosen. Send a message to your colleague asking why
+220, because one of you has a reason and the other should hear
+it. Note what
 happened: the conflict surfaced a substantive disagreement
 about an exclusion criterion that would otherwise have been
 settled silently by whoever pushed last. That is the conflict
@@ -406,6 +421,16 @@ regenerate:
 git checkout --theirs renv.lock   # take one side wholesale
 git add renv.lock
 ```
+
+The meaning of `--theirs` depends on the operation. During a
+merge it is the branch you are merging in (here `origin/main`).
+During a rebase, including the rebase that `git pull` performs
+once `pull.rebase` is `true` as recommended above, the roles are
+reversed: `--ours` is the upstream you are replaying onto and
+`--theirs` is your own commit. To avoid guessing, name the
+commit instead of the side:
+`git checkout origin/main -- renv.lock` takes the version on
+`origin/main` in either case.
 
 ```r
 renv::restore()                   # match the library to it
@@ -452,15 +477,22 @@ above), or leave it out and let CI bear the cost. Both are
 defensible. Not deciding is what produces the weekly conflict
 nobody understands.
 
-Two files repay a `.gitattributes` entry, which tells Git how
-to treat them:
+Two kinds of file repay a `.gitattributes` entry, which tells
+Git how to treat them:
 
 ```
-# never attempt to merge these; take one side and regenerate
-renv.lock merge=ours
 *.rds binary
 *.qmd text eol=lf
 ```
+
+You may see `renv.lock merge=ours` recommended for the
+lockfile. Leave it out. Git defines no `ours` merge driver, so
+on its own the line does nothing and the lockfile still
+conflicts; once someone also runs
+`git config merge.ours.driver true`, Git silently keeps your
+lockfile and discards your collaborator's on every merge, with
+no conflict to prompt the regeneration described above. That is
+picking a side wholesale, without the decision.
 
 The line ending declaration matters more than it looks: a team
 that mixes Windows and macOS machines without it will
@@ -613,14 +645,15 @@ git switch main && git pull
 git switch -c primary-model
 # (edit R/model.R; also tighten an exclusion in R/cohort.R)
 git add R/model.R R/cohort.R
-git commit -m "Fit primary logistic model; exclude SBP > 250 as implausible"
+git commit -m "Fit primary logistic model; exclude SBP > 250, DBP > 150"
 git push -u origin primary-model
 gh pr create --fill --reviewer colleague
 ```
 
 Meanwhile she has branched `mnar-sensitivity` from the same
 `main`, and has also edited `R/cohort.R`, adding a lower bound
-on blood pressure. Her pull request is reviewed and merged
+on systolic pressure and lowering its ceiling to 220. Her pull
+request is reviewed and merged
 first. Yours is now out of date, and GitHub says so.
 
 ```bash
@@ -632,9 +665,11 @@ git merge origin/main
 ```
 
 You open `R/cohort.R`, find the conflict shown earlier in this
-chapter, and recognize that the two edits are complementary
-rather than competing. You keep both bounds, and you leave a
-comment on her merged pull request asking where 220 came from.
+chapter, and recognize that two of the three edits are
+complementary rather than competing. You keep her systolic floor
+and your diastolic ceiling, keep the plan's systolic ceiling of
+250, and leave a comment on her merged pull request asking where
+220 came from.
 
 ```bash
 git add R/cohort.R
@@ -642,7 +677,7 @@ git commit                    # concludes the merge
 git push
 ```
 
-CI re-runs against the updated branch. It fails: the tighter
+CI re-runs against the updated branch. It fails: the combined
 cohort now has 1,847 rows, and a test in
 `inst/tinytest/test-cohort.R` asserted 1,912. The test is
 doing its job. You update the assertion, note the new
@@ -677,13 +712,18 @@ propose a resolution.
 because that is what conflicts look like in the code it was
 trained on. In analysis code both sides usually encode an
 intent, and the correct resolution keeps both. Give the model
-the context ('the left side excludes implausibly high values;
-the right adds a lower bound') and it will do much better.
+the context ('the left side adds systolic and diastolic
+ceilings; the right adds a systolic floor and a lower systolic
+ceiling') and it will do much better.
 
 *Verification.* Run the analysis after resolving and check the
-row count against both branches' expectations. If the
-resolution is right, the count will match neither exactly, and
-you should be able to say why.
+row count against both branches' expectations. In the example
+above the resolved count will in general match neither: it
+loses, relative to your branch, the rows below the systolic
+floor, and regains, relative to hers, the rows with systolic
+pressure between 221 and 250, except those removed by the
+diastolic ceiling. You should be able to account for both
+differences.
 
 **Prompt 2: reviewing a diff.** Paste `git diff main...HEAD`
 and ask: 'what would a biostatistician object to in this
@@ -745,8 +785,9 @@ collaborator and a remote repository, so no answer key is possible.
    last-push-wins would have hidden.
 2. Turn on branch protection for `main` in a repository of
    your own: require a pull request, require a status check,
-   and forbid force pushes. Then try to push to `main` and
-   confirm that you cannot.
+   forbid force pushes, and apply the rule to administrators
+   (otherwise, as the owner, you can bypass it). Then try to
+   push to `main` and confirm that you cannot.
 3. Take a pull request from a colleague, or from any public R
    analysis repository, and review it against the six-question
    checklist in this chapter. Post at least one comment that a

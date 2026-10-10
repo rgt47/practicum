@@ -93,10 +93,12 @@ page's structure is not a contract and can change without notice,
 and it is the only one of the three that raises a question about
 whether you are entitled to the data at all.
 
-The three converge on a single discipline, which is the
-raw-data rule of @sec-wrangling stated one step earlier in the
-pipeline: whatever you acquire, write it down, date it, and never
-acquire it again in the same breath as analyzing it.
+The three converge on a single discipline, the raw-data rule:
+the data as received are read-only, and every change to them
+lives in a script rather than in the file. At the acquisition
+step the rule reads as follows: whatever you acquire, write it
+down, date it, and never acquire it again in the same breath as
+analyzing it. @sec-wrangling applies the same rule to cleaning.
 
 ## The statistician's contribution {#sec-acquisition-human}
 
@@ -482,8 +484,12 @@ pressure, because the interface does not know or care about your
 types. The third record has no `sbp` field at all, and `fromJSON`
 has filled it with `NA`, which is the behavior you want but
 should verify rather than assume. The empty string in the second
-record is *not* `NA` yet; it is a zero-length string that will
-become `0` if you coerce it carelessly.
+record is *not* `NA` yet; it is a zero-length string, so
+`is.na()` reports it as present and any missingness count taken
+before coercion is too low. `as.numeric("")` does return `NA`,
+but silently, without the warning that `as.numeric("abc")`
+raises, so the conversion leaves no trace that a value was
+missing at the source.
 
 The coercion, therefore, is explicit and is where the column
 specification of the previous section reappears in a different
@@ -616,46 +622,6 @@ scraper survive the addition of a second table to the page. It
 will not survive a redesign, and nothing will, which is why the
 next section matters more than this one.
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: why not fetch at render time?
-
-**Question.** Putting the API call directly in your `.qmd`
-means the report always reflects the current data, and
-there is no stale intermediate file to manage. That sounds
-like an argument for reproducibility. Why does this chapter
-insist on a separate acquisition script instead?
-
-**Answer.**
-
-Because 'always current' and 'reproducible' are opposites,
-and the phrasing hides it.
-
-A document that fetches at render time produces different
-output on every render, by design. Re-render it next year
-and you cannot reconstruct this year's numbers; the inputs
-are gone. That is the exact failure the whole book is
-about, arriving through a door marked convenience.
-
-Three further consequences follow. The render now needs
-network access and a valid credential, so it fails on a CI
-runner, in a container, and on a plane. It fails silently
-in a worse way if the endpoint returns a partial result.
-And it hits someone else's server every time anyone builds
-the document, which is a cost you are imposing on a host
-who did not agree to it.
-
-The two-script pattern separates the two things being
-confused. `01-acquire.R` runs rarely, deliberately, by a
-human, and writes a dated raw file with a provenance note.
-`02-clean.R` runs on every render and touches no network.
-The first is an *event*; the second is a *function*. Only
-the second belongs in a build.
-
-The test the chapter proposes is a good one: disconnect
-the network and render. If it still builds, the boundary
-is in the right place.
-:::
-
 ## The discipline that makes any of this reproducible
 
 An acquisition that runs at render time is a reproducibility bug
@@ -664,8 +630,19 @@ the warehouse when it renders, then the document produces
 different numbers on different days, your collaborator cannot
 render it at all without a token, and your continuous-integration
 run of @sec-ci fails or, worse, succeeds against different data.
+'Always current' and 'reproducible' are opposites: re-render the
+document next year and this year's numbers cannot be
+reconstructed, because the inputs are gone. The render also fails
+silently if the endpoint returns a partial result, and it hits
+someone else's server every time anyone builds the document,
+which is a cost imposed on a host who did not agree to it.
 
-The pattern is two scripts and one dated file.
+The pattern is two scripts and one dated file. The first script
+is an *event*: it runs rarely, deliberately, and by a human. The
+second is a *function*: it runs on every render and touches no
+network. Only the second belongs in a build, and the test of the
+boundary is to disconnect the network and render. If the
+document still builds, the boundary is in the right place.
 
 ```r
 # scripts/01-acquire.R  (run deliberately, by a human, rarely)

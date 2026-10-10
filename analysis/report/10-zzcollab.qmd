@@ -18,7 +18,8 @@ Mathematics* (1911)
 ## Sources
 
 In-house `zzcollab` framework at
-`~/prj/sfw/07-zzcollab/zzcollab/` (version 0.1.x).
+`github.com/rgt47/zzcollab` (version 0.2.0 at the time
+of writing).
 Blog posts `14-penguins1zzcollab` and
 `42-zzedcindependence`. This chapter describes
 `zzcollab` as it exists at time of writing; check
@@ -38,9 +39,8 @@ chapter in @sec-quiz-answers-10.
 2. How does `zzcollab` relate to `rrtools`, `renv`,
    and Docker? Does it replace them, wrap them, or
    compose them?
-3. What is the difference between the `analysis` and
-   `modeling` profiles shipped with `zzcollab`, and
-   when would you pick one over the other?
+3. What does a `zzcollab` profile determine, and when
+   would you pick `publishing` over `tidyverse`?
 
 ## Learning objectives
 
@@ -51,14 +51,14 @@ By the end of this chapter you should be able to:
 - Explain and audit the Five Pillars of a `zzcollab`
   compendium.
 - Choose the appropriate profile (minimal,
-  analysis, modeling, publishing, shiny) for a
-  given study.
+  tidyverse, rstudio, publishing) for a given
+  study.
 - Use the project `Makefile` targets (`make r`,
-  `make check-renv`, `make render`) to interact
-  with the container.
-- Extend `zzcollab` with a custom bundle that
-  encodes your research group's conventions in
-  `templates/bundles.yaml`.
+  `make check-renv`, `make docker-render-qmd`) to
+  interact with the container.
+- Read how profiles are defined in
+  `templates/bundles.yaml`, and judge where a
+  research group's conventions belong.
 - Recognize when `zzcollab` is overkill and when
   it is exactly the right level of infrastructure.
 
@@ -98,31 +98,30 @@ The framework's whole purpose is to make the mechanical
 parts disappear. What it cannot decide for you is
 whether it should be used at all, and at what weight:
 
-**Choose the right profile.** A modeling project
-that uses `lme4` will fail in an `analysis` profile
-container that lacks `libgsl-dev`. A simple
-descriptive analysis in a `modeling` profile waits
-five minutes longer for an unnecessary container
-build. The profile is a substantive choice;
-defaulting to the heaviest one wastes time, the
-lightest one wastes more time when it fails to
-support what you need.
+**Choose the right profile.** A manuscript that
+must render to PDF needs LaTeX, which only the
+`publishing` profile's base image has. A simple
+descriptive analysis in the `publishing` profile
+waits for a 4 GB image it does not need. The profile
+is a substantive choice; defaulting to the heaviest
+one wastes time, the lightest one wastes more time
+when it fails to support what you need.
 
-**Decide when to extend.** A research group has
-local conventions: a preferred database client, a
+**Decide where conventions live.** A research group
+has local conventions: a preferred database client, a
 set of in-house packages, journal-specific Quarto
-templates. Extending `zzcollab` with a custom
-bundle codifies these conventions and saves every
-downstream project from re-enumerating them. The
-extension is a one-time investment; the benefit
-compounds.
+templates. Writing them down once, in a template
+project or a shared lockfile, saves every downstream
+project from re-enumerating them. The investment is
+made once; the benefit compounds.
 
-**Audit the Pillars.** `make check-renv` and
-related commands verify that the compendium has
-all five pillars and that they are mutually
-consistent. Skipping the audit before deposition
-or paper submission is the kind of small omission
-that breaks reproducibility years later.
+**Audit the Pillars.** `make check-renv` verifies
+that the code, `DESCRIPTION`, and `renv.lock` agree
+about packages; it does not check the Dockerfile,
+`.Rprofile`, or data, so those need a manual look.
+Skipping the audit before deposition or paper
+submission is the kind of small omission that breaks
+reproducibility years later.
 
 **Recognize the limits.** `zzcollab` is not the
 answer to every project. For interactive
@@ -182,12 +181,15 @@ that depends on `libgdal` or a specific BLAS
 implementation reproduces only on machines with
 those libraries pre-installed. The
 `zzcollab`-generated Dockerfile pins the rocker
-base image (e.g., `rocker/r-ver:4.4.0`) and the
-profile-specific apt packages.
+base image by tag and, when Docker can resolve it,
+by digest (for example
+`rocker/r-ver:4.6.0@sha256:...`), and installs the
+system libraries the project's R packages need.
 
-**Pillar 2: `renv.lock`.** Captures R itself plus
-every R package version, including transitive
-dependencies. Without it, package updates between
+**Pillar 2: `renv.lock`.** Records the R version
+and every R package version, including transitive
+dependencies; the R installation itself comes from
+the Dockerfile. Without it, package updates between
 the analysis run and the reproduction silently
 change behavior.
 
@@ -215,50 +217,46 @@ manual audit verify that they do.
 
 ## Profiles and bundles
 
-The command `zzc <profile>` scaffolds a project
-using one of five profiles. Each profile is
-defined in `templates/bundles.yaml` as a
-combination of a *system library bundle* (Linux
-packages installed via `apt-get`) and an *R
-package bundle* (R packages installed via `renv`).
+The command `zzc <profile>`, run inside an empty project
+directory, scaffolds a project using one of four
+profiles. Each profile is defined in
+`templates/bundles.yaml`, and its main job is to choose
+the rocker base image:
 
-Current profiles (abbreviated from
-`bundles.yaml`):
+| Profile      | Base image         | Approximate size | Use                            |
+| ------------ | ------------------ | ---------------- | ------------------------------ |
+| `minimal`    | `rocker/r-ver`     | 650 MB           | command-line work, CI          |
+| `tidyverse`  | `rocker/tidyverse` | 1.2 GB           | tidyverse data analysis        |
+| `rstudio`    | `rocker/rstudio`   | 980 MB           | RStudio Server development     |
+| `publishing` | `rocker/verse`     | 4.2 GB           | manuscripts that need LaTeX    |
 
-| Profile      | System libs                          | R packages                    |
-| ------------ | ------------------------------------ | ----------------------------- |
-| `minimal`    | git, curl                            | base R only                   |
-| `analysis`   | + XML/SSL deps                       | tidyverse, palmerpenguins     |
-| `modeling`   | + libgsl-dev                         | + glmnet, lme4, survival      |
-| `publishing` | + texlive, pandoc, libv8-dev         | + Quarto-specific tooling     |
-| `shiny`      | + nodejs                             | + shiny, bslib, reactlog      |
+The `tidyverse` profile was formerly called `analysis`,
+and `zzc analysis` still works as a deprecated alias.
+There are no modeling or Shiny profiles; for those needs
+the framework's own advice is to start from one of the
+four and add packages inside the container.
 
 Choosing among them:
 
 - **`minimal`.** When you want to add packages
   one at a time. Useful for teaching examples or
   for projects with tight package budgets.
-- **`analysis`.** Default for descriptive,
-  exploratory, and tidyverse-heavy work. The
-  fastest container build that still has the
-  common tools.
-- **`modeling`.** When you will fit non-trivial
-  statistical models (GLMMs, survival, penalized
-  regression). The compiled-package dependencies
-  (`libgsl-dev`, `libssh2-dev`) are the slow
-  part; baking them in saves later trouble.
+- **`tidyverse`.** Default for descriptive,
+  exploratory, and tidyverse-heavy work.
+- **`rstudio`.** When collaborators will work in a
+  browser rather than a terminal.
 - **`publishing`.** When the deliverable is a
-  rendered manuscript. The TeX Live and Pandoc
-  layers are large but unavoidable for paper
-  rendering.
-- **`shiny`.** For Shiny apps. Adds Node.js for
-  building front-end assets and the Shiny package
-  family.
+  rendered PDF manuscript. The LaTeX layer is large
+  but avoids installing TeX at render time.
 
-A profile mismatch is recoverable: edit the
-Dockerfile, `apt-get install` whatever is
-missing, `make docker-build`. But getting it right
-the first time saves the rebuild.
+Modeling packages need no special profile. Install
+`lme4` or `survival` inside the container, record them
+with `make snapshot`, and rebuild with
+`make docker-build`. When zzcollab generates the
+Dockerfile it reads the packages your code, `DESCRIPTION`,
+and `renv.lock` mention and adds the system libraries
+they need, so a profile mismatch costs a rebuild rather
+than a hand-edited `apt-get` line.
 
 ::: {.callout-note icon=false collapse=true}
 ## Check your understanding: profile choice
@@ -271,18 +269,15 @@ manuscript. Which profile?
 
 **Answer.**
 
-You need both `modeling` (for `lme4` and
-`survival` plus the compiled-package
-dependencies) *and* the rendering tools
-(TeX Live, Pandoc) from `publishing`. The right
-move is either: (a) start with `publishing` and
-add `lme4`, `survival` via `renv::install`; or
-(b) define a custom bundle that combines both.
-For a research group that does this regularly,
-the custom bundle saves enumeration on every
-project. The framework is designed for
-extension; that is what `templates/bundles.yaml`
-is for.
+`publishing`, because the PDF manuscript is the one
+requirement a profile actually supplies: it is the
+only profile whose base image includes LaTeX. The
+modeling packages are not a profile question at all.
+Install `lme4` and `survival` inside the container,
+run `make snapshot` so that `renv.lock` and
+`DESCRIPTION` record them, and rebuild. Neither
+package needs an extra system library; `survival` is a
+recommended package that ships with R.
 
 :::
 
@@ -293,135 +288,126 @@ The minimum viable `zzcollab` session:
 ```bash
 mkdir penguins-analysis
 cd penguins-analysis
-zzc analysis              # scaffold (Five Pillars appear)
+zzc tidyverse             # scaffold (Five Pillars appear)
 make r                    # enter R session inside Docker
                           # ... do analysis ...
-make check-renv           # audit the compendium
-make render               # build final Quarto output
+make check-renv           # validate dependencies
+make docker-render-qmd    # render the Quarto report
 ```
 
 What happens at each step:
 
-**`zzc analysis`** runs the framework's
+**`zzc tidyverse`** runs the framework's
 scaffolding. After it completes, the directory
-contains a `Dockerfile` (rocker/r-ver:4.4.0 base
-+ XML/SSL deps), an initial `renv.lock`
-referencing tidyverse and palmerpenguins, an
-`.Rprofile` that activates renv, an `analysis/`
-and `R/` directory tree, and a `Makefile`. Git is
-initialized; the first commit captures the
-scaffolding.
+contains a `DESCRIPTION`, `R/`, `analysis/`, and
+`tests/` directories, a Quarto report at
+`analysis/report/index.qmd`, a minimal `renv.lock`, a
+`Dockerfile` on the `rocker/tidyverse` base, and a
+`Makefile`. It then offers to build the image. Git is
+a separate step (`zzc git`, or `git init` yourself).
 
-**`make r`** builds the Docker image (slow on
-first run; cached subsequently) and drops you
-into an interactive R session inside the
-container. The container's R session sees the
-project's `renv` library; the working directory
-maps to the host's project directory, so files
-edited inside the container persist.
+**`make r`** drops you into an interactive R session
+inside the container, with the project directory
+mounted, so files edited inside the container persist
+on the host. It does not build the image; if no image
+exists it says so and falls back to R on the host.
+Build first with `make docker-build` if you declined at
+scaffolding time.
 
-**`make check-renv`** runs the audit suite:
-verify that all packages mentioned in the code
-are in the lockfile, that the lockfile and
-library are in sync, that the Dockerfile builds,
-that the `.Rprofile` activates `renv` correctly.
-Run it before deposition or paper submission.
+**`make check-renv`** runs
+`zzrenvcheck::check_packages(auto_fix = TRUE,
+strict = TRUE)` on the host. It checks that the
+packages your code uses, the packages `DESCRIPTION`
+declares, and the packages `renv.lock` records all
+agree, and with `auto_fix` it *edits* `DESCRIPTION` and
+`renv.lock` to add what is missing. It is not a
+read-only audit; use `make check-renv-no-fix` for a
+report that changes nothing. It does not build the
+Dockerfile or inspect `.Rprofile` or the data.
 
-**`make render`** builds the final output.
-For a Quarto-based project, this renders the
-analysis documents to HTML and PDF.
+**`make docker-render-qmd`** runs
+`quarto render analysis/report/index.qmd` inside the
+container. (`make docker-render` renders an R Markdown
+report instead, `analysis/report/report.Rmd` by
+default.)
 
 ## The project `Makefile`
 
-Every `zzcollab` project gets a `Makefile` with a
-small set of targets:
+Every `zzcollab` project gets a `Makefile` with
+many targets; `make help` lists them. The ones used
+most:
 
-| Target              | Action                                         |
-| ------------------- | ---------------------------------------------- |
-| `make help`         | List all targets                               |
-| `make r`            | Drop into R inside the project's container     |
-| `make rstudio`      | Launch RStudio Server (port 8787)              |
-| `make render`       | Render `analysis/` to HTML and PDF             |
-| `make check-renv`   | Validate `renv.lock` against the library       |
-| `make docker-build` | Rebuild the container (use after adding system deps) |
-| `make clean`        | Remove generated outputs (preserves caches)    |
+| Target                   | Action                                              |
+| ------------------------ | --------------------------------------------------- |
+| `make help`              | List all targets                                    |
+| `make r`                 | Drop into R inside the project's container          |
+| `make rstudio`           | Launch RStudio Server (port 8787)                   |
+| `make docker-render-qmd` | Render `analysis/report/index.qmd` in the container |
+| `make check-renv`        | Validate dependencies and add missing ones          |
+| `make check-renv-no-fix` | Validate dependencies without modifying files       |
+| `make snapshot`          | Snapshot `renv.lock` in the container, then validate |
+| `make docker-build`      | Rebuild the image (use after adding packages)       |
+| `make clean`             | Remove package build artifacts                      |
 
 The non-obvious ones:
 
 **`make rstudio`** for browser-based interactive
 work. After `make rstudio`, open
-`http://localhost:8787` in a browser; log in as
-`rstudio` (password printed by `make rstudio`'s
-output). Useful for collaborators who do not
-want to use the terminal.
+`http://localhost:8787` in a browser and log in as
+`rstudio` with the password `rstudio`, which the
+target prints. The target publishes port 8787 on all
+of your machine's network interfaces, so with that
+fixed password, use it only on a trusted network (see
+@sec-docker for binding to `127.0.0.1` instead).
 
 **`make docker-build`** rebuilds the image after
-you add system dependencies. If you add a new
-`apt-get install` line to the Dockerfile,
-`make r` will silently use the old image; `make
-docker-build` forces a rebuild.
+you add packages or system dependencies. `make r`
+silently uses the old image until you do.
 
-**`make clean`** removes derived outputs (rendered
-HTML, PDFs, Quarto's `_freeze/` cache). Useful
-before pushing a release; not useful day to day.
+**`make clean`** removes package build artifacts
+(`*.tar.gz` and `*.Rcheck`); it does not touch rendered
+reports or Quarto's `_freeze/` directory.
 
-## Worked example: adding a project bundle
+## How profiles are defined
 
-Suppose your group works heavily with the Palmer
-Penguins data and has a local style package.
-Define a custom bundle:
+`templates/bundles.yaml` has three sections.
+`library_bundles` name sets of system packages,
+`package_bundles` name sets of R packages, and
+`profiles` combine a base image with one bundle of
+each. An abbreviated entry:
 
 ```yaml
 # templates/bundles.yaml (excerpt)
 
-penguin_research:
-  description: "Palmer Penguins analysis with house style"
-  inherits: analysis
-  apt_packages:
-    - libgsl-dev               # for any modeling extras
-  r_packages:
-    - palmerpenguins
-    - lme4
-    - mygroup_styles_pkg       # in-house package
+package_bundles:
+  tidyverse:
+    description: "Tidyverse ecosystem for data analysis"
+    packages: [renv, devtools, tidyverse, here]
+    requires_libs: ["minimal"]
+
+profiles:
+  tidyverse:
+    description: "Data analysis with tidyverse"
+    base_image: "rocker/tidyverse"
+    libs: minimal
+    pkgs: tidyverse
+    size: "~1.2GB"
 ```
 
-Then:
-
-```bash
-zzc penguin_research my-new-project
-```
-
-Future projects scaffold with the bundle
-preconfigured. Adding the bundle once saves every
-team member from re-enumerating dependencies.
-
-For a personal customization that does not need
-to be shared, the same applies but to a forked
-copy of `zzcollab`.
-
-## Extending zzcollab
-
-For a research group with local conventions (a
-preferred database client, a set of in-house
-packages, journal-specific Quarto templates),
-fork `zzcollab` and add to
-`templates/bundles.yaml`:
-
-1. **Add a new bundle.** Follow the YAML schema:
-   `description`, `inherits` (a parent bundle to
-   extend), `apt_packages`, `r_packages`.
-2. **Test on a scratch project.** `zzc <bundle>
-   tmp-test`; verify the container builds and
-   the packages install.
-3. **Document.** Add a paragraph to the
-   group's README explaining the bundle's
-   purpose.
-4. **Distribute.** A shared fork or branch lets
-   the team use the new bundle across projects.
-
-The framework is intentionally easy to extend:
-bundles are a few lines of YAML, and existing
-ones serve as templates.
+There is no `inherits` key, and in the current version
+the quickstart command accepts only the four built-in
+profile names. A group that wants different defaults
+can add a profile entry in a fork and select it with
+`zzc docker --profile <name>`, but the Dockerfile
+generator reads only the entry's `base_image`; the
+system libraries come from the packages the project
+uses, as described above, and R packages are added
+inside the container and recorded with
+`make snapshot`. Group conventions therefore live
+mostly in a template project or a shared `renv.lock`,
+not in a new profile. Check the repository's current
+`bundles.yaml` before relying on any of this, since the
+schema has changed between versions.
 
 ## When `zzcollab` is not the right tool
 
@@ -457,11 +443,14 @@ LLMs handle the framework well; the trap is
 generic 'set up a research project' suggestions
 that ignore the framework's existence.
 
-**Prompt 1: auditing a non-`zzcollab` analysis.**
-Paste a directory listing and ask: 'map this
-project onto the Five Pillars. What is missing,
-and what would I need to add to make it
-`zzcollab`-compliant?'
+**Prompt 1: auditing an analysis against the Five
+Pillars.** Paste a directory listing and ask: 'map
+this project onto the Five Pillars (Dockerfile,
+renv.lock, .Rprofile, source code, data). What is
+missing from each, and what would I need to add?'
+The audit is tool-neutral: the answer is the same
+whether you then add the files by hand, with
+`rrtools`, or with `zzcollab`.
 
 *What to watch for.* The LLM should identify
 each pillar concretely (Dockerfile present?
@@ -469,9 +458,11 @@ renv.lock? `.Rprofile`? Source code? Data?). If
 it generates abstract guidance instead, push for
 the file-by-file inventory.
 
-*Verification.* Run `zzc analysis` in a scratch
-copy; compare the resulting structure to your
-existing project. The diff is the work to do.
+*Verification.* Check each claimed pillar yourself:
+open the file, and for the Dockerfile and lockfile,
+build and restore them. Optionally run `zzc tidyverse`
+in a scratch directory and compare its structure to
+your project.
 
 **Prompt 2: comparing frameworks.** Describe a
 project type and ask the LLM to compare
@@ -487,11 +478,11 @@ should match each to a use case.
 README; if the LLM's claims about features are
 correct, the comparison is reliable.
 
-**Prompt 3: designing a bundle.** Paste
-`bundles.yaml` and describe a niche (e.g.,
-neuroimaging, RNA-seq, electrophysiology). Ask:
-'design a bundle covering the standard
-dependencies for this niche.'
+**Prompt 3: designing a package set.** Describe a
+niche (e.g., neuroimaging, RNA-seq,
+electrophysiology). Ask: 'list the R packages and
+system libraries a project in this niche typically
+needs.'
 
 *What to watch for.* The system libraries
 (neuroimaging needs FSL or AFNI tooling;
@@ -500,10 +491,11 @@ plus their `apt-get` dependencies). The LLM
 should produce plausible candidates; verify
 against domain documentation.
 
-*Verification.* Build the proposed bundle on a
-scratch project; install the packages. The
-build either succeeds or surfaces missing
-dependencies (which you then add).
+*Verification.* In a scratch project, install the
+packages inside the container, run `make snapshot`,
+and rebuild with `make docker-build`. The build
+either succeeds or surfaces missing dependencies
+(which you then add).
 
 ## Principle in use
 
@@ -533,19 +525,20 @@ projects on disk, so no answer key is possible.
    migrate it into a `zzcollab` compendium.
    Confirm every Pillar is present and run
    `make check-renv` to validate.
-3. Design a custom bundle for your research
+3. Assemble the package set for your research
    niche (e.g., 'survival analysis with heavy
-   tidymodels use'). Add it to a fork of
-   `zzcollab` and use it for a real project.
+   tidymodels use') in a scratch `zzcollab`
+   project, record it with `make snapshot`, and
+   reuse that lockfile to start a real project.
 4. Compare the time to set up a project from
    scratch with `rrtools` vs. with
-   `zzc analysis`. Time both. Document the
+   `zzc tidyverse`. Time both. Document the
    difference.
 5. Use `make rstudio` to launch RStudio Server
    in a `zzcollab` container; access it from a
    browser; render an analysis from inside the
    browser session. Confirm the result matches
-   `make render` from the terminal.
+   `make docker-render-qmd` from the terminal.
 
 ## Further reading
 
@@ -573,25 +566,24 @@ projects on disk, so no answer key is possible.
    source code is the work product, and data is
    the input. Remove any one and the analysis
    cannot be reproduced.
-2. `zzcollab` *composes* the other three. It
-   uses `rrtools` for the package-backed
-   compendium layout, `renv` for R package
-   management, and Docker for environment
-   reproduction. On top of these it adds
-   profile-based shortcuts (five ready-made
-   bundles), a build system (`Makefile`), and
-   validation commands (`make check-renv`). It
-   does not replace any of the three tools; it
-   removes the manual wiring between them.
-3. The `analysis` profile provides
-   tidyverse-focused R packages and is the right
-   default for descriptive analyses, data
-   wrangling, and straightforward reporting. The
-   `modeling` profile adds `glmnet`, `lme4`,
-   `survival`, and `libgsl-dev` system support,
-   and is appropriate for regression, mixed-
-   effects, or survival analyses that need
-   compiled model-fitting packages. Choose
-   `modeling` when you will fit non-trivial
-   models; otherwise choose `analysis` for
-   faster container builds.
+2. `zzcollab` *wraps* `renv` and Docker and
+   *follows* `rrtools`. It does not call `rrtools`;
+   it writes its own directory layout, modeled on
+   the Marwick, Boettiger, and Mullen compendium
+   that `rrtools` implements. It uses `renv` for
+   R package management and Docker for the
+   environment, and adds profile-based base images
+   (four profiles), a build system (`Makefile`),
+   and validation commands (`make check-renv`). It
+   does not replace `renv` or Docker; it removes
+   the manual wiring between them.
+3. A profile chiefly determines the rocker base
+   image: `rocker/r-ver` for `minimal`,
+   `rocker/tidyverse` for `tidyverse` (formerly
+   `analysis`), `rocker/rstudio` for `rstudio`,
+   and `rocker/verse` for `publishing`. Choose
+   `publishing` when the deliverable is a PDF
+   manuscript, because only its base includes
+   LaTeX; otherwise `tidyverse` gives a much
+   smaller image. Modeling packages are added
+   inside the container under any profile.

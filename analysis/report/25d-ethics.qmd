@@ -283,17 +283,21 @@ p_honest    <- base +
   coord_cartesian(ylim = c(0, 100)) +
   labs(title = "A. Axis from zero")
 
+axis_floor <- 71
 p_truncated <- base +
-  coord_cartesian(ylim = c(71, 75)) +
-  labs(title = "B. Axis from 71")
+  coord_cartesian(ylim = c(axis_floor, 75)) +
+  labs(title = paste("B. Axis from", axis_floor))
+
+bar_ratio <- (d$mean[2] - axis_floor) / (d$mean[1] - axis_floor)
 
 p_honest + p_truncated
 ```
 
-The difference is 1.7 points on a 100-point scale. Panel A
-tells you that. Panel B tells you that the treatment arm is
-roughly three times the control arm, which is false, and it
-tells you so without printing a single incorrect value.
+The difference is `r round(diff(d$mean), 1)` points on a 100-point
+scale. Panel A tells you that. Panel B draws the treatment bar
+about `r round(bar_ratio, 1)` times as tall as the control bar,
+which suggests a difference the data do not contain, and it
+does so without printing a single incorrect value.
 
 The three standard distortions:
 
@@ -354,18 +358,24 @@ ci <- function(x) {
   c(lower = m - 1.96 * se, mean = m, upper = m + 1.96 * se)
 }
 
-rbind(group_a = ci(a), group_b = ci(b)) |> round(1)
+ci_tab <- rbind(group_a = ci(a), group_b = ci(b)) |> round(1)
+ci_tab
 
-t.test(b, a)
+overlap_test <- t.test(b, a)
+overlap_test
 ```
 
-The two intervals overlap: group A reaches 102.7 and group B
-begins at 101.7. The two-sample test nonetheless rejects at the
-5% level ($p = 0.02$). Anyone reading the overlap off a figure
+The two intervals overlap: group A reaches
+`r ci_tab["group_a", "upper"]` and group B begins at
+`r ci_tab["group_b", "lower"]`. The two-sample test
+nonetheless rejects at the 5% level
+($p = `r round(overlap_test$p.value, 2)`$). Anyone reading the overlap off a figure
 and concluding 'no significant difference' has reached the
 opposite conclusion from the one the data support.
 
-The overlap here is about one point, which is deliberate: the
+The overlap here is about
+`r round(ci_tab["group_a", "upper"] - ci_tab["group_b", "lower"], 1)`
+point, which is deliberate: the
 fallacy does its damage in exactly this regime, where the
 intervals graze each other and the difference is real. As the
 difference grows the intervals separate and the two readings
@@ -453,7 +463,7 @@ honesty is the model; the skew is the hazard.
 **A sample is evidence about the population it was drawn
 from, and no other.** A drug trial that enrolls
 overwhelmingly at academic medical centers, among patients
-who can attend fortnightly visits, skews toward the younger,
+who can attend visits every two weeks, skews toward the younger,
 the insured, the urban, and the un-comorbid. The estimate it
 produces is an estimate for those patients. Applied to the
 elderly, rural, multiply-morbid patient to whom the drug
@@ -514,7 +524,7 @@ The practical discipline is threefold and cheap:
 Fair representation has a second face, downstream of the
 analysis: whether every reader can in fact read the result.
 A figure that carries its only distinction in red versus
-green is illegible to the roughly eight per cent of men with
+green is illegible to the roughly eight percent of men with
 a red-green color-vision deficiency, and the fix, a
 color-blind-safe palette verified before publication, is
 treated concretely in @sec-graphics. Accessibility of the

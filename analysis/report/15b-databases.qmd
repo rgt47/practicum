@@ -461,6 +461,7 @@ Three habits keep the extraction defensible:
    many-to-many join between `visits` and a table with
    duplicate `patient_id` values. Observe the inflated row
    count and explain it.
+
 **On your own machine.** No answer key; the interesting part
 is the measurement, which depends on your hardware.
 
@@ -602,6 +603,12 @@ n_after  <- tbl(con2, "visits") |>
   count() |> pull(n)
 
 c(visits = n_before, after_join = n_after)
+
+# the check that would have caught it, run before the join
+tbl(con2, "demo_dup") |>
+  count(patient_id) |>
+  filter(n > 1) |>
+  collect()
 ```
 
 ```{r}
@@ -614,8 +621,10 @@ Patient 1 has two visits and now two demographics rows, so
 those two visits become four. The join did not fail and
 issued no warning; SQL has no equivalent of dplyr's
 `relationship` argument. The only defense is to check the
-key before joining, which is why the chapter's own
-pipeline asserts uniqueness rather than trusting it.
+key before joining, as the last query above does: any row
+it returns is a duplicated key. In a pipeline, wrap that
+check in `stopifnot()` so that a duplicate stops the run
+rather than trusting the key to be unique.
 :::
 
 ## Further reading

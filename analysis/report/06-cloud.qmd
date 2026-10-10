@@ -97,7 +97,7 @@ prevents both under-spending (slow) and over-spending
 (expensive idle cores).
 
 **Cost discipline.** A `g4dn.12xlarge` GPU instance left
-running for a weekend costs more than a small laptop.
+running for a week costs more than a small laptop.
 Set budget alerts; use spot instances for fault-tolerant
 work; auto-shutdown after job completion. Forgetting to
 shut down is the most common cloud-cost surprise.
@@ -211,8 +211,16 @@ Pick an instance type (`t3.large`, `c6i.4xlarge`, etc.)
 and pay per hour.
 
 **IAM** (Identity and Access Management): users, roles,
-and permissions. Create a user for yourself, generate
-access keys, configure them in the AWS CLI.
+and permissions. Sign in through IAM Identity Center
+(single sign-on, which an institutional account usually
+provides) and let the AWS CLI fetch short-lived
+credentials with `aws configure sso`. Give an instance the
+permissions it needs (to write to one S3 bucket, say)
+through an IAM role attached to the instance, never by
+copying access keys onto it. Long-lived access keys for an
+IAM user are the credential most often leaked, in a
+committed file or a pasted log, and the hardest to notice
+once leaked.
 
 **S3** (Simple Storage Service): object storage. Cheaper
 than EBS for archival data; transfer to/from EC2 by
@@ -235,18 +243,26 @@ AWS CLI (`aws ec2 run-instances ...`) is essential for
 automation and scripting.
 
 ```bash
-# install
-brew install awscli                  # macOS
-pip install awscli                   # cross-platform
+# install version 2 of the CLI
+brew install awscli                  # macOS (Homebrew ships v2)
+# Linux (x86_64): AWS's official installer; Windows has an MSI
+curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" \
+  -o awscliv2.zip
+unzip awscliv2.zip && sudo ./aws/install
 
-# configure once
-aws configure                        # prompts for key, secret, region
+# configure once, with short-lived single-sign-on credentials
+aws configure sso
 
 # list instances
 aws ec2 describe-instances --query \
   'Reservations[].Instances[].[InstanceId,InstanceType,State.Name]' \
   --output table
 ```
+
+Avoid `pip install awscli`, which many older tutorials
+show: the `awscli` package on PyPI is still version 1 of
+the CLI, which lacks `aws configure sso` among other
+things.
 
 ## Launching an EC2 instance
 
@@ -259,8 +275,12 @@ group (SSH from your IP), launch.
 Via the CLI:
 
 ```bash
+# the current Ubuntu 24.04 LTS image in your region
+AMI=resolve:ssm:/aws/service/canonical/ubuntu/server/\
+24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
+
 aws ec2 run-instances \
-  --image-id ami-0c7217cdde317cfec \
+  --image-id "$AMI" \
   --instance-type t3.large \
   --key-name my-keypair \
   --security-group-ids sg-0abcd1234 \
@@ -268,6 +288,15 @@ aws ec2 run-instances \
   --tag-specifications \
     'ResourceType=instance,Tags=[{Key=Project,Value=readmissions}]'
 ```
+
+An AMI ID such as `ami-0c7217cdde317cfec` names one image
+in one region, and Ubuntu publishes a new one every few
+weeks, so a hard-coded ID is wrong in every other region and
+stale within a month. The `resolve:ssm:` form instead looks
+up the parameter Canonical publishes for the current Ubuntu
+24.04 LTS image in whatever region you are using; to see the
+ID it resolves to, pass the path after `resolve:ssm:` to
+`aws ssm get-parameter --name <path> --query Parameter.Value`.
 
 Connect:
 
@@ -289,10 +318,15 @@ Rscript -e 'install.packages("renv"); renv::restore()'
 ```
 
 Or, more reproducibly, run a Docker container with the
-environment baked in (@sec-docker):
+environment baked in (@sec-docker). A fresh Ubuntu instance
+does not have Docker, so install it first (Ubuntu's
+`docker.io` package, or Docker's own apt repository for a
+current release) and add yourself to the `docker` group:
 
 ```bash
-docker run -v $(pwd):/work my-analysis-image:v1.0 \
+sudo apt install -y docker.io
+sudo usermod -aG docker ubuntu       # takes effect at next login
+docker run -v "$(pwd)":/work my-analysis-image:v1.0 \
   Rscript /work/scripts/main.R
 ```
 
@@ -404,9 +438,12 @@ aws s3 cp s3://my-bucket/project/results.rds .
 aws s3 sync ./output s3://my-bucket/project/output/
 ```
 
-S3 is much cheaper than EBS for cold data ($0.023/GB/month
-vs. $0.10 for general-purpose EBS). For data the analysis
-finishes with, archive to S3.
+S3 is much cheaper than EBS for cold data (as of 2025 in
+`us-east-1`, about $0.023 per GB-month for S3 Standard
+against $0.08 for general-purpose `gp3` EBS volumes, with
+cheaper archival S3 tiers below that; check the pricing
+pages for your region). For data the analysis finishes
+with, archive to S3.
 
 Egress (data leaving AWS) is charged; ingress is free.
 Plan large transfers accordingly.
@@ -475,10 +512,13 @@ Catches forgotten instances quickly.
 
 **Use spot instances** for fault-tolerant work. Spot
 instances are excess capacity sold at a steep discount
-(60--80% off on-demand prices); the catch is that AWS
-can reclaim them with two minutes' notice. For
-embarrassingly-parallel simulations with checkpointing,
-spot is essentially free money.
+(AWS advertises up to 90 percent off on-demand prices;
+the actual discount varies by instance type, region, and
+week); the catch is that AWS can reclaim them with two
+minutes' notice. For embarrassingly-parallel simulations
+with checkpointing, spot is usually the cheapest option
+available, provided the job can resume from its last
+checkpoint.
 
 ```bash
 aws ec2 run-instances --instance-type c6i.xlarge \
@@ -494,16 +534,29 @@ once stopped (you still pay for EBS, much cheaper).
 For a typical job:
 
 ```bash
-# wrapper script
 #!/usr/bin/env bash
-Rscript analysis.R
-aws s3 cp results/ s3://my-bucket/project/results/ --recursive
-sudo shutdown -h now
+# run-job.sh: upload and shut down even if the analysis fails
+set -euo pipefail
+
+finish() {
+  aws s3 cp analysis.log s3://my-bucket/project/ || true
+  aws s3 cp results/ s3://my-bucket/project/results/ --recursive || true
+  sudo shutdown -h now
+}
+trap finish EXIT
+
+Rscript analysis.R > analysis.log 2>&1
 ```
 
-The instance does the analysis, uploads results, shuts
-down. You wake up to results in S3 and a stopped
-instance.
+The `#!` line must be the first line of the file, or it is
+an ordinary comment. The `trap` runs `finish` whenever the
+script exits, whether the analysis succeeded or failed, so
+an error in `analysis.R` no longer leaves an idle instance
+billing over the weekend; the log reaches S3 either way,
+which is where you will look first. The instance does the
+analysis, uploads results, shuts down. You wake up to
+results (or a log explaining their absence) in S3 and a
+stopped instance.
 
 ## Alternatives to AWS
 
@@ -565,20 +618,22 @@ inadequate).
 ## Worked example: a simulation on AWS
 
 ```bash
-# 1. provision
+# 1. provision ($AMI as set in the launch example above)
 aws ec2 run-instances \
-  --image-id ami-0c7217cdde317cfec \
+  --image-id "$AMI" \
   --instance-type c6i.4xlarge \
   --key-name my-keypair \
   --security-group-ids sg-0abcd1234 \
   --subnet-id subnet-0abcd1234 \
+  --iam-instance-profile Name=sim-s3-writer \
   --instance-initiated-shutdown-behavior stop \
   --user-data file://bootstrap.sh \
   --tag-specifications \
     'ResourceType=instance,Tags=[{Key=Project,Value=sim2026}]'
 
 # bootstrap.sh installs R, clones the repo, runs the simulation,
-# uploads results to S3, and shuts down
+# uploads results to S3, and shuts down (with a trap, as above);
+# the instance profile lets it write to S3 without access keys
 
 # 2. wait for it to finish (and shut down)
 aws ec2 describe-instances --instance-ids <id> \
@@ -592,12 +647,22 @@ aws ec2 terminate-instances --instance-ids <id>
 ```
 
 The cost: a 4-hour run on `c6i.4xlarge` (16 vCPU, 32 GB)
-at $0.68/hour is about $2.72. EBS storage another
-$0.50. S3 egress for the results, pennies.
+at $0.68/hour (on-demand, `us-east-1`, as of 2025) is
+about $2.72. EBS storage for those hours is about a cent
+at the rate given earlier, although a stopped instance
+keeps billing for its volume until step 4 terminates it.
+S3 egress for the results, pennies.
 
-For a simulation that took 32 hours on a laptop, this is
-a 8× speedup at $3 in costs. The judgment is whether
-the time saved is worth $3.
+Suppose the same simulation took 32 hours on a laptop. That
+is an eightfold reduction in wall-clock time for about $3,
+and the judgment is whether the time saved is worth $3. Read
+the eightfold figure as an observation about this one job,
+not as a rate to expect: the 16 vCPUs of a `c6i.4xlarge` are
+8 physical cores, a recent laptop has several cores of its
+own, and the serial portion and coordination overhead
+discussed earlier keep the gain below the ratio of core
+counts. Time a short pilot on both machines before
+deciding.
 
 ## Collaborating with an LLM on cloud setup
 
@@ -610,7 +675,9 @@ nature) and ask: 'recommend an EC2 instance type and
 estimate the cost.'
 
 *What to watch for.* Verify against the current AWS
-pricing page (LLMs may quote out-of-date prices).
+pricing page. Prices and AMI IDs from a model are stale
+by construction, because they come from training data;
+resolve AMIs through the SSM parameter shown earlier.
 Double-check the instance type matches the workload
 type (compute-optimized vs. memory-optimized).
 
@@ -663,8 +730,10 @@ Three habits keep the bill and the science both under control:
 provision compute you pay for or are granted, so no answer key is
 possible. Cost and wall-clock time are what you compare.
 
-1. Launch a `t3.medium` EC2 instance in the AWS free
-   tier (or equivalent). Install R, clone a GitHub
+1. Launch a small EC2 instance covered by your
+   account's free tier or credits (check the current
+   eligible types in the console; `t3.medium` is not
+   among them), or an equivalent elsewhere. Install R, clone a GitHub
    repository, and run a simple analysis. Shut the
    instance down when finished. Document every cost.
 2. Run a 1-hour simulation on an EC2 instance using
@@ -688,16 +757,18 @@ possible. Cost and wall-clock time are what you compare.
   RStudio in the cloud.
 - The `googleComputeEngineR` package, GCP
   provisioning from R.
-- *AWS in Action*, 2nd ed. (Wittig & Wittig, Manning)
- , accessible book-length introduction.
+- *AWS in Action*, 2nd ed. (Wittig and Wittig, Manning,
+  2018), an accessible book-length introduction.
 
 ## Prerequisites answers {#sec-quiz-answers-06}
 
 1. Cloud compute provides more resources (CPU, RAM,
    storage) than a laptop, on demand, without capital
-   investment. A 10-hour simulation on a laptop can be
-   a 1-hour simulation on an 8-core cloud instance, and
-   the laptop stays free for other work. Cloud compute
+   investment. A simulation that takes 10 hours on one
+   laptop core might take between 1.25 hours (the
+   eightfold ideal, never quite reached) and 2 hours on
+   an 8-core cloud instance, and the laptop stays free
+   for other work. Cloud compute
    also keeps research data off personal machines and
    provides audit logs. The trade-off is cost, security
    complexity, and data-transfer overhead.

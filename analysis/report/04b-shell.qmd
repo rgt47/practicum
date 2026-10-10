@@ -194,8 +194,8 @@ flowchart LR
 # how many unique treatment arms appear in column 3?
 cut -d',' -f3 visits.csv | sort | uniq -c
 
-# save the count of data rows to a log
-wc -l visits.csv > rowcount.txt
+# save the count of data rows (all lines but the header)
+tail -n +2 visits.csv | wc -l > rowcount.txt
 
 # the ten largest files in a directory tree
 du -ah . | sort -rh | head -n 10
@@ -246,7 +246,7 @@ DATA_DIR="data/raw"
 mkdir -p "$DATA_DIR"
 
 echo "Downloading extract..."
-curl -sSL "$1" -o "$DATA_DIR/visits.csv"
+curl -fsSL "$1" -o "$DATA_DIR/visits.csv"
 
 rows=$(wc -l < "$DATA_DIR/visits.csv")
 echo "Downloaded $rows lines."
@@ -262,8 +262,12 @@ line tells the shell to stop at the first error rather than
 plow on through a broken pipeline, which is the single
 most valuable line in any script. Quoting variables as
 `"$DATA_DIR"` protects against paths that contain spaces.
-Make the script executable with `chmod +x fetch-and-check.sh`
-and run it with `./fetch-and-check.sh <url>`.
+The `-f` flag on `curl` matters as much: without it, a
+server's '404 Not Found' page is saved as if it were the
+extract and the script carries on, whereas with it `curl`
+exits with an error and `set -e` stops the script. Make the
+script executable with `chmod +x fetch-and-check.sh` and run
+it with `./fetch-and-check.sh <url>`.
 
 ::: {.callout-note icon=false collapse=true}
 ## Check your understanding: reading a pipeline
@@ -329,8 +333,11 @@ The shell rewards three habits and punishes their absence:
 ## Exercises
 
 **On your own machine, data, or collaborations.** These exercises run
-against files on your own disk, so no answer key is possible. Each
-states what a correct result looks like.
+against files on your own disk. Exercises 1, 2, and 4 nonetheless have
+a single correct answer for whatever file or directory you choose, so
+check each one independently: in R (`nrow()`, `names()`, `count()`) for
+1 and 2, and with `ls` or your file browser for 4. Exercises 3 and 5
+call for judgment and comparison rather than a single answer.
 
 1. Using only the shell, determine the number of data rows,
    the delimiter, and the column names of a CSV file you

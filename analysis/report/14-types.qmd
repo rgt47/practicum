@@ -113,8 +113,10 @@ saving transitions cause spurious 1-hour gaps.
 
 **Excel dates.** When data come from Excel, dates may
 arrive as 5-digit serial numbers ('45405') rather than
-date strings. Parsing them as dates produces nonsense
-(year 124, depending on the epoch convention). The fix
+date strings. Converting them with `as.Date()` counts days
+from R's 1970 origin rather than Excel's 1900 one, so
+`as.Date(45405)` is 2094-04-25 instead of 2024-04-23: a
+plausible-looking date that is wrong by seventy years. The fix
 is `janitor::excel_numeric_to_date()` or careful
 import. Verify any column whose name suggests dates
 but whose values are numeric.
@@ -164,7 +166,6 @@ f <- factor(c("low", "high", "low", "medium", "high"))
 
 # levels in current order
 levels(f)
-#> [1] "high"   "low"    "medium"
 
 # alphabetical by default; reorder by frequency
 fct_infreq(f)
@@ -199,8 +200,11 @@ When to keep as character:
 
 - During data cleaning: avoids 'invalid factor level'
   surprises when a new value arrives.
-- For joining: factor matching can fail when levels
-  differ between tables.
+- For joining: a join on factor keys matches labels, but
+  the key that comes out carries the union of both
+  tables' level sets, in an order neither table chose,
+  and the integer codes behind the labels differ between
+  tables.
 
 ## Strings with `stringr`
 
@@ -215,11 +219,9 @@ s <- c("ABC123", "ABC", "XYZ-789", NA)
 
 # detect: returns logical
 str_detect(s, "[0-9]")
-#> [1]  TRUE FALSE  TRUE  NA
 
 # extract: returns first match per input, or NA
 str_extract(s, "[0-9]+")
-#> [1] "123" NA    "789" NA
 
 # extract all matches per input (returns list)
 str_extract_all(s, "[0-9]+")
@@ -229,13 +231,10 @@ str_replace(s, "[0-9]+", "***")
 
 # split
 str_split("a,b,c,d", ",", simplify = TRUE)
-#>      [,1] [,2] [,3] [,4]
-#> [1,] "a"  "b"  "c"  "d"
 
 # interpolate
 name <- "World"
 str_glue("Hello, {name}!")
-#> Hello, World!
 
 # case
 str_to_lower("ABC")           # "abc"
@@ -283,12 +282,18 @@ value you assigned. Every cleaning step then has to
 manage levels alongside data, and `str_replace()` on a
 factor silently coerces to character anyway.
 
-Joining becomes unsafe. Two factors built independently
-from different sources almost never share a level set, and
-their underlying integer codes mean different things.
-Joining on them compares codes, not labels, so rows match
-that should not and fail to match that should. Character
-comparison is on the text and cannot go wrong this way.
+Joining becomes harder to reason about. Two factors built
+independently from different sources almost never share a
+level set, and their underlying integer codes mean
+different things: `"Durham"` can be code 1 in one table
+and code 2 in the other. A `dplyr` join compares labels,
+not codes, so the rows themselves match correctly, but the
+joined key silently acquires the union of both level sets.
+The code mismatch bites as soon as anyone joins on
+`as.integer()` or `as.numeric()` of a factor key, for
+example a site number stored as a factor: rows then pair
+by code, with the wrong labels. Character comparison is on
+the text and has neither problem.
 
 The general principle: factor is a *modeling* type. It
 encodes a fixed set of categories and a reference level,
@@ -312,7 +317,6 @@ dmy("23 April 2026")
 # mixed formats: try each
 parse_date_time(c("2026-04-23", "04/23/2026", "April 23, 2026"),
                 orders = c("ymd", "mdy", "Bdy"))
-#> [1] "2026-04-23" "2026-04-23" "2026-04-23"
 
 # date-time
 ymd_hms("2026-04-23 14:30:00")
@@ -444,20 +448,23 @@ whichever the project uses.
 
 **Question.** You fit
 `glm(outcome ~ treatment, family = binomial)` where
-`treatment` is a factor with levels `"placebo"`,
-`"low"`, `"high"`. The default reference is alphabetical
-(`"high"`). The intercept estimates 18.2 and the
-`treatmentplacebo` coefficient is -3.1. What is the
-mean outcome under high-dose treatment?
+`treatment` is a character vector with values `"placebo"`,
+`"low"`, `"high"`, which `glm()` converts to a factor. The
+default reference is alphabetical (`"high"`). The intercept
+estimates 0.8 and the `treatmentplacebo` coefficient is -1.1.
+What is the estimated probability of the outcome under
+high-dose treatment?
 
 **Answer.**
 
-The intercept estimates the linear-predictor value at the
-reference level (`"high"`). The high-dose mean on the link
-scale is therefore 18.2 (or its inverse-link transform,
-depending on the family). The `treatmentplacebo` coefficient
-(-3.1) is the difference from high-dose, so the placebo mean
-on the link scale is 18.2 - 3.1 = 15.1.
+The intercept estimates the log-odds at the reference level
+(`"high"`), so the high-dose probability is
+`plogis(0.8)`, about 0.69. The `treatmentplacebo`
+coefficient (-1.1) is a log odds ratio relative to
+high-dose, so the placebo log-odds are 0.8 - 1.1 = -0.3, a
+probability of `plogis(-0.3)`, about 0.43. The coefficient
+is not a difference in probabilities; `exp(-1.1)`, about
+0.33, is the odds ratio for placebo against high dose.
 
 For clinical reporting, it is usually clearer to set the
 reference deliberately to `"placebo"`, so the intercept gives
@@ -489,7 +496,6 @@ Excel may arrive as `45405` (= 2024-04-23 in Excel's
 ```{r}
 #| label: types-excel-date
 janitor::excel_numeric_to_date(45405)
-#> [1] "2024-04-23"
 ```
 
 Verify: any 'date' column whose values are 5-digit
@@ -513,19 +519,25 @@ a time zone defaults to UTC (lubridate) or the system
 zone (base R). Be explicit; never assume.
 
 **Daylight-saving transitions.** Adding 24 hours and
-adding 1 day are not always the same:
+adding 1 day are not always the same. In most US time zones,
+daylight-saving time began at 2:00 a.m. on March 8, 2026, so
+an interval that starts at noon the day before crosses it:
 
 ```{r}
 #| label: types-dst
-ymd_hms("2026-03-09 01:00:00", tz = "US/Pacific") + days(1)
-#> [1] "2026-03-10 01:00:00 PDT"
-ymd_hms("2026-03-09 01:00:00", tz = "US/Pacific") + hours(24)
-#> [1] "2026-03-10 02:00:00 PDT"
+start <- ymd_hms("2026-03-07 12:00:00", tz = "America/Los_Angeles")
+start + days(1)
+start + hours(24)
+start + dhours(24)
 ```
 
-The first is a calendar day. The second is 24 wall-clock
-hours, which crosses a DST boundary. Use whichever notion of
-a day is appropriate for the analysis at hand.
+`days(1)` and `hours(24)` are both *periods*: they advance
+the clock, and land at noon on March 8. `dhours(24)` is a
+*duration* of exactly 86,400 seconds, and lands at 1:00
+p.m., because the night of the transition was only 23 hours
+long. Use a period for a calendar notion of a day and a
+duration for elapsed time, whichever the analysis at hand
+requires.
 
 ::: {.callout-note icon=false collapse=true}
 ## Check your understanding: which date bug is silent?
@@ -554,7 +566,7 @@ relative to an intention the data do not record.
 
 The DST case is worse, because both answers are correct.
 `d + days(1)` gives the same clock time the next calendar
-day; `d + hours(24)` gives the instant 24 hours later.
+day; `d + dhours(24)` gives the instant 24 hours later.
 Across a spring-forward boundary these differ by an hour,
 and which you want depends on whether your interval is a
 *calendar* day or a *duration*. R cannot know which you
@@ -687,10 +699,20 @@ and ask: 'parse these robustly, flagging any that fail.'
 
 *What to watch for.* `parse_date_time()` with multiple
 orders is the canonical answer. If the LLM produces
-nested `ifelse` or `case_when`, push back.
+nested `ifelse` or `case_when`, push back. But multiple
+orders are safe only when they cannot both match the same
+string. With `orders = c("mdy", "dmy")`, a value such as
+`03/04/2026` fits both, and `parse_date_time()` returns
+one reading (here April 3) with no warning, whichever
+order is listed first. That is this chapter's silent
+failure arriving through the recommended tool. Ask which
+convention each source uses, and parse each source with
+its single order.
 
 *Verification.* Run on the full column. Count NAs
-produced; investigate any unexpected ones.
+produced; investigate any unexpected ones. Then count the
+values whose day and month are both 12 or less, since NA
+counts cannot detect a misparse among them.
 
 **Prompt 2: regex extraction.** Describe the pattern
 you want and provide examples. Ask the LLM to write a

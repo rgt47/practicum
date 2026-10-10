@@ -162,6 +162,7 @@ plan live in an `R/` directory that the plan sources.
 # _targets.R
 library(targets)
 tar_source()          # source the helper functions in R/
+tar_option_set(packages = c("readr", "dplyr", "ggplot2"))
 
 list(
   tar_target(raw_file, "data/raw/visits.csv", format = "file"),
@@ -180,6 +181,20 @@ declared explicitly; `targets` reads them from the code,
 noticing that `clean` uses `visits`, that `model` and
 `figure` both use `clean`, and so on. That is how it builds
 the graph in @fig-targets-dag without your drawing it.
+
+`tar_option_set(packages = ...)` names the packages every
+target needs. `targets` runs each target in a clean
+environment, so a `library()` call at the top of a script
+you sourced interactively does not carry over; packages
+the functions in `R/` use must be listed here (or called
+with `pkg::fn()`).
+
+The `report` target above calls a function of your own
+for brevity. When the report is a Quarto document, use
+`tarchetypes::tar_quarto(report, "report.qmd")` instead:
+it renders the document and reads the `tar_read()` and
+`tar_load()` calls inside it, so the report becomes
+stale whenever a target it reads changes.
 
 ## Running and inspecting
 
@@ -230,9 +245,13 @@ A `targets` pipeline sits naturally inside the research
 compendium of @sec-rrtools: the `_targets.R` plan and the
 `R/` functions live in the package structure, `renv`
 (@sec-renv) pins the packages the pipeline uses, and the
-Dockerfile (@sec-docker) can end with `CMD Rscript -e
-'targets::tar_make()'` so that building the image runs the
-entire analysis. The compendium holds the ingredients;
+Dockerfile (@sec-docker) can end with `CMD ["Rscript",
+"-e", "targets::tar_make()"]` so that running a container
+from the image executes the entire analysis. `CMD` runs
+when the container starts, not when the image is built;
+building only prepares the environment, which is what you
+want, since an image that baked in results would have to
+be rebuilt for every change to the code. The compendium holds the ingredients;
 `targets` is the recipe that assembles them in the right
 order, and re-assembles only what has changed. Together
 they deliver the end-to-end re-runnability that a
@@ -302,9 +321,11 @@ and invalidate a pipeline on your machine, so no answer key is possible.
    show that only the `format = "file"` version invalidates
    the downstream targets.
 5. Add a `CMD` line to a Dockerfile that runs
-   `targets::tar_make()`, so that building the image
-   executes the whole pipeline. Explain how this closes the
-   loop with the compendium and `renv`.
+   `targets::tar_make()`, so that running a container from
+   the image executes the whole pipeline. Explain how this
+   closes the loop with the compendium and `renv`, and
+   where the `_targets/` store must live (a mounted
+   directory) for the results to outlive the container.
 
 ## Further reading
 

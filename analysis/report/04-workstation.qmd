@@ -91,8 +91,9 @@ rather than by default:
 **Pin the foundational toolchain.** A specific version of
 R, Quarto, and the rendering engine; documented and
 restorable. Casual updates are how reproducibility breaks
-silently. `rig` (on macOS) and Docker (@sec-docker) make
-multiple R versions easy to maintain side by side.
+silently. `rig` (on macOS, Windows, and Linux) and Docker
+(@sec-docker) make multiple R versions easy to maintain side
+by side.
 
 **Keep `.Rprofile` minimal.** Anything you put in
 `.Rprofile` runs at startup and changes the behavior of
@@ -122,18 +123,24 @@ when absent.
 **On macOS** with Homebrew:
 
 ```bash
-# system R via the official installer or rig
+# either: a single system R from the CRAN installer
 brew install --cask r
 
-# better: rig manages multiple R versions
-brew install r-lib/rig/rig
+# or (better, and instead of the above): rig manages
+# multiple R versions
+brew tap r-lib/rig
+brew install --cask rig
 rig install release          # latest stable
 rig install 4.4.0            # specific version
 rig default 4.4.0
 ```
 
-`rig` is the modern way to manage R on macOS. Multiple
-versions side by side, fast switching, no PATH games.
+Choose one of the two routes, not both; installing R through
+the cask and again through `rig` leaves two installers
+competing for the same framework directory. `rig` is the
+modern way to manage R, on macOS and also on Windows and
+Linux. Multiple versions side by side, fast switching, no
+PATH games.
 
 **On Linux** (Ubuntu/Debian):
 
@@ -157,12 +164,14 @@ for reproducibility:
 # verify version
 quarto --version
 
-# in a project's _quarto.yml, optionally pin
-# format:
-#   html:
-#     ...
-# quarto: 1.5.55
+# in a project's _quarto.yml, optionally require a
+# version range (rendering stops with an error otherwise)
+# quarto-required: ">= 1.5.55"
 ```
+
+The `quarto-required` key does not install anything; it
+makes a render on the wrong version fail loudly instead of
+succeeding quietly with different output.
 
 **Git** is preinstalled on Linux, available in Xcode
 Command Line Tools on macOS (`xcode-select --install`),
@@ -261,9 +270,12 @@ alias r='R --quiet --no-save'
 # editor
 export EDITOR='code'
 
-# brew completions on macOS
-[ -f /opt/homebrew/etc/profile.d/bash_completion.sh ] && \
-  source /opt/homebrew/etc/profile.d/bash_completion.sh
+# brew completions on macOS (zsh, not bash, completion)
+if type brew &>/dev/null; then
+  FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
+  autoload -Uz compinit
+  compinit
+fi
 ```
 
 `starship` (`starship.rs`) gives a clean, fast prompt with
@@ -291,8 +303,8 @@ Almost every 'it works on my machine' report about a
 missing or wrong-version package resolves to one
 question: which library did R actually look in?
 @fig-libpaths is the search order, and the thing to
-notice is that `renv` works by prepending to it rather
-than by replacing anything.
+notice is that `renv` works by replacing the user and site
+libraries rather than by adding to them.
 
 ```{mermaid}
 %%| echo: false
@@ -304,9 +316,9 @@ than by replacing anything.
 %%|   outcomes converge on a node reading 'first match wins'."
 %%| fig-cap: "The library search path. R takes the first match it
 %%|   finds, and installs into the first entry. Activating `renv`
-%%|   prepends the project library, which is why the same
-%%|   `install.packages()` call lands in different places depending
-%%|   on where you ran it."
+%%|   puts the project library first and removes the user and site
+%%|   libraries, which is why the same `install.packages()` call
+%%|   lands in different places depending on where you ran it."
 flowchart TD
   Q["library(dplyr)"] --> A{"project renv library<br/><i>present and active?</i>"}
   A -->|"yes"| B["renv/library/...<br/><i>project-pinned version</i>"]
@@ -323,26 +335,32 @@ R looks for packages in the directories returned by
 
 ```r
 .libPaths()
-#> [1] "/Users/you/Library/R/x86_64/4.4/library"
-#> [2] "/usr/local/lib/R/4.4/site-library"
-#> [3] "/Library/Frameworks/R.framework/Versions/4.4-x86_64/Resources/library"
+#> [1] "/Users/you/Library/R/arm64/4.4/library"
+#> [2] "/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library"
 ```
 
 The first is your user library; later are system. Install
-goes to `.libPaths()[1]` by default.
+goes to `.libPaths()[1]` by default. The paths shown are
+for the CRAN build of R 4.4 on an Apple Silicon Mac; yours
+will differ by platform, R version, and installer (a
+Homebrew-built R, for example, reports directories under
+`/opt/homebrew/`), so run the call rather than trust the
+listing.
 
 With `renv` active in a project, the project's
 `renv/library/` takes precedence:
 
 ```r
 .libPaths()
-#> [1] "/path/to/project/renv/library/macos/R-4.4/x86_64"
+#> [1] "/path/to/project/renv/library/macos/R-4.4/aarch64-apple-darwin20"
 #> [2] "/Users/you/Library/Caches/org.R-project.R/R/renv/sandbox/..."
 ```
 
+Your user library is no longer on the list at all; the
+second entry is a sandboxed view of the system library.
 This is exactly what `renv` does: each project has its own
 package library, isolated from other projects and from
-your user library. (Chapter 8 covers `renv` in depth.)
+your user library. (@sec-renv covers `renv` in depth.)
 
 The recommended pattern is:
 
@@ -365,10 +383,12 @@ Into the project's `renv/library/` directory, not the
 user library. `renv` modifies `.libPaths()` so that the
 first entry is the project library. `install.packages()`
 installs to the first entry. The lock file
-(`renv.lock`) is updated to record the new package and
-its version. This isolation is exactly the point of
-renv: a package update inside one project does not
-affect any other project's packages.
+(`renv.lock`) is *not* updated: it changes only when you
+run `renv::snapshot()`, and until then `renv::status()`
+flags the package as installed but not recorded once the
+project's code uses it. This isolation is
+exactly the point of renv: a package update inside one
+project does not affect any other project's packages.
 
 :::
 
@@ -445,7 +465,12 @@ cd ~/dotfiles
 stow zsh git R nvim    # symlinks ~/.zshrc -> ~/dotfiles/zsh/.zshrc, etc.
 ```
 
-Push the dotfiles repository to GitHub. On a new machine:
+Push the dotfiles repository to GitHub as a *private*
+repository. Shell histories, `.gitconfig` email
+addresses, internal hostnames, and the occasional token
+pasted into `.zshrc` all end up in dotfiles; make the
+repository public only after you have audited every file
+for them. On a new machine:
 
 ```bash
 git clone https://github.com/you/dotfiles.git ~/dotfiles
@@ -455,9 +480,10 @@ stow zsh git R nvim
 
 Two minutes after cloning, your environment is restored.
 
-Sensitive content (API keys, work-specific config) goes in
-a separate private repository or is kept out of the
-public dotfiles entirely. `.gitignore` your secrets.
+Sensitive content (API keys, work-specific config) is kept
+out of the dotfiles repository entirely, in a file such as
+`~/.Renviron` or the operating system's keychain that the
+repository never tracks. `.gitignore` your secrets.
 
 ## Fonts and readability
 
@@ -491,13 +517,15 @@ RStudio code font in Tools → Global Options → Appearance.
 
 # Homebrew
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # core tools
 brew install git tmux starship stow
-brew install --cask jetbrains-mono r rstudio quarto
+brew install --cask font-jetbrains-mono rstudio quarto
 
-# multi-version R via rig
-brew install r-lib/rig/rig
+# R via rig only, so that R is not installed twice
+brew tap r-lib/rig
+brew install --cask rig
 rig install release
 
 # clone and apply dotfiles
@@ -510,6 +538,17 @@ Rscript -e 'install.packages(c("renv", "usethis", "devtools",
 
 echo "Setup complete. Reboot recommended."
 ```
+
+The first command downloads a script and pipes it
+straight into `bash`, which runs whatever the server
+returns with your privileges. That is the installation
+method Homebrew documents, and it is acceptable for a
+source you have decided to trust, over HTTPS; it is not a
+pattern to copy for an arbitrary URL. When in doubt,
+download the script, read it, and then run it. The
+`brew shellenv` line is needed on Apple Silicon, where
+Homebrew lives in `/opt/homebrew` and is not yet on the
+`PATH` of the shell running the script.
 
 A 30-minute one-time investment that rebuilds your
 workstation from scratch. Refine each time you set up a
@@ -539,12 +578,14 @@ error message or the output of `traceback()` and ask:
 else?'
 
 *What to watch for.* Most R startup issues are
-`.Rprofile` doing something unexpected, or a stale
-`.Rhistory`. The LLM should know this. If the diagnosis
+`.Rprofile` doing something unexpected, or a saved
+workspace (`.RData`) being restored into the session. The
+LLM should know this. If the diagnosis
 is generic, ask for specifics.
 
 *Verification.* Run R with `--vanilla` (skipping
-`.Rprofile`) to isolate.
+`.Rprofile`, `.Renviron`, and the restore of `.RData`)
+to isolate.
 
 **Prompt 3: configuring a new editor.** Describe what
 you want from the editor (Neovim with R support, VS
@@ -586,15 +627,15 @@ what your own system reports afterward.
 4. Compare your `.Rprofile` to the recommendations in
    this chapter. List anything that should be moved to
    project-level config or removed entirely.
-5. Install `rig` (macOS) or use the CRAN apt repository
-   (Linux) to install R 4.3 and R 4.4 side by side.
+5. Install `rig` (macOS, Windows, or Linux) and use it
+   to install R 4.3 and R 4.4 side by side.
    Switch between them; confirm packages install to
    different libraries.
 
 ## Further reading
 
-- Wickham's RStudio cheatsheets at
-  `rstudio.com/resources/cheatsheets`, print them.
+- Posit's cheatsheets at
+  `posit.co/resources/cheatsheets`, print them.
 - [@chacon2014progit], the canonical free Git book.
 - [@bryan2019happygit], for the R-specific half of
   the Git setup.
@@ -618,8 +659,9 @@ what your own system reports afterward.
    Common biostatistician dotfiles: `.Rprofile`,
    `.gitconfig`, `.zshrc`/`.bashrc`, `.tmux.conf`,
    editor configs (`init.vim`, `.vscode/settings.json`).
-   Version-controlling them in a public dotfiles
-   repository is the modern standard.
+   Version-controlling them in a dotfiles repository is
+   common practice; keep it private unless you have
+   audited every file for secrets.
 3. RStudio provides an integrated IDE: editor, console,
    plots, help, and Git panes in one window, with
    R-specific conveniences. A terminal + Neovim + tmux

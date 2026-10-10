@@ -33,10 +33,13 @@ without them should substitute `gtsummary` and plain
 `ggplot2`; nothing in the analyses depends on the
 substitution.
 
-Everything else is optional. Where a chapter mentions one
-of these tools, it names the portable alternative in the
-same breath, and a reader who ignores the tool loses
-convenience rather than capability.
+Everything else is optional. The aim is that wherever a
+chapter mentions one of these tools, it names the portable
+alternative in the same breath, so that a reader who
+ignores the tool loses convenience rather than capability.
+Not every chapter meets that standard yet, and bringing
+the rest into line is planned work rather than a claim
+about the present text.
 
 ## Research infrastructure
 
@@ -108,7 +111,8 @@ regression-on-order-statistics, censored maximum likelihood,
 and multiple imputation. Discussed in @sec-missing, where
 the point is that left censoring is not missingness.
 
-**`zzfisher`**. Fisher's exact test for $r \times 2$
+**`zzfisher`** ([github.com/rgt47/zzfisher](https://github.com/rgt47/zzfisher)).
+Fisher's exact test for $r \times 2$
 contingency tables, with tree-based and network-based
 algorithms implemented in R, C, and C++. Relevant to the
 sparse-table case @sec-ai-coding uses as its example of a

@@ -109,11 +109,12 @@ source) late. A change to your analysis script should
 not invalidate the package-installation layer.
 
 **Pin everything.** `FROM rocker/r-ver:4.4.0` is good;
-`FROM rocker/r-ver:latest` is bad. The first reproduces;
-the second drifts. The same applies to system packages
-(`apt-get install r-base`): pin versions in the
-Dockerfile or accept that 'latest' will eventually
-break.
+`FROM rocker/r-ver:latest` is bad. The first pins the R
+version; the second drifts. Neither pins the bytes: only
+a digest does, as the callout below explains. The same
+applies to system packages installed with `apt-get`:
+pin versions in the Dockerfile or accept that they
+will eventually change underneath you.
 
 **Decide where the data goes.** Embedding data in the
 image makes the image self-contained but bloats it.
@@ -169,12 +170,19 @@ docker rmi my-analysis:v1.0
 The `--rm` flag removes the container when it exits;
 without it, stopped containers accumulate.
 
+On an Apple Silicon Mac, add `--platform linux/amd64` to
+every `docker pull`, `docker run`, and `docker build`.
+Many R images and binary package repositories target
+x86_64 only, and an image built for arm64 will not run
+on a typical Linux server; see 'Architecture mismatch'
+below.
+
 ## The `rocker` project
 
 [`rocker-project.org`](https://rocker-project.org/)
 maintains the standard R Docker images:
 
-- **`rocker/r-ver`**: minimal R on Debian. Smallest
+- **`rocker/r-ver`**: minimal R on Ubuntu LTS. Smallest
   image; useful as a base for `renv`-based projects
   where you install everything yourself.
 - **`rocker/rstudio`**: R plus RStudio Server. For
@@ -195,41 +203,87 @@ Each image is tagged with R version (e.g.,
 public Dockerfiles. Pinning a tag pins the
 environment.
 
-## A research-compendium Dockerfile
+## A research-compendium Dockerfile {#sec-docker-canonical}
+
+This is the book's one canonical Dockerfile; @sec-rrtools
+and @sec-renv use it unchanged. It assumes the compendium
+layout of @sec-rrtools, a `renv.lock` that includes
+`rmarkdown` and `knitr` (Quarto needs both to run R
+chunks), and the `.Rprofile` and `renv/activate.R` that
+`renv::init()` writes.
 
 ```dockerfile
-# pin to a specific R version (and rocker tag)
+# syntax=docker/dockerfile:1
 FROM rocker/r-ver:4.4.0
 
-# system libraries that R packages need
-# (curl/openssl/xml2 covers most CRAN packages)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    libxml2-dev \
-    libfontconfig1-dev \
-    libfreetype6-dev \
-    libpng-dev \
-    libtiff5-dev \
-    libjpeg-dev \
-    pandoc \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+ARG QUARTO_VERSION=1.6.40
 
-# install renv (a known version)
-RUN R -e 'install.packages("renv", \
-  repos = "https://cloud.r-project.org", version = "1.0.7")'
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates curl \
+    libcurl4-openssl-dev libssl-dev libxml2-dev libuv1-dev \
+  && rm -rf /var/lib/apt/lists/*
 
-# restore project packages from lockfile
+# rocker/r-ver ships R but not the Quarto CLI
+RUN arch="$(dpkg --print-architecture)" \
+  && curl -fsSL -o /tmp/quarto.deb \
+    "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-${arch}.deb" \
+  && dpkg -i /tmp/quarto.deb \
+  && rm /tmp/quarto.deb
+
+# outside /work, so a bind mount of the project cannot hide it
+ENV RENV_PATHS_LIBRARY=/opt/renv/library
+
 WORKDIR /work
-COPY renv.lock renv.lock
-RUN R -e 'renv::restore()'
+COPY renv.lock .Rprofile ./
+COPY renv/activate.R renv/activate.R
+RUN R -q -e "renv::restore(prompt = FALSE)"
 
-# copy the project source AFTER package install (cache friendly)
-COPY . /work
+COPY . .
 
-# default command: render the paper
-CMD ["R", "-e", "rmarkdown::render('analysis/paper/paper.qmd')"]
+CMD ["quarto", "render", "analysis/paper/paper.qmd"]
+```
+
+Three details are easy to get wrong. `rocker/r-ver` does
+not include Quarto, so the image installs a pinned
+release of the Quarto CLI; without it, `quarto render`
+fails. The render command is `quarto render`, not
+`rmarkdown::render()`, which is the R Markdown renderer
+and does not process a `.qmd` project. And the base tag
+must match the R version recorded in `renv.lock`, or
+`renv` will restore the right packages onto the wrong R.
+For the strongest pin, replace the tag with a digest, as
+the callout below explains:
+
+```dockerfile
+FROM rocker/r-ver:4.4.0@sha256:73adabf378930f8744f56bac1fe5e99870532eb4ced1a15075991bac909d21f3
+```
+
+Find the digest for a tag you have pulled with
+`docker inspect --format '{{index .RepoDigests 0}}' rocker/r-ver:4.4.0`.
+
+The image above renders HTML. For PDF output, add
+`RUN quarto install tinytex --no-prompt` after the
+Quarto layer.
+
+Next to the Dockerfile, commit a `.dockerignore`. It keeps
+the local package library, credentials, and other
+machine-specific files out of the build context, and
+therefore out of an image you may later push to a public
+registry:
+
+```
+.git/
+.Rproj.user/
+.Rhistory
+.RData
+.Renviron
+.env
+secrets/
+renv/library/
+renv/staging/
+renv/local/
+_freeze/
 ```
 
 The order matters: lockfile, then renv install, then
@@ -245,7 +299,7 @@ the slow package-restore layer untouched.
 %%| echo: false
 %%| label: fig-docker-layers
 %%| fig-alt: "Vertical stack of Dockerfile layers in build order,
-%%|   annotated by how often each changes. A cached rocker/verse
+%%|   annotated by how often each changes. A cached rocker/r-ver
 %%|   base, then system dependencies that rarely change, then
 %%|   copying renv.lock and restoring packages, which changes when
 %%|   packages change, then copying the source tree, which changes
@@ -257,10 +311,10 @@ the slow package-restore layer untouched.
 %%|   manuscript invalidates only the final COPY, so the expensive
 %%|   package restore is reused from cache."
 flowchart TD
-  A["FROM rocker/verse<br/><i>cached base image</i>"] --> B["RUN apt-get system deps<br/><i>rarely changes</i>"]
+  A["FROM rocker/r-ver<br/><i>cached base image</i>"] --> B["RUN apt-get system deps<br/><i>rarely changes</i>"]
   B --> C["COPY renv.lock + restore<br/><i>changes when packages change</i>"]
   C --> D["COPY . /work<br/><i>changes every edit</i>"]
-  D --> E["CMD render paper"]
+  D --> E["CMD quarto render"]
   style C fill:#e8f4f4,stroke:#2c7a7b
   style D fill:#fbe9e7,stroke:#9d2235
 ```
@@ -274,18 +328,22 @@ which is slow.
 Build:
 
 ```bash
-docker build -t readmissions:v1.0 .
+docker build --platform linux/amd64 -t readmissions:v1.0 .
 ```
 
 Run the analysis:
 
 ```bash
-docker run --rm -v $(pwd)/analysis/paper:/output \
+docker run --rm --platform linux/amd64 \
+  -v "$(pwd)/analysis/paper:/work/analysis/paper" \
   readmissions:v1.0
 ```
 
-The mounted volume makes the rendered PDF appear in your
-host's file system.
+`quarto render` writes its output next to the source, in
+`/work/analysis/paper/`, so that is the directory to
+mount. The rendered file then appears in your host's
+`analysis/paper/`. A mount at any other container path
+receives nothing.
 
 ## RStudio Server in a container
 
@@ -293,17 +351,22 @@ For interactive work with the project's pinned
 environment:
 
 ```bash
-docker run -d --rm \
-  -p 8787:8787 \
-  -e PASSWORD=secret \
-  -v $(pwd):/home/rstudio \
+docker run -d --rm --platform linux/amd64 \
+  -p 127.0.0.1:8787:8787 \
+  -e PASSWORD="$RSTUDIO_PASSWORD" \
+  -v "$(pwd)":/home/rstudio/project \
   --name analysis-rstudio \
   rocker/tidyverse:4.4.0
 ```
 
-Then open `http://localhost:8787` in a browser; log in
-as `rstudio` with password `secret`. Your project
-files are mounted under `/home/rstudio`. Inside the
+Set `RSTUDIO_PASSWORD` in your shell first, rather than
+typing a password into a command that lands in your shell
+history. Binding to `127.0.0.1` keeps the server off your
+network; a bare `-p 8787:8787` publishes it on every
+interface, so anyone who can reach your machine can try
+the login. Then open `http://localhost:8787` in a
+browser and log in as `rstudio`. Your project files are
+mounted under `/home/rstudio/project`. Inside the
 container, run `renv::restore()` to install the
 project's packages.
 
@@ -419,8 +482,7 @@ to an R session, or other multi-process setups, Docker
 Compose orchestrates several containers:
 
 ```yaml
-# docker-compose.yml
-version: '3.8'
+# compose.yaml
 services:
   r:
     build: .
@@ -433,7 +495,7 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_PASSWORD: secret
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env}
       POSTGRES_DB: research
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -448,9 +510,15 @@ docker compose exec r R       # interactive R session in the r service
 docker compose down            # stop both services
 ```
 
-The `docker compose` (subcommand) form is current as of
-Docker 20.10+; the older `docker-compose` (hyphenated
-binary) is being deprecated.
+The password is read from a `.env` file beside the
+Compose file, which Compose loads automatically; list
+`.env` in both `.gitignore` and `.dockerignore`, and never
+write the password into the committed file. The
+top-level `version:` key that older examples show is
+obsolete and is ignored by Compose v2. Use the
+`docker compose` subcommand: the hyphenated
+`docker-compose` binary is Compose v1, which reached end
+of life in 2023.
 
 For most biostatistical analyses, a single container is
 enough. Compose is useful when the analysis interacts
@@ -477,8 +545,10 @@ necessary. The standard one-liner above mitigates this.
 
 **Architecture mismatch.** Building on Apple Silicon
 (arm64) and deploying on a Linux x86_64 server
-produces an image that does not run. Use Docker
-Buildx to build multi-arch images:
+produces an image that does not run. Either build with
+`--platform linux/amd64`, as every command in this
+chapter does, or use Docker Buildx to build multi-arch
+images:
 
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 \
@@ -487,35 +557,26 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 
 ## Worked example: complete dockerized compendium
 
+Start from the canonical Dockerfile of
+@sec-docker-canonical. A compendium that also uses `sf`
+needs the geospatial libraries, so extend the `apt-get`
+line and change nothing else:
+
 ```dockerfile
-# Dockerfile
-FROM rocker/r-ver:4.4.0
-
-# system deps for tidyverse, sf, brms
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libcurl4-openssl-dev libssl-dev libxml2-dev \
-    libfontconfig1-dev libfreetype6-dev libpng-dev \
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates curl \
+    libcurl4-openssl-dev libssl-dev libxml2-dev libuv1-dev \
     libgdal-dev libproj-dev libgeos-dev \
-    pandoc texlive-xetex \
-    && rm -rf /var/lib/apt/lists/*
-
-# renv at a fixed version
-RUN R -e 'install.packages("renv", repos = "https://cloud.r-project.org")'
-
-WORKDIR /work
-COPY renv.lock renv.lock
-RUN R -e 'renv::restore()'
-
-COPY . /work
-
-# render the paper by default
-CMD ["R", "-e", "rmarkdown::render('analysis/paper/paper.qmd')"]
+  && rm -rf /var/lib/apt/lists/*
 ```
 
 ```bash
 # build and run
-docker build -t readmissions:v1.0 .
-docker run --rm -v $(pwd)/output:/work/output readmissions:v1.0
+docker build --platform linux/amd64 -t readmissions:v1.0 .
+docker run --rm --platform linux/amd64 \
+  -v "$(pwd)/analysis/paper:/work/analysis/paper" \
+  readmissions:v1.0
 
 # push for sharing
 docker tag readmissions:v1.0 ghcr.io/username/readmissions:v1.0
@@ -528,12 +589,19 @@ compendium, runs:
 ```bash
 git clone https://github.com/username/readmissions.git
 cd readmissions
-docker build -t readmissions:v1.0 .
-docker run --rm readmissions:v1.0
+docker build --platform linux/amd64 -t readmissions:v1.0 .
+docker run --rm --platform linux/amd64 \
+  -v "$(pwd)/analysis/paper:/work/analysis/paper" \
+  readmissions:v1.0
 ```
 
-The paper renders. They have reproduced your
-environment exactly.
+The paper renders. The reader now has the same R
+version, the same package versions, and the same system
+libraries as of the day they built, which is close to
+your environment but not identical to it: the tag may
+have been rebuilt since, as the digest callout above
+explains. For an identical environment, give the reader
+the digest-pinned Dockerfile or the archived image.
 
 ## Collaborating with an LLM on Docker
 
@@ -543,13 +611,16 @@ caching and platform variants need verification.
 **Prompt 1: drafting a Dockerfile.** Paste the
 `renv.lock` and project structure, ask: 'write a
 Dockerfile that builds reproducibly, with proper layer
-caching, on the rocker/r-ver:4.4.0 base.'
+caching, on a rocker/r-ver base whose tag matches the R version
+in this renv.lock, and render with quarto render.'
 
 *What to watch for.* Layer ordering (lockfile before
 project source). System dependencies (the LLM may miss
 ones for less-common packages like `sf`, `brms`,
 `rstan`). The `--no-install-recommends` and cleanup
-patterns.
+patterns. A Quarto CLI install step, a `.dockerignore`,
+and the option of a digest-pinned `FROM` line; compare
+the draft against the canonical Dockerfile above.
 
 *Verification.* Build the image. Make a trivial change
 to the project source; rebuild. The rebuild should be
@@ -641,13 +712,15 @@ a matching render are the check.
    operating system, system libraries (BLAS,
    geospatial libs, compilers), the R build itself,
    *and* R packages. When an analysis depends on a
-   specific OS or system lib, only Docker can
-   guarantee bit-identical reproduction years later.
+   specific OS or system lib, Docker comes far closer
+   than `renv` alone to reproducing it years later,
+   and a digest-pinned or archived image closer still.
    For pure-R analyses, `renv` may suffice; for
    anything with non-R dependencies, Docker is the
    prudent choice.
-3. `rocker/tidyverse:4.4.0` provides: Debian (the base
-   for `rocker/r-ver` since the 2022 reorganization);
+3. `rocker/tidyverse:4.4.0` provides: Ubuntu LTS (the
+   base of the `rocker/r-ver` images it builds on; 22.04
+   for this tag);
    R 4.4.0; RStudio Server; and the tidyverse package
    suite pre-installed. A container starts immediately
    without package installation, useful for teaching

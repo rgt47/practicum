@@ -150,8 +150,9 @@ knitr::purl("paper.Rmd", documentation = 0)
 # extracts code chunks into paper.R
 ```
 
-`documentation = 1` keeps prose as comments; `2` keeps
-prose as roxygen-style comments.
+`documentation = 1` (the default) also writes each chunk
+header as a comment but drops the prose; `2` keeps the
+prose as roxygen-style `#'` comments.
 
 **`.Rmd` → `.qmd`** by renaming the file, then
 optionally rewriting the chunk headers with
@@ -271,7 +272,7 @@ the output, and a document with thirty figures can acquire
 a dozen of them without a single warning. Two habits
 contain this. After converting, grep the source for
 `\@ref(` and confirm the count is zero. Then grep the
-*rendered* output for `?fig-` and `?tbl-`, which is what
+*rendered* output for `?@fig-` and `?@tbl-`, which is what
 Quarto emits where a reference does not resolve, and
 confirm that count is zero as well. The second check
 matters because it catches the converse error, a reference
@@ -351,11 +352,14 @@ Or globally:
 knitr::opts_chunk$set(fig.pos = "H")
 ```
 
-In Quarto:
+In Quarto, `fig-pos` is a figure option rather than an
+execution option, so it goes under the PDF format (or in a
+single chunk as `#| fig-pos: "H"`):
 
 ```yaml
-execute:
-  fig-pos: "H"
+format:
+  pdf:
+    fig-pos: "H"
 ```
 
 `H` is from the `float` LaTeX package, meaning 'place
@@ -725,8 +729,9 @@ convert and render documents of your own, so no answer key is possible.
    document.
 3. Build a minimal reproducible example (MWE) of a
    cross-reference that works in HTML but not in PDF.
-   File the bug upstream or post it on the Quarto
-   discussion forum.
+   Optionally, if the MWE still fails on the current
+   Quarto release and no existing issue describes it,
+   post it on the Quarto discussion forum.
 4. Convert a `.Rmd` paper of yours to `.qmd`. Render
    both versions to PDF and diff the output; explain
    any differences.

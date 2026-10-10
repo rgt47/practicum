@@ -207,7 +207,15 @@ reads.
 The `r-lib/actions` collection supplies the R-specific
 steps, `setup-r`, `setup-renv`, `setup-r-dependencies`, so
 that a working R-on-CI configuration is a few lines rather
-than a hand-built installation.
+than a hand-built installation. The last two are
+alternatives, not companions. `setup-renv` restores the
+exact versions recorded in `renv.lock`, so CI tests the
+environment you pinned; `setup-r-dependencies` installs
+current versions of the packages a `DESCRIPTION` file
+names, so CI tests against whatever CRAN offers today. A
+compendium with a lockfile wants the first, and every
+package the tests call, `tinytest` included, must
+therefore be in the lockfile.
 
 ## What to check
 

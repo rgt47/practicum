@@ -171,7 +171,8 @@ patient_id  visit  measure  value
 ```
 
 The tidy form makes group operations natural: 'mean BP
-by visit' is `group_by(visit) |> summarize(mean(bp))`,
+by visit' is
+`filter(measure == "bp") |> group_by(visit) |> summarize(mean(value))`,
 not a custom column-traversal.
 
 ::: {.callout-note icon=false collapse=true}
@@ -353,25 +354,23 @@ library(tidyr)
 library(dplyr)
 
 # a small wide frame to demonstrate on: two measures, two visits
-wide <- tibble(
+vocab_wide <- tibble(
   patient_id = c("P001", "P002"),
   bp_v1 = c(148, 139), hr_v1 = c(78, 72),
   bp_v2 = c(141, 135), hr_v2 = c(75, 70)
 )
-long <- wide |>
-  pivot_longer(starts_with("bp_v"), names_to = "visit",
-               names_prefix = "bp_v", values_to = "bp")
 
 # wide to long
-wide |> pivot_longer(
+vocab_long <- vocab_wide |> pivot_longer(
   cols      = starts_with("bp_v"),
   names_to  = "visit",
   names_prefix = "bp_v",
   values_to = "bp"
 )
+vocab_long
 
 # more complex: bp_v1, hr_v1, bp_v2, hr_v2 ...
-wide |> pivot_longer(
+vocab_wide |> pivot_longer(
   cols           = matches("_v"),
   names_to       = c("measure", "visit"),
   names_pattern  = "(.+)_v(.+)",
@@ -380,7 +379,7 @@ wide |> pivot_longer(
 # now has columns: patient_id, measure, visit, value
 
 # long to wide
-long |> pivot_wider(
+vocab_long |> pivot_wider(
   names_from  = visit,
   values_from = bp,
   names_prefix = "bp_v"
@@ -483,7 +482,7 @@ makes time an explicit column:
 #| fig-height: 3
 #| message: false
 # the wide layout described in the question
-wide <- tibble(
+cyu_wide <- tibble(
   patient_id  = sprintf("P%03d", 1:6),
   treatment   = rep(c("Placebo", "Active"), each = 3),
   bp_baseline = c(150, 148, 152, 149, 151, 147),
@@ -491,14 +490,14 @@ wide <- tibble(
   bp_6mo      = c(146, 144, 149, 137, 139, 135)
 )
 
-long <- wide |>
+cyu_long <- cyu_wide |>
   pivot_longer(cols = starts_with("bp_"),
                names_to  = "time",
                names_prefix = "bp_",
                values_to = "bp") |>
   mutate(time = factor(time, levels = c("baseline", "3mo", "6mo")))
 
-ggplot(long, aes(time, bp, group = patient_id)) +
+ggplot(cyu_long, aes(time, bp, group = patient_id)) +
   geom_line() +
   facet_wrap(~ treatment)
 ```
@@ -549,22 +548,22 @@ names as arguments, two idioms apply.
 
 ```{r}
 #| label: wrangle-curly-curly
-summarise_col <- function(df, col, fn = mean) {
+summarize_col <- function(df, col, fn = mean) {
   df |> summarize(result = fn({{ col }}, na.rm = TRUE))
 }
 
-summarise_col(penguins, body_mass_g, fn = median)
+summarize_col(penguins, body_mass_g, fn = median)
 ```
 
 **`.data[[name]]`** for character strings:
 
 ```{r}
 #| label: wrangle-data-pronoun
-summarise_col_str <- function(df, col_name, fn = mean) {
+summarize_col_str <- function(df, col_name, fn = mean) {
   df |> summarize(result = fn(.data[[col_name]], na.rm = TRUE))
 }
 
-summarise_col_str(penguins, "body_mass_g", fn = median)
+summarize_col_str(penguins, "body_mass_g", fn = median)
 ```
 
 The two approaches reflect different sources of the
@@ -620,11 +619,13 @@ for (i in seq_len(nrow(df))) {
 }
 
 # good (vectorized)
-df |> mutate(result = compute_something_vectorised(...))
+df |> mutate(result = compute_something_vectorized(...))
 ```
 
-R's vectorized operations are 10--100× faster than row
-loops, and are usually clearer.
+Vectorized operations are usually faster than row loops,
+by a margin that depends on the operation and the data
+size (time it with `bench::mark()` if it matters), and
+they are usually clearer.
 
 **Hardcoded column indices**:
 
@@ -643,7 +644,7 @@ df |> select(age, sex, outcome)
 Indices break when columns are reordered or added;
 names are robust.
 
-**Manipulating raw data files**:
+**Saving derived data as CSV**:
 
 ```{r}
 #| label: wrangle-antipattern-write
@@ -659,7 +660,8 @@ write_rds(d, file.path(out, "cleaned.rds"))
 identical(d, read_rds(file.path(out, "cleaned.rds")))
 ```
 
-Raw data should be read-only.
+Write derived data to its own location, never over the raw
+file: raw data should be read-only.
 
 **`stringsAsFactors` paranoia**:
 
@@ -697,10 +699,13 @@ tibble(
 # read raw export
 raw <- read_csv(raw_path, show_col_types = FALSE)
 
-# clean names, restrict to adults, derive age groups
-clean <- raw |>
-  clean_names() |>
-  filter(age >= 18, !is.na(outcome)) |>
+# one inclusion rule per step, so that each step's exclusions
+# can be counted and reported
+named        <- raw |> clean_names()
+adults       <- named |> filter(age >= 18)
+with_outcome <- adults |> filter(!is.na(outcome))
+
+clean <- with_outcome |>
   mutate(
     age_group = cut(age, breaks = c(18, 40, 65, Inf),
                     right = FALSE,
@@ -709,23 +714,35 @@ clean <- raw |>
   )
 
 # pivot to long for repeated measures
-long <- clean |>
+visits_all <- clean |>
   pivot_longer(
     cols      = starts_with("bp_"),
     names_to  = "visit",
     names_prefix = "bp_",
     values_to = "bp"
-  ) |>
-  filter(!is.na(bp))
+  )
+visits_long <- visits_all |> filter(!is.na(bp))
+
+flow <- tibble(
+  step = c("patients in raw export", "aged 18 or older",
+           "outcome recorded", "patient-visits after pivot",
+           "patient-visits with a BP value"),
+  n    = c(nrow(raw), nrow(adults), nrow(with_outcome),
+           nrow(visits_all), nrow(visits_long))
+)
+flow
+
+stopifnot(nrow(visits_all) == 2 * nrow(clean))
 
 # save the derived data
-saveRDS(long, file.path(tempdir(), "visits_long.rds"))
+saveRDS(visits_long, file.path(tempdir(), "visits_long.rds"))
 
-head(long, 4)
+head(visits_long, 4)
 ```
 
 The script is the audit trail: clean column names,
-filter inclusions documented as code, derived
+filter inclusions documented as code with the rows each
+one removes counted in `flow`, derived
 variables computed and named, output written to a
 non-raw location. A reviewer can read the script and
 recover exactly what cleaning happened.
@@ -757,7 +774,8 @@ LLMs handle dplyr/tidyr well; the trap is producing
 working code on the wrong data shape.
 
 **Prompt 1: tidying a dataset.** Paste the column
-names and 5 rows of head, ask: 'tidy this with
+names and one synthetic row with made-up values, never
+rows of real patient data, and ask: 'tidy this with
 `pivot_longer`. Show me the result.'
 
 *What to watch for.* The LLM will produce code that
@@ -820,7 +838,7 @@ Three habits keep a cleaning script auditable:
 2. Reshape a synthetic wide clinical dataset (one row
    per patient, columns `bp_v1`, `bp_v2`, `bp_v3`)
    into long format with one row per patient-visit.
-3. Write a function `summarise_col(df, col, fn)` that
+3. Write a function `summarize_col(df, col, fn)` that
    accepts `col` as a bare column name and `fn` as a
    function; apply it to the penguins data with
    `col = bill_length_mm` and `fn = median`.
@@ -884,11 +902,11 @@ character it sorts "10" before "2".
 
 ```{r}
 #| label: soln-13-3
-summarise_col <- function(df, col, fn) {
+summarize_col <- function(df, col, fn) {
   df |> summarize(result = fn({{ col }}, na.rm = TRUE))
 }
 
-summarise_col(penguins, bill_length_mm, fn = median)
+summarize_col(penguins, bill_length_mm, fn = median)
 ```
 
 The `{{ }}` is what lets the caller write

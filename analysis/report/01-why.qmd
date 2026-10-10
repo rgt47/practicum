@@ -60,8 +60,9 @@ surprisingly hard to satisfy. Reproducibility is the lowest bar
 a scientific analysis must clear. It says nothing about whether
 the analysis is correct, important, or even sensible. It says
 only that a second analyst, given the same inputs, can obtain
-the same outputs. And yet a substantial minority of published
-biomedical analyses fail even this bar when audited.
+the same outputs. And yet published analyses often fail even
+this bar when someone outside the original team tries to rerun
+them from the materials provided.
 
 It is worth being clear about why, because the honest answer
 changes what the remedy looks like. The failures are almost
@@ -102,22 +103,24 @@ definitions are those of Goodman, Fanelli, and Ioannidis
   *replicability* or *external replication*): the
   analysis applied to new data drawn from the same
   population produces qualitatively similar conclusions.
-- **Inferential reproducibility**: independent analysts
-  given the same data and the same scientific question
-  reach similar substantive conclusions.
+- **Inferential reproducibility**: qualitatively similar
+  conclusions are drawn from either a reanalysis of the
+  original study or an independent replication of it.
+  Two analysts can share the data and the code and still
+  disagree about what the results mean.
 
 These are progressively harder. Methods reproducibility is
 a software engineering problem; results reproducibility is
 a sampling problem; inferential reproducibility is a
-methodological problem about how analyst degrees of
-freedom shape conclusions. The distinction is worth
+problem of interpretation, of how analyst choices and
+judgment shape conclusions. The distinction is worth
 holding in one view:
 
 | Kind | Held fixed | Allowed to vary | Nature of the problem |
 |---|---|---|---|
 | Methods (computational) | data and code | machine, operator | software engineering |
 | Results (replicability) | population and question | the data sample | sampling |
-| Inferential | data and question | the analyst | analyst degrees of freedom |
+| Inferential | the question | the analyst, and possibly the data | analyst choices and interpretation |
 
 This book is about methods reproducibility. Without it,
 the harder kinds are unobtainable: if you cannot reproduce
@@ -178,8 +181,8 @@ Missing any one of the three breaks reproducibility:
 - Code and data without environment: 'works on my
   machine'.
 
-The minimum reproducible compendium (Marwick, Boettiger,
-Mullen 2018) is exactly this: a directory containing
+The minimum reproducible compendium
+[@marwick2018packaging] is exactly this: a directory containing
 code, data, and a declared environment, structured as an
 R package or similar artifact.
 
@@ -194,9 +197,10 @@ on every run. The fix is one line; the omission is
 common.
 
 **Unpinned package versions.** The analysis was written
-when `dplyr` was 1.0.0; you re-run it three years later
-with `dplyr` 1.1.4 and the behavior of one function has
-changed silently. `renv.lock` records the exact version
+under one major version of `dplyr`; you re-run it three
+years later under a newer one, and the behavior of a
+function the analysis relies on has changed, perhaps with
+only a deprecation warning that nobody reads. `renv.lock` records the exact version
 of every package and lets you restore them.
 
 **Undocumented manual steps.** 'I removed the three

@@ -2493,6 +2493,20 @@ or regulatory colleague read the corrected 02b and 25c. Fix the CI
 exit status. Add a render-time check that fails the build if `&#96;`
 appears in output.
 
+*E1 status (2026-10-09):* complete; commit `0d39fb1` on branch
+`refactor/phase-e1`, verified by a clean full render (HTML and PDF,
+no unresolved references, no literal entities).
+
+*E2 status (2026-10-09, branch `refactor/phase-e2`):* complete and
+committed after a clean full render; the canonical Dockerfile was
+built and run (R 4.4.0 on Ubuntu 22.04, Quarto 1.6.40) and is used
+verbatim in 07, 08, and 09. SAS syntax in 22 remains unverified
+(SAS OnDemand connection deferred by the author). Run against the
+local R library by the author's direction. The Finding
+10 follow-up (restoring `renv.lock`, executing CI, a Dockerfile for
+the book) is deferred until the author chooses to restore the
+lockfile; all E2 verification uses the global library.
+
 *E2, the rest of Part 6 (about 4 to 6 days).* Fix the remaining
 defects in Part 6, confirming each 'E' item against its primary source
 first. Make the remaining display-only worked examples that *can*

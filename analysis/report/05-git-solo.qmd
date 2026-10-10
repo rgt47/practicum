@@ -346,12 +346,16 @@ public deliberately, not by accident.
 
 ## Authentication
 
-GitHub no longer accepts passwords for git operations
-(deprecated in 2021). Two modern options:
+GitHub no longer accepts account passwords for git
+operations over HTTPS (since 2021). Two modern options:
 
-**Personal access tokens (PAT).** Create at GitHub →
-Settings → Developer Settings → Personal access tokens.
-Use the token instead of a password when prompted. Set
+**Personal access tokens (PAT).** Create one from your
+GitHub account settings, under the developer settings
+(GitHub's menu labels move from time to time; if the path
+differs, search GitHub's documentation for 'personal
+access token'). Prefer a fine-grained token limited to the
+repositories it needs. Use the token instead of a password
+when prompted. Set
 expiration; rotate periodically. The `gh` CLI handles
 this automatically with `gh auth login`.
 
@@ -362,9 +366,11 @@ ssh-keygen -t ed25519 -C "you@example.com"
 cat ~/.ssh/id_ed25519.pub        # paste this into GitHub
 ```
 
-Add the public key in GitHub → Settings → SSH and GPG
-keys. Then clone with `git@github.com:user/repo.git`
-URLs (instead of `https://...`).
+Add the public key in your GitHub account settings, on
+the page for SSH keys (currently 'SSH and GPG keys'), or
+from the terminal with `gh ssh-key add`. Then clone with
+`git@github.com:user/repo.git` URLs (instead of
+`https://...`).
 
 SSH is more convenient (no token-typing) but slightly
 more setup. PAT is faster to start. The `gh` CLI
@@ -382,9 +388,21 @@ git push origin v1.0
 # list tags
 git tag
 
-# go back to the tagged version
-git checkout v1.0
+# go back to the tagged version (read-only look)
+git switch --detach v1.0
+
+# return to ongoing work
+git switch main
 ```
+
+Checking out a tag (with `git switch --detach` or the
+older `git checkout v1.0`) puts the repository in a
+*detached HEAD* state: you are on a commit, not on a
+branch. Looking around, re-running, and rendering are all
+safe. Any commit you make there belongs to no branch and
+will be lost from view when you switch away, so if you
+want to build on the tagged version, create a branch from
+it first (`git switch -c revision-1 v1.0`).
 
 Tags are immovable pointers to specific commits. Once
 created and pushed, treat them as permanent. The natural
@@ -398,7 +416,8 @@ points to tag:
 
 A reviewer who asks 'can you re-run with the original
 exclusion criterion?' six months later: `git checkout v1.0-jbs-submission`,
-re-run, compare. The tag is the documentation of which
+re-run, compare (in detached HEAD, as above). The tag is
+the documentation of which
 'version' was reported.
 
 ::: {.callout-note icon=false collapse=true}
@@ -417,17 +436,22 @@ hash. The tag (`v1.0-submission`) is human-readable and
 durable: in two years, you can `git checkout
 v1.0-submission` to recover exactly what you submitted.
 You could `git checkout a3f9c8d`, but you would have to
-look up the hash. Tags also appear in GitHub's UI under
-'Releases', making them visible to anyone who looks at
-the repository. For checkpoints you may want to return
-to (submission, revision, deployment), tag.
+look up the hash. Pushed tags also appear in GitHub's
+list of the repository's tags, making them visible to
+anyone who looks at the repository. A GitHub *Release* is
+a separate object built on a tag, with notes and attached
+files, and exists only if you create one (on the web or
+with `gh release create v1.0-submission`). For
+checkpoints you may want to return to (submission,
+revision, deployment), tag.
 
 :::
 
 ## Recovery: when things go wrong
 
 **`git stash`** when you have uncommitted work and need
-to switch branches:
+to switch branches (commit instead if the work matters;
+a popped stash is no longer on any reflog):
 
 ```bash
 # you are mid-edit, but need to switch branches
@@ -458,11 +482,20 @@ git reflog                       # log of every reference change
 git reset --hard a3f9c8d         # back to that commit
 ```
 
-The reflog records every move of HEAD. Even commits made
-before a `git reset --hard` are reachable through it for
-about 90 days. This is the recovery mechanism of last
-resort: if you panic-deleted something, the reflog
-probably still has it.
+The reflog records every move of HEAD, in your local
+repository only. Commits made before a `git reset --hard`
+remain reachable through it for 30 days by default (the
+`gc.reflogExpireUnreachable` setting); entries for commits
+still on a branch last 90 days. This is the recovery
+mechanism of last resort: if you panic-deleted a commit,
+the reflog probably still has it. It cannot recover work
+that was never committed, and it does not record a popped
+or dropped stash. A stash discarded that way survives only
+as an unreachable commit, which
+`git fsck --no-reflogs --unreachable` lists until garbage
+collection prunes it
+(typically after two weeks); `git stash apply <hash>`
+restores it.
 
 **`git checkout file.R`** to revert one file:
 
@@ -478,7 +511,8 @@ git checkout abcd1234 -- file.R  # restore file.R to that commit's version
 mkdir ~/research/readmissions && cd ~/research/readmissions
 git init
 echo "# Readmissions analysis" > README.md
-echo "*.html\n*.pdf\n.Rproj.user/\n.Rhistory" > .gitignore
+printf '%s\n' '*.html' '*.pdf' '.Rproj.user/' '.Rhistory' \
+  '.RData' '.Renviron' > .gitignore
 git add . && git commit -m "Initial structure"
 gh repo create readmissions --private --source=. --remote=origin
 git push -u origin main
@@ -500,8 +534,9 @@ git tag -a v1.0-jbs-submission -m "Submitted to JBS 2026-06-15"
 git push origin v1.0-jbs-submission
 
 # week 22: revision request
-git checkout v1.0-jbs-submission       # see exactly what was submitted
-# (compare with current main, decide what to change)
+git diff v1.0-jbs-submission main --stat  # what changed since
+git switch --detach v1.0-jbs-submission   # detached HEAD: look only
+# (re-run, compare with current main, decide what to change)
 git switch main
 # ... revisions ...
 git tag -a v1.1-jbs-revision-1 -m "First revision JBS"
@@ -580,8 +615,8 @@ the state of a repository, so no answer key is possible. `git log` and
    switch back to main, edit line 1 differently, commit,
    and merge.
 3. Tag a completed analysis with `v1.0` and push the
-   tag to GitHub. Verify the tagged release is visible
-   in the GitHub UI.
+   tag to GitHub. Verify the tag is visible in the
+   repository's list of tags in the GitHub UI.
 4. Use `git reflog` to recover a commit you 'lost' via
    `git reset --hard`. Document the steps.
 5. Set up SSH-key authentication to GitHub. Push a
@@ -620,6 +655,9 @@ the state of a repository, so no answer key is possible. `git log` and
    branch urgently. `git stash` puts your uncommitted
    work temporarily aside; `git stash pop` restores it
    later. This avoids committing half-finished work
-   just to unblock a branch switch. The stash is also
-   recoverable for some time after `pop` via the reflog,
-   so accidental loss is unusual.
+   just to unblock a branch switch. Once popped or
+   dropped, a stash is no longer in any reflog; it can be
+   found for a short time with
+   `git fsck --no-reflogs --unreachable`, but anything
+   that matters should be
+   committed instead.

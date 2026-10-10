@@ -46,8 +46,9 @@ By the end of this chapter you should be able to:
 - Pre-specify primary, secondary, and exploratory
   analyses with enough detail that a collaborator
   could execute them without further instruction.
-- Compute sample-size requirements with `zzpower` and
-  report them in the SAP.
+- Compute sample-size requirements with base R's
+  `power.t.test()` and `power.prop.test()` (or a
+  package such as `zzpower`) and report them in the SAP.
 - Define missing-data strategies, sensitivity
   analyses, and multiple-testing corrections
   explicitly.
@@ -248,10 +249,34 @@ Strategies* [@harrell2015rms] is the book-length
 argument behind those items. Read the checklist once
 before you draft section 8, and again after.
 
-## Sample size with `zzpower`
+## Sample size calculations
 
-`zzpower` provides power calculations for the
-standard clinical-trial designs:
+Base R's `stats` package covers the two designs most
+clinical SAPs start from: `power.t.test()` for a
+continuous outcome and `power.prop.test()` for a binary
+one. Supplying `power` solves for the sample size per
+arm; supplying `n` solves for power:
+
+```{r}
+#| label: sap-power-base
+# parallel-group RCT, continuous outcome:
+# n per arm at 80% power for a standardized effect of 0.5
+power.t.test(delta = 0.5, sd = 1, power = 0.80,
+             sig.level = 0.05)
+
+# the converse question: power at 50 per arm
+power.t.test(n = 50, delta = 0.5, sd = 1)$power
+```
+
+For designs beyond these, community packages such as
+`pwr` and, for group-sequential and adaptive trials,
+`rpact` are the usual next step. The in-house `zzpower`
+package is one further option. It is installed from
+GitHub rather than CRAN and has not been through an
+external review, so where base R covers the same design,
+cross-check its answer against `stats`; for the
+calculation below the two agree once rounded up to whole
+patients.
 
 ```{r}
 #| label: sap-power-calc
@@ -722,17 +747,17 @@ pre-specified; if no, exploratory.
 **Prompt 3: power calculation.** Describe the
 design and effect size; ask the LLM to compute
 required sample size and to verify against
-`zzpower`.
+`power.t.test()` or `power.prop.test()`.
 
 *What to watch for.* The LLM may produce a
-formula-based answer that disagrees with `zzpower`.
+formula-based answer that disagrees with base R.
 The reasons are usually different assumptions
 (unbalanced allocation, attrition, paired vs.
 unpaired). Reconcile by stating assumptions
 explicitly.
 
 *Verification.* Compute by hand for a simple case;
-verify the LLM and `zzpower` agree.
+verify the LLM and base R agree.
 
 ## Principle in use
 
@@ -750,9 +775,10 @@ Three habits make a plan binding rather than decorative:
 
 ## Exercises
 
-1. Use `zzpower` to compute the required sample
-   size for a two-arm comparison under three
-   plausible effect sizes (small, medium, large).
+1. Use `power.t.test()` (or `zzpower`) to compute
+   the required sample size for a two-arm comparison
+   under three plausible effect sizes (small, medium,
+   large).
    Then inflate each for a cluster randomized
    design with 20 patients per practice and an
    intracluster correlation of 0.02, and report
@@ -787,10 +813,29 @@ rather than computed.
 
 ```{r}
 #| label: soln-18-1
+per_arm <- vapply(
+  c(small = 0.2, medium = 0.5, large = 0.8),
+  \(d) power.t.test(delta = d, sd = 1, power = 0.80,
+                    sig.level = 0.05)$n,
+  numeric(1))
+
+ceiling(per_arm)          # analytic n per arm
+```
+
+With `sd = 1`, `delta` is the standardized effect. The
+same calculation in `zzpower` reads its result from
+`sample_sizes` rather than `sample_size`: the element is a
+list, because a two-arm calculation returns per-arm and
+total figures separately, along with an ITT-inflated
+version. Its `$n` is the analytic requirement per arm, and
+it agrees with base R once rounded up:
+
+```{r}
+#| label: soln-18-1-zzpower
 #| message: false
 library(zzpower)
 
-per_arm <- vapply(
+per_arm_zz <- vapply(
   c(small = 0.2, medium = 0.5, large = 0.8),
   \(d) power_calc("ttest_2groups",
                   target_power  = 0.80,
@@ -799,14 +844,11 @@ per_arm <- vapply(
                   alpha         = 0.05)$sample_sizes$n,
   numeric(1))
 
-ceiling(per_arm)          # analytic n per arm
+stopifnot(identical(ceiling(per_arm), ceiling(per_arm_zz)))
 ```
 
-Note `sample_sizes` rather than `sample_size`: the element
-is a list, because a two-arm calculation returns per-arm
-and total figures separately, along with an ITT-inflated
-version. Reading `$n` gives the analytic requirement per
-arm, which is what the design effect below scales.
+The per-arm requirement is what the design effect below
+scales.
 
 **Then the design effect.** A cluster randomized trial
 does not randomize patients; it randomizes practices, and

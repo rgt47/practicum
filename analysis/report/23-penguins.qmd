@@ -61,13 +61,14 @@ The Palmer Penguins dataset [@horst2022palmerpenguins] is the
 successor to `iris`. It has enough structure to illustrate the
 full arc of an analysis, from wrangling through descriptives
 and inference to reporting, and it does so without the
-colonial baggage that accompanies Fisher's irises. We shall
+eugenics association that accompanies Fisher's irises,
+which he analyzed in the *Annals of Eugenics*. We shall
 work it end to end here, as a template for the analyses that
 follow.
 
 A teaching dataset carries one hazard worth naming before we
 start. Penguins is clean, and clean data invite the habit of
-skipping the steps this book has spent twenty chapters arguing
+skipping the steps the earlier chapters of this book argue
 for. The reasonable-sounding excuse is that nothing here needs
 them. That is the wrong lesson to take from a worked
 example. The point of running the full arc on an easy dataset
@@ -145,14 +146,16 @@ Variables:
 - `sex`: Male, Female (with 11 missing).
 - `year`: 2007, 2008, or 2009.
 
-The dataset has a near-balanced design: each
-species appears at one or two islands. Adelies
-appear at all three islands; Chinstraps only at
-Dream; Gentoos only at Biscoe. This means
-species and island are not separable in the full
-model; choosing species as the stratification
-puts island in the role of an additional
-confounder rather than an independent factor.
+The design is far from balanced across islands.
+Adelies appear at all three islands; Chinstraps
+only at Dream; Gentoos only at Biscoe. Species and
+island are therefore largely aliased: an island
+difference can be estimated only among Adelies,
+and a model with both terms cannot separate them
+for the other two species. Stratifying by species
+and leaving island out of the model is a modeling
+choice, not a finding that island does not
+matter.
 
 ## Scaffolding with zzcollab
 
@@ -160,15 +163,16 @@ confounder rather than an independent factor.
 mkdir penguins-analysis
 cd penguins-analysis
 zzc analysis             # tidyverse + palmerpenguins profile
+make docker-build        # build the image
 make r                   # enter the container
 ```
 
 `zzc analysis` produces the Five Pillars (@sec-zzcollab):
 Dockerfile, renv.lock, .Rprofile, source-code
 directories, and a README pointing at the data.
-`make r` builds the image (slow on first run;
-cached subsequently) and drops you into an R
-session inside the container.
+`make docker-build` builds the image (slow on
+the first run; cached subsequently), and `make r`
+drops you into an R session inside it.
 
 Verify the compendium is well-formed:
 
@@ -208,7 +212,9 @@ vis_miss(penguins)
 miss_var_summary(penguins)
 ```
 
-Missingness is mostly in `sex` (11 rows, 3.2%);
+Missingness is mostly in `sex`
+(`r sum(is.na(penguins$sex))` rows,
+`r round(100 * mean(is.na(penguins$sex)), 1)`%);
 two rows are missing all four morphology
 measurements (likely lost CRFs from the same
 penguin).
@@ -233,9 +239,10 @@ nrow(penguins_clean)
 ```
 
 We drop the two rows missing every morphology
-measurement; analyses use $n = 342$. The nine further
-rows missing only `sex` stay in, and Table 1 should
-report their `sex` as missing.
+measurement; analyses use $n = `r nrow(penguins_clean)`$.
+The `r sum(is.na(penguins_clean$sex))` further rows
+missing only `sex` stay in, and Table 1 should report
+their `sex` as missing.
 
 ## Table 1 with zztable1
 
@@ -259,8 +266,9 @@ mean (SD); categorical variables show n (%).
 
 Formatting notes: `zztable1` uses three
 significant digits for continuous summaries,
-no row p-values by default (Table 1 is
-descriptive, not inferential), and ordering
+no row p-values by default (Table 1 describes
+the sample; inference belongs to the model
+fitted below), and ordering
 the species columns by the natural taxonomic
 order rather than alphabetical.
 
@@ -430,23 +438,33 @@ real clinical data, the diagnostics rarely look
 this good; the discipline is to check, then
 remedy.
 
+```{r}
+#| label: penguins-aic-drop
+#| echo: false
+aic_drop <- AIC(fit) -
+  AIC(lm(body_mass_g ~ flipper_length_mm * species,
+         data = penguins_clean))
+```
+
 ::: {.callout-note icon=false collapse=true}
 ## Check your understanding: interaction model
 
 **Question.** You compare the main-effects model
 to an interaction model
 `body_mass_g ~ flipper_length_mm * species`. On
-this dataset the AIC drops by about 6.7 with the
-interaction. Should you report the interaction
+this dataset the AIC drops by about
+`r round(aic_drop, 1)` with the interaction. Should you report the interaction
 model?
 
 **Answer.**
 
-It depends. A drop of 6.7 is meaningful but not
-decisive (a difference of $\Delta$ corresponds to a
-likelihood ratio of $e^{-\Delta/2}$, here about
-0.035, which favors the larger model without
-settling the matter). The decision
+It depends. A drop of `r round(aic_drop, 1)` is
+meaningful but not decisive. An AIC difference of
+$\Delta$ gives the simpler model a relative
+likelihood of $e^{-\Delta/2}$ against the larger one,
+here about `r signif(exp(-aic_drop / 2), 2)`, which
+favors the larger model without settling the
+matter. The decision
 involves: (1) does the interaction make
 biological sense? Different species *do* have
 different body shapes, so a different
@@ -520,8 +538,9 @@ broom::tidy(fit, conf.int = TRUE)
 ```
 ````
 
-`make render` inside the container reproduces
-the paper from raw data to typeset output. The
+`make docker-render REPORT=analysis/paper/paper.qmd`
+reproduces the paper inside the container, from raw
+data to typeset output. The
 render uses the cached `_freeze/` directory for
 the expensive computation; subsequent renders
 are fast.
@@ -542,7 +561,8 @@ the tagged commit, with a Zenodo DOI. The
 README explains:
 
 - What the project is (1 paragraph).
-- How to reproduce (`docker build && docker run`).
+- How to reproduce (`make docker-build`, then
+  `make docker-render REPORT=analysis/paper/paper.qmd`).
 - Where the data are (built into
   `palmerpenguins`).
 - How to cite (DOI + author).
@@ -641,7 +661,7 @@ what it is a template for:
 things you do to a repository, not to data.
 
 4. Reproduce this chapter's compendium from
-   scratch. Run `make render` and verify the
+   scratch. Run `make docker-render` and verify the
    outputs match the ones checked into the
    reference repository.
 5. Add the model from exercise 3 to the compendium as
@@ -769,7 +789,8 @@ a held-out set, and would come back lower.
 
 ## Prerequisites answers {#sec-quiz-answers-23}
 
-1. `palmerpenguins::penguins` contains 11 rows
+1. `palmerpenguins::penguins` contains
+   `r sum(!complete.cases(penguins))` rows
    with at least one missing value (most
    commonly `sex`). The appropriate handling is
    first to document the missing pattern
@@ -797,5 +818,5 @@ a held-out set, and would come back lower.
    Only once the residual plot looks
    featureless (and the other three diagnostic
    plots agree) should you interpret the
-   regression coefficient as a flipper-length
-   effect on body mass.
+   regression coefficient as the association
+   between flipper length and body mass.

@@ -266,7 +266,6 @@ in the demographics table. Joining demographics
 
 ```{r}
 #| label: joins-fixtures
-#| echo: false
 # Three small tables used by the examples that follow: one row per
 # patient in demographics, several visits per patient, several labs
 # per visit. P004 appears in visits but not demographics, which the
@@ -286,6 +285,10 @@ labs <- tibble(
   test_code = c("HGB", "CRE", "HGB", "HGB"),
   value     = c(13.1, 0.9, 13.4, 11.8)
 )
+
+demographics
+visits
+labs
 ```
 
 ```{r}
@@ -322,10 +325,17 @@ Diagnose:
 demographics |> count(patient_id) |> filter(n > 1)
 ```
 
-Fix the duplication in demographics, or de-duplicate
-before the join (`distinct(patient_id, .keep_all = TRUE)`).
-Adding `relationship = "many-to-one"` to the join
-catches this at the join site.
+Fix the duplication in demographics at its source. The
+tempting shortcut, `distinct(patient_id, .keep_all = TRUE)`,
+keeps whichever row for each patient happens to come first
+and discards the rest, so it chooses a record by file order
+rather than by any rule: if the duplicates disagree on age
+or sex, which one survives is an accident of row order. If
+de-duplication is right, state the rule in code (the most
+recent record, say, with `slice_max()` on a date column).
+Adding
+`relationship = "many-to-one"` to the join catches this at
+the join site.
 
 :::
 
@@ -480,18 +490,36 @@ side-by-side concatenation (rarely correct;
 
 ## Worked example: a multi-source patient cohort
 
-```r
+The script below runs against the three fixture tables shown
+earlier, written out as files so that it reads them as it would
+read a real export. P004, who has visits but no demographics row,
+is planted, so the audit warns once.
+
+```{r}
+#| label: joins-worked-example
+#| message: false
+#| warning: true
 library(tidyverse)
 library(janitor)
 
-# read three sources
-demographics <- read_csv("data/demographics.csv") |> clean_names()
-visits       <- read_csv("data/visits.csv") |> clean_names()
-labs         <- read_csv("data/labs.csv") |> clean_names()
+src <- file.path(tempdir(), "cohort")
+dir.create(src, showWarnings = FALSE)
+write_csv(demographics, file.path(src, "demographics.csv"))
+write_csv(visits, file.path(src, "visits.csv"))
+write_csv(labs, file.path(src, "labs.csv"))
 
-# verify keys are unique where expected
+# read three sources
+demographics <- read_csv(file.path(src, "demographics.csv"),
+                         show_col_types = FALSE) |> clean_names()
+visits       <- read_csv(file.path(src, "visits.csv"),
+                         show_col_types = FALSE) |> clean_names()
+labs         <- read_csv(file.path(src, "labs.csv"),
+                         show_col_types = FALSE) |> clean_names()
+
+# labs is long, one row per visit and test, so its key is the pair
 stopifnot(!anyDuplicated(demographics$patient_id))
-stopifnot(!anyDuplicated(labs$visit_id))
+stopifnot(!anyDuplicated(visits$visit_id))
+stopifnot(!anyDuplicated(labs[c("visit_id", "test_code")]))
 
 # audit: patients in visits but no demographics
 missing_demo <- visits |>
@@ -503,27 +531,43 @@ if (nrow(missing_demo) > 0) {
           paste(missing_demo$patient_id, collapse = ", "))
 }
 
+# one row per visit, so that the lab join cannot add rows
+labs_wide <- labs |>
+  pivot_wider(names_from = test_code, values_from = value) |>
+  clean_names()
+
 # build the analytic dataset
 analytic <- visits |>
   left_join(demographics, by = "patient_id",
-            relationship = "many-to-one") |>
-  left_join(labs, by = "visit_id",
-            relationship = "many-to-many") |>
+            relationship = "many-to-one", unmatched = "error") |>
+  left_join(labs_wide, by = "visit_id",
+            relationship = "one-to-one") |>
   mutate(
     age_group = cut(age, breaks = c(0, 40, 65, Inf))
   )
 
-# final row-count check
-stopifnot(nrow(analytic) == nrow(visits))   # joins should be 1-1 on visits
+# final row-count check: neither join may add or drop visits
+stopifnot(nrow(analytic) == nrow(visits))
 
-saveRDS(analytic, "data/derived/analytic.rds")
+saveRDS(analytic, file.path(src, "analytic.rds"))
+analytic
 ```
 
-The script cleans names, verifies key uniqueness, runs an
-`anti_join` audit, performs the joins with explicit
-`relationship` declarations, and asserts the final row
-count. A reviewer can read it and trust the join semantics
-without re-deriving them.
+The script cleans names, verifies key uniqueness (on the
+composite key for the long `labs` table), runs an `anti_join`
+audit, reshapes `labs` to one row per visit, performs the joins
+with explicit `relationship` declarations, and asserts the final
+row count. Joining the long `labs` table directly would have
+been one-to-many and would have returned seven rows from six
+visits, failing the final check. A reviewer can read the script
+and trust the join semantics without re-deriving them.
+
+`unmatched = "error"` is the companion to `relationship`.
+`relationship` constrains how many rows each key matches;
+`unmatched` constrains whether keys go unmatched at all. For a
+left join it checks only the right-hand table, so here it stops
+the script if a patient in `demographics` has no visits, while
+the `anti_join` audit covers the other direction.
 
 ## Collaborating with an LLM on joins
 
@@ -560,7 +604,9 @@ assertions.
 
 *What to watch for.* `stopifnot()` for simple checks;
 `relationship = ...` in the join itself is the modern
-idiom. The LLM should use the latter when applicable.
+idiom, with `unmatched = "error"` beside it when no key
+should go unmatched. The LLM should use these when
+applicable.
 
 *Verification.* Run the assertions on real data; they
 should pass. If they fail, debug the data, not the

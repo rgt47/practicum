@@ -249,9 +249,10 @@ be reopened in subsequent sessions.
   government labs.
 - **SAS University Edition**. Discontinued in
   August 2021. Do not use.
-- **WPS Workbench** (World Programming Ltd.).
-  A paid third-party interpreter that runs most
-  SAS code. Useful for sites that cannot use a
+- **WPS** (World Programming Ltd., acquired by
+  Altair in 2021 and, at the time of writing, sold
+  as Altair SLC). A paid third-party interpreter
+  that runs most SAS code. Useful for sites that cannot use a
   cloud service but is not free.
 
 For this chapter and course, ODA is the default.
@@ -309,6 +310,7 @@ library(dplyr)
 demo <- tibble(
   usubjid = sprintf("01-%03d", 1:5),
   age     = c(17, 42, 64, 71, 55),
+  sex     = c(1L, 2L, 2L, 1L, 2L),
   bmi     = c(21.4, 27.8, 31.2, 24.9, 29.1)
 )
 
@@ -394,7 +396,7 @@ biostatistician uses most:
 | `aov(y ~ g, data = df)`           | `PROC GLM DATA = df; CLASS g; MODEL y = g;`   |
 | `glm(y ~ x, family = binomial)`   | `PROC LOGISTIC DATA = df; MODEL y = x;`       |
 | `glm(y ~ x, family = poisson)`    | `PROC GENMOD DATA = df; MODEL y = x / DIST = POISSON LINK = LOG;` |
-| `lme4::lmer(y ~ x + (1|id))`      | `PROC MIXED DATA = df; CLASS id; MODEL y = x; RANDOM INTERCEPT / SUBJECT = id;` |
+| `lme4::lmer(y ~ x + (1 \| id))`   | `PROC MIXED DATA = df; CLASS id; MODEL y = x; RANDOM INTERCEPT / SUBJECT = id;` |
 | `survival::survfit(Surv(t, e)~g)` | `PROC LIFETEST DATA = df; TIME t*e(0); STRATA g;` |
 | `survival::coxph(Surv(t, e)~x)`   | `PROC PHREG DATA = df; MODEL t*e(0) = x;`     |
 
@@ -463,8 +465,11 @@ broom::tidy(fit, exponentiate = TRUE, conf.int = TRUE)
 ```
 
 The `param = ref ref = 'X'` syntax is SAS's way
-of setting reference coding (matching R's default).
-Without it, SAS uses effect coding (sum-to-zero),
+of setting reference coding (R's default
+parameterization), and `ref =` names the reference
+level explicitly; the R code sets the same levels
+with `relevel()`. Without `param = ref`,
+`PROC LOGISTIC` uses effect coding (sum-to-zero),
 which gives different coefficients.
 
 ### `PROC MIXED` for mixed-effects model
@@ -473,7 +478,7 @@ which gives different coefficients.
 proc mixed data = work.long covtest;
   class subject visit treatment;
   model y = treatment visit treatment*visit / solution;
-  random intercept / subject = subject type = un;
+  random intercept / subject = subject;
 run;
 ```
 
@@ -485,14 +490,37 @@ R equivalent:
 library(lme4)
 
 set.seed(5)
-long <- expand.grid(subject = factor(1:40), visit = 1:3) |>
-  transform(treatment = rep(c("placebo", "active"), each = 60)) |>
-  transform(y = 10 + 2 * (treatment == "active") + 0.5 * visit +
-                rnorm(120, 0, 2))
+subject_effect <- rnorm(40, 0, 1.5)
+
+# treatment is assigned per subject, so it is constant within
+# subject, as in a parallel-group trial
+long <- expand.grid(subject = factor(1:40), visit = factor(1:3)) |>
+  mutate(
+    treatment = if_else(as.integer(subject) <= 20,
+                        "placebo", "active"),
+    treatment = relevel(factor(treatment), ref = "placebo"),
+    y = 10 + 2 * (treatment == "active") +
+        0.5 * as.integer(visit) +
+        subject_effect[as.integer(subject)] +
+        rnorm(n(), 0, 2)
+  )
+
+stopifnot(all(tapply(long$treatment, long$subject,
+                     \(x) length(unique(x))) == 1))
 
 fit <- lmer(y ~ treatment * visit + (1 | subject), data = long)
 summary(fit)$coefficients
 ```
+
+Both fit the same model: `visit` is categorical on
+both sides (`CLASS` in SAS, a factor in R), and both
+estimate by REML. The fixed-effect tables still differ
+term for term, because `PROC MIXED` zeroes the *last*
+level of each `CLASS` variable (visit 3, and `placebo`,
+which sorts after `active`) while R zeroes the first.
+Placebo is the reference on both sides; for `visit`,
+compare fitted means (`LSMEANS` in SAS, `emmeans` in R)
+rather than coefficients.
 
 Note: `PROC MIXED`'s default covariance structure
 is `VC` (variance components). For a random
@@ -513,7 +541,8 @@ proc lifetest data = work.adtte plots = (s lls);
 run;
 
 proc phreg data = work.adtte;
-  class trt01p (param = ref ref = 'Placebo');
+  class trt01p (param = ref ref = 'Placebo')
+        sex    (param = ref ref = 'F');
   model aval * cnsr (1) = trt01p age sex / risklimits;
 run;
 ```
@@ -536,17 +565,24 @@ adtte <- data.frame(
 adtte$AVAL <- rexp(n, rate = ifelse(adtte$TRT01P == "Drug", 0.04, 0.08))
 adtte$CNSR <- as.integer(adtte$AVAL > 24)
 adtte$AVAL <- pmin(adtte$AVAL, 24)
+adtte$TRT01P <- relevel(factor(adtte$TRT01P), ref = "Placebo")
 
-fit_km <- survfit(Surv(AVAL, 1L - CNSR) ~ TRT01P, data = adtte)
-fit_cox <- coxph(Surv(AVAL, 1L - CNSR) ~ TRT01P + AGE + SEX,
+fit_km <- survfit(Surv(AVAL, CNSR == 0) ~ TRT01P, data = adtte)
+fit_cox <- coxph(Surv(AVAL, CNSR == 0) ~ TRT01P + AGE + SEX,
                  data = adtte)
 fit_cox
 ```
 
 The SAS `time aval * cnsr (1)` syntax means
 'censoring code is 1'; this aligns with the CDISC
-`CNSR = 1` convention. R's `Surv(time, 1L - CNSR)`
+`CNSR = 1` convention. R's `Surv(time, CNSR == 0)`
 inverts to match its own `event = 1` convention.
+`SEX` must appear in the SAS `CLASS` statement:
+`PROC PHREG` stops with an error on a character
+variable in `MODEL` that is not declared there. Its
+reference, `'F'`, is the level R chooses by default
+(first alphabetically), and `relevel()` makes
+`Placebo` the reference in R to match `ref = 'Placebo'`.
 
 ::: {.callout-note icon=false collapse=true}
 ## Check your understanding: reference coding
@@ -559,19 +595,25 @@ from R's. What might have gone wrong?
 
 Two distinct differences live here, and it helps
 to keep them separate. The first is the
-*parameterization*: `PROC LOGISTIC` (and
-`PROC GENMOD`) default to effect coding
-(sum-to-zero), whereas R's `glm` uses reference
-coding (treatment contrasts). Under effect coding
-the coefficients are deviations from the grand
-mean rather than differences from a reference
-level, so signs and magnitudes will not match R's.
-The second difference appears even after you switch
-SAS to reference coding: SAS and R disagree on
-*which level is the reference*. R takes the first
-level in sort order (alphabetically 'Adelie'); SAS
-takes the last. So matching R requires setting
-both the parameterization and the reference level:
+*parameterization*: `PROC LOGISTIC` defaults to
+effect coding (sum-to-zero), whereas R's `glm` uses
+reference coding (treatment contrasts). Under effect
+coding the coefficients are deviations from the
+average over levels rather than differences from a
+reference level, so signs and magnitudes will not
+match R's. (`PROC GENMOD` defaults instead to the
+less-than-full-rank `PARAM = GLM` coding, which
+behaves like reference coding with the last level
+as reference.) The second difference appears even
+after you switch SAS to reference coding: SAS and R
+disagree on *which level is the reference*. R takes
+the first level in sort order; SAS takes the last.
+For a `treatment` variable with levels `active` and
+`placebo`, R's default reference is `active` and
+SAS's is `placebo`, so the two report the same
+effect with opposite signs. Matching requires
+choosing the reference deliberately on both sides,
+here placebo, the reference a trial report wants:
 
 ```sas
 class treatment (param = ref ref = 'placebo');
@@ -582,7 +624,9 @@ in `PROC LOGISTIC`, `PROC GENMOD`, and
 `PROC GLMSELECT`; `PROC GLM` uses its own
 less-than-full-rank parameterization and does not
 take this option), and `ref = 'placebo'` names the
-level R would have chosen. With both set, the
+reference level; in R,
+`relevel(treatment, ref = 'placebo')` sets the
+same one. With both set, the
 coefficients match within rounding. This pair of
 differences is the most common source of 'why
 don't my SAS and R agree?' confusion at the
@@ -597,26 +641,35 @@ window:
 
 - **NOTE** (informational): events the program
   performed. Most NOTEs are benign; some are
-  important (`NOTE: missing values were generated`,
-  `NOTE: merged with missing values`).
+  important (`NOTE: Missing values were generated`,
+  `NOTE: MERGE statement has more than one data set
+  with repeats of BY values`).
 - **WARNING**: something unexpected but the
   program continued. Always inspect.
 - **ERROR**: the program stopped. Fix and rerun.
 
-The most insidious are silent NOTEs. A merge
-that produces missing keys generates a NOTE; the
-program 'completes' but with rows silently
-dropped or duplicated:
+The most insidious are silent NOTEs. The classic
+case is a DATA step `MERGE` in which both datasets
+have more than one row for some `BY` value:
 
 ```
-NOTE: There were 100 observations read from data set WORK.A.
-NOTE: There were 95 observations read from data set WORK.B.
-NOTE: The data set WORK.MERGED has 95 observations.
+NOTE: MERGE statement has more than one data set with repeats
+      of BY values.
+NOTE: There were 100 observations read from the data set WORK.A.
+NOTE: There were 140 observations read from the data set WORK.B.
+NOTE: The data set WORK.MERGED has 140 observations and 8 variables.
 ```
 
-If you expected 100 (left join), 95 indicates 5
-rows were lost. The NOTE is informational; SAS
-does not flag it as a problem.
+Within such a `BY` group, `MERGE` pairs the rows
+one to one in order and repeats the last row of the
+shorter dataset, rather than forming every
+combination as an SQL join would, so the result is
+wrong and the program 'completes'. The NOTE is
+informational; SAS does not flag it as a problem.
+Row counts mislead in the other direction as well:
+without `IN=` flags, `MERGE` is a full outer join,
+keeping unmatched rows from both datasets, so a
+count can look right while the content is not.
 
 The discipline: read the LOG end to end after
 every run. Look for unexpected counts, NOTEs
@@ -699,7 +752,13 @@ df <- haven::read_xpt("path/to/file.xpt")
 
 `haven` preserves SAS labels and formats as R
 attributes (`label` attribute on each column).
-Inspect with `attr(df$x, "label")`.
+Inspect with `attr(df$x, "label")`. Dates need one
+check of their own. SAS stores a date as days since
+1 January 1960, and R's `Date` counts from 1 January
+1970. `haven` converts columns that carry a SAS date
+format, but a date that arrives as a bare number is
+ten years wrong unless converted with
+`as.Date(x, origin = "1960-01-01")`.
 
 **FDA submissions** still require `.xpt` v5 as
 the interchange format. Modern SAS `proc copy`
@@ -729,20 +788,24 @@ proc logistic data = work.clean;
 run;
 
 libname out xport '/path/results.xpt';
-data out.pe; set pe; run;
+data out.pe;
+  set pe(keep = Variable Estimate StdErr ProbChiSq
+         rename = (ProbChiSq = ProbChSq));
+run;
 libname out clear;
 ```
 
 ```{r}
 #| label: sas-results-table
 # Standing in for the transport file PROC LOGISTIC would have written,
-# so that the R side of the boundary executes here.
+# so that the R side of the boundary executes here. ProbChiSq is
+# renamed in SAS because transport v5 allows eight-character names.
 results_path <- file.path(tempdir(), "results.xpt")
 haven::write_xpt(
-  data.frame(TRTP = c("Placebo", "Drug"),
-             ESTIMATE = c(-2.14, -5.87),
-             STDERR = c(0.91, 0.94),
-             PROBT = c(0.019, 0.001)),
+  data.frame(Variable = c("Intercept", "treatment"),
+             Estimate = c(-0.85, 0.42),
+             StdErr   = c(0.21, 0.30),
+             ProbChSq = c(0.0001, 0.1615)),
   results_path, version = 5)
 
 # R: read SAS results, format as table
@@ -950,10 +1013,11 @@ possible. Each states the agreement you should verify.
 
 - [@delwiche2019little], *The Little SAS Book*,
   the canonical introduction.
-- Cody (2018), *Learning SAS by Example*, 2nd
-  ed., task-oriented introduction.
-- SAS documentation at `documentation.sas.com`
- , reference.
+- Ron Cody, *Learning SAS by Example: A
+  Programmer's Guide*, 2nd ed. (SAS Institute,
+  2018), a task-oriented introduction.
+- SAS documentation at `documentation.sas.com`,
+  the procedure reference.
 - The `haven` package documentation for the R
   side of the boundary.
 

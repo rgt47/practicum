@@ -243,16 +243,16 @@ to be picked up later, alone or in a second course.
 
 | Week | Core chapters |
 |---|---|
-| 1 | @sec-why; @sec-deident |
-| 2 | @sec-shell; @sec-workstation |
-| 3 | @sec-git-solo; @sec-git-teams |
-| 4 | @sec-acquisition; @sec-wrangling |
-| 5 | @sec-joins; @sec-graphics |
-| 6 | @sec-missing; @sec-quarto |
-| 7 | @sec-renv; @sec-docker |
-| 8 | @sec-analysis-plan; @sec-testing |
-| 9 | @sec-ai-coding; @sec-ethics |
-| 10 | @sec-communicating; @sec-penguins |
+| 1 | [Why Reproducible Research](#sec-why); [De-identification and Data Ethics](#sec-deident) |
+| 2 | [The Unix Shell](#sec-shell); [Setting Up Your Workstation](#sec-workstation) |
+| 3 | [Git and GitHub for Solo Developers](#sec-git-solo); [Git for Teams](#sec-git-teams) |
+| 4 | [Getting Data In](#sec-acquisition); [Data Wrangling Essentials](#sec-wrangling) |
+| 5 | [Joining and Reshaping](#sec-joins); [Plotting with ggplot2 and purrr](#sec-graphics) |
+| 6 | [Missing Data](#sec-missing); [Reproducible Reports with Quarto](#sec-quarto) |
+| 7 | [renv for Package Management](#sec-renv); [Docker for Reproducibility](#sec-docker) |
+| 8 | [Statistical Analysis Plans](#sec-analysis-plan); [Testing Data Analysis Workflows](#sec-testing) |
+| 9 | [AI-Assisted Coding](#sec-ai-coding); [Ethics Beyond Compliance](#sec-ethics) |
+| 10 | [Communicating a Finished Analysis](#sec-communicating); [Case Study: Palmer Penguins](#sec-penguins) |
 
 Outside the core, and suited to the second quarter or to
 independent reading: @sec-team-science, @sec-types,

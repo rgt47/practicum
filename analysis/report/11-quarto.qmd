@@ -36,7 +36,7 @@ chapter in @sec-quiz-answers-11.
    file, and how does Quarto decide which output
    format to produce?
 3. What is the purpose of `execute: freeze: auto` in a
-   Quarto document, and what problem does it solve?
+   Quarto project, and what problem does it solve?
 
 ## Learning objectives
 
@@ -44,19 +44,18 @@ By the end of this chapter you should be able to:
 
 - Explain the relationship among R scripts, R
   Markdown, Jupyter notebooks, and Quarto.
-- Create a `.qmd` file that produces HTML, PDF, and
-  Word outputs from the same source.
+- Create a `.qmd` file that produces HTML and PDF
+  outputs from the same source.
 - Control code chunks with chunk options
   (`echo`, `eval`, `include`, `warning`, `message`,
   `fig-cap`, `fig-width`, `cache`).
-- Add cross-references to figures, tables, sections,
-  and equations that resolve in both HTML and PDF
-  output.
+- Add cross-references to figures, tables, and
+  sections that resolve in both HTML and PDF output.
 - Use `bibliography` and `csl` to cite published work
   in journal-specific format.
 - Parameterize a report with YAML `params:` and
   render multiple variants.
-- Cache computation with `freeze` to avoid re-running
+- Use `freeze` in a Quarto project to avoid re-running
   expensive code on every render.
 
 ## Orientation
@@ -147,7 +146,7 @@ interleaved in a `.qmd` file:
 We analyzed the readmissions cohort using a multivariable
 logistic regression.
 
-```r
+```{{r}}
 fit <- glm(readmit ~ home_health + age + sex,
            family = binomial, data = d)
 ```
@@ -178,7 +177,7 @@ format: html
 
 Some prose here.
 
-```r
+```{{r}}
 1 + 1
 ```
 ````
@@ -212,7 +211,7 @@ format:
 A code chunk in a `.qmd`:
 
 ````qmd
-```r
+```{{r}}
 #| label: fig-readmissions
 #| fig-cap: "30-day readmission rates by home-health visit"
 #| fig-width: 6
@@ -265,7 +264,7 @@ Quarto's cross-reference syntax:
 ````qmd
 See @fig-readmissions for the bar plot.
 
-```r
+```{{r}}
 #| label: fig-readmissions
 #| fig-cap: "30-day readmission rates"
 ggplot(d, aes(...)) + ...
@@ -407,23 +406,35 @@ execute:
   freeze: auto
 ```
 
-On first render, Quarto runs every chunk and caches the
-result in `_freeze/`. On subsequent renders, Quarto
-checks whether the chunk source has changed; if not,
-it reuses the cached output without re-running.
+`freeze` works per *document*, not per chunk, and only
+inside a Quarto project (a directory with a
+`_quarto.yml`). When the whole project is rendered with
+`quarto render`, Quarto executes each document and
+stores its results in `_freeze/`. On later project
+renders, `freeze: auto` reuses those results for every
+document whose source is unchanged; edit any part of a
+document, even one chunk, and the whole document
+re-executes. `freeze: true` reuses the stored results
+even after the source changes; `freeze: false`, the
+default, re-executes every document on every render.
 
-`freeze: auto` is the modern default for projects with
+Two consequences catch people out. Rendering a single
+file (`quarto render analysis.qmd`) always executes it,
+whatever `freeze` says, so freeze helps only full project
+renders. And a stand-alone `.qmd` outside any project
+has no `_freeze/` at all; for chunk-level reuse there,
+use the knitr `cache: true` chunk option instead, which
+invalidates when that chunk's code changes.
+
+The choice, then: `freeze: auto` in a project with
 expensive analyses (a long bootstrap, an MCMC, a model
-fit). The cache invalidates when the chunk source
-changes; otherwise renders are fast.
+fit); `cache: true` on an expensive chunk in a single
+document.
 
-`freeze: true` always uses cached output, even if
-sources changed; `freeze: false` always re-runs. Both
-are occasionally useful but `auto` is the default.
-
-`_freeze/` should be committed to git: it ensures
-collaborators and CI builds get the cached output
-without re-running expensive analyses. (For
+`_freeze/` can be committed to git: it lets
+collaborators and CI builds that render the project
+reuse the stored output without re-running expensive
+analyses. (For
 deterministic chunks; for randomized chunks, the cache
 embeds the seed-aware result so this is fine if your
 chunks set seeds.)
@@ -567,55 +578,65 @@ date: today
 format:
   html: default
   pdf: default
-bibliography: references.bib
 execute:
   echo: false
   warning: false
-  freeze: auto
 ---
 
-```r
+```{{r}}
 #| include: false
-library(tidyverse)
-library(broom)
-d <- read_csv("data/readmissions.csv")
+library(ggplot2)
+set.seed(2026)
+n <- 500
+d <- data.frame(
+  age = round(rnorm(n, mean = 70, sd = 10)),
+  sex = sample(c("F", "M"), n, replace = TRUE),
+  home_health = rbinom(n, 1, 0.4)
+)
+d$readmit <- rbinom(
+  n, 1, plogis(-1.5 + 0.02 * (d$age - 70) - 0.4 * d$home_health)
+)
 fit <- glm(readmit ~ home_health + age + sex,
            family = binomial, data = d)
+ci <- exp(confint.default(fit)["home_health", ])
 ```
 
 # Summary
 
-Among `{{r}} nrow(d)` patients, the 30-day readmission rate
-was `{{r}} round(100 * mean(d$readmit), 1)`%
+Among `{{r}} nrow(d)` simulated patients, the 30-day
+readmission rate was `{{r}} round(100 * mean(d$readmit), 1)`%
 (@tbl-summary). After adjustment for age and sex,
 receipt of a home-health visit was associated with
-`{{r}} if_else(coef(fit)["home_health"] < 0, "lower", "higher")`
+`{{r}} ifelse(coef(fit)["home_health"] < 0, "lower", "higher")`
 odds of readmission (OR
 `{{r}} round(exp(coef(fit)["home_health"]), 2)`,
-95% CI `{{r}} ...`; @fig-or).
+95% CI `{{r}} round(ci[1], 2)` to `{{r}} round(ci[2], 2)`;
+@fig-or).
 
-```r
+```{{r}}
 #| label: tbl-summary
 #| tbl-cap: "Patient characteristics"
 gtsummary::tbl_summary(d, by = home_health)
 ```
 
-```r
+```{{r}}
 #| label: fig-or
 #| fig-cap: "Adjusted odds ratios"
 broom::tidy(fit, exponentiate = TRUE, conf.int = TRUE) |>
+  subset(term != "(Intercept)") |>
   ggplot(aes(estimate, term, xmin = conf.low, xmax = conf.high)) +
     geom_pointrange() +
     geom_vline(xintercept = 1, linetype = "dashed")
 ```
-
-# References
 ````
 
-This produces an HTML report and a PDF, with numbers
-computed from the data, a labeled table and figure,
-and proper bibliography. Re-running with new data
-updates everything automatically.
+The data are simulated in the setup chunk so that the
+document renders as it stands; in a real report that
+chunk would read your data file instead. This produces
+an HTML report and a PDF, with every number computed
+from the data and a labeled table and figure.
+Re-running with new data updates everything
+automatically.
 
 ## Collaborating with an LLM on Quarto
 
@@ -668,8 +689,10 @@ Three habits keep the prose and the numbers in step:
 2. **Cross-reference everything.** Figures, tables,
    equations, sections. Hand-typing 'see Figure 3'
    produces broken references when figures move.
-3. **Use `freeze: auto`.** Expensive analyses cache;
-   cheap ones re-run; correctness preserved.
+3. **Use `freeze: auto` in projects.** Documents with
+   expensive analyses re-execute only when their source
+   changes; remember that a single-file render always
+   re-executes.
 
 ## Exercises
 
@@ -687,9 +710,13 @@ output is the check.
    parameter from YAML; render three versions from
    three different CSV files using
    `quarto render --to html -P data_file=foo.csv`.
-4. Add `execute: freeze: auto` and an expensive code
-   chunk. Render twice; confirm the second render is
-   fast.
+4. Put two `.qmd` files and a `_quarto.yml` containing
+   `execute: freeze: auto` in one directory, and give
+   one file an expensive code chunk. Run `quarto render`
+   (with no file name) twice and confirm the second
+   project render is fast. Then run
+   `quarto render slow.qmd` and observe that the
+   single-file render re-executes it.
 5. Replace every hardcoded number in a draft of yours
    with inline R. Re-render with intentionally
    different data; confirm everything updates.
@@ -723,10 +750,14 @@ output is the check.
    To force a format, use
    `quarto render file.qmd --to html` (or `--to pdf`,
    `--to docx`).
-3. `execute: freeze: auto` caches the executed output
-   of each code chunk into `_freeze/` on first
-   render. Subsequent renders reuse the cached
-   output if the chunk source is unchanged, avoiding
-   re-running expensive code during every render and
-   making CI deployments fast. Commit `_freeze/` to
-   git so collaborators benefit from the cache.
+3. In a Quarto project, `execute: freeze: auto` stores
+   each document's executed results in `_freeze/`
+   when the project is rendered. Later project renders
+   reuse them for every document whose source is
+   unchanged, and re-execute a document in full when
+   any part of it changes, avoiding re-running
+   expensive code on every render and making CI
+   deployments fast. It does not apply to a
+   single-file render, which always executes, and the
+   default is `freeze: false`. Commit `_freeze/` to
+   git so collaborators benefit from it.

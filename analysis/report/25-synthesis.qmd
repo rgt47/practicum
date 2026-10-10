@@ -90,11 +90,14 @@ eight parts:
    both presuppose a finished artifact, one to hand
    over and one to be skeptical about.
 
-Two appendices sit outside the sequence. @sec-alternative-wrangling
-is for reading the base R, `data.table`, and `arrow` code
-that a tidyverse education does not prepare you for.
+Four appendices, besides the credits and colophon, sit
+outside the sequence. @sec-alternative-wrangling is for
+reading the base R, `data.table`, and `arrow` code that a
+tidyverse education does not prepare you for.
 @sec-peer-survey records the curricular evidence on which
 several chapters rest their case for existing.
+@sec-lab-software describes the in-house packages the book
+uses, and @sec-glossary defines its terms.
 
 The parts are progressive: each builds on the
 previous. Reproducibility is impossible without
@@ -143,36 +146,40 @@ flowchart TD
   H7 --> D
 ```
 
-A concise list of practices that every chapter
-pointed at:
+The same seven habits, in the order of the figure:
 
-- **Every analysis lives in a compendium.** A
-  research-compendium structure with `R/`,
-  `analysis/`, and a `Dockerfile` is the unit of
-  reproducibility.
-- **Every compendium is Dockerized before it
-  leaves your machine.** `renv` pins R packages;
-  Docker pins everything else.
-- **Every chunk of analysis code is under version
-  control.** Git from day one; tag at submission.
-- **Every clinically meaningful analysis has a
-  pre-specified SAP, tagged in Git before data
-  lock.** Pre-specification is what distinguishes
-  confirmatory from exploratory work.
-- **Every non-trivial function has at least one
-  unit test.** Tests catch regressions on
-  refactor and document expected behavior.
-- **Every figure in a paper is regenerable by
-  `make render` (or its equivalent).** Manual
-  steps in figure generation are
-  reproducibility holes.
-- **Every LLM suggestion is treated as a
-  hypothesis until verified.** AI-amplified
-  workflow demands amplified verification.
+1. **The compendium is the unit.** A
+   research-compendium structure with `R/`,
+   `analysis/`, and a declared environment is the
+   unit of reproducibility.
+2. **Pin the environment.** `renv` pins R packages;
+   a container pins everything else, before the
+   compendium leaves your machine.
+3. **Version control from day one.** Every chunk of
+   analysis code is under Git; tag at submission.
+4. **Pre-specify, then tag.** Every clinically
+   meaningful analysis has a SAP, tagged in Git
+   before data lock. Pre-specification is what
+   distinguishes confirmatory from exploratory
+   work.
+5. **Test the statistics, not the shape.** A test
+   that checks only that a column exists passes on
+   a wrong answer; test the estimates, counts, and
+   invariants the conclusions rest on.
+6. **Every number in the prose is computed.**
+   Numbers, tables, and figures in a paper come
+   from code and inline expressions, never from
+   typing; manual steps are reproducibility holes.
+7. **Every model output is a hypothesis until
+   verified.** LLM suggestions included:
+   AI-amplified workflow demands amplified
+   verification.
 
 If you take only one habit from this book, take
 the first: every analysis lives in a compendium.
-Everything else flows from it.
+Most of the others build on it, although a
+compendium alone prevents none of the failures of
+inference in @sec-ethics.
 
 ## What this book did not cover
 
@@ -196,8 +203,8 @@ but worth pursuing:
 - **Causal inference.** Pre-specification
   (@sec-analysis-plan) is necessary but not sufficient. The
   potential-outcomes framework, instrumental
-  variables, sensitivity analysis to
-  unmeasurement, and modern econometric methods
+  variables, sensitivity analysis for unmeasured
+  confounding, and modern econometric methods
   belong elsewhere.
 - **Collaboration at industrial scale.** Multi-
   sponsor pharma collaborations and CROs operate
@@ -269,7 +276,7 @@ Judgment comes from practice: working on real
 problems, being wrong sometimes, learning the
 patterns of when each tool fits.
 
-The 'statistician's contribution' callouts in each
+The 'statistician's contribution' sections in each
 chapter were an attempt to articulate the
 judgments explicitly. Re-read them after you have
 practiced the tools for six months; they will
@@ -293,7 +300,8 @@ The hardest part is the first three projects,
 where the new infrastructure feels like overhead.
 The reward is permanence: a research record that
 ages well, an analysis you can re-run a decade
-later, a paper a skeptical reviewer cannot break.
+later, a paper that holds up when a skeptical
+reviewer tries to rerun it.
 
 ## Prerequisites answers {#sec-quiz-answers-25}
 

@@ -177,9 +177,7 @@ If it does not, complete-case estimates are unbiased
 whatever the label, including the MNAR case of a
 covariate that goes missing because of its own value.
 If it does, they are biased, even under MAR
-[White and Carlin (2010), *Statistics in Medicine*
-29:2920-2931; Hughes et al. (2019), *International
-Journal of Epidemiology* 48:1294-1304]. Multiple
+[@white2010bias; @hughes2019accounting]. Multiple
 imputation and likelihood methods rest on a different
 condition, MAR given the variables in the imputation
 model. The table is organized by what the missingness
@@ -423,8 +421,7 @@ a partly missing *baseline* covariate can be handled
 by mean imputation or by the missing-indicator method
 without biasing the treatment effect, because
 randomization makes the covariate independent of the
-arm [White and Thompson (2005), *Statistics in
-Medicine* 24:993-1007]. Outside that setting, and for
+arm [@white2005adjusting]. Outside that setting, and for
 the covariate's own coefficient, both remain
 antipatterns.
 
@@ -1027,8 +1024,8 @@ case is close to unbiased, because once `x` and `z` are held
 fixed the deletion does not depend on `y`. Multiple
 imputation is the method that is biased, by about $+0.07$,
 because it fills the missing `x` values as though they
-resembled the observed ones. This is the pattern White and
-Carlin (2010) describe, and the reason the mechanism table
+resembled the observed ones. This is the pattern
+@white2010bias describe, and the reason the mechanism table
 earlier in the chapter is organized by what missingness
 depends on rather than by its label.
 
@@ -1062,7 +1059,7 @@ poorly.
 **3. Ampute, impute, and check recovery.**
 
 ```{r}
-#| label: soln-17-4
+#| label: soln-17-3
 #| message: false
 set.seed(12)
 complete_data <- na.omit(airquality[, c("Ozone", "Solar.R",
@@ -1090,7 +1087,7 @@ one replicate is a demonstration rather than evidence.
 **4. Delta adjustment and the tipping point.**
 
 ```{r}
-#| label: fig-soln-17-5
+#| label: fig-soln-17-4
 #| fig-cap: "A delta-adjustment sensitivity curve. The coefficient is
 #|   plotted against the shift applied to imputed values; the
 #|   horizontal line marks zero. Where the curve crosses it, if it

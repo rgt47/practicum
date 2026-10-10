@@ -181,7 +181,7 @@ flowchart TD
 - An `analysis/` directory for data, paper, and
   figures.
 - A Dockerfile for environment reproducibility.
-- A `README.Rmd` that knits to a `README.md` for the
+- A `README.qmd` that renders to a `README.md` for the
   GitHub landing page.
 - Continuous-integration scaffolding.
 
@@ -199,15 +199,19 @@ rrtools::use_compendium("~/research/readmissions")
 # add the analysis directories
 rrtools::use_analysis()
 
-# add a Dockerfile for env reproducibility
+# add a Dockerfile and, by default, a GitHub Actions
+# workflow that renders the paper inside it
 rrtools::use_dockerfile()
 
-# add CI for automated rebuild
-rrtools::use_github_actions()
-
-# add a README.Rmd
-rrtools::use_readme_qmd()    # or use_readme_rmd()
+# add a README.qmd
+rrtools::use_readme_qmd()
 ```
+
+`rrtools::use_dockerfile()` writes its own Dockerfile,
+based on `rocker/verse`. This book replaces it with the
+canonical Dockerfile shown below under 'Building and
+sharing', so that this chapter, @sec-renv, and
+@sec-docker describe one file rather than several.
 
 The scaffolding produces:
 
@@ -329,39 +333,45 @@ bibliography: references.bib
 
 We analyzed `{{r}} nrow(d)` patients from the institutional
 EHR cohort. The primary outcome was 30-day all-cause
-readmission. We fit a multivariable logistic regression
+readmission and the exposure was receipt of a home-health
+visit. We fit a multivariable logistic regression
 adjusting for age, sex, baseline ejection fraction, and
-discharge medications, with a propensity score for
-home-health-visit receipt as the exposure.
+discharge medications, in R [@rcore2024].
 
-```r
+```{{r}}
+#| label: fit-model
+#| echo: false
 fit <- glm(readmit ~ home_health + age + sex + ef + meds,
            family = binomial, data = d)
-broom::tidy(fit, exponentiate = TRUE, conf.int = TRUE)
+ci <- exp(confint.default(fit)["home_health", ])
 ```
 
 The adjusted odds ratio for home-health-visit receipt
 was `{{r}} round(exp(coef(fit)["home_health"]), 2)` (95% CI
-`{{r}} ...`). [@bryan2019happygit]
+`{{r}} round(ci[1], 2)` to `{{r}} round(ci[2], 2)`).
 ````
 
-For journal-specific formatting, the `rticles` package
-provides templates for many major journals (JAMA, NEJM,
-Annals of Internal Medicine, etc.):
+For journal-specific formatting in Quarto, use a Quarto
+journal extension where one exists for your journal. The
+`quarto-journals` collection on GitHub includes, for
+example, a JASA template:
 
-```r
-rticles::ima_article         # template list
+```bash
+quarto use template quarto-journals/jasa
 ```
 
-In `paper.qmd`, set the format to one of these:
-
-```yaml
-format:
-  rticles::nejm_article: default
-```
-
-The result is a manuscript with the journal's required
-formatting, ready for submission.
+The extension adds a format (here `jasa-pdf`) that you
+name under `format:` in `paper.qmd`. The older `rticles`
+package offers more journals, including *Statistics in
+Medicine*, *Biometrics*, and JASA (`rticles::journals()`
+lists them), but its templates are R Markdown output
+formats for an `.Rmd` file rendered with
+`rmarkdown::render()`, not Quarto formats; they cannot be
+named in the `format:` key of a `.qmd`. Neither collection
+has a template for every medical journal (there is none
+for NEJM or JAMA, for instance), and most of those
+journals accept a plain PDF or Word manuscript at first
+submission.
 
 ## Building and sharing
 
@@ -374,18 +384,58 @@ RStudio, click Render. Useful during writing.
 sourcing the analysis scripts in order. Useful for
 regenerating cached results.
 
-**Build the Docker image.** From the compendium root:
+**Build the Docker image.** The book's canonical
+Dockerfile, explained line by line in
+@sec-docker-canonical, sits at the compendium root:
 
-```bash
-docker build -t readmissions:v1.0 .
-docker run -it -v $(pwd):/work readmissions:v1.0 \
-  R -e 'devtools::load_all(); rmarkdown::render("analysis/paper/paper.qmd")'
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM rocker/r-ver:4.4.0
+
+ARG QUARTO_VERSION=1.6.40
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates curl \
+    libcurl4-openssl-dev libssl-dev libxml2-dev libuv1-dev \
+  && rm -rf /var/lib/apt/lists/*
+
+# rocker/r-ver ships R but not the Quarto CLI
+RUN arch="$(dpkg --print-architecture)" \
+  && curl -fsSL -o /tmp/quarto.deb \
+    "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-${arch}.deb" \
+  && dpkg -i /tmp/quarto.deb \
+  && rm /tmp/quarto.deb
+
+# outside /work, so a bind mount of the project cannot hide it
+ENV RENV_PATHS_LIBRARY=/opt/renv/library
+
+WORKDIR /work
+COPY renv.lock .Rprofile ./
+COPY renv/activate.R renv/activate.R
+RUN R -q -e "renv::restore(prompt = FALSE)"
+
+COPY . .
+
+CMD ["quarto", "render", "analysis/paper/paper.qmd"]
 ```
 
-The Dockerfile pins the OS, the R version, the system
-libraries, and the package versions. A reader with
-Docker can rebuild exactly the environment that
-produced the paper.
+From the compendium root:
+
+```bash
+docker build --platform linux/amd64 -t readmissions:v1.0 .
+docker run --rm --platform linux/amd64 \
+  -v "$(pwd)/analysis/paper:/work/analysis/paper" \
+  readmissions:v1.0
+```
+
+The Dockerfile pins the R version, the system libraries,
+and (through `renv.lock`) the package versions, and the
+rendered paper appears in `analysis/paper/` on your
+machine. A reader with Docker can rebuild a very close
+copy of the environment that produced the paper; an
+exact copy needs the digest pin or archived image
+described in @sec-docker.
 
 Deposition is treated in full in @sec-federal, once you
 have a finished compendium to deposit. The shape of it is
@@ -422,9 +472,11 @@ That is a small cost for the structural payoff.
 ## Worked example: a small compendium
 
 ```r
-# scaffold
+# scaffold; this opens the new compendium as its own
+# RStudio project, and every later call runs in that
+# session, whose working directory is the compendium
 rrtools::use_compendium("~/research/sim2026")
-setwd("~/research/sim2026")
+
 rrtools::use_analysis()
 rrtools::use_dockerfile()
 rrtools::use_readme_qmd()
@@ -439,17 +491,20 @@ file.edit("analysis/paper/paper.qmd")
 # (write the manuscript using simulate() from the package)
 
 # render
-rmarkdown::render("analysis/paper/paper.qmd")
+quarto::quarto_render("analysis/paper/paper.qmd")
 
 # version control
 usethis::use_git()
 usethis::use_github(private = TRUE)
-git2r::add(path = ".")
-git2r::commit(message = "Initial compendium")
+```
 
-# tag a milestone
-git2r::tag(name = "v0.1-draft",
-           message = "Initial draft for PI review")
+Then commit and tag the milestone from the shell, in the
+compendium directory:
+
+```bash
+git add .
+git commit -m "Initial compendium"
+git tag -a v0.1-draft -m "Initial draft for PI review"
 ```
 
 The compendium is now: a self-contained directory, with
@@ -494,6 +549,12 @@ judgment is harder.
 `tree` listing of your existing project directory and
 ask: 'restructure this into an rrtools compendium.
 Place each existing file in its appropriate location.'
+
+Commit everything before you ask, so that every move
+the LLM proposes can be reviewed as a diff and undone,
+and tell it not to move, rename, or edit anything in
+the raw-data directory; apply the moves yourself with
+`git mv`.
 
 *What to watch for.* Files that fit none of the
 categories cleanly (logbook entries, exploratory
@@ -563,17 +624,18 @@ directory tree that results is the check.
 4. Convert a 'scripts and data' project of your own
    into rrtools layout. Document the per-file
    reasoning.
-5. Pick a major journal in your field and use
-   `rticles` to scaffold a `paper.qmd` matching its
-   style.
+5. Pick a major journal in your field and look for a
+   Quarto journal extension for it (or, for an R
+   Markdown paper, an `rticles` format). Scaffold a
+   paper with it, or document that none exists.
 
 ## Further reading
 
 - [@marwick2018rrtools], the `rrtools` package.
 - [@marwick2018packaging], the original paper on
   research compendia.
-- The `rticles` package documentation for journal-
-  specific templates.
+- The `quarto-journals` templates and the `rticles`
+  package documentation for journal-specific templates.
 - Quarto's manuscript template at
   `quarto.org/docs/manuscripts/`.
 - [@harrell2025rworkflow], the closest peer treatment

@@ -51,8 +51,9 @@ By the end of this chapter you should be able to:
   Actions.
 - Identify test smells (tests that pass for the
   wrong reason, tests that hide bugs, flaky tests).
-- Apply visual regression testing to ggplot output
-  via `vdiffr`.
+- Apply visual regression testing to ggplot output,
+  via `vdiffr` under `testthat` or `tinysnapshot`
+  under `tinytest`.
 
 ## Orientation
 
@@ -79,9 +80,9 @@ analysis scripts the honest answer is no.
 We bring in this chapter the habits of software engineering to
 bear on that question.
 
-The framework used in this chapter is `tinytest`,
-because it is what projects scaffolded with `zzcollab`
-ship with and what the rest of this book assumes. It has
+The framework used in this chapter is `tinytest`, and
+the rest of this book assumes it. The reasons for the
+choice hold for any project, not only this book's. It has
 no dependencies of its own, which matters when the point
 of the surrounding chapters is to pin an environment;
 each test file runs on its own; and the assertion
@@ -144,7 +145,7 @@ on synthetic data catch pipeline bugs, including
 ones where helpers work individually but the
 composition fails.
 
-**Don't test what you don't trust.** Mocking out a
+**Don't mock the code under test.** Mocking out a
 function call inside a test of that function makes
 the test tautological. The test passes because you
 made it pass, not because the code is correct.
@@ -506,8 +507,11 @@ Note that `vdiffr` is built on `testthat` and expects to
 run inside it, so this is the one place in the chapter
 where the two frameworks do not substitute for each
 other. If visual regression matters to a project, that is
-a reason to use `testthat` there; `tinysnapshot` is the
-`tinytest`-native alternative and is younger.
+a reason to use `testthat` there. The
+`tinytest`-native alternative is `tinysnapshot`, whose
+`expect_snapshot_plot()` stores a reference image and
+compares later renders against it; it is younger and
+less widely used than `vdiffr`.
 
 ## Continuous integration
 
@@ -518,7 +522,10 @@ combinations. (Older material calls this
 `use_github_action_check_standard()`, a function
 `usethis` has since removed in favor of naming the
 workflow as an argument.) For a non-package analysis
-project, the equivalent is a workflow that runs tests:
+project, the equivalent is a workflow that runs tests.
+It assumes a `DESCRIPTION` file listing the project's
+dependencies, as a research compendium has; without one,
+replace `local::.` with the packages the tests need:
 
 ```yaml
 # .github/workflows/test.yaml
@@ -789,7 +796,9 @@ a repository, or a colleague you supply.
 7. Introduce a deliberate bug into your pipeline.
    Verify the test suite catches it. If it does
    not, add a test that does.
-8. Apply `vdiffr::expect_doppelganger` to one of
+8. Apply `tinysnapshot::expect_snapshot_plot()` (or,
+   in a `testthat` project,
+   `vdiffr::expect_doppelganger()`) to one of
    your project's plots. Modify the plot's theme
    slightly; verify the test fails and you can
    accept or reject the change.
@@ -921,6 +930,11 @@ circular, and no amount of adding cases repairs that.
 - `vdiffr` documentation on CRAN, visual
   regression testing for `ggplot2`.
 - The `testthat` package vignettes.
+- The `tinytest` vignette,
+  `vignette('using_tinytest', package = 'tinytest')`,
+  the reference for the framework this chapter uses,
+  and the `tinysnapshot` documentation on CRAN for
+  snapshot and plot tests under `tinytest`.
 
 ## Prerequisites answers {#sec-quiz-answers-20}
 

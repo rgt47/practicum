@@ -66,7 +66,7 @@ to be treated as a hypothesis to be tested, and not as a result
 to be trusted.
 
 This chapter is the meta-chapter on the
-'Collaborating with an LLM' callouts that appear
+'Collaborating with an LLM' sections that appear
 throughout this book and its companion. It covers
 the tooling, the failure modes, and the workflow.
 
@@ -102,7 +102,7 @@ correctness of the output.
 something useful, save the prompt. The prompt is the
 specification; if you ever need to regenerate or
 revise the code, the prompt is the context. The
-'Collaborating with an LLM' callouts in this book
+'Collaborating with an LLM' sections in this book
 are exemplars: prompt, what to watch for, how to
 verify.
 
@@ -213,7 +213,7 @@ something you do only when being wrong costs nothing.
 
 ## Data governance and agent safety {#sec-ai-governance}
 
-Every 'Collaborating with an LLM' callout in this book
+Every 'Collaborating with an LLM' section in this book
 assumes the rules below. They are stated once here and
 apply everywhere, including to prompts that say 'paste'.
 
@@ -582,7 +582,7 @@ implementation is too.
 Do not use base R's `merge`.' Constrains the
 solution space.
 
-The 'Collaborating with an LLM' callouts elsewhere
+The 'Collaborating with an LLM' sections elsewhere
 in this book follow this template: a prompt, what
 to watch for in the response, and how to verify.
 Use the same structure when you save your own
@@ -624,7 +624,7 @@ Code (an Anthropic CLI agent). The exercise was
 deliberate: produce a usable book about statistical
 computing in the AI era while using AI tools to do
 so. Lessons from that experience appear throughout
-the 'Collaborating with an LLM' callouts.
+the 'Collaborating with an LLM' sections.
 
 The honest accounting: roughly 70% of the prose was
 drafted with LLM assistance, all of it reviewed and
