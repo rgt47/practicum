@@ -1,4 +1,15 @@
-# Rmd Workflow: Conversions and Tables {#sec-rmd-workflow}
+# Migrating and Troubleshooting Documents {#sec-rmd-workflow}
+
+The converted paper rendered without an error, and the PDF went to
+the co-authors. In the methods section, 'as Figure 2 shows' had
+become `?@fig-flow shows`, and three other references pointed at
+nothing, because the chunk labels had kept their old R Markdown
+names. Nobody noticed for a week, because a clean render looks
+exactly like a correct one. This chapter is about the work around
+a literate document rather than inside it: converting between
+formats, migrating a project, placing floats in a PDF, and
+diagnosing a render, both the failure that stops it and the one
+that does not.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -14,158 +25,141 @@ incidentally for machines to execute.*
 ```
 :::
 
-::: {.callout-note}
-## Sources
+```{r}
+#| label: rmd-workflow-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-Blog posts `17-rapidconversionRtoRmd`,
-`38-tableplacementrmarkdown`,
-`07-multilanguagequartodemo`.
+```{r}
+#| label: fig-rmd-workflow-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: converting, migrating, and
+#|   debugging documents is work on the Report stage, where code
+#|   and derived data become the document a reader sees."
+#| fig-alt: !expr pipeline_alt('report')
+pipeline_diagram('report')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 20 minutes.
+
+**You'll need.** @sec-quarto for documents, chunk options,
+cross-references, and `freeze`. The code uses `knitr`, which
+Quarto installs with R support, and calls each function with its
+namespace (`knitr::spin()`), so it needs no `library()` call. The
+debugging example runs the `quarto` command-line tool.
+
+**You'll be able to.**
+
+- Convert between `.R`, `.Rmd`, and `.qmd` with `knitr::spin()`,
+  `knitr::purl()`, and `knitr::convert_chunk_header()`, and state
+  what each leaves for you to do by hand.
+- Decide whether an R Markdown project should be migrated, and
+  detect the cross-references a conversion breaks without an
+  error.
+- Control where LaTeX places figures and tables in PDF output.
+- Diagnose a failing render from its log, and find the silent
+  failures a successful render can hide.
+
+**Outline.**
+
+- [Converting between formats](#sec-rmd-workflow-convert)
+- [Migrating an R Markdown project](#sec-rmd-workflow-migrate)
+- [Float placement in PDF](#sec-rmd-workflow-floats)
+- [Engines and other languages](#sec-rmd-workflow-engines)
+- [Troubleshooting a render](#sec-rmd-workflow-troubleshoot)
 :::
 
-## Prerequisites
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-12.
 
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-12.
+1. What is the quickest way to convert an existing `.R` script
+   into an `.Rmd` or `.qmd`, preserving comments as prose?
+2. Why do tables and figures in rendered PDFs often appear in
+   unexpected places, and what do `fig.pos` and `tbl-pos` do?
+3. How do you ensure that a figure or table label defined in a
+   document is clickable (hyperlinked) in both the HTML and the
+   PDF outputs?
+:::
 
-1. What is the quickest way to convert an existing `.R`
-   script into an `.Rmd` or `.qmd`, preserving comments
-   as prose?
-2. Why do tables and figures in rendered PDFs often
-   appear in unexpected places, and what do `fig.pos`
-   and `tbl-pos` do?
-3. How do you ensure that a figure or table label
-   defined in an Rmd is clickable (hyperlinked) in both
-   the HTML and the PDF outputs?
+## Converting between formats {#sec-rmd-workflow-convert}
 
-## Learning objectives
+A project that mixes `.R` scripts, `.Rmd` reports, and `.qmd`
+papers is harder to maintain than any one of them. Pick a primary
+format (`.qmd` for new work) and convert to it, and convert early:
+a 100-line document converts in minutes, and a 1,000-line one
+takes an afternoon of checking. This section uses a short HF-HOME
+script, written to a temporary directory so that the conversions
+below run for real.
 
-By the end of this chapter you should be able to:
-
-- Convert between `.R`, `.Rmd`, and `.qmd` quickly and
-  losslessly.
-- Decide whether an existing R Markdown project should be
-  migrated at all, and carry out the migration of a
-  `bookdown` project when it should.
-- Detect the cross-reference breakage that a conversion
-  introduces without raising an error.
-- Control LaTeX float placement with `fig.pos`/`tbl-pos`
-  and inline anchoring (`[H]`).
-- Produce cross-referenced figures and tables that
-  hyperlink correctly in HTML, PDF, and Word outputs.
-- Switch a project's engine between `knitr` and Quarto
-  without rewriting chunks.
-- Run a multi-language document (R, Python, Julia) in a
-  single render via `reticulate` or `JuliaCall`.
-- Debug common Rmd/Quarto rendering failures.
-
-## Orientation
-
-The preceding chapter argued for the literate document. This
-one is about living in it, which is a different problem and a
-less elevated one. A document is rendered once when it is written and perhaps
-forty times before it is submitted. The frictions that are
-negligible on the first render are the dominant cost by the
-fortieth: the figure that lands three pages from its citation,
-the cross-reference that works in HTML and breaks in PDF, the
-expensive chunk that re-runs every time you fix a typo.
-
-None of this is intellectually interesting, and all of it is
-worth knowing, because the alternative to knowing it is doing
-the cleanup by hand every time. We collect here the practical
-measures that pay off on the fifth render rather than the
-first.
-
-The chapter applies to both R Markdown (`.Rmd`) and
-Quarto (`.qmd`); Quarto is the modern default but R
-Markdown remains widely used. Most concepts and
-syntax transfer between them.
-
-## The statistician's contribution {#sec-rmd-workflow-human}
-
-Conversions and float placement are lookups. The
-judgments that save time on the fifth render rather than
-the first are about consistency:
-
-**Decide on a primary format and stick to it.** A
-project that mixes `.R` files, `.Rmd` reports, and
-`.qmd` papers is hard to maintain. Pick a primary
-format for the project (`.qmd` for new work) and
-convert anything else to match.
-
-**LaTeX float discipline.** Floats are LaTeX's way of
-making documents look polished, but they can place a
-figure pages away from where you cited it. For a paper,
-let LaTeX do its job; readers expect floating figures.
-For a report meant to be read top-to-bottom, force
-inline placement with `fig.pos = 'H'`. The right
-default depends on the audience.
-
-**Multi-language honesty.** Mixing R, Python, and Julia
-in one document is technically possible. Whether it is
-*helpful* depends on whether the languages do
-genuinely different jobs (R for statistics, Python for
-deep learning, Julia for performance) or whether the
-mix is showmanship. Single-language is usually the
-right answer.
-
-**Convert before the document is large.** Converting a
-1000-line `.Rmd` to `.qmd` is harder than converting a
-100-line one. If you suspect the document will grow,
-convert early.
-
-These judgments are what separate a workflow that
-saves time from one that creates new categories of
-problem.
-
-## Converting between formats
-
-The conversion tools:
-
-**`.R` → `.Rmd` / `.qmd`** with `knitr::spin()`:
-
-```r
-# script.R has special comments:
-#' # Title
-#' Some prose explaining what this does.
-1 + 1
-#' Another paragraph of prose.
-2 + 2
+```{r}
+#| label: rmd-convert-setup
+work <- file.path(tempdir(), "convert")
+unlink(work, recursive = TRUE)
+dir.create(work)
+writeLines(c(
+  "#' # HF-HOME: primary outcome by arm",
+  "#' Read the randomization list and the outcomes.",
+  "trial <- merge(read.csv('data/randomization.csv'),",
+  "               read.csv('data/outcomes.csv'))",
+  "#' Observed risk of the primary outcome in each arm.",
+  "#+ risk-by-arm, echo = FALSE",
+  "tapply(trial$event_30d, trial$arm, mean, na.rm = TRUE)"
+), file.path(work, "analysis.R"))
 ```
 
-```r
-knitr::spin("script.R", knit = FALSE)
-# produces script.Rmd with prose and chunks
+### `.R` to `.qmd` with `knitr::spin()`
+
+In a script written for `spin()`, a comment that begins `#'` is
+prose, a comment that begins `#+` holds chunk options for the code
+that follows, and everything else is code.
+
+```{r}
+#| label: rmd-convert-spin
+invisible(knitr::spin(file.path(work, "analysis.R"), knit = FALSE,
+                      format = "qmd"))
+cat(readLines(file.path(work, "analysis.qmd")), sep = "\n")
 ```
 
-The `#'` prefix marks a comment as prose; everything
-else becomes code. For converting an existing
-heavily-commented script to a literate document, this
-is the fast path.
+`format = "Rmd"` writes an `.Rmd` instead. Notice that the `#+`
+line became chunk options in the old in-brace style, not `#|`
+lines; the next step moves them.
 
-**`.Rmd` → `.R`** with `knitr::purl()`:
+### `.Rmd` to `.R` with `knitr::purl()`
 
-```r
-knitr::purl("paper.Rmd", documentation = 0)
-# extracts code chunks into paper.R
+```{r}
+#| label: rmd-convert-purl
+invisible(knitr::spin(file.path(work, "analysis.R"), knit = FALSE,
+                      format = "Rmd"))
+invisible(knitr::purl(file.path(work, "analysis.Rmd"),
+                      output = file.path(work, "extracted.R"),
+                      documentation = 0, quiet = TRUE))
+cat(readLines(file.path(work, "extracted.R")), sep = "\n")
 ```
 
 `documentation = 1` (the default) also writes each chunk
 header as a comment but drops the prose; `2` keeps the
 prose as roxygen-style `#'` comments.
 
-**`.Rmd` → `.qmd`** by renaming the file, then
-optionally rewriting the chunk headers with
-`knitr::convert_chunk_header()`:
+### `.Rmd` to `.qmd` by renaming
 
-```bash
-git mv paper.Rmd paper.qmd
-```
+Rename the file, then optionally rewrite the chunk headers with
+`knitr::convert_chunk_header()`. In a repository, the rename is
+`git mv paper.Rmd paper.qmd`, so that Git records the history as
+one file's; here it is a copy.
 
-```r
-knitr::convert_chunk_header("paper.qmd",
-                            output = "paper.qmd",
+```{r}
+#| label: rmd-convert-header
+invisible(file.copy(file.path(work, "analysis.Rmd"),
+                    file.path(work, "paper.qmd")))
+knitr::convert_chunk_header(file.path(work, "paper.qmd"),
+                            output = file.path(work, "paper.qmd"),
                             type = "yaml")
+cat(readLines(file.path(work, "paper.qmd")), sep = "\n")
 ```
 
 There is no `quarto convert` step here. That command
@@ -177,33 +171,93 @@ produces a working document. The `convert_chunk_header()`
 call moves options such as `echo = FALSE` and
 `fig.cap = "..."` out of the braces into `#| echo: false`
 and `#| fig-cap:` lines. It does not add the `fig-` prefix
-to labels or touch cross-references. The differences to
-handle by hand:
+to labels or touch cross-references. @tbl-rmd-vs-quarto lists
+what the rename and `convert_chunk_header()` handle, and what is
+left for you.
 
-- YAML differences (Quarto uses slightly different
-  format keys: `format: html` vs. `output: html_document`).
-- Chunk-option syntax: knitr uses
-  ` ```{r chunk-name, echo = FALSE} `; Quarto's
-  preferred syntax uses `#|` directives:
-  ```{{r}}
-  #| label: chunk-name
-  #| echo: false
-  ```
-- Cross-reference syntax: knitr uses `\@ref(fig:scatter)`;
-  Quarto uses `@fig-scatter` (different prefix).
+| Aspect | R Markdown | Quarto | Converted for you? |
+|---|---|---|---|
+| Output format | `output: html_document` | `format: html` | No |
+| Chunk options | In the braces: `{r name, echo = FALSE}` | One option per line at the top of the chunk, as `label: name` and `echo: false` after the comment prefix | Yes, by `convert_chunk_header()` |
+| Option names | `fig.cap`, `fig.pos` | `fig-cap`, `fig-pos` | Yes, by `convert_chunk_header()` |
+| Figure and table labels | Any chunk name | Must begin `fig-` or `tbl-` to be referenceable | No |
+| Cross-references | `\@ref(fig:scatter)` | `@fig-scatter` (syntax in @sec-quarto-chunks) | No |
+| Book configuration | `_bookdown.yml` and `_output.yml` | One `_quarto.yml` | No |
 
-**`.ipynb` ↔ `.qmd`**:
+: What changes between R Markdown and Quarto, and what the
+conversion tools do. {#tbl-rmd-vs-quarto}
+
+### `.ipynb` to and from `.qmd`
 
 ```bash
 quarto convert notebook.ipynb -o notebook.qmd
 quarto convert notebook.qmd -o notebook.ipynb
 ```
 
-For collaborators who prefer Jupyter, this conversion
-is lossless: text becomes Markdown, code becomes
-chunks, and metadata round-trips.
+For collaborators who prefer Jupyter, this conversion is lossless:
+text becomes Markdown, code becomes cells, and metadata
+round-trips.
 
-## Migrating an R Markdown project
+::: {.callout-important title='LLM prompt'}
+A model can convert a long document faster than you can, provided
+you forbid the wrong tool and define 'converted' as a check.
+
+> **Context.** Below is an R Markdown file from a `bookdown`
+> project, with knitr chunk options in braces and
+> `\@ref(fig:...)` and `\@ref(tab:...)` cross-references.
+>
+> **Constraints.** Produce a `.qmd`. Do not use or suggest
+> `quarto convert`, which is for Jupyter notebooks. Change no
+> code inside chunks and add no prose. Move chunk options to `#|`
+> lines, add the `fig-` or `tbl-` prefix to every label that is
+> cross-referenced, and rewrite every reference to `@fig-...` or
+> `@tbl-...`.
+>
+> **Criteria.** List every label you renamed. The output contains
+> no `\@ref(`, and every `@fig-` and `@tbl-` reference has a
+> matching label.
+
+*Failure mode.* Models invent connecting prose, tidy the code
+while they are in it, or rename a label without updating every
+reference to it. *Check.* Diff the code chunks against the
+original (`knitr::purl()` both files with `documentation = 0` and
+compare), then render and run the two counts in the Verification
+of @sec-rmd-workflow-migrate. The document's text and code are
+structure; keep the data out of the prompt (@sec-ai-governance).
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You rename `paper.Rmd` to `paper.qmd`, run
+`convert_chunk_header()`, and render. The render succeeds. What
+has not been converted, and how would you find out?
+
+**Answer.** The YAML (`output:` still has to become `format:`),
+every label that lacks a `fig-` or `tbl-` prefix, and every
+`\@ref()` cross-reference. Neither step touches them, and none of
+them stops the render. Grep the source for `\@ref(` and the
+rendered output for `?@`, as @sec-rmd-workflow-migrate shows.
+:::
+
+### Exercises
+
+1. Which lines of `analysis.R` does the round trip through
+   `spin()` and `purl(documentation = 0)` fail to reproduce, and
+   why?
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-12-1
+setdiff(readLines(file.path(work, "analysis.R")),
+        readLines(file.path(work, "extracted.R")))
+```
+
+Every prose line (`#'`) and the chunk-option line (`#+`).
+`spin()` turned the prose into Markdown and the `#+` line into
+chunk options, and `purl()` with `documentation = 0` extracts only
+code. With `documentation = 2` the prose returns as `#'` comments.
+:::
+
+## Migrating an R Markdown project {#sec-rmd-workflow-migrate}
 
 The conversion above is a file operation. Migrating a
 *project* is a different exercise, and the first question
@@ -265,26 +319,43 @@ that a project is a `bookdown` project, and neither audits
 what your packages assumed about knitr. Budget for those
 by hand.
 
-**Cross-references fail silently, which makes them the
-dangerous item.** A `\@ref(fig:scatter)` left unconverted
-does not stop the render. It emits a broken reference into
-the output, and a document with thirty figures can acquire
-a dozen of them without a single warning. Two habits
-contain this. After converting, grep the source for
-`\@ref(` and confirm the count is zero. Then grep the
-*rendered* output for `?@fig-` and `?@tbl-`, which is what
-Quarto emits where a reference does not resolve, and
-confirm that count is zero as well. The second check
-matters because it catches the converse error, a reference
-whose syntax you updated but whose target label you did
-not.
-
 Quarto is also stricter about labels than `bookdown` was.
 A figure is only referenceable if its label carries the
 `fig-` prefix, a table if it carries `tbl-`. A chunk named
 `scatter` that was addressable as `fig:scatter` under
 `bookdown` becomes addressable as nothing at all until it
 is renamed `fig-scatter`.
+
+::: {.callout-warning title='Pitfall'}
+**Cross-references fail silently.** A `\@ref(fig:scatter)` left
+unconverted does not stop the render. It emits a broken reference
+into the output, and a document with thirty figures can acquire a
+dozen of them without a single error. A reference whose syntax
+you updated but whose target label you did not (`@fig-scatter`
+pointing at a chunk still named `scatter`) renders as
+`?@fig-scatter`, with a warning in a log nobody reads.
+:::
+
+::: {.callout-tip title='Verification'}
+After converting, count the old references left in the source and
+the unresolved references Quarto wrote into the output. Both
+counts must be zero. From the project root (display-only):
+
+```r
+src <- unlist(lapply(list.files(pattern = "[.]qmd$", recursive = TRUE),
+                     readLines))
+sum(grepl("\\@ref(", src, fixed = TRUE))
+
+out <- unlist(lapply(list.files("_book", pattern = "[.]html$",
+                                recursive = TRUE, full.names = TRUE),
+                     readLines))
+sum(grepl("?@", out, fixed = TRUE))
+```
+
+The second count catches the converse error, a reference whose
+syntax you updated but whose target label you did not. Change
+`_book` to your project's output directory.
+:::
 
 **Package assumptions are the quiet cost.** Code that
 reached around `knitr` rather than through it does not
@@ -331,12 +402,71 @@ project rather than a file: converting half of something
 leaves two toolchains to maintain, which is worse than
 either one alone.
 
-## Float placement in PDF
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A converted chapter renders cleanly, and a grep of
+the source finds no `\@ref(`. Is it safe to ship?
 
-The frustration: you place `\@ref(fig:demographics)` in
-your prose and the figure appears two pages later.
-LaTeX is exercising its default 'avoid widow lines'
-heuristic.
+**Answer.** Not yet. The source check finds references in the old
+syntax; it cannot find a new-syntax reference to a label that was
+never renamed. Grep the rendered output for `?@` as well, and
+compare the chapter's figure and table numbers with the `bookdown`
+build, because numbering moves silently too.
+:::
+
+### Exercises
+
+2. The `bookdown` fragment below is to become Quarto. Count the
+   references to convert, and name the labels to rename.
+
+```{r}
+#| label: rmd-migrate-fragment
+fragment <- c(
+  "As \\@ref(fig:flow) shows, most exclusions were at screening.",
+  "Baseline characteristics are in Table \\@ref(tab:baseline).",
+  "```{r flow, fig.cap = 'CONSORT flow'}",
+  "```{r baseline}",
+  "Outcomes by arm are in \\@ref(fig:outcomes)."
+)
+cat(fragment, sep = "\n")
+```
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-12-2
+refs <- unlist(regmatches(fragment,
+                          gregexpr("\\\\@ref\\([^)]+\\)", fragment)))
+refs
+```
+
+Three references, to become `@fig-flow`, `@tbl-baseline`, and
+`@fig-outcomes`. The chunks `flow` and `baseline` must be renamed
+`fig-flow` and `tbl-baseline`. There is no chunk for `outcomes` in
+the fragment: find it before converting, or the converted
+reference will render as `?@fig-outcomes`.
+:::
+
+3. Take a `bookdown` project, your own or any public one, and
+   convert a single chapter of it to Quarto while leaving the
+   `bookdown` build working. Render both and compare the chapter's
+   output. (This changes files in that project; work on a branch.)
+
+::: {.callout-note collapse='true' title='Solution'}
+A complete conversion leaves both counts in the Verification
+above at zero and the same figure and table numbers in both
+builds. Expect breaks that produced no message in either render:
+references to labels in other chapters, which resolve only when
+the whole Quarto book is built, and numbers typed into the prose.
+Record each break and whether any message reported it.
+:::
+
+## Float placement in PDF {#sec-rmd-workflow-floats}
+
+The frustration: you cite a figure in your prose and it appears
+two pages later. LaTeX treats figures and tables as **floats**
+and moves them to avoid awkward white space and bad page breaks.
+For a paper, let it; readers expect floating figures. For a report
+meant to be read top to bottom, force placement where the figure
+is declared. The right default depends on the audience.
 
 The fix in knitr Rmd:
 
@@ -372,415 +502,443 @@ header-includes:
 
 For tables, the equivalent is `tbl-pos: 'H'` in Quarto
 or `kable_styling(latex_options = "HOLD_position")` in
-knitr+kableExtra.
+knitr+kableExtra. @tbl-rmd-float-pos lists the placement codes.
 
-The LaTeX float-position options:
+| Code | Meaning |
+|---|---|
+| `h` | Here, if possible |
+| `t` | Top of a page |
+| `b` | Bottom of a page |
+| `p` | On a separate page of floats |
+| `!` | Prefix: override LaTeX's usual limits on float placement |
+| `H` | Exactly here, never float (requires the `float` package) |
 
-- `h` (here, if possible)
-- `t` (top of page)
-- `b` (bottom of page)
-- `p` (separate float page)
-- `H` (exactly here, requires `float` package)
-- `!` prefix overrides LaTeX's preferences
+: LaTeX float-placement codes. The default, `htbp`, lets LaTeX
+choose among the first four in that order. {#tbl-rmd-float-pos}
 
-The default `htbp` lets LaTeX decide; `H` forces
-inline.
+For HTML output, float placement is irrelevant; figures appear in
+source order.
 
-For HTML output, LaTeX float positioning is
-irrelevant; figures appear in source order.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You write 'Figure 3 shows demographics' and the
+rendered PDF puts Figure 3 four pages later. Why, and what is the
+fix?
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: floating figures
-
-**Question.** You write 'Figure 3 shows demographics'
-and the rendered PDF puts Figure 3 four pages later.
-Why, and what is the fix?
-
-**Answer.**
-
-LaTeX defers floats (figures and tables) when placing
-them at the source location would create awkward white
-space or break a paragraph. By default, LaTeX is
-willing to push floats forward to find a 'better'
-spot, sometimes pages later. Two fixes: (1) Use
-`fig-pos: "H"` (with `\usepackage{float}` in the
-header) to force exactly-here placement; (2) Refer to
-floats by their cross-reference (`see @fig-demographics`)
-rather than by a hand-typed 'Figure 3', so the
-hyperlink is correct regardless of placement.
-Combination: use cross-references universally; force
-positioning only for documents that must be read
-linearly.
-
+**Answer.** LaTeX defers floats when placing them at the source
+location would create awkward white space or break a paragraph,
+sometimes by pages. Two fixes, best combined. Use `fig-pos: "H"`
+(with `\usepackage{float}` in the header) to force exactly-here
+placement, for documents that must be read linearly. And refer to
+the figure by its cross-reference (`see @fig-demographics`) rather
+than by a typed 'Figure 3', so that the number and the link are
+correct wherever the figure lands.
 :::
 
-## Cross-references
+### Exercises
 
-Quarto's cross-reference system is consistent across
-formats:
+4. In a Quarto PDF with three tables, make every table appear
+   exactly where it is declared.
 
-````qmd
-See @fig-demographics for the cohort breakdown
-(@tbl-baseline summarizes baseline characteristics).
+::: {.callout-note collapse='true' title='Solution'}
+Set the option once for the format and load the package:
 
-```{{r}}
-#| label: fig-demographics
-#| fig-cap: "Demographics by treatment arm"
-ggplot(...) + ...
+```yaml
+format:
+  pdf:
+    tbl-pos: "H"
+header-includes:
+  - \usepackage{float}
 ```
 
-```{{r}}
-#| label: tbl-baseline
-#| tbl-cap: "Baseline characteristics"
-gtsummary::tbl_summary(...)
-```
-````
-
-Labels follow the prefix convention: `fig-`, `tbl-`,
-`eq-`, `sec-`, `lst-`, `tip-`. References use the
-`@` prefix to match.
-
-In knitr Rmd, the equivalent syntax is more verbose:
-
-````Rmd
-```{{r demographics, fig.cap = "Demographics by treatment arm"}}
-ggplot(...) + ...
-```
-````
-
-```Rmd
-See \@ref(fig:demographics).
-```
-
-Both produce hyperlinks in HTML and PDF.
-
-For sections:
-
-```qmd
-## Methods {#sec-methods}
-
-See @sec-methods for details.
-```
-
-The numeric value of the cross-reference is set by the
-order of the labeled object in the document; this is
-why renumbering happens automatically when you
-reorder.
-
-## Engine choice: knitr vs. Quarto
-
-Both are options for `.qmd` files. Default is `knitr`;
-`engine: jupyter` switches to Jupyter for Python-heavy
-documents.
-
-`knitr` chunks support all the chunk options you know
-from Rmd. Quarto's `#|` syntax is preferred but the
-old `{r, opt = val}` syntax still works. For most R
-work, the engine choice is invisible.
-
-For mixing R and Python heavily in one document,
-Jupyter engine may produce cleaner output. For pure R
-or R-with-occasional-Python, knitr is fine.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: whose Python is it?
-
-**Question.** A `.qmd` with a `{python}` chunk renders
-correctly on your machine. A colleague clones the
-repository, runs `renv::restore()`, and the render fails
-with `ModuleNotFoundError`. What went wrong, and what
-would have prevented it?
-
-**Answer.**
-
-`renv` pins R packages. It says nothing about Python, so
-the document depended on whatever interpreter and packages
-happened to be installed on your machine, which is exactly
-the ambient state the book argues against everywhere else.
-
-The document worked for you by accident of history: you
-had `pandas` from some earlier project.
-
-The fix is to declare the dependency in the document, so
-that provisioning is part of the build rather than a
-precondition of it:
-
-```r
-reticulate::py_require("pandas")
-```
-
-Modern `reticulate` reads those declarations and
-provisions an ephemeral environment, which means the
-requirement travels with the source.
-
-The alternative many projects reach for, a
-`requirements.txt` plus an instruction to run
-`pip install -r`, is weaker for a reason worth
-generalizing. It puts the requirement in a file the render
-does not read, so nothing enforces the connection, and the
-failure appears on someone else's machine rather than
-yours. A dependency the build declares is checked on every
-render; a dependency documented in a README is checked
-when someone reads the README.
+Verify in the PDF that each table follows the paragraph that
+precedes it in the source. A table that still floats was probably
+produced by a package that writes its own LaTeX float environment
+(for example `kableExtra`), which needs that package's option
+(`latex_options = "HOLD_position"`) instead.
 :::
 
-## Multi-language documents
+## Engines and other languages {#sec-rmd-workflow-engines}
 
-Quarto natively supports R, Python, and Julia. With
-`reticulate` (R-Python) and `JuliaCall` (R-Julia),
-chunks can pass values across languages.
+Quarto chooses an engine from a document's executable cells. A
+document with any `{r}` cell runs under knitr, which also runs
+Python cells through the `reticulate` package; a document whose
+executable cells are all Python runs under Jupyter; and an
+`engine:` key in the YAML overrides the choice. `knitr` documents
+support every chunk option you know from R Markdown, in either
+syntax. For most R work, the engine choice is invisible.
+
+With `reticulate` (R and Python) and `JuliaCall` (R and Julia),
+chunks can pass values across languages in one render:
 
 ````qmd
 ---
 format: html
 ---
 
-```r
+```{{r}}
 library(reticulate)
 x <- 1:10
 ```
 
-```python
+```{{python}}
 import numpy as np
-arr = np.array(r.x)         # access R variable
+arr = np.array(r.x)
 print(arr.mean())
 ```
 
-```r
-print(py$arr)               # access Python variable
-```
-````
-
-The `r.x` syntax in Python accesses R's `x`; the
-`py$arr` syntax in R accesses Python's `arr`.
-Coercion is automatic for common types (numeric
-vectors, data frames, lists).
-
-For a typical biostatistical workflow, this is
-overkill: stick to R unless the project genuinely
-needs another language (deep learning in Python, a
-specialized Julia package). Multi-language is real
-infrastructure cost.
-
-## Common rendering failures
-
-**'LaTeX Error: File `tinytex.sty` not found'**:
-install TinyTeX (`tinytex::install_tinytex()`) or full
-LaTeX. Quarto's PDF output requires LaTeX.
-
-**'pandoc: ... unknown writer'**: out-of-date Quarto
-or pandoc. Update Quarto.
-
-**'undefined cross-reference'**: a `@fig-foo` reference
-to a label `fig-foo` that does not exist (typo, or
-the chunk producing the figure was not labeled).
-Render with `--verbose` to find which reference is
-broken.
-
-**Figures appearing in wrong places**: float-
-positioning issue (above).
-
-**Slow renders**: cache with `freeze: auto` (Quarto)
-or `cache = TRUE` (knitr) for expensive chunks.
-
-**'Object not found'**: a chunk depends on a variable
-defined in an earlier chunk that did not run (or was
-`eval = FALSE`). Check chunk order and `eval`/`include`
-options.
-
-## Worked example: converting a script to a paper
-
-Starting from `analysis.R`:
-
-```r
-# Load and clean data
-d <- read.csv("data.csv")
-d <- na.omit(d)
-
-# Fit model
-fit <- lm(y ~ x1 + x2, data = d)
-summary(fit)
-
-# Plot
-plot(d$x1, d$y, xlab = "x1", ylab = "y")
-abline(fit)
-```
-
-Step 1: convert with `spin`:
-
-```r
-knitr::spin("analysis.R", knit = FALSE, format = "Rmd")
-# → analysis.Rmd
-```
-
-Step 2: rename to `.qmd` and move the chunk options into
-`#|` lines (or skip Step 1's detour with
-`knitr::spin("analysis.R", knit = FALSE, format = "qmd")`):
-
-```bash
-git mv analysis.Rmd analysis.qmd
-```
-
-```r
-knitr::convert_chunk_header("analysis.qmd",
-                            output = "analysis.qmd",
-                            type = "yaml")
-```
-
-Step 3: add YAML, prose, cross-references:
-
-````qmd
----
-title: "Effect of x1 on y"
-format:
-  html: default
-  pdf: default
-execute:
-  echo: false
-  warning: false
----
-
-# Methods
-
-We analyzed `{{r}} nrow(d)` complete cases.
-
 ```{{r}}
-#| label: fig-scatter
-#| fig-cap: "Scatterplot of y on x1"
-plot(d$x1, d$y, xlab = "x1", ylab = "y")
-abline(fit)
+print(py$arr)
 ```
-
-@fig-scatter shows the relationship; the fitted slope
-is `{{r}} round(coef(fit)["x1"], 2)`.
 ````
 
-Step 4: render. Half an hour from script to first-draft
-paper.
+In Python, `r.x` reads R's `x`; in R, `py$arr` reads Python's
+`arr`. Common types (numeric vectors, data frames, lists) convert
+automatically. Whether a mix is *helpful* depends on whether the
+languages do genuinely different jobs, such as R for the
+statistics and Python for a deep-learning model. For a typical
+biostatistical analysis, stay in one language: each additional one
+is another runtime to install, pin, and debug.
 
-## Collaborating with an LLM on Rmd workflow
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A `.qmd` with a `{python}` chunk renders
+correctly on your machine. A colleague clones the
+repository, runs `renv::restore()`, and the render fails
+with `ModuleNotFoundError`. What went wrong, and what
+would have prevented it?
 
-LLMs handle conversions well; the cross-format
-subtleties need verification.
+**Answer.** `renv` pins R packages. It says nothing about Python,
+so the document depended on whatever interpreter and packages
+happened to be installed on your machine, which is exactly the
+ambient state the book argues against everywhere else. It worked
+for you by accident of history: you had `pandas` from some earlier
+project.
 
-**Prompt 1: converting `.R` to `.qmd`.** Paste the
-script and ask the LLM to produce a `.qmd` with
-appropriate chunk options and prose.
+The fix is to declare the dependency in the document, so that
+provisioning is part of the build rather than a precondition of
+it:
 
-*What to watch for.* The LLM may invent prose where
-the original had none. Sticking close to the
-original's intent is the right move; rewriting is for
-later.
+```r
+reticulate::py_require("pandas")
+```
 
-*Verification.* Render both and compare outputs.
-Check that no comments or code were lost.
+Modern `reticulate` reads those declarations and provisions an
+ephemeral environment, which means the requirement travels with
+the source.
 
-**Prompt 2: diagnosing rendering failures.** Paste
-the error message and ask: 'what's wrong and how to
-fix?'
+The alternative many projects reach for, a `requirements.txt` plus
+an instruction to run `pip install -r`, is weaker for a reason
+worth generalizing. It puts the requirement in a file the render
+does not read, so nothing enforces the connection, and the failure
+appears on someone else's machine rather than yours. A dependency
+the build declares is checked on every render; a dependency
+documented in a README is checked when someone reads the README.
+:::
 
-*What to watch for.* Common errors (LaTeX missing,
-cross-reference broken, package not installed) are
-easy. Less common (Quarto version mismatch, pandoc
-filter issues) are harder; verify against the
-official documentation.
+### Exercises
 
-*Verification.* Apply the fix and re-render. If it
-works, done; if not, the LLM may have misdiagnosed.
+5. Build a `.qmd` that computes one number in a Python chunk
+   through `reticulate`, declares its Python packages with
+   `py_require()`, and uses the number in the prose. Verify that
+   the number is faithful to the same computation in R.
 
-**Prompt 3: cross-format cross-references.** Describe
-the document and ask: 'set up cross-references that
-work in HTML, PDF, and Word.'
+::: {.callout-note collapse='true' title='Solution'}
+Read the Python value back into R and compare it with the R
+computation in a chunk that stops the render if they disagree,
+for example `stopifnot(isTRUE(all.equal(py$arr_mean,
+mean(1:10))))`. Exact equality (`==`) is the wrong test for
+floating-point results computed by two runtimes; `all.equal()`
+allows for the last-digit differences they can produce. Render
+once in a fresh session to confirm that `py_require()`, not an
+interpreter already on your machine, supplied the packages.
+:::
 
-*What to watch for.* Quarto's `@fig-foo` syntax works
-universally. The LLM should use it. If it suggests
-`\ref{fig:foo}`, push back: that is LaTeX-only.
+## Troubleshooting a render {#sec-rmd-workflow-troubleshoot}
 
-*Verification.* Render to all three formats and
-inspect the cross-references in each.
+A render fails in one of two ways. The loud failure stops it with
+an error and a message that names the chunk; the silent failure
+finishes, exits successfully, and leaves a defect in the output.
+@tbl-rmd-render-failures collects the common ones; the worked
+example after it shows how to read a real log.
 
-## Principle in use
+| Symptom (message excerpt) | Cause | Fix |
+|---|---|---|
+| `Error: ! object 'x' not found`, then `Quitting from doc.qmd:14-18 [label]` | The object is created in a chunk that did not run (`eval: false`, or deleted) or runs later | Read the `Quitting from` line for the failing chunk; make the defining chunk run, and run before it |
+| `could not find function` | A package is used but not loaded in the document | Add the `library()` call to the document's setup chunk; the render runs in a fresh session |
+| `Unable to resolve crossref @fig-x` (a warning), and `?@fig-x` in the output | A missing or misspelled label, a label without its `fig-` or `tbl-` prefix, or a chunk that did not run | Fix the label; grep the output for `?@` (@sec-rmd-workflow-migrate) |
+| `\@ref(fig:x)` printed literally in the output | A `bookdown` reference left unconverted | Rewrite as `@fig-x` (@tbl-rmd-vs-quarto) |
+| `No TeX installation was detected` | PDF output needs LaTeX | `quarto install tinytex` |
+| `LaTeX Error: File ... .sty not found` | A LaTeX package missing from a minimal TeX installation | Install it (`tinytex::tlmgr_install("float")`, with the package's name), or let TinyTeX install it on the next render |
+| `ModuleNotFoundError` in a Python chunk | Python packages not declared | `reticulate::py_require()` (@sec-rmd-workflow-engines) |
+| `unknown writer` or an unknown format | A misspelled `format:` name, or a Quarto older than the format | Check the name; run `quarto check` and update Quarto |
+| Figures pages away from their citation | LaTeX float placement | `fig-pos` (@sec-rmd-workflow-floats) |
+| Every render slow | Expensive chunks re-run every time | `freeze` or `cache` (@sec-quarto-freeze) |
+| Old numbers after new data | `freeze` or `cache` served stored results | Render the document itself (@sec-quarto-freeze) |
 
-Three habits keep the fifth render as cheap as the first:
+: Common rendering failures. The first two block the render; the
+next two finish with a defect in the output. {#tbl-rmd-render-failures}
 
-1. **Convert to a single primary format.** `.qmd` for
-   new work; convert legacy `.Rmd` if active. A
-   project that mixes formats is harder to maintain
-   than the conversion cost.
-2. **Use Quarto cross-references universally.** They
-   work across HTML, PDF, and Word; LaTeX-specific
-   labeling does not.
-3. **Cache expensive computations.** `freeze: auto`
-   on the Quarto side, `cache = TRUE` on the knitr
-   side. Don't re-run a 5-minute chunk on every typo
-   fix.
+### Worked example: a render that fails, then succeeds wrongly
 
-## Exercises
+The example renders a one-figure HF-HOME report in a temporary
+directory, with two defects planted from real conversions: a setup
+chunk left at `eval: false` from drafting, and a figure label that
+kept its R Markdown name. It runs the real `quarto` command, so
+the log below is what you would see.[^r-libs]
 
-**On your own machine, data, or collaborations.** These exercises
-convert and render documents of your own, so no answer key is possible.
+[^r-libs]: As in @sec-quarto-worked, the `env` argument passes
+    this session's library paths to the R process that Quarto
+    starts. In a terminal you would type `quarto render report.qmd`
+    alone.
 
-1. Take a recent `.R` analysis and convert it to a
-   `.qmd` via `knitr::spin`. Re-render. Note what
-   `spin` handles well and what needs manual cleanup.
-2. In a Quarto PDF, force every table to appear
-   exactly where declared in the source (no LaTeX
-   float rearrangement). Verify with a three-table
-   document.
-3. Build a minimal reproducible example (MWE) of a
-   cross-reference that works in HTML but not in PDF.
-   Optionally, if the MWE still fails on the current
-   Quarto release and no existing issue describes it,
-   post it on the Quarto discussion forum.
-4. Convert a `.Rmd` paper of yours to `.qmd`. Render
-   both versions to PDF and diff the output; explain
-   any differences.
-5. Build a `.qmd` that calls Python via reticulate to
-   compute one number used in the prose. Render and
-   verify the Python output is faithful to the R
-   value.
-6. Take a `bookdown` project, your own or any public
-   one, and convert a single chapter of it to Quarto
-   while leaving the `bookdown` build working. Render
-   both and diff the chapter's output. Report how many
-   cross-references broke, and how many of those breaks
-   produced no message during either render.
-7. Find an R Markdown analysis of yours that is
-   finished and published. Write a short argument for
-   *not* migrating it, in terms of what migration would
-   and would not change about its reproducibility.
+```{r}
+#| label: rmd-debug-setup
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+dbg <- file.path(tempdir(), "debug")
+unlink(dbg, recursive = TRUE)
+dir.create(dbg)
+trial <- merge(
+  read.csv(file.path(hf_dir, "randomization.csv"),
+           colClasses = c(patient_id = "character")),
+  read.csv(file.path(hf_dir, "outcomes.csv"),
+           colClasses = c(patient_id = "character")),
+  by = "patient_id"
+)
+write.csv(trial[c("patient_id", "arm", "event_30d")],
+          file.path(dbg, "trial.csv"), row.names = FALSE)
+
+doc <- c(
+  "---", "title: 'HF-HOME: primary outcome'", "format: gfm", "---",
+  "",
+  "```{r}",
+  "#| label: setup",
+  "#| eval: false",
+  "d <- read.csv('trial.csv')",
+  "obs <- d[!is.na(d$event_30d), ]",
+  "risk <- 100 * tapply(obs$event_30d, obs$arm, mean)",
+  "```",
+  "",
+  "@fig-risk shows the observed risk in each arm.",
+  "",
+  "```{r}",
+  "#| label: risk",
+  "#| fig-cap: 'Observed 30-day risk by arm'",
+  "barplot(risk, ylab = 'Risk (%)')",
+  "```"
+)
+
+render_doc <- function(doc) {
+  writeLines(doc, file.path(dbg, "report.qmd"))
+  r_libs <- paste0("R_LIBS=",
+                   paste(.libPaths(), collapse = .Platform$path.sep))
+  log <- suppressWarnings(system2(
+    "quarto", c("render", file.path(dbg, "report.qmd")),
+    stdout = TRUE, stderr = TRUE, env = r_libs
+  ))
+  status <- if (is.null(attr(log, "status"))) 0 else attr(log, "status")
+  log <- gsub("\033\\[[0-9;]*m", "", log)
+  log <- sub("^WARNING \\(.*\\) ", "WARNING ", log)
+  list(status = status,
+       log = grep("Error|^!|Quitting|WARN", log, value = TRUE))
+}
+```
+
+Render it:
+
+```{r}
+#| label: rmd-debug-first
+first <- render_doc(doc)
+first
+```
+
+The render failed (a non-zero status), and the log says why in
+two lines. Read it from the bottom up. `Quitting from` names the
+file, the source lines, and the chunk label of the chunk that
+failed, here `risk`; the error above it names what that chunk
+could not find. The object is defined in `setup`, which never ran.
+The fix is to let it run:
+
+```{r}
+#| label: rmd-debug-second
+doc <- doc[doc != "#| eval: false"]
+second <- render_doc(doc)
+second
+```
+
+The status is now zero, and a build script or continuous
+integration would report success. The log still carries a
+warning: `risk` is not a figure label, because it lacks the
+`fig-` prefix, so the reference in the prose resolved to nothing.
+Look at the sentence Quarto wrote:
+
+```{r}
+#| label: rmd-debug-second-output
+grep("shows the observed", readLines(file.path(dbg, "report.md")),
+     value = TRUE)
+```
+
+This is the silent failure, and it is the more expensive of the
+two: the first defect stopped the render, and this one shipped.
+Rename the label:
+
+```{r}
+#| label: rmd-debug-third
+doc <- sub("#| label: risk", "#| label: fig-risk", doc, fixed = TRUE)
+third <- render_doc(doc)
+third
+```
+
+::: {.callout-tip title='Verification'}
+A render is done when the status is zero, the log has no warning,
+and the output contains no unresolved reference.
+
+```{r}
+#| label: rmd-debug-verify
+out <- readLines(file.path(dbg, "report.md"))
+stopifnot(
+  third$status == 0,
+  length(grep("WARN", third$log)) == 0,
+  !any(grepl("?@", out, fixed = TRUE))
+)
+grep("shows the observed", out, value = TRUE)
+```
+
+The first two conditions are the log; the third is the output,
+and it is the one that would have caught the opening's PDF.
+:::
+
+When a failure is not in @tbl-rmd-render-failures, reduce it.
+Copy the document, delete chunks and prose until the error
+disappears, and restore the last thing you deleted; what remains
+is a minimal example, usually under twenty lines, that either
+shows you the cause or is ready to post to the Quarto discussion
+forum. `quarto check` reports the versions of Quarto, R, knitr,
+and LaTeX that belong in any such post.
+
+::: {.callout-important title='LLM prompt'}
+A model is good at reading a render log, provided you give it the
+right excerpt and forbid the fixes that hide the error.
+
+> **Context.** A Quarto document fails to render. Below are the
+> last 30 lines of the log, the chunk named in the `Quitting
+> from` line with the chunks before it that define its inputs,
+> and the output of `quarto check`.
+>
+> **Constraints.** Do not suggest `error: true`, `eval: false`,
+> `warning: false`, `try()`, or reinstalling Quarto or R unless
+> the log shows a version problem. Change as few lines as
+> possible.
+>
+> **Criteria.** Name the line that fails and the cause, and say
+> what the log shows that supports the diagnosis. After your fix,
+> the render exits with status zero, the log has no `WARN` line,
+> and the output contains no `?@`.
+
+*Failure mode.* The suggested fix silences the symptom, by
+skipping the chunk or tolerating the error, and turns a loud
+failure into a silent one. *Check.* Apply the fix, re-render, and
+run this section's Verification on the output. A log and chunk
+code are structure; if the error message prints data values, cut
+them before sending (@sec-ai-governance).
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** In the worked example, the second render exited with
+status zero. Why is a zero status not enough to call a render
+correct, and what two further checks does the Verification add?
+
+**Answer.** A zero status means the document compiled. Quarto
+treats an unresolved cross-reference as a warning, so a document
+can reach a reader with `?@fig-risk` in its prose and a successful
+build behind it. The Verification also requires a log with no
+warning and an output with no `?@`.
+:::
+
+### Exercises
+
+6. A render log ends with these lines. Which chunk failed, what is
+   the likely cause, and where do you look first?
+
+```
+4/9 [fit-model]
+Error:
+! object 'analysis_set' not found
+Quitting from paper.qmd:61-70 [fit-model]
+```
+
+::: {.callout-note collapse='true' title='Solution'}
+The chunk labeled `fit-model`, at lines 61 to 70 of `paper.qmd`,
+uses `analysis_set` before anything has created it. Look first at
+the chunk that should define `analysis_set`: it is set to
+`eval: false`, it comes after `fit-model`, or it was deleted. If
+the document reads `analysis_set` from a file or a pipeline
+target, check that the reading chunk ran.
+:::
+
+## Rules of thumb
+
+1. **Habit 8: a clean render is not a correct render.** After
+   every conversion or migration, grep the output for `?@` and
+   compare figure and table numbers with the old build.
+2. **Habit 3: version control from day one.** Migrate on a branch,
+   and leave anything tagged at submission on the toolchain that
+   produced it.
+3. **Habit 4: pin the environment.** Declare every language's
+   packages in the document (`py_require()`) or the lockfile, not
+   in a README.
+
+## Cumulative practice
+
+7. *Cumulative (uses @sec-quarto).* Convert a short `.R` script of
+   yours to `.qmd` with `knitr::spin()`, add one captioned figure
+   with a cross-reference to it, and render to HTML and PDF. Apply
+   the Verification of @sec-rmd-workflow-troubleshoot to both
+   outputs.
+8. *On your own work (no key).* Find an R Markdown analysis of
+   yours that is finished and published. Write a short argument
+   for *not* migrating it, in terms of what migration would and
+   would not change about its reproducibility.
+
+## Cheat sheet
+
+| Task | Code |
+|---|---|
+| `.R` to `.qmd` (`#'` prose, `#+` options) | `knitr::spin("a.R", knit = FALSE, format = "qmd")` |
+| `.Rmd` to `.R` | `knitr::purl("a.Rmd", documentation = 0)` |
+| `.Rmd` to `.qmd` | `git mv a.Rmd a.qmd`, then `knitr::convert_chunk_header("a.qmd", output = "a.qmd", type = "yaml")` |
+| `.ipynb` to and from `.qmd` | `quarto convert notebook.ipynb` |
+| Find unconverted references | `grep -rn '\\@ref(' --include='*.qmd' .` |
+| Find unresolved references | `grep -rn '?@' _book/` |
+| Force a figure in place (PDF) | `fig-pos: "H"` with `\usepackage{float}` |
+| Force a table in place (PDF) | `tbl-pos: "H"` |
+| Declare Python packages | `reticulate::py_require("pandas")` |
+| Report versions for a bug report | `quarto check` |
+
+: Migrating and troubleshooting at a glance. {#tbl-rmd-cheat-sheet}
 
 ## Further reading
 
-- [@xie2020cookbook], *R Markdown Cookbook*, the
-  recipe book.
-- [@xie2016bookdown], *bookdown: Authoring Books and
-  Technical Documents with R Markdown*, for long-form
-  documents.
-- Quarto's `quarto convert` documentation for
-  `.ipynb` to `.qmd` conversion, and the knitr help page
+- [@xie2020cookbook], *R Markdown Cookbook*, the recipe book.
+- [@xie2016bookdown], *bookdown: Authoring Books and Technical
+  Documents with R Markdown*, for long-form documents.
+- Quarto's `quarto convert` documentation for `.ipynb` to `.qmd`
+  conversion, and the knitr help page
   `?knitr::convert_chunk_header` for `.Rmd` chunk headers.
 
 ## Prerequisites answers {#sec-quiz-answers-12}
 
-1. `knitr::spin('script.R')` is the canonical fast
-   path: it turns a commented `.R` file into a
-   rendered `.Rmd` by treating any comment starting
-   with `#'` as prose and everything else as code
-   chunks. For `.qmd`, the same convention works
-   with `knitr::spin('script.R', knit = FALSE,
-   format = 'qmd')`. Half an hour from script
-   to literate document.
-2. LaTeX treats figures and tables as floats and
-   rearranges them by default to avoid bad page
-   breaks. `fig.pos = 'H'` (requires the `float`
-   package) and `tbl-pos: 'H'` in Quarto YAML tell
-   LaTeX 'place this exactly here, no reflow'. In
-   chunks, `fig.pos = 'htbp'` means 'try here, then
-   top, then bottom, then a float page' in order.
-3. Use Quarto's cross-reference system:
-   `{#fig-scatter}` on the figure plus `@fig-scatter`
-   in the prose. Quarto handles HTML and PDF (and
-   Word) anchoring with the same source syntax.
-   Hand-rolled `\label{}` / `\ref{}` works only in
-   PDF. The Quarto syntax is the durable choice.
+1. `knitr::spin('script.R')` is the canonical fast path: it turns
+   a commented `.R` file into an `.Rmd` by treating any comment
+   starting with `#'` as prose and everything else as code chunks.
+   For `.qmd`, the same convention works with
+   `knitr::spin('script.R', knit = FALSE, format = 'qmd')`.
+2. LaTeX treats figures and tables as floats and rearranges them
+   by default to avoid bad page breaks. `fig.pos = 'H'` (requires
+   the `float` package) and `tbl-pos: 'H'` in Quarto YAML tell
+   LaTeX 'place this exactly here, no reflow'. In chunks,
+   `fig.pos = 'htbp'` means 'try here, then top, then bottom, then
+   a float page' in order.
+3. Use Quarto's cross-reference system: a `fig-` label on the
+   figure (`#| label: fig-scatter`) plus `@fig-scatter` in the
+   prose. Quarto handles HTML and PDF (and Word) anchoring with
+   the same source syntax. Hand-rolled `\label{}` / `\ref{}`
+   works only in PDF. The Quarto syntax is the durable choice.

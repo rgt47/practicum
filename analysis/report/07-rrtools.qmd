@@ -1,5 +1,18 @@
 # Research Compendia with rrtools {#sec-rrtools}
 
+A collaborator clones your repository, runs the analysis script,
+and gets a p-value of 0.06 where your draft reports 0.04. Nothing
+errors. Over two days the two of you find three differences: her
+R packages are a year newer than yours, the cleaned dataset in
+the repository was produced by a version of the cleaning script
+you have since edited, and one exclusion was made by hand in a
+spreadsheet that never entered the repository. Each difference is
+a piece of the study that did not travel with the code. A
+research compendium is the arrangement in which everything needed
+to produce the paper, from the raw data to the environment, lives
+in one directory with a layout a stranger can read, so that the
+collaborator's rerun either matches or tells you why not.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
@@ -16,43 +29,6 @@ distributing, managing and updating the collection.*
 ```
 :::
 
-::: {.callout-note}
-## Sources
-
-Adapted from author's lecture notes and supporting
-materials for a graduate practicum in biostatistics.
-:::
-
-## Prerequisites
-
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-07.
-
-1. What is a 'research compendium' as described by
-   Marwick, Boettiger, and Mullen (2018)
-   [@marwick2018packaging]?
-2. What are the three essential components of an
-   `rrtools` compendium?
-3. How does an `rrtools` compendium differ from a
-   regular R package?
-
-## Learning objectives
-
-By the end of this chapter you should be able to:
-
-- Scaffold a new research compendium with
-  `rrtools::use_compendium()`.
-- Add analysis, data, and documentation to the
-  compendium in the right directories.
-- Write a paper as a Quarto document inside the
-  compendium.
-- Build the compendium as a Docker image for long-term
-  reproducibility.
-- Choose between an R-package-style compendium
-  (`rrtools`) and a project-style compendium for a
-  given project.
-
 ::: {.column-margin}
 ![Robert Gentleman, co-creator of R and, with Duncan Temple Lang,
 author of the 2007 paper that introduced the research compendium
@@ -62,94 +38,103 @@ Wikimedia Commons.](images/portraits/gentleman.jpg){fig-alt='Portrait
 photograph of Robert Gentleman.'}
 :::
 
-## Orientation
+```{r}
+#| label: rrtools-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-The preceding chapters argued that an analysis needs its code,
-its data, and its environment to travel together. This chapter
-is about the container they travel in, and about why that
-container should follow a convention somebody else invented
-rather than one that made sense to you at the time.
+```{r}
+#| label: fig-rrtools-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: the compendium is what you
+#|   share, the whole pipeline from raw data to report packaged so
+#|   that someone else can rerun it."
+#| fig-alt: !expr pipeline_alt('share')
+pipeline_diagram('share')
+```
 
-The argument for convention is not aesthetic. A directory
-organized to your own logic is navigable by you and by nobody
-else, and 'nobody else' includes the version of you that
-returns after eighteen months. A compendium that follows a recognized layout can be opened by a
-stranger who has seen one before. That stranger will know where
-the paper is, where the raw data is, and which directory holds
-things that were derived rather than given. That is the whole
-benefit, and it is substantial enough that the specific
-convention matters much less than having one at all. The `rrtools` package supplies a
-convention by turning an R package into a compendium: it adds
-an `analysis/` directory for narrative and data, and Docker
-integration for the environment.
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 20 minutes.
 
-The compendium is, in our view, the unit of reproducibility. A
-paper without its compendium is merely a description of an
-analysis; a compendium without a paper is merely code. Taken
-together, they constitute a study artifact that survives the
-loss of any individual file, and indeed of any individual
-person.
+**You'll need.** @sec-git-solo for commits and tags, and
+@sec-quarto for the paper. Two of the five pillars are taught in
+their own chapters, @sec-renv and @sec-docker; this chapter shows
+where they sit. The executed examples use base R and `purrr`:
 
-## The statistician's contribution {#sec-rrtools-human}
+```r
+library(purrr)
+```
 
-The scaffolding tools place the directories. What they
-cannot do is decide what belongs in them, and a
-compendium is navigable or not according to those
-decisions:
+**You'll be able to.**
 
-**Pick the right scaffolding.** `rrtools` is one
-choice; a plain Quarto book is another; a project
-template specific to a research group is a third. The
-right tool depends on the project's complexity, the
-audience for the paper, and the team's existing
-conventions. Defaulting to `rrtools` is reasonable;
-defaulting to it without thought is not.
+- Name the five pillars of a compendium and, for a given
+  repository, say which are missing and what failure each gap
+  allows.
+- Place each file of a project in the conventional layout, and
+  protect the raw data with a checksum manifest.
+- Scaffold a compendium with `rrtools` or a Quarto project, and
+  write the paper inside it.
+- Verify a compendium by rebuilding it from a fresh clone.
 
-**Where does this file go?** Functions that may be
-reused: `R/`. The paper itself: `analysis/paper/`. Raw
-data: `analysis/data/raw_data/`. Processed data:
-`analysis/data/derived_data/`. Figures: produced by
-the analysis, into `analysis/figures/`, and gitignored
-unless small. Getting these conventions right makes
-the compendium navigable; getting them wrong makes
-every file a hunt.
+**Outline.**
 
-**What goes in the README?** The README is the entry
-point. It should explain: what the project is, how to
-build it (one command), where to find the paper, where
-to find the data, and how to cite it. Long technical
-documentation lives elsewhere; the README is the
-elevator pitch.
+- [What a research compendium is](#sec-rrtools-what)
+- [The five pillars](#sec-rrtools-pillars)
+- [Where files go](#sec-rrtools-layout)
+- [Scaffolding a compendium](#sec-rrtools-scaffold)
+- [The paper inside the compendium](#sec-rrtools-paper)
+- [Building and sharing](#sec-rrtools-build)
+- [Worked example: a small compendium](#sec-rrtools-worked)
+:::
 
-**When to commit data, when not to.** Small derived
-data (under 10 MB) can go in the compendium. Raw data
-usually cannot (size, sensitivity, license). The
-README documents how to obtain raw data, even when not
-shipped.
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-07.
 
-These decisions shape whether the compendium ages well.
+1. What is a 'research compendium' as described by Marwick,
+   Boettiger, and Mullen (2018) [@marwick2018packaging]?
+2. What are the three essential components of an `rrtools`
+   compendium?
+3. How does an `rrtools` compendium differ from a regular R
+   package?
+:::
 
-## What is a research compendium?
+## What a research compendium is {#sec-rrtools-what}
 
-The Marwick, Boettiger, Mullen (2018) definition has
-three criteria:
+A paper without its compendium is a description of an analysis;
+a compendium without a paper is code. Together they are a study
+artifact that survives the loss of any individual file, and of any
+individual person. Gentleman and Temple Lang
+[-@gentleman2007statistical] introduced the term, and Marwick,
+Boettiger, and Mullen [-@marwick2018packaging] gave the working
+definition this book uses, which has three criteria:
 
-1. **Single directory** containing code, data, and
-   narrative.
-2. **Computable**: the analyses can be re-run by another
-   user with reasonable effort.
-3. **Self-describing**: the layout follows established
-   conventions so a stranger can navigate it.
+| Criterion | What it requires | What fails without it |
+|---|---|---|
+| Single directory | Code, data, environment, and narrative together | A step lives elsewhere (a spreadsheet, a laptop), as the hand exclusion in the opening did |
+| Computable | Another user can rerun the analysis with reasonable effort | The paper can be read but not checked |
+| Self-describing | The layout follows a convention a stranger knows | Every file is a hunt, for the stranger and for you in eighteen months |
 
-R packages already satisfy criterion 3 (every R
-package has the same conventional layout) and partly
-satisfy criterion 1 (`R/`, `data/`, `vignettes/`). The
-gap is criterion 2: a CRAN R package is a library of
-functions, not a study with data and a paper.
+: The three criteria for a research compendium. {#tbl-rrtools-criteria}
 
-@fig-compendium-anatomy shows what `rrtools` adds and
-why, with the package backbone on the left and the
-study on the right.
+The argument for convention is practical. A directory organized
+to your own logic is navigable by you and by nobody else, and
+'nobody else' includes the version of you that returns after
+eighteen months. A compendium that follows a recognized layout
+can be opened by a stranger who has seen one before: they will
+know where the paper is, where the raw data are, and which
+directory holds things that were derived rather than given. The
+specific convention matters much less than having one at all.
+
+R packages already have a convention every R user knows
+(`DESCRIPTION`, `R/`, `man/`), which satisfies the third
+criterion and part of the first. What a package lacks is a study:
+data and a paper. The `rrtools` package [@marwick2018rrtools]
+supplies one convention that adds them, and @fig-compendium-anatomy
+shows the result.
 
 ```{mermaid}
 %%| echo: false
@@ -176,44 +161,146 @@ flowchart TD
   D --> R["<i>computable</i><br/>another user can re-run it"]
 ```
 
-`rrtools` extends an R package with what it lacks:
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Why does `rrtools` reuse the R package structure
+instead of inventing a new layout?
 
-- An `analysis/` directory for data, paper, and
-  figures.
-- A Dockerfile for environment reproducibility.
-- A `README.qmd` that renders to a `README.md` for the
-  GitHub landing page.
-- Continuous-integration scaffolding.
+**Answer.** Three practical reasons. The package structure is the
+only widely recognized layout in the R ecosystem, so the
+compendium is navigable for free. The package gives dependency
+declaration: `DESCRIPTION` lists what the code needs, and `renv`
+(@sec-renv) pins the versions. And it gives function management:
+helpers in `R/` are documented, tested, and loadable into the
+analysis. The cost is a few package files that are not used as a
+package (no CRAN, the Comprehensive R Archive Network, submission,
+no users importing it), which is small against the structural
+payoff.
+:::
 
-## Scaffolding with `rrtools`
+## The five pillars {#sec-rrtools-pillars}
 
-```r
-# install
-install.packages("remotes")
-remotes::install_github("benmarwick/rrtools")
+The three criteria say what a compendium must achieve. The five
+pillars say what it must contain to achieve them. The book uses
+the R tools for each, but the pillars are roles, and every
+language has a tool for each role:
 
-# create a new compendium
-rrtools::use_compendium("~/research/readmissions")
-# (this also runs usethis::create_package internally)
+| Pillar | What it pins | In this book | Elsewhere | Without it, the opening's rerun differs because |
+|---|---|---|---|---|
+| 1. Environment beneath R | OS, system libraries, the R build | `Dockerfile` (@sec-docker) | Apptainer definition, Nix | A system library or R version changed |
+| 2. Package versions | Every R package, exactly | `renv.lock` (@sec-renv) | `uv.lock`, conda `environment.yml` | Her packages were a year newer |
+| 3. Project activation | That the project uses its own library | `.Rprofile` (@sec-renv) | A virtual-environment activation script | The lockfile exists but her session ignored it |
+| 4. Source code | Every step, from raw data to every number | `R/` and `analysis/` in Git (@sec-git-solo) | Any version-controlled scripts | A hand step or an edited script is not in the history |
+| 5. Data | The raw inputs, unchanged, or the documented way to get them | `analysis/data/raw_data/` with a checksum manifest | A DOI'd deposit with access instructions | A stale derived file stood in for the raw data |
 
-# add the analysis directories
-rrtools::use_analysis()
+: The five pillars of a compendium. Each is necessary; none is
+sufficient. {#tbl-rrtools-pillars}
 
-# add a Dockerfile and, by default, a GitHub Actions
-# workflow that renders the paper inside it
-rrtools::use_dockerfile()
+The opening's three causes map onto pillars 2, 4, and 5. The
+remedy for each is not care but a file: a lockfile, a script for
+every step, and raw data that the code reads and never writes.
+Some frameworks automate the pillars; `zzcollab` (@sec-zzcollab) is
+one, and it scaffolds and audits all five. The audit itself needs
+nothing but the file system. The chunk below builds a toy
+compendium in a temporary directory, with two of the HF-HOME raw
+files, and checks which pillars are present.
 
-# add a README.qmd
-rrtools::use_readme_qmd()
+```{r}
+#| label: rrtools-toy-compendium
+library(purrr)
+
+comp <- file.path(tempdir(), 'readmissions')
+layout <- c('R', 'analysis/data/raw_data', 'analysis/data/derived_data',
+            'analysis/paper', 'analysis/figures')
+walk(file.path(comp, layout), dir.create, recursive = TRUE,
+     showWarnings = FALSE)
+
+hf_dir <- file.path('..', 'data', 'raw_data', 'hfhome')
+raw_dir <- file.path(comp, 'analysis', 'data', 'raw_data')
+file.copy(file.path(hf_dir, c('randomization.csv', 'outcomes.csv')),
+          raw_dir, overwrite = TRUE)
+writeLines(c('Package: readmissions', 'Version: 0.0.1'),
+           file.path(comp, 'DESCRIPTION'))
+writeLines(c('---', 'title: "Draft"', '---'),
+           file.path(comp, 'analysis', 'paper', 'paper.qmd'))
+
+pillars <- data.frame(
+  pillar = c('1. Environment', '2. Package versions', '3. Activation',
+             '4. Source code', '5. Data'),
+  path = c('Dockerfile', 'renv.lock', '.Rprofile', '.git',
+           'analysis/data/raw_data/MANIFEST.md5')
+)
+audit_pillars <- function(root) {
+  transform(pillars, present = file.exists(file.path(root, path)))
+}
+audit_pillars(comp)
 ```
 
-`rrtools::use_dockerfile()` writes its own Dockerfile,
-based on `rocker/verse`. This book replaces it with the
-canonical Dockerfile shown below under 'Building and
-sharing', so that this chapter, @sec-renv, and
-@sec-docker describe one file rather than several.
+The toy has a layout and data but none of the five pillars in
+recorded form: no environment specification, no lockfile, no
+activation, no Git history, and no record of what the raw data
+were. This is a structural check, in the sense of @sec-testing:
+a file that exists can still be wrong. It finds what is missing,
+and it cannot tell you that what is present works. The test that
+does is the rebuild from a fresh clone in @sec-rrtools-build.
 
-The scaffolding produces:
+::: {.callout-tip title='Verification'}
+Run the same audit on your own project, and treat every `FALSE`
+as a gap to close or a decision to document in the README (for
+example, raw data that cannot be shared, with the access path in
+its place):
+
+```{r}
+#| label: rrtools-audit-own
+#| eval: false
+audit_pillars('.')
+```
+
+For a project under Git, `git ls-files Dockerfile renv.lock
+.Rprofile` confirms that the files are committed, not merely
+present on your disk.
+:::
+
+### Exercises
+
+1. A repository contains `analysis.R`, `clean.R`, `data.csv`
+   (described in the README as 'cleaned'), `renv.lock`, and a
+   README that says 'run analysis.R in RStudio'. Which pillars are
+   present, which are missing, and what would a collaborator's
+   rerun be unable to establish?
+
+::: {.callout-note collapse='true' title='Solution'}
+Present: package versions (`renv.lock`) and source code, assuming
+the repository is under Git. Missing: the environment beneath R
+(no Dockerfile, so R and system libraries are whatever the
+collaborator has), activation (no `.Rprofile`, so the lockfile is
+ignored unless she restores it by hand), and the raw data. The
+data pillar is the serious gap: `data.csv` is derived, so a rerun
+can check `analysis.R` against it but can never check `clean.R`,
+and any hand step between the raw export and `data.csv` is
+invisible. Add the raw export (or its access path), make
+`clean.R` read it and write to `derived_data/`, and record a
+checksum manifest.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Your compendium has a `renv.lock` and a Dockerfile.
+A colleague argues that the lockfile is redundant, because the
+image already contains the packages. Is it?
+
+**Answer.** No. The image contains the packages that were current
+when it was built, and a rebuild months later installs whatever
+is current then, unless the lockfile pins them; the Dockerfile's
+restore step reads the lockfile for exactly that reason. The
+pillars are a stack, not a menu: the Dockerfile pins what is
+beneath R, and the lockfile pins what is above it.
+:::
+
+## Where files go {#sec-rrtools-layout}
+
+### The layout
+
+`rrtools` produces the layout below; most compendium conventions
+differ from it only in names.
 
 ```
 readmissions/
@@ -238,84 +325,217 @@ readmissions/
 └── readmissions.Rproj
 ```
 
-## Where files go
+| Path | Holds | Commit it? |
+|---|---|---|
+| `R/` | Reusable functions: cleaning helpers, plotting wrappers, model utilities, documented with roxygen | Yes |
+| `analysis/data/raw_data/` | The data exactly as received, never edited | If small and unrestricted; otherwise document the access path |
+| `analysis/data/derived_data/` | Everything the scripts produce from the raw data | Optional: commit when small and the analysis is archived |
+| `analysis/paper/paper.qmd` | The manuscript, with the code that produces its numbers | Yes |
+| `analysis/figures/` | Figures the analysis writes | Usually not; the code that makes them is committed |
+| `analysis/supplementary-materials/` | Appendix tables, sensitivity analyses | Yes |
+| `README.qmd` | What the project is, how to build it in one command, where the paper and data are, how to cite it | Yes |
 
-**`R/`** holds reusable functions. Anything you would
-extract from the analysis to call from multiple
-scripts: data cleaning helpers, plotting wrappers,
-modeling utilities. Document with roxygen.
+: Where each file goes. {#tbl-rrtools-layout}
 
-**`analysis/data/raw_data/`** is for unmodified raw
-data. Often gitignored; included only if small and
-unrestricted.
+The README is the entry point, not the documentation: it says what
+the project is, how to rebuild it, and where things are. Long
+technical notes live elsewhere.
 
-**`analysis/data/derived_data/`** is for data produced
-by your scripts: cleaned datasets, processed features.
-These can be regenerated, so committing is optional;
-commit only if regeneration is expensive or
-non-deterministic.
+### Raw data are read-only
 
-**`analysis/paper/paper.qmd`** is the manuscript itself,
-written in Quarto with code chunks that produce the
-tables and figures.
+Raw and derived data live in separate directories because raw
+data are evidence and derived data are a build product. Writing a
+cleaned table back over the input destroys the only copy of what
+you were given, and version control does not recover a file that
+was overwritten before it was ever committed. Treat `raw_data/` as
+read-only, by convention if your file system will not enforce it,
+and make the convention checkable: record a checksum of every raw
+file when it arrives.
 
-**`analysis/figures/`** is for produced figures. Often
-gitignored; the source code that generates them lives
-in the paper or in `R/`.
+```{r}
+#| label: rrtools-manifest
+raw_files <- list.files(raw_dir, pattern = '\\.csv$')
+sums <- tools::md5sum(file.path(raw_dir, raw_files))
+writeLines(paste0(sums, '  ', raw_files),
+           file.path(raw_dir, 'MANIFEST.md5'))
+readLines(file.path(raw_dir, 'MANIFEST.md5'))
 
-**`analysis/supplementary-materials/`** for appendix
-content, additional tables, sensitivity analyses.
+check_raw <- function(raw_dir) {
+  lines <- readLines(file.path(raw_dir, 'MANIFEST.md5'))
+  recorded <- setNames(sub('  .*$', '', lines),
+                       sub('^\\S+  ', '', lines))
+  current <- tools::md5sum(file.path(raw_dir, names(recorded)))
+  changed <- names(recorded)[unname(current) != recorded]
+  if (length(changed) > 0) {
+    stop('raw data changed since the manifest: ',
+         paste(changed, collapse = ', '), call. = FALSE)
+  }
+  invisible(TRUE)
+}
+check_raw(raw_dir)
+```
 
-The conventions matter because a reader who has seen
-one rrtools compendium can navigate any other one
-without instruction.
+The manifest uses the format of the `md5sum` command, so
+`md5sum -c MANIFEST.md5` checks it from the shell as well (on
+Linux, or on macOS with the GNU coreutils installed). MD5 is
+adequate for detecting accidental change, which is the job here;
+it is not a defense against deliberate tampering.
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: where does a derived file live?
+::: {.callout-warning title='Pitfall'}
+**A 'quick fix' saved over the raw export leaves no trace in the
+data.** Exclude a few patients by hand and save the file in place,
+and every later run reads the edited file as if it were what the
+site sent:
 
-**Question.** Your cleaning script reads
-`analysis/data/raw_data/visits.csv` and produces a tidy
-analytic table. Where does the output go, and should it be
-committed?
+```{r}
+#| label: rrtools-manifest-pitfall
+#| error: true
+outcomes_path <- file.path(raw_dir, 'outcomes.csv')
+outcomes <- read.csv(outcomes_path,
+                     colClasses = c(patient_id = 'character'))
+write.csv(outcomes[-(1:3), ], outcomes_path, row.names = FALSE)
+check_raw(raw_dir)
+```
 
-**Answer.**
-
-It goes in `analysis/data/derived_data/`, and whether to
-commit it depends on a trade-off worth naming rather than
-a rule.
-
-The placement is not negotiable. Raw and derived are
-separate directories because raw data is *evidence* and
-derived data is a *build product*. Writing the cleaned
-table back over the input destroys the only copy of what
-you were given, and no amount of version control recovers
-a file that was overwritten before it was ever committed.
-Treat `raw_data/` as read-only, by convention if your
-filesystem will not enforce it.
-
-Committing the derived file is the real question. Against:
-it is reproducible from the raw data plus the script, so
-storing it duplicates information and bloats the
-repository with a binary that changes on every run. For:
-it lets a reader check your numbers without installing
-your environment, and it fixes what the analysis actually
-used, which matters if the cleaning script is later
-corrected.
-
-The usual resolution is to commit derived data when it is
-small and the analysis is being archived, and to leave it
-untracked during development. What is not defensible is
-committing derived data and *not* the script that made it,
-which is the arrangement that looks tidiest and explains
-least.
+The analysis would have run, on
+`r format(nrow(outcomes) - 3, big.mark = ',')` patients instead of
+`r format(nrow(outcomes), big.mark = ',')`, with no error. The
+manifest makes it loud. Exclusions belong in code, in
+`derived_data/`, where they are counted and reviewed.
 :::
 
-## Writing the paper in Quarto
+### Exercises
 
-`analysis/paper/paper.qmd` is the manuscript. It uses
-Quarto's full feature set: code chunks for analyses,
-inline references, figure cross-references, citations
-from `references.bib`.
+2. Assign each file from a messy project to the layout of
+   @tbl-rrtools-layout: `helpers.R` (three functions used by two
+   scripts), `crf_export_2025-06-01.csv` (from the data center),
+   `analytic.rds` (written by `clean.R`), `fig2.png`, `notes.txt`
+   (a dated log of decisions), `clean.R`, and `manuscript.qmd`.
+
+::: {.callout-note collapse='true' title='Solution'}
+| File | Goes to | Why |
+|---|---|---|
+| `helpers.R` | `R/` | Reused by more than one script |
+| `crf_export_2025-06-01.csv` | `analysis/data/raw_data/` | Received, not produced; add it to the manifest |
+| `analytic.rds` | `analysis/data/derived_data/` | Produced by a script; regenerable |
+| `fig2.png` | `analysis/figures/` (usually untracked) | Produced by code |
+| `notes.txt` | Top level or `analysis/` as a decision log | Not data and not code; keep it with the project and in Git |
+| `clean.R` | `analysis/` (scripts) | Study-specific code that turns raw into derived data |
+| `manuscript.qmd` | `analysis/paper/paper.qmd` | The manuscript |
+
+The judgment calls are `notes.txt`, which fits no category and
+should not be forced into one, and `clean.R`, which some
+conventions put in `analysis/scripts/`. What matters is that a
+stranger can predict the location.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Your cleaning script reads
+`analysis/data/raw_data/visits.csv` and produces a tidy analytic
+table. Where does the output go, and should it be committed?
+
+**Answer.** It goes in `analysis/data/derived_data/`, and whether
+to commit it is a trade-off, not a rule. Against committing: it is
+reproducible from the raw data and the script, so storing it
+duplicates information and adds a binary that changes on every
+run. For committing: it lets a reader check your numbers without
+installing your environment, and it fixes what the analysis
+actually used, which matters if the cleaning script is later
+corrected. The usual resolution is to commit derived data when it
+is small and the analysis is being archived, and to leave it
+untracked during development. What is not defensible is committing
+derived data and *not* the script that made it, which is the
+arrangement that looks tidiest and explains least, and the one
+behind the opening's stale dataset.
+:::
+
+## Scaffolding a compendium {#sec-rrtools-scaffold}
+
+### With `rrtools`
+
+The calls below are display-only, because they create a project
+and open it as a new RStudio session:
+
+```r
+# install
+install.packages("remotes")
+remotes::install_github("benmarwick/rrtools")
+
+# create a new compendium
+rrtools::use_compendium("~/research/readmissions")
+# (this also runs usethis::create_package internally)
+
+# add the analysis directories
+rrtools::use_analysis()
+
+# add a Dockerfile and, by default, a GitHub Actions
+# workflow that renders the paper inside it
+rrtools::use_dockerfile()
+
+# add a README.qmd
+rrtools::use_readme_qmd()
+```
+
+`rrtools::use_dockerfile()` writes its own Dockerfile, based on
+`rocker/verse`. This book replaces it with the canonical Dockerfile
+in @sec-rrtools-build, so that this chapter, @sec-renv, and
+@sec-docker describe one file rather than several.
+
+### Other conventions
+
+`rrtools` is one convention among several, and the right one
+depends on the project's shape and the team's habits:
+
+| Convention | Shape | Use when |
+|---|---|---|
+| `rrtools` | R package plus `analysis/` | A paper with reusable R code; the default for a biostatistical paper |
+| Quarto manuscript project | A Quarto project whose output is an article | A paper-first project without a package backbone |
+| Quarto book | A Quarto project with chapters | Book-length output, such as this practicum |
+| A framework such as `zzcollab` (@sec-zzcollab) | Scaffolds all five pillars and audits them | You want the pillars generated and checked for you |
+| The TIER Protocol (Teaching Integrity in Empirical Research) | A documented folder convention | Social-science collaborators who already use it |
+| Your group's template | Whatever the group agreed | Always, if one exists: consistency with colleagues beats any external default |
+
+: Compendium conventions. {#tbl-rrtools-conventions}
+
+Defaulting to `rrtools` is reasonable; defaulting to it without
+thought is not.
+
+::: {.callout-important title='LLM prompt'}
+Use a model to propose a layout for an existing project, and apply
+the moves yourself.
+
+> **Context.** Below is the output of `git ls-files` for an R
+> analysis project, and the compendium layout I want (the table of
+> paths and contents). The working tree is clean and committed.
+>
+> **Constraints.** Propose only `git mv` commands. Do not move,
+> rename, or edit anything under `data/raw/`; raw files keep their
+> names and contents, and are moved, if at all, only into
+> `analysis/data/raw_data/` with a separate command I will run
+> myself. Delete nothing. Do not edit file contents.
+>
+> **Criteria.** Every file is assigned exactly once. List the
+> files that fit no category, with your reasoning, rather than
+> forcing them into one, and list every script whose file paths
+> will break after the moves.
+
+*Failure mode.* A model assigns every file somewhere, confidently,
+including logs and exploratory notebooks that fit nowhere, and
+proposes edits to paths inside scripts that silently change what
+they read. Raw files moved or renamed lose the link to their
+provenance. *Check.* After applying the moves, `git status` and
+`git diff -M --name-status HEAD` should show only renames (`R100`),
+no modifications or deletions; `md5sum -c MANIFEST.md5` in the
+raw-data directory should pass; and a fresh render should produce
+the same numbers. The prompt sends file names, not data
+(@sec-ai-governance).
+:::
+
+## The paper inside the compendium {#sec-rrtools-paper}
+
+`analysis/paper/paper.qmd` is the manuscript, written in Quarto
+(@sec-quarto): code chunks for the analyses, inline numbers,
+figure cross-references, and citations from `references.bib`.
 
 ````qmd
 ---
@@ -351,42 +571,54 @@ was `{{r}} round(exp(coef(fit)["home_health"]), 2)` (95% CI
 `{{r}} round(ci[1], 2)` to `{{r}} round(ci[2], 2)`).
 ````
 
-For journal-specific formatting in Quarto, use a Quarto
-journal extension where one exists for your journal. The
-`quarto-journals` collection on GitHub includes, for
-example, a JASA template:
+Every number in the methods and results comes from code, so a
+rerun on corrected data changes the prose with the tables. EHR
+here is the electronic health record; the example is an
+observational cohort, which is why the exposure is receipt of a
+visit and the estimate is adjusted.
+
+For journal-specific formatting in Quarto, use a Quarto journal
+extension where one exists for your journal. The `quarto-journals`
+collection on GitHub includes, for example, a template for JASA
+(the *Journal of the American Statistical Association*):
 
 ```bash
 quarto use template quarto-journals/jasa
 ```
 
-The extension adds a format (here `jasa-pdf`) that you
-name under `format:` in `paper.qmd`. The older `rticles`
-package offers more journals, including *Statistics in
-Medicine*, *Biometrics*, and JASA (`rticles::journals()`
-lists them), but its templates are R Markdown output
-formats for an `.Rmd` file rendered with
-`rmarkdown::render()`, not Quarto formats; they cannot be
-named in the `format:` key of a `.qmd`. Neither collection
-has a template for every medical journal (there is none
-for NEJM or JAMA, for instance), and most of those
-journals accept a plain PDF or Word manuscript at first
-submission.
+The extension adds a format (here `jasa-pdf`) that you name under
+`format:` in `paper.qmd`. The older `rticles` package offers more
+journals, including *Statistics in Medicine*, *Biometrics*, and
+JASA (`rticles::journals()` lists them), but its templates are R
+Markdown output formats for an `.Rmd` file rendered with
+`rmarkdown::render()`, not Quarto formats; they cannot be named in
+the `format:` key of a `.qmd`. Neither collection has a template
+for every medical journal (there is none for NEJM or JAMA, for
+instance), and most of those journals accept a plain PDF or Word
+manuscript at first submission.
 
-## Building and sharing
+::: {.callout-tip title='Verification'}
+Render the paper in a fresh session and read the warnings, which
+are where unresolved citations and cross-references surface:
 
-The compendium can be built three ways:
+```bash
+quarto render analysis/paper/paper.qmd 2>&1 | grep -i warn
+```
 
-**Render the paper locally.** Open `paper.qmd` in
-RStudio, click Render. Useful during writing.
+It should print nothing. A warning that a citation or a
+cross-reference cannot be resolved means the rendered paper shows
+a placeholder where a reference belongs.
+:::
 
-**Run all the code.** `devtools::load_all()` plus
-sourcing the analysis scripts in order. Useful for
-regenerating cached results.
+## Building and sharing {#sec-rrtools-build}
 
-**Build the Docker image.** The book's canonical
-Dockerfile, explained line by line in
-@sec-docker-canonical, sits at the compendium root:
+A compendium is built in one of three ways: render the paper in
+RStudio while writing; source the analysis scripts in order after
+`devtools::load_all()` to regenerate cached results; or build the
+image, which is the only one that reproduces the environment as
+well as the results. The book's canonical Dockerfile, explained
+line by line in @sec-docker-canonical, sits at the compendium
+root:
 
 ```dockerfile
 # syntax=docker/dockerfile:1
@@ -420,7 +652,7 @@ COPY . .
 CMD ["quarto", "render", "analysis/paper/paper.qmd"]
 ```
 
-From the compendium root:
+From the compendium root (display-only):
 
 ```bash
 docker build --platform linux/amd64 -t readmissions:v1.0 .
@@ -429,47 +661,75 @@ docker run --rm --platform linux/amd64 \
   readmissions:v1.0
 ```
 
-The Dockerfile pins the R version, the system libraries,
-and (through `renv.lock`) the package versions, and the
-rendered paper appears in `analysis/paper/` on your
-machine. A reader with Docker can rebuild a very close
-copy of the environment that produced the paper; an
-exact copy needs the digest pin or archived image
+The Dockerfile pins the R version, the system libraries, and
+(through `renv.lock`) the package versions, and the rendered paper
+appears in `analysis/paper/` on your machine. A reader with Docker
+can rebuild a very close copy of the environment that produced the
+paper; an exact copy needs the digest pin or archived image
 described in @sec-docker.
 
-Deposition is treated in full in @sec-federal, once you
-have a finished compendium to deposit. The shape of it is
-worth knowing now, because it affects how you organize
-the directory: GitHub
-for the working repository, Zenodo for a DOI'd archive
-at submission, dbGaP/TCIA/etc. for any restricted-access
-primary data.
+Deposition is treated in full in @sec-federal. Its shape affects
+how you organize the directory, so it is worth knowing now: GitHub
+(or your institution's Git server) holds the working repository;
+an archive such as Zenodo holds a citable, DOI-bearing (digital
+object identifier) snapshot at submission, with the saved image;
+and restricted primary data go only where the data use agreement
+permits, often a controlled-access repository and sometimes
+nowhere, with the compendium documenting how to request them.
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: package vs. compendium
+::: {.callout-tip title='Verification'}
+The test of a compendium is a rebuild by someone who is not you,
+from what is in the repository and nothing else. Simulate it
+(display-only):
 
-**Question.** Why does `rrtools` reuse the R package
-structure instead of inventing a new layout?
+```bash
+git clone https://github.com/you/readmissions.git /tmp/fresh
+cd /tmp/fresh
+docker build --platform linux/amd64 -t readmissions:check .
+docker run --rm --platform linux/amd64 \
+  -v "$(pwd)/analysis/paper:/work/analysis/paper" readmissions:check
+```
 
-**Answer.**
-
-Three practical reasons. First, the R package structure
-is the only widely-recognized layout in the R
-ecosystem; using it gives the compendium navigability
-for free. Second, the package gives dependency
-management: `DESCRIPTION:Imports` declares what is
-needed; `renv` (@sec-renv) pins versions. Third, the
-package gives function management: helpers in `R/` are
-documented, tested, and importable into the analysis.
-A bespoke layout would have to reinvent all of this.
-The trade-off is that an `rrtools` compendium has
-package files that are not really being used as a
-package (no CRAN submission, no users importing it).
-That is a small cost for the structural payoff.
-
+The paper must render, and its key numbers must match yours. A
+failure here names a file that lives only on your machine, which
+is the opening's problem found before your collaborator finds it.
 :::
 
-## Worked example: a small compendium
+### Exercises
+
+3. A colleague's compendium renders on her laptop and fails in the
+   fresh-clone check with `cannot open file
+   'analysis/data/derived_data/analytic.rds'`. What is the likely
+   cause, and what are the two acceptable fixes?
+
+::: {.callout-note collapse='true' title='Solution'}
+The paper reads a derived file that exists on her disk and is not
+in the repository, probably because `derived_data/` is listed in
+`.gitignore` and nothing in the build regenerates it. Either make
+the build produce it (the paper, or a script the Dockerfile's
+command runs, calls the cleaning code on the raw data), which is
+the better fix because it also tests the cleaning; or commit the
+derived file together with the script that made it, which is
+acceptable for an archived analysis. Committing it without the
+script is the arrangement the layout Check warned against.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Why is the fresh clone the right test, rather than
+rendering the paper again on your own machine?
+
+**Answer.** Your machine has everything the repository forgot: the
+packages you installed, the derived files you never committed, the
+environment variables in your `.Renviron`. A rerun there passes
+whatever the compendium is missing. A fresh clone, built in a
+container, has only what the five pillars supply, so it is the
+first run that can fail for the reasons a collaborator's would.
+:::
+
+## Worked example: a small compendium {#sec-rrtools-worked}
+
+A simulation study set up as a compendium from scratch
+(display-only):
 
 ```r
 # scaffold; this opens the new compendium as its own
@@ -478,8 +738,11 @@ That is a small cost for the structural payoff.
 rrtools::use_compendium("~/research/sim2026")
 
 rrtools::use_analysis()
-rrtools::use_dockerfile()
 rrtools::use_readme_qmd()
+
+# the environment pillars: initialize renv, then replace
+# rrtools's Dockerfile with the canonical one
+renv::init()
 
 # add the simulation function
 usethis::use_r("simulate")
@@ -498,181 +761,130 @@ usethis::use_git()
 usethis::use_github(private = TRUE)
 ```
 
-Then commit and tag the milestone from the shell, in the
-compendium directory:
+Then snapshot, commit, and tag the milestone from the shell, in
+the compendium directory:
 
 ```bash
+Rscript -e 'renv::snapshot()'
 git add .
 git commit -m "Initial compendium"
 git tag -a v0.1-draft -m "Initial draft for PI review"
 ```
 
-The compendium is now: a self-contained directory, with
-package-style code organization, a paper that uses the
-code, a Dockerfile that pins the environment, version-
-controlled, and tagged at a meaningful milestone. Total
-setup: about thirty minutes.
+The compendium is now a self-contained directory with
+package-style code, a paper that uses the code, a lockfile and a
+Dockerfile that pin the environment, a Git history, and a tag at a
+meaningful milestone. The setup takes about thirty minutes.
 
-## Alternatives to `rrtools`
+::: {.callout-tip title='Verification'}
+Confirm that the pillars are committed and the tree is clean:
 
-`rrtools` is not the only option. For different
-project shapes:
+```bash
+git ls-files Dockerfile renv.lock .Rprofile analysis/paper/paper.qmd
+git status --short
+git tag -l 'v0.1*'
+```
 
-**A plain Quarto book.** If the output is more book-
-like than paper-like (this practicum, for example), a
-Quarto book without the package backbone is simpler.
-Less infrastructure; less ceremony.
+The first command should list all four files, the second should
+print nothing, and the third should print `v0.1-draft`. Then run
+the fresh-clone check of @sec-rrtools-build against the tag.
+:::
 
-**The Posit Quarto manuscript template.** A newer
-option specifically for research papers in Quarto. Less
-established than `rrtools` but well-maintained.
+## Rules of thumb
 
-**A project template specific to your group.** Many
-research groups have their own scaffolding. If yours
-does, use it for consistency with your colleagues.
+1. **Habit 1: the compendium is the unit.** Code, data,
+   environment, and paper travel together in one directory with a
+   convention a stranger knows; anything outside it is a step
+   nobody can rerun.
+2. **Habit 2: raw data are evidence; derived data are a build
+   product.** Never write to `raw_data/`, record its checksums, and
+   regenerate everything else from code.
+3. **Habit 3: version control from day one.** Commit the pillars
+   with the work that needs them, and tag what you submit; the
+   fresh clone of that tag is the test.
 
-**The TIER Protocol.** A general research-compendium
-template, more elaborate than `rrtools`, popular in
-social sciences.
+## Cumulative practice
 
-For a typical biostatistical paper-with-code, `rrtools`
-is the modern default. For a book-length project, a
-Quarto book. For a group with conventions, the group's
-template.
+4. *Cumulative (uses @sec-git-solo and @sec-quarto).* Build a
+   compendium for a small HF-HOME analysis: copy
+   `randomization.csv` and `outcomes.csv` into
+   `analysis/data/raw_data/` with a checksum manifest, write a
+   `paper.qmd` that reports the 30-day event proportion in each arm
+   with inline code, commit, and tag `v0.1`. Run `audit_pillars()`
+   and the fresh-clone check, and record which pillars you still
+   lack and why.
+5. *On your own work (no key).* Convert a 'scripts and data'
+   project of your own into a compendium. Document the location of
+   every file and the reason for it, and record what the
+   fresh-clone check found the first time you ran it.
 
-## Collaborating with an LLM on compendium setup
+::: {.callout-note collapse='true' title='Solution'}
+4. The paper's numbers come from the raw files, never typed. A
+   minimal computing chunk:
 
-LLMs handle the scaffolding well; the file-placement
-judgment is harder.
+```{r}
+#| label: soln-07-4
+rand <- read.csv(file.path(raw_dir, 'randomization.csv'),
+                 colClasses = c(patient_id = 'character'))
+outc <- read.csv(file.path(hf_dir, 'outcomes.csv'),
+                 colClasses = c(patient_id = 'character'))
+hf <- merge(rand[c('patient_id', 'arm')],
+            outc[c('patient_id', 'event_30d')], by = 'patient_id')
+stopifnot(nrow(hf) == nrow(rand))
+round(100 * tapply(hf$event_30d, hf$arm, mean, na.rm = TRUE), 1)
+```
 
-**Prompt 1: converting a messy directory.** Paste a
-`tree` listing of your existing project directory and
-ask: 'restructure this into an rrtools compendium.
-Place each existing file in its appropriate location.'
+The chunk reads `outcomes.csv` from the HF-HOME directory, because
+the Pitfall above edited the toy compendium's copy; in your
+compendium, both files come from `raw_data/`, and `check_raw()`
+runs first. Without a Dockerfile and a lockfile, the audit reports
+pillars 1 to 3 missing, and the fresh-clone check depends on
+whatever R the clone's machine has; the record should say so.
+:::
 
-Commit everything before you ask, so that every move
-the LLM proposes can be reviewed as a diff and undone,
-and tell it not to move, rename, or edit anything in
-the raw-data directory; apply the moves yourself with
-`git mv`.
+## Cheat sheet
 
-*What to watch for.* Files that fit none of the
-categories cleanly (logbook entries, exploratory
-notebooks, data-cleaning scripts that are part of the
-analysis but not in `R/`). The LLM will assign them
-somewhere; verify the assignment makes sense.
+| Task | Command or file | Guards against |
+|---|---|---|
+| Scaffold a compendium | `rrtools::use_compendium()`, `use_analysis()` | An improvised layout |
+| Pin the packages | `renv::init()`, `renv::snapshot()` | Newer packages on a collaborator's machine |
+| Pin what is beneath R | The canonical Dockerfile (@sec-docker-canonical) | A different R or system library |
+| Protect raw data | `MANIFEST.md5`; `md5sum -c MANIFEST.md5` | Edits saved over the raw export |
+| Audit the pillars | `audit_pillars('.')`; `git ls-files` | A pillar present on disk but not committed |
+| Render the paper | `quarto render analysis/paper/paper.qmd` | Typed numbers |
+| Use a journal format | `quarto use template quarto-journals/<journal>` | Reformatting by hand |
+| Test the compendium | Fresh clone, `docker build`, `docker run` | Files that live only on your machine |
+| Mark a milestone | `git tag -a v1.0-submission` | Not knowing what was submitted |
 
-*Verification.* Walk through the proposed layout
-yourself. Does each file belong where the LLM put it?
-Move any that do not.
-
-**Prompt 2: drafting a README.** Paste the project
-description and ask the LLM to draft a README.qmd that
-includes the standard sections: what the project is,
-how to build it, where the paper is, how to cite.
-
-*What to watch for.* The build instructions should be
-specific to your Dockerfile and your renv.lock. Generic
-instructions ('install R and run the script') are not
-enough.
-
-*Verification.* Have a colleague follow the README
-instructions on a fresh machine. The first version
-will probably fail in a small way; iterate.
-
-**Prompt 3: drafting `paper.qmd`.** Paste the analysis
-plan and a methods outline; ask the LLM to draft the
-methods section as Quarto with code chunks for the
-key results.
-
-*What to watch for.* The chunks should reference the
-data and functions in the compendium correctly. The
-chunks should be self-contained (do not depend on a
-hidden environment).
-
-*Verification.* Render the paper. Inspect the rendered
-output for correctness.
-
-## Principle in use
-
-Three habits make the compendium navigable to a stranger:
-
-1. **Use a recognized layout.** `rrtools` or a Quarto
-   book; not a bespoke directory.
-2. **Make 'rebuild' a single command.** Whether
-   `docker run ...` or `make all`, a reader should be
-   able to regenerate the paper without reading the
-   code.
-3. **Tag the milestones.** Compendium plus git tag plus
-   Zenodo DOI gives a citable, durable artifact.
-
-## Exercises
-
-**On your own machine, data, or collaborations.** These exercises
-scaffold real projects on disk, so no answer key is possible. The
-directory tree that results is the check.
-
-1. Create a new rrtools compendium for a small
-   completed analysis of your own. Commit it to a
-   fresh GitHub repository.
-2. Write a one-paragraph `README.qmd` introduction and
-   the skeleton of `paper.qmd` with one figure and one
-   citation.
-3. Build the Docker image for the compendium and run
-   an R session inside it. Verify that `sessionInfo()`
-   matches your expectations.
-4. Convert a 'scripts and data' project of your own
-   into rrtools layout. Document the per-file
-   reasoning.
-5. Pick a major journal in your field and look for a
-   Quarto journal extension for it (or, for an R
-   Markdown paper, an `rticles` format). Scaffold a
-   paper with it, or document that none exists.
+: Compendium tasks at a glance. {#tbl-rrtools-cheat-sheet}
 
 ## Further reading
 
-- [@marwick2018rrtools], the `rrtools` package.
-- [@marwick2018packaging], the original paper on
-  research compendia.
-- The `quarto-journals` templates and the `rticles`
-  package documentation for journal-specific templates.
-- Quarto's manuscript template at
-  `quarto.org/docs/manuscripts/`.
-- [@harrell2025rworkflow], the closest peer treatment
-  of the analysis-side workflow this chapter houses:
-  what goes in the compendium's `analysis/` directory
-  once the directory exists.
-- [@harrell2025bbr] Chapter 21, 'Reproducible
-  Research', which is the case for the compendium
-  made inside a biostatistics course rather than a
-  software-engineering one.
-- [@vanderbilt-rereport-2024], the Vanderbilt
-  Biostatistics department's public page on
-  reproducible reporting, for what these practices
-  look like as a collaborating unit's standing policy
-  rather than an individual's discipline.
+- [@marwick2018packaging], the paper that defines the research
+  compendium as this chapter uses it.
+- [@marwick2018rrtools], the `rrtools` package and its
+  documentation.
+- [@harrell2025rworkflow], the closest peer treatment of what goes
+  in the compendium's `analysis/` directory once it exists.
 
 ## Prerequisites answers {#sec-quiz-answers-07}
 
-1. A research compendium is a directory tree that
-   bundles a study's code, data, and narrative in one
-   place, with a standardized layout. The reader can
-   rerun the analyses and regenerate the paper with a
-   single command. Marwick et al. (2018) argue the
-   compendium is the appropriate unit of reproducible
-   research in R.
-2. An R package backbone (`DESCRIPTION`, `R/`), an
-   `analysis/` directory for data and the paper, and a
-   Dockerfile for the computing environment. The
-   package backbone gives dependency management
-   (`Imports:`); the `analysis/` directory gives
-   context; the Dockerfile gives environment
+1. A research compendium is a directory tree that bundles a
+   study's code, data, and narrative in one place, with a
+   standardized layout. The reader can rerun the analyses and
+   regenerate the paper with a single command. Marwick et al.
+   (2018) argue that the compendium is the appropriate unit of
+   reproducible research in R.
+2. An R package backbone (`DESCRIPTION`, `R/`), an `analysis/`
+   directory for data and the paper, and a Dockerfile for the
+   computing environment. The package backbone gives dependency
+   declaration (`Imports:`); the `analysis/` directory holds the
+   study; the Dockerfile, with `renv.lock`, gives environment
    reproducibility. Together they make the compendium
    self-contained.
-3. A regular R package exports functions for reuse by
-   others; it has no data or narrative. An `rrtools`
-   compendium adds `analysis/` (data + paper) and a
-   Dockerfile, turning the package into a
-   self-contained study with its own paper. The
-   package structure is repurposed as an infrastructure
-   convenience, not for distribution on CRAN.
+3. A regular R package exports functions for reuse by others; it
+   has no data or narrative. An `rrtools` compendium adds
+   `analysis/` (data and paper) and a Dockerfile, turning the
+   package into a self-contained study with its own paper. The
+   package structure is repurposed as infrastructure, not for
+   distribution on CRAN.

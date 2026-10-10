@@ -312,3 +312,408 @@ instructors: SPIRIT (Chan et al., 2013); CONSORT (Schulz et al.,
 Gelman and Loken (2013); *Regression Modeling Strategies* (Harrell,
 2015); and *Biostatistics for Biomedical Research*, chapter 22, on
 controlling the error rate of a decision rather than of a test.
+
+### De-identification and Data Ethics
+
+*Sources.* Karl Broman's *Tools for Reproducible Research*
+[@broman2019tools4rr] and the Johns Hopkins statistical-computing
+sequence [@hopkins-biostat776-2024], the two peer curricula that
+treat de-identification and human-subjects protection explicitly;
+the HHS de-identification guidance [@hhs2012deident]; Sweeney
+[@sweeney2002kanonymity] for the Weld case and k-anonymity.
+
+*Rationale.* A biostatistician working with clinical data handles
+protected health information on the first day, and the
+obligations that attach to it are not optional. The survey of peer
+curricula (@sec-peer-survey) found the topic conspicuous by its
+absence from most programs; for a book aimed at students who will
+spend their careers with clinical data, the omission would be
+indefensible. The chapter opens with the Weld re-identification
+because it shows the mechanism (quasi-identifiers combine) without
+any technical apparatus. Its compliance content was corrected in
+Phase E1 (Safe Harbor versus Expert Determination labeling, the
+164.514(c) rule on re-identification codes, the limited data set
+with a DUA) and should be read by a privacy officer or compliance
+colleague before it is assigned (house rule 14). Sections 1 to 4
+are concepts and stay in Part I; the worked example and the
+residual-risk section run on the HF-HOME demographics file and are
+written to move cleanly to Part III, after wrangling, in Phase I.
+The restricted ZIP prefixes in the code (036, 059, 821) are only
+those the HF-HOME generator plants; the chapter deliberately does
+not print the full HHS list, which students must take from the
+current guidance.
+
+### Team Science for Biostatisticians
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics; Slade et al.
+[@slade2023team] for the survey evidence on team-science skills;
+the ICMJE recommendations [@icmje2024] and the CRediT taxonomy
+[@brand2015beyond] for authorship.
+
+*Rationale.* The technical skills elsewhere in the book are useful
+only if students can deploy them on a team, and the team context
+is governed by social and procedural conventions more than by
+software. The chapter is built around one recurring collaborator,
+Dr. X, the heart-failure investigator whose first email opens it,
+carried from intake (where the immortal-time and confounding red
+flags turn an observational question into the HF-HOME trial)
+through the scope of work, a disagreement, and authorship of the
+trial paper. Results communication was reduced to the points other
+chapters rely on (the three registers of a claim, effect size
+before p-value, confidence versus prediction intervals) and a
+pointer to @sec-communicating, which owns the memo, talk, and
+reviewer response. The exercises are scenarios with model
+answers, so the chapter can be assigned before students have
+collaborations of their own; a single 'own work' exercise remains.
+
+### Setting Up Your Workstation
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
+
+*Rationale.* A poorly configured machine does not announce itself;
+it appears as friction that accumulates over years, and its
+defects are the hardest in the book to attribute. The chapter keeps
+its original hook and is cut to an essentials path (R, an IDE,
+Quarto, Git, and `renv`), with per-operating-system installation in
+tabs that include Windows under WSL, and it ends the path with the
+'Is my machine ready?' checklist (@tbl-workstation-ready), which
+later chapters can cite instead of restating setup. The editor
+survey beyond the three IDEs, the shell configuration, `starship`,
+`tmux`, fonts, dotfiles, and the fresh-laptop script moved to an
+optional 'Level up' section at the end rather than to an appendix;
+the E2 corrections in that material (a private dotfiles
+repository, one R installation route, the `brew shellenv` line and
+the caveat on piping a download into `bash`, zsh rather than bash
+completion, and the font cask names) are unchanged. The chapter
+now follows @sec-shell, which removes the forward dependency on
+`cd` and `.zshrc` (Finding 18). The restored-workspace failure,
+which the earlier LLM prompt named only in passing, is now an
+executed demonstration: an `.RData` file in a temporary directory
+and two R sessions, one restoring it and one started with
+`--vanilla`. Phase K security material enters as a short section on
+secrets (`~/.Renviron`, `Sys.getenv()`, and `keyring`); Phase K
+currency enters only as a pointer to Posit Public Package Manager
+binaries for Linux, since dated snapshots belong to @sec-renv.
+Devcontainers and pre-commit were not added here; they fit
+@sec-docker and @sec-git-teams better. The former open-ended
+exercises became exercises with stated expected results (versions
+that agree, `find.package()` locations, the restore demonstration,
+and a `check-machine.sh` script with a model solution); the
+dotfiles exercise was dropped with the material it exercised, and
+the hard-coded-paths exercise is the 'own work' item. The bypass
+quiz's questions on dotfiles and terminal editors were replaced by
+questions on the restored workspace and the checklist.
+
+### The Unix Shell
+
+*Sources.* The working subset taught by the Software Carpentry
+lesson 'The Unix Shell', by Berkeley STAT 243
+[@berkeley-stat243-2024], and by Karl Broman's reproducibility
+course [@broman2019tools4rr]; the peer survey (@sec-peer-survey)
+found the command line taught explicitly in all three and in Data
+Carpentry. The Practicum had previously assumed the shell rather
+than taught it.
+
+*Rationale.* The shell is the substrate under the rest of the
+toolkit: Docker is driven from it, Git began as a set of shell
+commands, and every computing cluster is reached through it. The
+chapter now opens with the HF-HOME CRF export, whose planted
+byte-order mark and CRLF line endings make two quick `grep` counts
+return 0, so that the first thing students learn about the shell
+is the book's motto in miniature: a correct command on bytes you
+cannot see returns a plausible wrong answer. Every closed exercise
+runs against the shipped HF-HOME files, and each key is computed in
+R from the same bytes at render time, which also teaches the habit
+of confirming a shell count in R (the shell-versus-R table is the
+bridge to @sec-wrangling). Shell commands that only read files run
+at render as `bash` chunks; the one that demonstrates truncation by
+redirection works on a copy in a `mktemp -d` directory and deletes
+it, and the `check-raw.sh` script is displayed once and executed
+from the same source through `knitr::knit_code`. The `file`
+command is demoted to a footnote, because versions with a CSV test
+(5.41 on macOS) report only 'CSV text' for a file with a BOM and
+CRLF endings, and minimal containers lack it; `od -c` and `cat -e`
+are taught instead. The former 'statistician's contribution'
+judgments (script rather than click, respect destructive
+commands, inspect before loading, keep the shell out of the
+analysis proper) are placed in the sections where each arises.
+The former open-ended exercises 1, 2, and 4 became closed
+exercises on HF-HOME (Finding 16); exercise 3 (which large files
+belong out of Git) is folded into the search section's prose, and
+exercise 5 (compare `grep` with an editor's search) was cut. The
+'echo before rm' rule is given as a standing instruction for a
+coding agent (4.6). The chapter now precedes @sec-workstation in
+the part order, so 'You'll need' points Windows students to Git
+Bash or WSL there.
+
+### Git for Teams
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics; Jenny Bryan's
+*Happy Git and GitHub for the useR* and chapters 3 and 5 of *Pro
+Git* for the mechanics, and the pull-request and code-review
+material of *R Packages* (Wickham and Bryan), which transfers to
+research compendia.
+
+*Rationale.* @sec-git-solo taught Git for one analyst working
+alone, and @sec-team-science taught the social norms of working
+with others; between them sits the mechanics of two statisticians
+committing to one repository, which the continuous-integration
+workflow of @sec-ci and both case studies assume. The chapter now
+opens with the two analysts whose branches each give a correct
+count and whose merge gives a third count neither has seen; the
+three counts come from a synthetic cohort generated in the
+chapter's source, so the before-and-after conflict table (Finding
+31) is computed rather than typed, and the worked example's
+failing CI assertion uses the same numbers. The E2 rebuild of the
+conflict (a three-way disagreement whose resolution matches
+neither side) is kept verbatim, and the chapter now also states
+the full difference between the resolution and each branch,
+including the patients the diastolic ceiling removes from her
+branch's cohort, which the former LLM prompt's verification
+omitted. The former 'statistician's contribution' judgments are
+placed where each arises: conflicts as disagreements about the
+analysis in the conflicts section, protecting `main` in the
+branch-protection subsection, preventing conflicts in the
+generated-files subsection, and reviewing the analysis in the
+review section, whose six questions are now a table. Detail on
+resolving `renv.lock` conflicts is reduced to a pointer to
+@sec-renv (Part 7 moves it there in Phase I); the E2 corrections
+on `--theirs` under a rebase (now a Pitfall) and on
+`renv.lock merge=ours` are unchanged. The three LLM prompts became
+one callout on recovering a shared branch (force push,
+`--force-with-lease`, and revert rather than rewrite), with a
+caution that background fetches can defeat the lease; the
+conflict-resolution prompt depended on the defective example, and
+the diff-review prompt is superseded by the checklist. The
+formal register ('we would urge the reader') is replaced by
+second person (decision 1). The exercises are now checkable
+(Phase G): a planted conflict and a `git bisect run` hunt in
+throwaway repositories, a planted diff with one deliberate
+distractor (a moved `set.seed()` that changes no draw), and a
+cumulative exercise that simulates two analysts with a bare
+repository and two clones, so that no collaborator or GitHub
+account is needed. The Git output in the solutions was produced by
+running each exercise with Git 2.55; hashes differ for every
+student. The branch-protection exercise still needs GitHub, and
+its key describes the expected rejection. `@sec-ci`,
+`@sec-testing`, `@sec-analysis-plan`, `@sec-quarto`, `@sec-renv`,
+and `@sec-joins` remain forward references for Phase I. *R
+Packages* was dropped from Further reading to meet the limit of
+three.
+
+### Cloud Compute and Remote Servers
+
+*Sources.* The author's blog posts `22-serversetupawscli`,
+`23-serversetupawsconsole`, `48-ttyd_setup`, and
+`20-researchbackupsystem`; the SLURM `sbatch` and job-array
+documentation; Yoo, Jette, and Grondona (2003) for SLURM and
+Kurtzer, Sochat, and Bauer (2017) for Apptainer.
+
+*Rationale.* Most students meet remote compute through a
+university cluster before they ever rent a cloud machine, so the
+chapter now opens with a job array killed for memory and teaches
+SLURM (a minimal `sbatch` script, a job array for a simulation
+study, `sacct` as the check) before AWS. The executed part is the R
+side of the job array: a per-task simulation of the HF-HOME
+design's power with L'Ecuyer random-number streams, and a combine
+step that refuses to summarize an incomplete set; the Pitfall
+deletes one task's output to show the silent version. The AWS
+service catalog is reduced to one glossary table, and every price,
+instance type, and image path lives in one dated table built from a
+data frame, so that the worked example's costs are computed rather
+than typed. A budget alert now precedes any provisioning, and the
+idle-stop alarm and the `trap`-based job script are the two
+stopping mechanisms (Phase K security: SSO, instance roles, no
+long-lived keys). The former 'Orientation' and 'statistician's
+contribution' material is folded into the sections where each
+judgment arises (instance choice into the shortage section, cost
+discipline into the cost section, data hygiene into 'Where the data
+may go', reproducibility into the container paragraph). The
+'Alternatives to AWS' prose became a table. Of the three former LLM
+prompts, the failure-handling one is kept as the chapter's single
+LLM callout, with the deliberate-failure test as its check; the
+instance-choice and error-diagnosis prompts were cut. The prices in
+the dated table are carried from the previous text (`c6i.4xlarge`,
+S3, and EBS) or were added during the revision from 2025 list prices
+(the other instance types and egress), and none was re-verified
+against the pricing pages in the 2026-10 revision; they should be checked against the AWS pricing pages
+before each offering. The SLURM and AWS commands are display-only
+because they need accounts; the `sacct` state names, the job-array
+filename patterns, and the `budgets` and `cloudwatch` argument
+shapes follow the vendors' documentation but were neither run nor
+re-checked against it in this revision.
+
+### Research Compendia with rrtools
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics. The concept is
+Gentleman and Temple Lang (2007); the working definition and the
+`rrtools` package are Marwick, Boettiger, and Mullen (2018). Harrell's
+*R Workflow* and *Biostatistics for Biomedical Research* (Chapter
+21, 'Reproducible Research'), and the Vanderbilt Biostatistics
+department's public page on reproducible reporting, are the peer
+treatments; the last two left Further reading when it was cut to
+three items, and remain good instructor reading for how these
+practices look as a unit's standing policy.
+
+*Rationale.* The chapter is now an anatomy of a compendium rather
+than a tour of one package. It opens with a collaborator whose
+rerun gives a different p-value, and traces each of the three
+causes (newer packages, a stale derived file, a hand exclusion) to
+a missing pillar. The five pillars are taught here, tool-neutrally,
+as roles with the R tool and its equivalents in other languages, so
+that `zzcollab` becomes one way to automate them rather than their
+definition. The executed parts build a toy compendium in a
+temporary directory from two HF-HOME raw files, audit the pillars
+(labeled as a structural check), and record a checksum manifest
+for the raw data, which the Pitfall then trips by saving an edit
+over the raw export. The fresh-clone rebuild is presented as the
+real test. The former 'Orientation' and 'statistician's
+contribution' material is folded into the sections where each
+judgment arises (convention into the definition, file placement and
+the README into the layout section, scaffolding choice into the
+conventions table). The canonical Dockerfile is unchanged and
+byte-identical to @sec-docker-canonical; the sample `paper.qmd` is
+unchanged from Phase E2. The 'rticles' correction is kept. Of the
+three LLM prompts, the directory-restructuring prompt is kept as the
+single callout, now requiring a clean commit first and forbidding
+any change to raw data, with a rename-only diff and the checksum
+manifest as its check. The chapter is structured for the planned
+Phase I merge with @sec-zzcollab as 'Assembling the compendium':
+sections 1 to 3 (definition, pillars, layout) are the shared core,
+the conventions table in section 4 is where a condensed `zzcollab`
+section would attach, and sections 5 to 7 (paper, build, worked
+example) need no change in a merge. Its pillar table would replace
+the one in 10, and 08's pointer to @sec-zzcollab for the pillar
+definition would then point here.
+
+### Docker for Reproducibility
+
+*Sources.* The author's blog posts `32-sharermdcodeviadocker` and
+`33-shareshinycodeviadocker`; the `rocker` project (Boettiger and
+Eddelbuettel 2017); the author's Docker and `renv` demonstration
+materials; Boettiger (2015) for the case for containers in research.
+
+*Rationale.* The chapter opens with 'same code, different number'
+and makes it concrete with an executed example on the HF-HOME data:
+the same bootstrap with the same seed gives different interval
+bounds under the integer sampler of R before and after 3.6.0, a
+change `renv` cannot see because no package changed. Apple Silicon
+guidance stays at the first command. The canonical Dockerfile
+(@sec-docker-canonical), the digest pin, the `.dockerignore`, the
+localhost binding for RStudio Server, and the other Phase E2
+corrections are unchanged; the Dockerfile is byte-identical to the
+copy in @sec-rrtools. Each recipe now ends with a Verification, and
+the Docker ones were run against the E2 test image on 2026-10-09:
+`R --version` and the OS check, `docker inspect` for the digest,
+the `CACHED` restore step after editing a `.qmd`, `docker port` for
+a `127.0.0.1` binding, and a `docker save` and `docker load` round
+trip with matching image IDs. Running `renv::status()` inside the
+E2 test image also showed the Pitfall's failure in practice: that
+image's lockfile records R 4.6.1 while the base is 4.4.0, and the
+image builds and renders, noting the mismatch in one log line.
+Docker Compose is cut to a pointer paragraph that keeps the
+corrected secret handling (a `.env` file excluded from Git and the
+build context; `docker compose`, not `docker-compose`), and the
+Compose exercise was dropped. The former 'Orientation' and
+'statistician's contribution' material is folded into the sections
+where each judgment arises (base-image choice and pinning into the
+base-image section, layer order and data placement into the
+Dockerfile section). Of the three LLM prompts, the Dockerfile
+prompt is kept with digest pinning and the `.dockerignore` in its
+criteria, and the error-diagnosis prompt is rewritten around the
+build log; the base-image prompt was cut. The base-image sizes in
+the `rocker` table were observed for local images (r-ver 4.4.0,
+tidyverse and verse 4.6.0) and are approximate.
+
+### Assembling the Compendium
+
+*Sources.* The author's `zzcollab` framework
+(`github.com/rgt47/zzcollab`; version 0.2.0 when the chapter was
+first written, checked against the repository as of October 2026),
+and the author's blog posts `14-penguins1zzcollab` and
+`42-zzedcindependence`. The Five Pillars framing and the
+compendium layout follow Marwick, Boettiger, and Mullen (2018).
+
+*Rationale.* Each of the preceding chapters (compendium, lockfile,
+container) pins one layer and leaves the wiring to the reader, and
+the failure that results is silent: a collaborator reruns the
+analysis on a different extract or a different R and gets a
+different number with nothing to say why. The chapter therefore
+teaches the Five Pillars as a tool-neutral checklist (a table of
+what each pins, the failure without it, and the check), assembles
+them by hand from the `rrtools` layout, `renv`, the canonical
+Dockerfile of the Docker chapter, and a SHA-256 data manifest, and
+turns the checklist into an executable audit function run on a
+temporary HF-HOME compendium. Following Part 11, decision 5,
+`zzcollab` appears in one clearly optional section as one way to
+automate the assembly, beside `rrtools` and `workflowr`; its
+walkthrough, `make` targets, and profiles were retained as
+corrected in Phase E2, and the bundle and extension mechanics were
+condensed to a short subsection at the end (Finding 19). The
+chapter keeps the section id `sec-zzcollab` because other chapters
+reference it; Phase I merges the rrtools chapter into it along the
+'Assembling the compendium by hand' section. Exercise 2 audits the
+book's own repository, so its computed key shows which pillars the
+book itself lacks (Finding 10). Exercise 4 needs Docker and the
+`zzc` command, so its key describes a correct result.
+
+### Reproducible Pipelines with targets
+
+*Sources.* The `targets` user manual (Landau, 2021) and the paper
+introducing the package in the *Journal of Open Source Software*
+(Landau, 2021); Karl Broman's reproducibility course materials
+(Broman, 2019) and the Software Carpentry lesson on GNU Make.
+
+*Rationale.* A research compendium holds the code, the data, and
+the environment, but it does not by itself make the analysis
+re-runnable end to end; that requires a tool that knows which step
+depends on which. The peer survey (@sec-peer-survey) found
+dependency-aware pipeline tools taught in two generations, GNU Make
+in Broman's reproducibility course and in Software Carpentry, and
+`targets` in more recent collaborative-practice courses. For a book
+that already teaches compendia and Docker, a build tool is the
+missing piece. The chapter opens with a Table 2 built from a stale
+intermediate and makes the pipeline real: a `_targets.R` on the
+HF-HOME randomization and outcomes files is built in a temporary
+directory during the render, with real `tar_make()` output before
+and after an edit, `tar_outdated()` between them, and computed
+keys. The edit repairs a planted derivation bug (unascertained
+outcomes counted as event-free), so the chapter's silent failure
+is the one the tool prevents. These chunks run only when the
+`targets` package is installed (`requireNamespace()`); otherwise
+the chapter prints a note and shows the code alone. The figure's
+nodes are the pipeline's target names, `tar_quarto()` is shown for
+the report target, and the Phase E2 corrections (when `CMD` runs,
+`tar_option_set(packages = )`) are kept. Exercises 5 to 7 need a
+Quarto report, Docker, or a second clone, so their keys describe a
+correct result.
+
+### Migrating and Troubleshooting Documents
+
+*Sources.* The author's blog posts `17-rapidconversionRtoRmd`,
+`38-tableplacementrmarkdown`, and `07-multilanguagequartodemo`;
+the *R Markdown Cookbook* (Xie, Dervieux, and Riederer, 2020) and
+*bookdown* (Xie, 2016).
+
+*Rationale.* The Quarto chapter argues for the literate document;
+this one is about living in it. A document is rendered once when
+it is written and perhaps forty times before it is submitted, and
+the frictions that are negligible on the first render (a converted
+cross-reference that resolves to nothing, a float pages from its
+citation, a chunk left at `eval: false`) dominate by the fortieth.
+The chapter was retitled from 'Rmd Workflow: Conversions and
+Tables' (no chapter or the preface cites the old title). The
+conversions now run for real on a short HF-HOME script in a
+temporary directory; 'Common rendering failures' is an error,
+cause, and fix table; and a worked debugging story runs the real
+`quarto` command on a document with two planted defects, one that
+stops the render and one that ships. Cross-reference and caching
+material that duplicated the Quarto chapter became pointers to it.
+Part 7 proposes merging this chapter with the Quarto chapter in
+Phase I; the sections are ordered so that the troubleshooting half
+can move as a block. Exercises 3 and 5 work on the student's own
+projects, so their keys describe a correct result.

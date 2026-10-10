@@ -1,5 +1,20 @@
 # Team Science for Biostatisticians {#sec-team-science}
 
+The first email from Dr. X, a cardiologist, is four lines long.
+The hospital's data warehouse holds about five thousand
+heart-failure discharges; some patients had a home-health visit
+within a week and some did not; could you 'run the numbers'
+showing that the visits cut 30-day readmissions, in time for an
+abstract due next month? As posed, the comparison has a flaw no
+software will report: a patient readmitted on day 3 never had
+the chance of a day-5 visit, so the sickest patients are counted
+as unvisited, and home health looks protective whether or not it
+does anything. The analysis would run, the estimate would be
+precise, and the paper would be wrong. What prevents it is not a
+better model but a conversation, held before any code, that this
+chapter follows from that email to the HF-HOME trial whose plan,
+data, and report the rest of the book uses.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
@@ -13,715 +28,865 @@ to play in everyone's backyard.*
 ```
 :::
 
-::: {.callout-note}
-## Sources
-
-Adapted from author's lecture notes and supporting
-materials for a graduate practicum in biostatistics.
-:::
-
-## Prerequisites
-
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-03.
-
-1. What distinguishes a 'collaborative' biostatistician
-   role from a 'consulting' role?
-2. Name three communication skills essential for
-   biostatisticians on interdisciplinary research teams.
-3. Why does team science succeed or fail on clear
-   expectations about authorship and credit?
-
-## Learning objectives
-
-By the end of this chapter you should be able to:
-
-- Describe the spectrum of biostatistician involvement
-  (consultant, collaborator, co-investigator, PI).
-- Explain ICMJE authorship criteria and apply them to a
-  hypothetical paper.
-- Hold a structured intake conversation with a new
-  clinical collaborator.
-- Write a short scope-of-work document that pre-empts
-  common misunderstandings.
-- Maintain a legible portfolio of simultaneous projects
-  and triage which one to advance when several compete
-  for the same day.
-- Communicate statistical results to non-statisticians
-  without misrepresenting uncertainty or effect size.
-- Recognize common collaboration failure modes (scope
-  creep, last-minute pre-registration, p-hacking
-  pressure) and respond appropriately.
-
-## Orientation
-
-Most biostatisticians spend the greater part of their careers
-on teams alongside people who cannot read their code and do not
-share their vocabulary. Effective collaboration across this gap
-is, we would insist, a learned skill and not a personality
-trait. The distinction matters because skills can be taught and
-temperaments cannot. A statistician described as 'difficult to
-work with' has usually not been rude to anyone. Rather, he or
-she has failed to establish, in writing and early, what was
-being asked and what would be delivered, and every subsequent
-disagreement has been argued without a shared record of what
-was agreed.
-
-That is the shape of nearly every collaboration failure taken
-up in this chapter: not a clash of personalities but an absent
-document. This chapter treats the norms, the conversations, and
-the documents that prevent the absence.
-
-The chapter is unusually narrative. The technical skills
-elsewhere in the book are useful only if the reader can deploy
-them in a team context, and the team context is governed by
-social and procedural conventions more than by software.
-
-## The statistician's contribution {#sec-team-science-human}
-
-Team science is judgment work end to end.
-
-**Recognize the role you are being asked to play.** A
-clinical PI who says 'we need a statistician' may be
-asking for a methodological consult, a hands-on
-collaborator, a co-investigator on the grant, or hired
-labor for the analysis section of a manuscript. The
-expectations, the timeline, the authorship implications,
-and the appropriate level of pushback are different for
-each. Failing to clarify the role before doing the work
-produces friction at the end.
-
-**Pick your battles.** Not every methodological choice
-is worth a confrontation. A non-default reference level
-in a logistic regression: matter of taste; let it go. A
-proposal to dichotomize a continuous outcome to make
-the analysis 'simpler': fight, because it loses
-information and biases inference. Distinguishing
-preference from principle is what makes you a useful
-collaborator rather than a pedantic one.
-
-**Calibrate your language to the audience.** A clinical
-collaborator does not need to know the difference
-between Wald and likelihood-ratio confidence intervals.
-They do need to know whether the treatment effect is
-clinically significant and how confident you are in
-that claim. Translating between these registers is a
-core skill.
-
-**Document everything that has been agreed.** Verbal
-agreements about scope, deadlines, authorship, and
-analytical decisions evaporate. Email summaries after
-every meeting; written analysis plans before any
-analysis runs. The document is what you defend when
-expectations diverge later.
-
-These habits separate biostatisticians who are
-re-engaged for the next project from those who are not.
-
-## The collaboration spectrum
-
-A useful mental model: biostatistician involvement varies
-along a spectrum from consulting (transactional) to
-co-investigation (long-term). @fig-collab-spectrum sets
-the four common positions against the three things that
-vary with them, because it is the mismatch between where
-you sit and where the investigator thinks you sit that
-produces most collaboration friction.
-
-```{mermaid}
-%%| echo: false
-%%| label: fig-collab-spectrum
-%%| fig-alt: "Left-to-right chain of four roles: Consultant
-%%|   (transactional, acknowledgment), Collaborator (sustained,
-%%|   authorship), Co-investigator (named on the grant, authorship
-%%|   and effort), and Principal investigator (leads the science,
-%%|   first or last author). A separate annotation points along the
-%%|   chain: authority, time, and credit all increase."
-%%| fig-cap: "The collaboration spectrum. Authority, time
-%%|   commitment, and credit all rise together along it. Trouble
-%%|   arises when the statistician and the investigator place the
-%%|   engagement at different points, which is why the position is
-%%|   worth naming out loud at intake."
-flowchart LR
-  A["<b>Consultant</b><br/><i>transactional</i><br/>acknowledgment"]
-  B["<b>Collaborator</b><br/><i>sustained</i><br/>authorship"]
-  C["<b>Co-investigator</b><br/><i>named on the grant</i><br/>authorship, effort"]
-  D["<b>Principal investigator</b><br/><i>leads the science</i><br/>first or last author"]
-  A --> B --> C --> D
-  E["authority, time, credit all increase"] -.-> D
+```{r}
+#| label: team-science-pipeline-setup
+#| include: false
+source('_pipeline.R')
 ```
 
-Common positions:
+```{r}
+#| label: fig-team-science-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: the intake conversation, the
+#|   scope of work, and the authorship agreement belong to the Plan
+#|   stage, before any data arrive."
+#| fig-alt: !expr pipeline_alt('plan')
+pipeline_diagram('plan')
+```
 
-**Consultant.** A clinical investigator brings a question
-or a dataset; the statistician provides analysis or
-methodological advice; the relationship ends or recurs
-transactionally. Common in academic statistical
-consulting services and industry consulting groups.
-Usually does not produce authorship; deliverables are
-the analysis or the report.
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 35 minutes.
 
-**Collaborator.** Sustained involvement across study
-design, analysis, and writing; the statistician is
-substantively involved with the science. Authorship is
-expected when ICMJE criteria are met (below). Most
-academic biostatistics happens here.
+**You'll need.** @sec-why for the cost-benefit case for a
+reproducible analysis. The chapter has no code; the trial it
+introduces is analyzed in @sec-analysis-plan and reported in
+@sec-communicating.
 
-**Co-investigator.** Named on the grant, with
-allocated effort; partial authority over the project
-direction; deeply involved in study design. Usually
-mid-career and senior biostatisticians on funded
-research.
+**You'll be able to.**
 
-**Principal Investigator.** Leads the project. The
-biostatistical method is itself the science.
-Methodological PIs in biostatistics; less common as
-the lead role in clinical research.
+- Place an engagement on the collaboration spectrum and state
+  the authorship expectation that goes with it.
+- Run an intake conversation that surfaces the red flags in a
+  collaborator's request, and write the result as a scope of
+  work.
+- Classify a disagreement as preference, best practice, or
+  validity, and give the response each warrants.
+- Decide authorship against the four criteria of the
+  International Committee of Medical Journal Editors (ICMJE),
+  keeping Contributor Roles Taxonomy (CRediT) roles separate, and
+  triage a portfolio of concurrent projects.
 
-The position determines the appropriate level of
-authority, the time commitment, and the credit. A
-common source of tension is mismatch: a statistician
-treated as a consultant who sees themselves as a
-collaborator, or vice versa. Clarifying which position
-is being filled is the first step in avoiding it.
+**Outline.**
 
-## ICMJE authorship and the statistician
-
-The International Committee of Medical Journal Editors
-defines authorship by four criteria [@icmje2024], all
-four of which must be met:
-
-1. Substantial contributions to the conception or
-   design of the work; or the acquisition, analysis, or
-   interpretation of data.
-2. Drafting the work or revising it critically for
-   important intellectual content.
-3. Final approval of the version to be published.
-4. Agreement to be accountable for all aspects of the
-   work.
-
-A biostatistician who designs and executes the
-analysis (criterion 1), drafts the methods and results
-sections (criterion 2), reviews the final manuscript
-(criterion 3), and stands behind the analysis
-(criterion 4) is an author. A biostatistician who runs
-a one-off analysis without further engagement should
-be acknowledged but is not an author under ICMJE.
-
-In practice, the criteria are interpreted with some
-flexibility. Common patterns:
-
-- The lead biostatistician on a clinical trial is
-  routinely an author.
-- The biostatistician on a small consulting project
-  who runs the analysis but not the writing is
-  acknowledged.
-- The biostatistician who provides methodological
-  advice without analysis is acknowledged.
-- The biostatistician who writes the analysis but did
-  not see the manuscript before submission is in a
-  weak authorship position; they cannot meet criteria
-  3 and 4.
-
-Discussing authorship at the start of the project,
-in writing, prevents the confrontation at submission.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: authorship vs. acknowledgment
-
-**Question.** A clinical collaborator brings you a
-dataset and asks for 'a quick t-test for an
-abstract'. You run the test and email back the result.
-The abstract is accepted; you are listed as the second
-author of the abstract. Is this appropriate?
-
-**Answer.**
-
-Probably not. By ICMJE standards, you may meet
-criterion 1 (acquisition / analysis / interpretation
-of data) but criterion 2 (drafting or critically
-revising) and criterion 3 (final approval) are
-unmet: you did not see the abstract before
-submission. Acknowledgment would be the more
-defensible attribution. The right time to clarify
-this was at the start: 'I'll do the t-test if you
-can include me on the manuscript' or 'this counts
-as a service contribution; please acknowledge'.
-The mid-stream realization is harder to negotiate
-than the up-front agreement.
-
+- [Where you sit: the collaboration spectrum](#sec-team-science-roles)
+- [The intake conversation](#sec-team-science-intake)
+- [The scope of work](#sec-team-science-sow)
+- [Handling disagreement](#sec-team-science-disagreement)
+- [Authorship and credit](#sec-team-science-authorship)
+- [Managing a portfolio of projects](#sec-team-science-portfolio)
 :::
 
-## The intake conversation
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-03.
 
-The first meeting with a new clinical collaborator sets
-the trajectory of the collaboration, and it does so
-mostly through what is not asked. An investigator
-arrives with a dataset and a question, the statistician
-takes the work, and the terms nobody raised, what the
-deliverable is, when it is due, whether there will be
-authorship, become assumptions that each party holds
-privately and differently. They surface months later,
-during the only week in which everyone is busy.
-
-The remedy is a structured intake, which is less
-formal than it sounds: a fixed set of questions asked
-in the first conversation and written down afterward.
-At minimum it covers:
-
-**The scientific question.** What are they trying to
-find out? What would the answer enable? Push past 'is
-treatment A better than B' to 'better in what sense,
-for which patients, in what setting'. The question
-determines the design.
-
-**The data.** What data exist; how they were collected;
-what can and cannot be shared; whether the data exist
-yet or are to be collected. This is where most
-projects' fate is decided.
-
-**The deadline.** A grant deadline three months out is
-different from an exploratory question with no deadline.
-The deadline shapes what is feasible.
-
-**The authorship and acknowledgment expectation.**
-Will the statistician be a co-author? An
-acknowledgee? Hired help? Establishing this at
-intake avoids the confrontation later.
-
-**The deliverables.** A two-page memo, a Quarto
-report, a published paper, a regulatory submission?
-The format determines the time commitment.
-
-**Red flags.** A request to perform a specific test
-('we want a chi-square') without explaining the
-hypothesis. A dataset that has already been analyzed
-multiple times by the team ('it didn't show what we
-hoped'). Pressure to produce results by next week.
-Vague answers about IRB or data-use agreements. Each
-warrants more questions before agreement.
-
-A standard intake document, one page, ten
-questions, formalizes this conversation. Sending
-it before the meeting often resolves half the
-issues without the meeting.
-
-## Scope-of-work documents
-
-For any non-trivial collaboration, a written scope of
-work (SOW) defines:
-
-- **Inputs.** What data the collaborator will provide,
-  by when, in what format.
-- **Outputs.** What the statistician will produce
-  (analysis report, table for a paper, full
-  manuscript section), by when.
-- **Methodology.** The high-level analytic approach
-  (pre-registered or to-be-pre-registered).
-- **Revisions.** How many rounds of revision are
-  included; what counts as a 'major' change requiring
-  renegotiation.
-- **Authorship and acknowledgment.** As discussed at
-  intake.
-- **Boundaries.** What the statistician will *not* do
-  (e.g., implement methods outside their expertise,
-  perform the literature review).
-
-The SOW is not a legal contract; it is a shared
-understanding. When the project drifts (as projects
-do), the SOW is the document everyone returns to.
-
-## Managing a portfolio of projects
-
-The intake conversation and the scope of work govern a
-single collaboration. The defining structural fact of
-a collaborative biostatistician's work is that there is
-never only one. You will carry five to fifteen active
-projects at once, at different stages, for different
-investigators, each of whom is convinced theirs is the
-one you are working on today. Survey evidence ranks
-managing multiple simultaneous projects among the most
-essential skills in the work, second only to coding for
-those in their first five years [@slade2023team]. It is
-also the skill this book has so far said least about,
-and the one no software installs for you.
-
-**The unit of work is the portfolio, not the project.**
-A junior statistician experiences the job as a queue:
-finish project A, then start project B. The job is not
-a queue. Projects arrive on the investigators'
-schedules, block on data and approvals you do not
-control, and then unblock several at once. The
-competence being asked of you is to hold many
-partially finished projects in a legible state and move
-each when it is movable, not to drive one to completion
-while the rest quietly decay.
-
-**Estimate, then double.** Statisticians are
-systematically optimistic about how long an analysis
-takes, because the estimate imagines the clean path and
-the work is mostly the mess: the merge that reveals
-duplicated IDs, the outcome coded three ways across
-sites, the model that will not converge. Quote
-timelines with the mess included. A serviceable
-discipline is to estimate the clean path, double it,
-and add the one review cycle you forgot. Promising
-month 2 and delivering in month 2 builds more standing
-than promising month 1 and delivering in month 3.
-
-**Make blocking visible, to yourself and to them.**
-Much of a statistician's calendar is spent not working
-but waiting: for the data extract, for the IRB
-amendment, for the collaborator to say which of two
-outcomes is primary. A project blocked on someone else
-is not one you have finished thinking about; it is a
-debt that comes due, usually at the worst moment. For
-every active project, track the single thing it is
-waiting on and who owns it. When a PI asks why their
-analysis has not moved, 'I am waiting on the corrected
-data file I requested on the 3rd' is an answer; silence
-is not.
-
-**Protect the cost of re-entry.** The expensive part of
-juggling projects is not the analysis; it is the
-reconstruction paid each time you return to a project
-you set down three weeks ago and must remember what you
-were doing and why. This book has, without naming it,
-spent several chapters lowering that cost. A project
-that rebuilds with one command (@sec-rrtools,
-@sec-zzcollab), whose analytic decisions are fixed in
-an analysis plan (@sec-analysis-plan), and whose
-history is legible in Git (@sec-git-solo) can be put
-down and picked up in minutes. A project held together
-in your head and one untracked script cannot.
-Reproducible infrastructure is usually justified as a
-courtesy to others, the reviewer and the future
-replicator; its quieter and more immediate payoff is
-that it is what lets you carry fifteen projects without
-dropping any.
-
-**Batch the switches you can; price the ones you
-cannot.** Context switching is not free, and the
-statistician who answers every email the instant it
-arrives pays the re-entry cost a hundred times a day.
-Where the work allows, batch it: a block for one
-project's analysis, a separate block for correspondence
-across all projects, rather than interleaving at the
-grain of the inbox. A few switches are forced by
-genuine urgency and earn their cost; most are not, and
-the skill is telling the two apart.
-
-**Capacity is finite, and saying so is part of the
-job.** The boundaries clause of the scope of work
-declines work within a project. The same discipline
-operates across projects: a statistician who never says
-'I can start this in three weeks, not this week' ends
-up doing everything late rather than some things on
-time. Deferring is not a failure of collaboration.
-Committing to a deadline you cannot meet is.
-
-None of this requires a particular tool. A single list
-of active projects, each with its current stage, its
-next action, and the thing it is blocked on, reviewed
-once a week, is enough. The tool is not the skill; the
-habit of keeping the portfolio legible is.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: which project moves today?
-
-**Question.** It is Monday, and four projects are
-active. A has a grant deadline Friday and is waiting on
-nothing. B is a manuscript revision due in three weeks;
-you are blocked on a corrected data file that has not
-arrived. C is an exploratory analysis with no deadline
-whose PI emailed this morning asking for an update. D
-is a reviewer response due tomorrow and is half
-drafted. In what order do you work, and what do you
-send before you start?
-
-**Answer.**
-
-Before starting anything, send two messages: a reminder
-to B's data owner that you remain blocked on the
-corrected file, and a one-line reply to C's PI with a
-realistic date, because an unanswered ask silently
-curdles into a grievance. Then work D first: it is due
-tomorrow, and its remaining cost is the best known
-because it is half done. Then A: due Friday, unblocked,
-and the larger unknown, so it wants the fresh part of
-the day. B cannot be advanced until the file arrives,
-so the reminder you already sent was your only move on
-it today. C waits until A and D are clear. The error
-the queue model produces here is working C, because its
-email happens to sit on top of the inbox.
-
+1. What distinguishes a 'collaborative' biostatistician role
+   from a 'consulting' role?
+2. Name three communication skills essential for
+   biostatisticians on interdisciplinary research teams.
+3. Why does team science succeed or fail on clear expectations
+   about authorship and credit?
 :::
 
-## Communicating statistical results
+## Where you sit: the collaboration spectrum {#sec-team-science-roles}
 
-Translating statistical output for a clinical audience
-is not a matter of simplifying it. It is a matter of
-reporting the quantity the listener is actually going to
-act on, which is rarely the quantity the software puts
-at the top of its output. Four principles follow from
-that, and they are ordered from the one that changes the
-most to the one that changes the least:
+Most biostatisticians spend the greater part of their careers on
+teams alongside people who cannot read their code and do not
+share their vocabulary. Working across that gap is a learned
+skill, not a personality trait, and the distinction matters
+because skills can be taught. A statistician described as
+'difficult to work with' has usually not been rude to anyone.
+They have failed to establish, in writing and early, what was
+being asked and what would be delivered, and every later
+disagreement has been argued without a shared record of what was
+agreed. That is the shape of nearly every collaboration failure
+in this chapter: not a clash of personalities but an absent
+document.
 
-**Effect size first, p-value last.** 'The treatment
-reduced HbA1c by 0.6 percentage points (95% CI 0.3 to
-0.9)' communicates more than 'the effect was
-significant at p < 0.001', which is the p-value that
-interval implies. P-values are unintuitive
-and easily misinterpreted; effect sizes with
-uncertainty are not.
+The first thing to establish is the role. An investigator who
+says 'we need a statistician' may be asking for a methodological
+consult, a hands-on collaborator, a co-investigator on the grant,
+or hired labor for the analysis section of a manuscript. The
+expectations, the timeline, the authorship implications, and the
+appropriate level of pushback differ for each
+(@tbl-team-science-spectrum).
 
-**Plots over tables.** A coefficient plot with CIs
-conveys the same information as a regression table,
-faster, and is harder to misread.
+| Position | Mode | Your role | Authorship expectation | Where it is common |
+|---|---|---|---|---|
+| Consultant | Transactional: a question or dataset arrives, an answer leaves | Analysis or methodological advice | Usually acknowledgment; the deliverable is the analysis or report | Statistical consulting services, industry consulting groups |
+| Collaborator | Sustained across design, analysis, and writing | Substantively involved in the science | Authorship when the ICMJE criteria are met (@sec-team-science-authorship) | Most academic biostatistics |
+| Co-investigator | Named on the grant, with allocated effort | Partial authority over direction; deeply involved in design | Authorship, and effort paid from the grant | Mid-career and senior statisticians on funded research |
+| Principal investigator (PI) | Leads the project | The statistical method is itself the science | First or last author | Methodological research; less common as lead in clinical research |
 
-**Calibrated language.** Distinguish 'we found
-$X$' from 'the data are consistent with $X$' from
-'we cannot rule out $X$'. The verbs matter; the
-precision matters.
+: The collaboration spectrum. Authority, time, and credit rise
+together down the table. {#tbl-team-science-spectrum}
 
-**Specific examples.** 'For 60-year-old patients with
-baseline HbA1c of 8%, the model estimates an average of
-about 7.4% under treatment (95% CI 7.1 to 7.7%).' This
-is far more useful than the regression coefficient and
-SE that produce it. Say which kind of interval it is.
-That one describes the *average* patient like this; a
-single patient's value is far less certain. With a
-residual SD of 0.6 points, the 95% prediction interval
-for one such patient runs from about 6.2 to 8.6%, and a
-clinician who reads the narrower interval as a forecast
-for the patient in front of them has been misinformed.
+The common source of tension is mismatch: a statistician treated
+as a consultant who sees themselves as a collaborator, or the
+reverse. Dr. X's email reads like a consulting request ('run the
+numbers'), but the question inside it, whether home health
+changes outcomes, needs a collaborator from design onward.
+Naming the position out loud at intake is the first step in
+avoiding the mismatch.
 
-For papers and reports, write the substantive
-conclusion in plain language and include the
-quantitative support. For meetings, lead with the
-substantive conclusion, then the support if asked. The
-audience determines the order.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Dr. X offers to list you in the acknowledgments
+'for the stats'. You expect to design the analysis, write the
+methods and results, and revise the manuscript. Where on the
+spectrum is each of you placing the engagement, and when should
+the difference be raised?
 
-## Handling disagreement
+**Answer.** Dr. X is describing a consultant; the work you
+expect is a collaborator's, which carries authorship when the
+ICMJE criteria are met. Raise it at intake, before any analysis
+runs, and record the agreement in the scope of work
+(@sec-team-science-sow). Raised at submission, the same
+conversation is a dispute about work already done.
+:::
 
-When you and the collaborator disagree on a
-methodological choice, the path forward depends on
-what is at stake.
+## The intake conversation {#sec-team-science-intake}
 
-**Preference.** Coding style, default vs. non-default
-reference level, plotting choices. Defer to the
-collaborator unless there is a substantive reason
-not to.
+The first meeting with a new collaborator sets the trajectory of
+the collaboration, and it does so mostly through what is not
+asked. An investigator arrives with a dataset and a question, the
+statistician takes the work, and the terms nobody raised (what
+the deliverable is, when it is due, whether there will be
+authorship) become assumptions that each party holds privately
+and differently. They surface months later, during the only week
+in which everyone is busy.
 
-**Best practice.** Multiple-testing correction,
-intention-to-treat analysis, missing-data handling.
-Argue for the standard practice; if overruled,
-document the dissent in the methods.
+The remedy is a structured intake, which is less formal than it
+sounds: a fixed set of questions asked in the first conversation
+and written down afterward (@tbl-team-science-intake). Sending
+the questions before the meeting often resolves half the issues
+without the meeting.
 
-**Validity.** Inappropriate test, data dredging,
-post-hoc hypothesis selection, dichotomizing
-continuous outcomes. Push back firmly. If the
-disagreement persists and the analysis is
-methodologically wrong, withdraw.
+| Topic | What to ask | What the answer decides |
+|---|---|---|
+| The scientific question | What are you trying to find out, and what would the answer enable? Push past 'is A better than B' to 'better in what sense, for which patients, in what setting' | The design |
+| The data | What exists; how it was collected; what can be shared; whether it exists yet | Most of the project's fate |
+| The deadline | A grant deadline in three months, or an exploratory question with none? | What is feasible |
+| Authorship | Co-author, acknowledgment, or hired help? | The position on the spectrum |
+| The deliverables | A two-page memo, a Quarto report, a paper, a regulatory submission? | The time commitment |
+| Approvals | Which institutional review board (IRB) protocol and which data use agreement (DUA) cover this use? | Whether the work may start |
 
-The middle category is where most disagreements live
-and where judgment is most consequential. Picking too
-many fights makes you a difficult collaborator;
-picking none makes you complicit in bad analyses.
+: The intake questions. Write the answers down the same day.
+{#tbl-team-science-intake}
 
-## Worked example: the intake document
+### Red flags
 
-> **Project.** Post-discharge home health visits and
-> 30-day readmission or death in heart-failure
-> patients.
+Some answers warrant more questions before you agree to
+anything:
+
+- A request to perform a specific test ('we want a chi-square')
+  without the hypothesis it is meant to test.
+- A dataset the team has already analyzed several times ('it
+  didn't show what we hoped'), which makes any hypothesis now
+  proposed a post hoc one.
+- A comparison defined by what patients received after the
+  starting point, which builds in immortal time.
+- Pressure to produce results by next week.
+- Vague answers about the IRB protocol or the DUA.
+
+Dr. X's email carries three of these: a fixed answer in search of
+an analysis ('showing that the visits cut readmissions'), a
+deadline, and an exposure defined by what happened after
+discharge.
+
+### Worked example: the intake document
+
+The document below is what the intake conversation with Dr. X
+produced, for a cohort drawn from the electronic health record
+(EHR). It reframes the question with a landmark, so that every
+patient's exposure is fixed before follow-up begins, and it lists
+the red flags that remain.
+
+> **Project.** Post-discharge home health visits and 30-day
+> readmission or death in heart-failure patients.
 >
 > **Investigator.** Dr. X, Cardiology.
 >
-> **Question.** Among heart-failure patients alive
-> and not readmitted 7 days after discharge (the
-> landmark), is receiving at least one home health
-> visit in those 7 days associated with lower
-> all-cause readmission or death over days 8 to 30,
-> after adjustment for measured confounders?
+> **Question.** Among heart-failure patients alive and not
+> readmitted 7 days after discharge (the landmark), is receiving
+> at least one home health visit in those 7 days associated with
+> lower all-cause readmission or death over days 8 to 30, after
+> adjustment for measured confounders?
 >
 > **Data.** Retrospective EHR cohort, $n \approx 5{,}000$,
-> obtained from the institutional research data
-> warehouse under existing IRB. Includes
-> demographics, baseline ejection fraction,
-> medication on discharge, date of each home health
-> visit (needed for the landmark), dates of
-> readmission and death.
+> obtained from the institutional research data warehouse under
+> existing IRB. Includes demographics, baseline ejection
+> fraction, medication on discharge, date of each home health
+> visit (needed for the landmark), dates of readmission and
+> death.
 >
-> **Deadline.** Manuscript draft by month 4; submit
-> month 6.
+> **Deadline.** Manuscript draft by month 4; submit month 6.
 >
-> **Methodology (to be confirmed).** Propensity-
-> matched cohort with multivariable logistic
-> regression for the primary outcome. Sensitivity
-> analyses with inverse-probability weighting.
+> **Methodology (to be confirmed).** Propensity-matched cohort
+> with multivariable logistic regression for the primary
+> outcome. Sensitivity analyses with inverse-probability
+> weighting.
 >
-> **Deliverables.** Pre-registered analysis plan
-> (month 1), Table 1 and primary results (month 2),
-> manuscript draft (month 4), revisions (month 5).
+> **Deliverables.** Pre-registered analysis plan (month 1), Table
+> 1 and primary results (month 2), manuscript draft (month 4),
+> revisions (month 5).
 >
-> **Authorship.** Statistician will be second
-> author. Will be involved in writing methods and
-> results, and revising the full manuscript.
+> **Authorship.** Statistician will be second author. Will be
+> involved in writing methods and results, and revising the full
+> manuscript.
 >
-> **Boundaries.** Statistician will not write the
-> introduction or discussion. Statistician will not
-> perform additional analyses requested after month
-> 4 without renegotiation.
+> **Boundaries.** Statistician will not write the introduction or
+> discussion. Statistician will not perform additional analyses
+> requested after month 4 without renegotiation.
 >
-> **Red flags noted.** (1) Immortal time: as first
-> posed ('a visit within 7 days' against a 30-day
-> outcome), patients readmitted before a visit could
-> happen would count as unexposed, flattering home
-> health. Addressed by the 7-day landmark above.
-> (2) Confounding by indication: referral for home
-> health depends on frailty and social support,
-> which the EHR records poorly; propensity methods
-> adjust only for what is measured, so the result is
-> an association, and a causal answer needs a
-> randomized trial. (3) Outcome capture: admissions
-> elsewhere are missed unless the EHR is linked to
-> the state health-information exchange. (4) Deaths
-> before readmission are counted in the outcome, not
-> treated as non-events. To revisit if EHR data
-> quality is worse than expected at first
+> **Red flags noted.** (1) Immortal time: as first posed ('a
+> visit within 7 days' against a 30-day outcome), patients
+> readmitted before a visit could happen would count as
+> unexposed, flattering home health. Addressed by the 7-day
+> landmark above. (2) Confounding by indication: referral for
+> home health depends on frailty and social support, which the
+> EHR records poorly; propensity methods adjust only for what is
+> measured, so the result is an association, and a causal answer
+> needs a randomized trial. (3) Outcome capture: admissions
+> elsewhere are missed unless the EHR is linked to the state
+> health-information exchange. (4) Deaths before readmission are
+> counted in the outcome, not treated as non-events. To revisit
+> if EHR data quality is worse than expected at first
 > exploration.
 
-This document, agreed in writing at the start, makes
-the project run smoothly even when the data turn out
-to be messier than expected.
+The document did its job twice.
+It removed the immortal time from the question, and its second
+red flag told Dr. X what the cohort could not deliver: if the
+question is whether home health *causes* fewer readmissions, the
+answer needs randomization. That is the decision that turned this
+project into HF-HOME, the randomized trial whose statistical
+analysis plan (SAP) is the worked example of @sec-analysis-plan.
 
-## Collaborating with an LLM on team-science work
+::: {.callout-tip title='Verification'}
+Read your intake document as a stranger would, and confirm that
+each row of @tbl-team-science-intake has an answer in it that a
+third party could check: a named question, a named data source
+and approval, dates, an authorship statement, deliverables, and
+every red flag with what was done about it. A blank or a 'to be
+discussed' is a disagreement scheduled for later.
+:::
 
-LLMs can help with the writing parts (drafting intake
-documents, proofreading methods, role-playing
-skeptical PIs). They cannot replace the judgment.
+::: {.callout-important title='LLM prompt'}
+A model is a useful second reader for a request, provided you
+write your own list first.
 
-**Prompt 1: drafting an intake document.** Describe
-the project briefly and ask: 'draft a one-page intake
-document that I will send to a new clinical
-collaborator before our first meeting.'
+> **Context.** I am a biostatistician. Below is an email from a
+> clinical collaborator asking for an analysis. [paste the email,
+> with names, dates, and any data removed]
+>
+> **Constraints.** Do not propose an analysis. Do not soften the
+> list for tone. Consider at least: a test named without a
+> hypothesis, a hypothesis formed after looking at the data,
+> exposure defined after the start of follow-up (immortal time),
+> confounding by indication, deadline pressure, missing approvals
+> (IRB, DUA), how the data would be transferred, and the
+> authorship offered against the work requested.
+>
+> **Criteria.** Return a table: the quoted phrase, the red flag,
+> why it matters, and the question I should ask. Mark any flag
+> you are unsure of as uncertain.
 
-*What to watch for.* The output will likely be
-generic and reasonable. Customize it for the specific
-domain (oncology has different baseline norms than
-psychiatry).
+*Failure mode.* Models flag the explicit issues (no IRB, no
+analysis plan, vague hypotheses) and miss the subtle ones: a
+dataset the team has silently inspected, so that the 'hypothesis'
+is post hoc, and an exposure that can only occur among patients
+who survived long enough to receive it. *Check.* Compare the
+table with the list you wrote before prompting, and with the
+model answer to exercise 1 below; any flag on neither list goes
+to a senior colleague before the reply is sent. The email may go
+to the model only after you have removed patient information
+(@sec-ai-governance).
+:::
 
-*Verification.* Send it to a colleague who has run
-similar projects; iterate.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Why does the intake document name a 7-day landmark
+instead of comparing patients with and without 'a visit within 7
+days'?
 
-**Prompt 2: red-flag detection.** Paste a short
-description of a request from a collaborator and ask:
-'are there red flags in this request?'
+**Answer.** Exposure must be fixed before follow-up starts. A
+patient readmitted or dead on day 3 could not have had a day-5
+visit, so the naive comparison counts the sickest patients as
+unexposed and makes home health look protective. Starting
+follow-up at day 7, among patients still alive and not
+readmitted, assigns every patient's exposure before any outcome
+is counted. @sec-analysis-plan meets the same trap inside the
+trial, where an event before the planned visit erases the visit.
+:::
 
-*What to watch for.* The LLM is good at flagging
-explicit issues (no IRB, no analysis plan, vague
-hypotheses). It is weaker on subtle issues (data has
-been silently inspected by the team and the
-'hypothesis' is post-hoc).
+### Exercises
 
-*Verification.* Bring suspicions to a senior
-biostatistician; their experience patterns the gut
-calibration.
+1. After HF-HOME reports, Dr. X sends a second email. List every
+   red flag in it, say what each threatens, and draft a reply of
+   no more than six sentences.
 
-**Prompt 3: drafting a CRediT contribution
-statement.** Paste author names and roles, ask: 'draft
-a CRediT-format contribution statement.'
+   > Hi, the trial came back not significant, which was a
+   > surprise. The team has been going through the data and the
+   > patients who actually got the home visit did much better
+   > than usual care. Could you run a quick chi-square on just
+   > those patients versus usual care? The abstract deadline is
+   > Friday. I'll email you the spreadsheet from my laptop. Happy
+   > to thank you in the acknowledgments!
 
-*What to watch for.* The output should use the CRediT
-role names. CRediT describes contributions; it does
-not decide authorship, which is still settled by the
-ICMJE criteria. Each contribution should be specific
-and meaningful; vague statements ('contributed to
-the project') are red flags for ghost authorship.
+::: {.callout-note collapse='true' title='Solution'}
+| Phrase | Red flag | What it threatens |
+|---|---|---|
+| 'the team has been going through the data' | The hypothesis was formed after looking at the outcomes | Any p-value from the new comparison is uninterpretable |
+| 'the patients who actually got the home visit' | An as-treated subset of one randomized arm | Randomization: patients who received the visit differ from those who did not, and patients with early events could not receive it (immortal time) |
+| 'a quick chi-square' | A test named without a hypothesis or estimand | The design dictating nothing and the test dictating everything |
+| 'deadline is Friday' | Deadline pressure | Time for a correct analysis or a considered refusal |
+| 'email you the spreadsheet from my laptop' | Trial data held and transferred outside the approved system | The data use and security terms of the protocol |
+| 'thank you in the acknowledgments' | Authorship offered without reference to the work | ICMJE eligibility, which depends on the work, not the offer |
 
-*Verification.* Have each named author confirm the
-description is accurate before submission.
+A reply that holds the line: 'Thanks; I know the result was
+disappointing. The comparison of visited patients with usual care
+is not one I can run as a test of home health, because the
+patients who received a visit differ from those who did not in
+ways randomization no longer balances, including that patients
+with early readmissions never had the chance of a visit. The
+trial's answer is the as-randomized comparison, and I can help
+write it up as an informative inconclusive result by Friday. If
+the team wants the visited-patient analysis, I can run it as a
+labeled exploratory analysis with appropriate adjustment, after
+the abstract. Please do not send trial data by email; I will pull
+it from the trial's analysis environment.' The first flag is the
+one most readers miss, because the email presents it as
+observation rather than as analysis.
+:::
 
-## Principle in use
+## The scope of work {#sec-team-science-sow}
 
-Three habits keep expectations from diverging:
+For any non-trivial collaboration, a written scope of work (SOW)
+turns the intake into commitments. It is not a legal contract; it
+is a shared understanding. When the project drifts, as projects
+do, the SOW is the document everyone returns to, and the document
+is what you defend when expectations diverge. Verbal agreements
+about scope, deadlines, authorship, and analytic decisions
+evaporate; send an email summary after every meeting, and write
+the analysis plan before any analysis runs (Habit 5).
+@tbl-team-science-sow is a template, filled in for the HF-HOME
+trial that grew out of Dr. X's intake.
 
-1. **Document agreements at the time, not at the
-   end.** Email summaries after every meeting;
-   written SOWs and intake documents.
-2. **Distinguish preference from principle.** Pick the
-   methodological battles that affect validity; defer
-   on the rest.
-3. **Translate between registers.** Effect-size
-   language for clinical readers; technical language
-   for methods sections; calibrated uncertainty
-   language for both.
+| Element | What to write | HF-HOME example |
+|---|---|---|
+| Inputs | What the collaborator provides, by when, in what format | Randomization list and case report form (CRF) exports from the trial's data management system, monthly from first enrollment |
+| Outputs | What you produce, by when | Locked SAP before the first outcome is ascertained; Table 1 and primary analysis within six weeks of database lock; methods and results sections of the main paper |
+| Methodology | The high-level approach, and where it will be pre-specified | As-randomized comparison of 30-day readmission or death; full detail in the SAP (@sec-analysis-plan) |
+| Revisions | How many rounds are included; what counts as a major change | Two rounds of manuscript revision; a new outcome, population, or model is a renegotiation |
+| Authorship and acknowledgment | As agreed at intake, against the ICMJE criteria | Statistician is an author on the main paper and on any secondary paper using the trial's analysis; contributions recorded in CRediT terms |
+| Boundaries | What you will *not* do | No introduction or discussion; no analyses added after database lock without an SAP amendment; no work on data outside the approved environment |
 
-## Exercises
+: A scope-of-work template, with the HF-HOME entries.
+{#tbl-team-science-sow}
 
-**On your own machine, data, or collaborations.** These exercises
-concern your own collaborations and cannot have an answer key. What a
-good answer establishes is stated with each.
+The boundaries row is the one most often left blank and most
+often needed. It is where 'one more quick analysis' gets an
+answer that was written before anyone was annoyed.
 
-1. Take a paper you have contributed to and draft a
-   CRediT-format contribution statement for every
-   author, based only on the paper's content.
-2. Write a one-page intake document you would share
-   with a new clinical collaborator before the first
-   meeting.
-3. Find a published paper whose results are overstated
-   relative to the evidence. Write a two-paragraph
-   critique suitable for a peer review.
-4. Role-play a difficult conversation: a senior PI
-   asks you to dichotomize a continuous outcome to
-   produce an OR for a press release. Draft your
-   response.
-5. Audit your own most recent project: which of the
-   ICMJE criteria did you meet? Was your authorship
-   position appropriate?
-6. List every project you currently have active. For
-   each, write its stage, its single next action, and
-   the one thing it is blocked on together with who
-   owns that thing. Any project for which you cannot
-   name a next action is the one in trouble; say why.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Two months after database lock, Dr. X asks for a
+subgroup analysis by ejection-fraction stratum for a conference.
+Which rows of the SOW govern the request, and what do they tell
+you to do?
+
+**Answer.** Boundaries (no analyses added after lock without an
+SAP amendment) and Revisions (a new analysis is a
+renegotiation). Neither says no. They say the analysis is
+exploratory unless the SAP pre-specified it, that it must be
+labeled as such, and that the time it takes is a new commitment
+to be agreed, not absorbed. A subgroup the SAP did name is
+already in scope.
+:::
+
+### Exercises
+
+2. Each request below arrives during HF-HOME. Name the SOW row
+   that governs it and say whether it is in scope.
+   (a) A reviewer asks for the primary analysis adjusted for
+   site. (b) Dr. X asks you to draft the discussion section.
+   (c) A site coordinator offers to send you an updated CRF
+   export as an email attachment. (d) Dr. X asks for a second
+   paper on 90-day mortality.
+
+::: {.callout-note collapse='true' title='Solution'}
+(a) Revisions and Methodology: in scope if the SAP names site as
+a stratification factor, as HF-HOME's does, since adjusting for
+stratification factors is standard; a response to a reviewer is
+one of the agreed revision rounds. (b) Boundaries: out of scope;
+you may comment on the discussion, but drafting it is the
+investigators' work unless renegotiated. (c) Inputs and
+Boundaries: out of scope as offered, because inputs come from the
+trial's data management system and you do not work on data
+outside the approved environment; ask for the export through the
+agreed route. (d) Outputs and Authorship: a new paper with a new
+outcome is a new scope of work, with its own analysis plan and
+its own authorship agreement, even though the data are the same.
+:::
+
+## Handling disagreement {#sec-team-science-disagreement}
+
+Not every methodological choice is worth a confrontation, and
+distinguishing preference from principle is what makes you a
+useful collaborator rather than a pedantic one. When you and a
+collaborator disagree, the response depends on what is at stake
+(@tbl-team-science-tiers).
+
+| Tier | What it covers | HF-HOME example | Your response |
+|---|---|---|---|
+| Preference | Coding style, the reference level of a factor, plotting choices, the order of a table | Dr. X wants usual care as the second column of Table 1 | Defer, unless there is a substantive reason not to |
+| Best practice | Multiplicity correction, intention-to-treat analysis, missing-data handling, sensitivity analyses | Dr. X wants to drop the tipping-point analysis of unascertained outcomes to save space | Argue for the standard; if overruled, record the dissent in the SAP or the methods |
+| Validity | An inappropriate test, data dredging, a hypothesis chosen after seeing the data, dichotomizing a continuous outcome, comparisons that break randomization | Dr. X wants the visited patients compared with usual care as the trial's result | Push back firmly; if the analysis is still methodologically wrong, withdraw from it |
+
+: Three tiers of disagreement and the response to each.
+{#tbl-team-science-tiers}
+
+The middle tier is where most disagreements live and where
+judgment is most consequential. Picking too many fights makes you
+a difficult collaborator; picking none makes you complicit in bad
+analyses. Withdrawing, at the third tier, means declining to put
+your name or your analysis to the result, said plainly and once;
+@sec-ethics catalogs the cases where it is warranted.
+
+### Talking about results
+
+How you report a result to a collaborator is the subject of
+@sec-communicating, which owns the memo, the talk, and the
+response to reviewers. Three points belong here, because they
+come up in every collaboration before anything is written.
+
+**Report the quantity the listener will act on.** That is an
+effect size with its uncertainty, not a p-value: 'the treatment
+reduced HbA1c (glycated hemoglobin) by 0.6 percentage points (95%
+confidence interval [CI] 0.3 to 0.9)' says more than 'the effect
+was significant at p < 0.001', which is the p-value that interval
+implies. In a meeting, lead with the conclusion and give the
+support if asked; in a paper, write the conclusion in plain
+language and include the quantitative support.
+
+**Match the verb to the evidence** (Habit 11). The three
+registers in @tbl-team-science-verbs are different claims, and
+@sec-communicating and @sec-ethics build on them.
+
+| Register | What it claims | When the evidence supports it |
+|---|---|---|
+| 'We found X' | X is established by this study | The interval excludes no effect, and the design licenses the verb |
+| 'The data are consistent with X' | X is among the values the data support | X lies inside the interval, along with other values |
+| 'We cannot rule out X' | X has not been excluded | X lies inside the interval, and so does no effect |
+
+: Three registers of a claim. An inconclusive trial such as
+HF-HOME supports the second and third, not the first.
+{#tbl-team-science-verbs}
+
+**Say which kind of interval it is.** 'For 60-year-old patients
+with baseline HbA1c of 8%, the model estimates an average of about
+7.4% under treatment (95% CI 7.1 to 7.7%)' describes the *average*
+patient like this; a single patient's value is far less certain.
+With a residual standard deviation of 0.6 points, the 95%
+prediction interval for one such patient runs from about 6.2 to
+8.6%, and a clinician who reads the narrower interval as a
+forecast for the patient in front of them has been misinformed.
+
+::: {.callout-warning title='Pitfall'}
+**A disagreement settled by phone leaves no record, and the
+analysis that ships is the one you objected to.** When you are
+overruled on a best-practice question, the dissent exists only if
+it is written: an SAP amendment, a sentence in the methods, or at
+minimum an email summary sent the same day. Without it, the
+choice reads later as yours.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Dr. X proposes reporting HF-HOME's primary outcome
+as 'home health reduced readmission or death', citing the point
+estimate. Which tier is the disagreement, and which register does
+the result support?
+
+**Answer.** Validity: the sentence claims an effect the interval
+does not establish, which misrepresents the result. HF-HOME's
+interval includes no effect, so the result supports 'the data are
+consistent with a modest reduction' and 'we cannot rule out no
+effect', and the plain summary is that the trial was
+inconclusive. @sec-communicating works the memo through with the
+computed numbers.
+:::
+
+### Exercises
+
+3. Classify each request as preference, best practice, or
+   validity, and give your response in one sentence. (a) Report
+   odds ratios rather than risk differences in a secondary table.
+   (b) Dichotomize N-terminal pro-B-type natriuretic peptide
+   (NT-proBNP) at its median 'to make the result
+   easier to explain' in a press release. (c) Omit the
+   adjustment for multiple secondary outcomes. (d) Use a
+   different color palette for the figures.
+
+::: {.callout-note collapse='true' title='Solution'}
+(a) Preference, provided the primary estimand (a risk difference
+in HF-HOME) is reported as pre-specified: defer, and suggest the
+risk difference beside the odds ratio for readers. (b) Validity:
+dichotomizing a continuous measure discards information, makes
+the result depend on an arbitrary cut, and here serves a press
+release; decline, and offer a plain-language statement of the
+continuous result instead. (c) Best practice: argue for the
+pre-specified procedure, and if overruled, state in the methods
+that no adjustment was made and label the secondary results
+exploratory. (d) Preference: defer, checking only that the
+palette is legible to color-blind readers.
+:::
+
+## Authorship and credit {#sec-team-science-authorship}
+
+Authorship allocates credit in an academic system where credit
+allocates grants, promotions, and standing, and unresolved
+authorship disputes sour collaborations and sometimes end them.
+The ICMJE defines authorship by four criteria, all four of which must be
+met [@icmje2024]:
+
+1. Substantial contributions to the conception or design of the
+   work; or the acquisition, analysis, or interpretation of data.
+2. Drafting the work or revising it critically for important
+   intellectual content.
+3. Final approval of the version to be published.
+4. Agreement to be accountable for all aspects of the work.
+
+The ICMJE also asks that anyone who meets the first criterion be
+given the opportunity to meet the other three, by taking part in
+drafting, review, and approval. Contributors who do not qualify,
+including those whose only role was funding, general supervision,
+or administrative support, are acknowledged.
+
+**CRediT is a separate question.** CRediT describes *what* each
+contributor did, in fourteen named roles such as
+Conceptualization, Formal analysis, Data curation, and Writing –
+review & editing [@brand2015beyond]. It does not decide *who* is
+an author; the ICMJE criteria do. A contributor can hold several
+CRediT roles and still not be an author, and a journal that asks
+for a CRediT statement is asking for a description, not a ruling.
+@tbl-team-science-authorship applies both to the HF-HOME main
+paper.
+
+| Contributor | ICMJE 1 | 2 | 3 | 4 | Decision | CRediT roles |
+|---|:-:|:-:|:-:|:-:|---|---|
+| Lead statistician: wrote the SAP, ran the analysis, drafted the methods and results, approved the final version | Yes | Yes | Yes | Yes | Author | Methodology; Formal analysis; Software; Writing – original draft |
+| Co-analyst: independently reprogrammed the primary analysis; has not yet seen the manuscript | Yes | Not yet | Not yet | Not yet | Offer drafting and approval; author if all four are then met | Validation; Software |
+| Site coordinator: enrolled patients and collected the CRF data; reviewed and approved the manuscript | Yes | Yes | Yes | Yes | Author | Investigation; Data curation |
+| Department chair: secured the funding; no other role | No | No | No | No | Acknowledge | Funding acquisition |
+| Statistician who answered one design question by email | No | No | No | No | Acknowledge | None as an author |
+| Statistician who ran a test for an abstract and never saw the abstract | Yes | No | No | No | Acknowledge, unless offered and accepting a role in drafting and approval | Formal analysis |
+
+: Authorship scenarios for the HF-HOME main paper. ICMJE decides
+the 'Decision' column; CRediT only describes.
+{#tbl-team-science-authorship}
+
+In practice the lead statistician on a clinical trial is
+routinely an author; a statistician who wrote the analysis but
+did not see the manuscript before submission is in a weak
+position, because criteria 3 and 4 cannot be met after the fact.
+Discussing authorship at the start of the project, in writing,
+prevents the confrontation at submission.
+
+::: {.callout-important title='LLM prompt'}
+A model can draft a contribution statement; it cannot decide
+authorship.
+
+> **Context.** Below are the contributors to a manuscript and, for
+> each, a factual list of what they did. The authorship list has
+> already been decided against the ICMJE criteria. [paste names
+> and contributions]
+>
+> **Constraints.** Use only the fourteen CRediT role names,
+> spelled as the taxonomy spells them. Do not add, remove, or
+> reorder authors, and do not comment on who should be an author.
+> Assign a role only when a listed contribution supports it.
+>
+> **Criteria.** Return a table of author and roles, then the
+> statement in the journal's format. Flag any author with no
+> supported role.
+
+*Failure mode.* The model assigns generous roles (Conceptualization
+for everyone, Writing for anyone who commented) or vague ones
+('contributed to the project'), which is how ghost and gift
+authorship look on paper; asked a question about authorship, it
+answers with CRediT roles as if they settled it. *Check.* Confirm
+every role name against the CRediT list, and send each author
+their own line to confirm before submission; an author who cannot
+confirm a role does not get it.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A clinical collaborator brings you a dataset and
+asks for 'a quick t-test for an abstract'. You run the test and
+email back the result. The abstract is accepted with you as
+second author. Is this appropriate?
+
+**Answer.** Probably not. You meet criterion 1 (analysis of
+data), but criteria 2 and 3 are unmet: you did not see the
+abstract before submission, and you cannot be accountable
+(criterion 4) for text you have not read. Acknowledgment is the
+more defensible attribution, unless you are given, and take, the
+chance to revise and approve it. The right time to settle this
+was the start: 'I will do the test if I can review the abstract
+before it goes in', or 'this counts as a service contribution;
+please acknowledge'.
+:::
+
+### Exercises
+
+4. For a secondary HF-HOME paper on medication burden, decide
+   authorship for each contributor and give at least one CRediT
+   role: (a) a pharmacist who designed the coding scheme for the
+   discharge medication strings and helped draft the methods,
+   and approved the paper; (b) a data manager who exported the
+   files and has seen no draft; (c) Dr. X, who proposed the
+   question, revised the manuscript, and approved it; (d) a
+   graduate student who checked the medication coding against the
+   source records and is offered, and accepts, a role in revising
+   and approving the paper.
+
+::: {.callout-note collapse='true' title='Solution'}
+(a) Author: design of a component of the work (criterion 1),
+drafting (2), approval (3), and, by approving, accountability
+(4), provided they agree to it; CRediT Methodology, Data
+curation, Writing – original draft. (b) Acknowledge as things
+stand: the export alone is a modest contribution to acquisition,
+and criteria 2 to 4 are unmet; CRediT Data curation describes the
+role whether or not they become an author. (c) Author:
+Conceptualization, Writing – review & editing. (d) Author, once
+all four criteria are met: the verification is a substantial
+contribution to acquisition and analysis, and the ICMJE asks that
+such a contributor be given the chance to meet the rest; CRediT
+Validation, Writing – review & editing. The CRediT roles describe
+each person in every case; the decision column comes from ICMJE.
+:::
+
+## Managing a portfolio of projects {#sec-team-science-portfolio}
+
+The intake conversation and the scope of work govern a single
+collaboration. The defining structural fact of a collaborative
+biostatistician's work is that there is never only one. You will
+carry five to fifteen active projects at once, at different
+stages, for different investigators, each of whom is convinced
+theirs is the one you are working on today. Survey evidence ranks
+managing multiple simultaneous projects among the most essential
+skills in the work, second only to coding for those in their
+first five years [@slade2023team]. No software installs it.
+
+**The unit of work is the portfolio, not the project.** A junior
+statistician experiences the job as a queue: finish project A,
+then start project B. Projects instead arrive on the
+investigators' schedules, block on data and approvals you do not
+control, and then unblock several at once. The competence asked
+of you is to hold many partly finished projects in a legible
+state and move each when it is movable, not to drive one to
+completion while the rest quietly decay. @tbl-team-science-portfolio
+is what a legible portfolio looks like.
+
+| Project | Investigator | Stage | Next deliverable | Blocked on (owner) | Hours this week |
+|---|---|---|---|---|---|
+| HF-HOME main paper | Dr. X | Analysis | Primary results and Table 1 | Nothing | 12 |
+| Readmission risk model | Dr. Y | Data acquisition | Cohort definition memo | Data extract (warehouse team, requested on the 3rd) | 1 |
+| Sepsis registry | Dr. Z | Revision | Response to reviewers | Nothing; due in 3 weeks | 6 |
+| Stroke rehabilitation pilot | Dr. W | Design | Sample-size calculation | Choice of primary outcome (Dr. W) | 1 |
+| Grant resubmission | Dr. X | Writing | Statistical analysis section | Nothing; due in 5 weeks | 4 |
+
+: A sample project portfolio, reviewed weekly. The 'Blocked on'
+column names a person, not a state.
+{#tbl-team-science-portfolio}
+
+**Estimate, then double.** Statisticians are systematically
+optimistic about how long an analysis takes, because the estimate
+imagines the clean path and the work is mostly the mess: the
+merge that reveals duplicated IDs, the outcome coded three ways
+across sites, the model that will not converge. Estimate the
+clean path, double it, and add the one review cycle you forgot.
+Promising month 2 and delivering in month 2 builds more standing
+than promising month 1 and delivering in month 3.
+
+**Make blocking visible, to yourself and to them.** Much of a
+statistician's calendar is spent waiting: for the data extract,
+for the IRB amendment, for the collaborator to say which of two
+outcomes is primary. A blocked project is a debt that comes due,
+usually at the worst moment. For every active project, track the
+single thing it is waiting on and who owns it. When a PI asks
+why their analysis has not moved, 'I am waiting on the corrected
+data file I requested on the 3rd' is an answer; silence is not.
+
+**Protect the cost of re-entry.** The expensive part of juggling
+projects is not the analysis but the reconstruction paid each
+time you return to a project set down three weeks ago. A project
+that rebuilds with one command (@sec-rrtools, @sec-zzcollab),
+whose analytic decisions are fixed in an analysis plan
+(@sec-analysis-plan), and whose history is legible in Git
+(@sec-git-solo) can be put down and picked up in minutes; one
+held together in your head and an untracked script cannot.
+Reproducible infrastructure is usually justified as a courtesy to
+reviewers and future replicators. Its quieter and more immediate
+payoff is that it lets you carry fifteen projects without
+dropping any (Habit 1).
+
+**Batch the switches you can; price the ones you cannot.**
+Context switching is not free, and the statistician who answers
+every email the instant it arrives pays the re-entry cost a
+hundred times a day. Where the work allows, batch it: a block for
+one project's analysis, a separate block for correspondence
+across all projects. A few switches are forced by genuine urgency
+and earn their cost; most are not, and the skill is telling the
+two apart.
+
+**Capacity is finite, and saying so is part of the job.** The
+boundaries row of the scope of work declines work within a
+project. The same discipline operates across projects: a
+statistician who never says 'I can start this in three weeks, not
+this week' ends up doing everything late rather than some things
+on time. Deferring is not a failure of collaboration; committing
+to a deadline you cannot meet is.
+
+None of this requires a particular tool. A single list like
+@tbl-team-science-portfolio, reviewed once a week, is enough. The
+tool is not the skill; the habit of keeping the portfolio legible
+is.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** It is Monday, and four projects are active. A has a
+grant deadline Friday and is waiting on nothing. B is a
+manuscript revision due in three weeks, blocked on a corrected
+data file that has not arrived. C is an exploratory analysis with
+no deadline whose PI emailed this morning asking for an update. D
+is a reviewer response due tomorrow and is half drafted. In what
+order do you work, and what do you send before you start?
+
+**Answer.** Before starting, send two messages: a reminder to B's
+data owner that you remain blocked on the corrected file, and a
+one-line reply to C's PI with a realistic date, because an
+unanswered ask silently curdles into a grievance. Then work D
+first: it is due tomorrow, and its remaining cost is the best
+known because it is half done. Then A: due Friday, unblocked, and
+the larger unknown, so it wants the fresh part of the day. B
+cannot move until the file arrives, so the reminder was your only
+move on it today. C waits until A and D are clear. The queue
+model's error here is working C because its email sits on top of
+the inbox.
+:::
+
+### Exercises
+
+5. You have 20 working hours this week for project work. Your
+   clean-path estimates are: HF-HOME primary results, 8 hours, due
+   Friday; a sepsis-registry reviewer response, 4 hours, due in
+   three weeks; a new intake meeting with Dr. V, 1 hour,
+   requested for this week; a power calculation for Dr. W, 3
+   hours, blocked until Dr. W chooses the primary outcome. Using
+   'estimate, then double', decide what you commit to this week,
+   what you defer, and what you send to whom.
+
+::: {.callout-note collapse='true' title='Solution'}
+Doubled, the estimates are 16, 8, 2, and 6 hours: 32 hours of
+work against 20 available, so something must be deferred, and
+saying so on Monday is the job. Commit to the HF-HOME results (16
+hours, due Friday) and the intake meeting (2 hours, because a new
+collaborator's first impression is set by whether you make
+time). That leaves 2 hours, not enough for the reviewer
+response, which is due in three weeks and can start next week.
+Dr. W's power calculation cannot start at all; send Dr. W a
+one-line message that the calculation is waiting on the choice
+of primary outcome, and offer two candidate outcomes to choose
+between. Send the sepsis-registry PI a date for the response. The
+schedule fits because nothing blocked was counted as work, and
+nothing unblocked was promised that the doubled estimate could
+not hold.
+:::
+
+## Rules of thumb
+
+1. **Habit 5: agree in writing before the analysis runs.** The
+   intake document, the scope of work, and the analysis plan are
+   the record every later disagreement is settled against.
+2. **Habit 11: match the verb to the design.** At intake, ask
+   whether the question needs 'causes' or 'is associated with',
+   and choose the design that licenses the verb you need.
+3. **Habit 1: the compendium is the unit.** A project that
+   rebuilds with one command is one you can set down and pick up,
+   which is what makes a portfolio of fifteen possible.
+
+## Cumulative practice
+
+6. *Cumulative (uses @sec-why).* Midway through HF-HOME, Dr. X
+   asks you to skip the analysis plan and the version-controlled
+   compendium 'just this once' to make an abstract deadline.
+   Write the reply, using the cost-benefit case of @sec-why and
+   the rows of the scope of work that apply.
+
+::: {.callout-note collapse='true' title='Solution'}
+A strong reply concedes the deadline, refuses the shortcut, and
+offers what can be done. It names the cost in Dr. X's terms: an
+abstract result produced outside the plan is one that cannot be
+reproduced for the paper, and a number that changes between the
+abstract and the paper is the event @sec-why describes. It cites
+the SOW's Outputs and Boundaries rows (a locked SAP before
+outcomes; no analyses outside the agreed environment), so the
+refusal rests on an agreement rather than a preference. And it
+offers an alternative: the pre-specified baseline table, which
+needs no outcome data, or a submission at the next deadline.
+:::
+
+7. *On your own work (no key).* List every project you currently
+   have active. For each, write its stage, its single next
+   action, and the one thing it is blocked on, together with who
+   owns that thing. Any project for which you cannot name a next
+   action is the one in trouble; say why.
+
+## Cheat sheet
+
+| Situation | Do | Tool |
+|---|---|---|
+| A new request arrives | Ask the intake questions; name the position on the spectrum | @tbl-team-science-intake, @tbl-team-science-spectrum |
+| The request names a test, not a question | Ask for the hypothesis and the estimand first | Red-flag list |
+| Exposure is defined by what happened after the start | Fix exposure before follow-up, with a landmark or randomization | Intake document |
+| The intake is done | Write the scope of work the same week | @tbl-team-science-sow |
+| A collaborator disagrees | Classify the tier before responding | @tbl-team-science-tiers |
+| You are overruled on best practice | Record the dissent in writing the same day | SAP amendment or methods sentence |
+| Reporting a result in conversation | Effect size and interval first; match the verb | @tbl-team-science-verbs |
+| Deciding authorship | ICMJE decides; CRediT describes | @tbl-team-science-authorship |
+| Too many projects | Double the estimates; name every block and its owner | @tbl-team-science-portfolio |
+
+: Team science at a glance. {#tbl-team-science-cheat-sheet}
 
 ## Further reading
 
-- [@slade2023team], essential team-science skills
-  for biostatisticians.
-- [@icmje2024], the defining reference for authorship
-  norms.
-- The CRediT taxonomy, now maintained by NISO at
-  `credit.niso.org`, the contribution-role vocabulary
-  for finer-grained attribution.
+- [@slade2023team], essential team-science skills for
+  biostatisticians.
+- [@icmje2024], the defining reference for authorship norms.
+- [@brand2015beyond], the origin of the CRediT taxonomy, now
+  maintained by NISO (the National Information Standards
+  Organization) at `credit.niso.org`.
 
 ## Prerequisites answers {#sec-quiz-answers-03}
 
-1. Consulting is typically transactional: a question
-   is brought, a statistical analysis is delivered,
-   and the relationship ends. Collaboration is
-   sustained: the statistician is a team member
-   involved across study design, data collection,
-   analysis, and manuscript writing, and shares
-   authorship responsibility for the final product.
-   The middle ground (a few sustained interactions
-   that do not span the whole project) is where most
-   role disputes happen.
-2. Active listening (understanding the scientific
-   question before proposing a method), precise
-   writing (producing analysis plans and memos that
-   non-statisticians can audit), and calibrated
-   language (distinguishing 'verified', 'likely',
-   'assumed', and 'unknown' in reports). Many
-   biostatisticians' technical skill outpaces their
-   communication; the gap shows up as 'difficult to
-   work with'.
-3. Authorship determines credit in an academic
-   system where credit allocates grants, promotions,
-   and prestige. Unresolved authorship disputes sour
-   collaborations and sometimes terminate them.
-   ICMJE-style agreement at the outset (and written
-   down) avoids the confrontation at the end. The
-   conversation is uncomfortable up front and far
-   more uncomfortable later; have it early.
+1. Consulting is typically transactional: a question is
+   brought, a statistical analysis is delivered, and the
+   relationship ends. Collaboration is sustained: the
+   statistician is a team member involved across study design,
+   data collection, analysis, and manuscript writing, and shares
+   authorship responsibility for the final product. The middle
+   ground (a few sustained interactions that do not span the
+   whole project) is where most role disputes happen.
+2. Active listening (understanding the scientific question
+   before proposing a method), precise writing (producing
+   analysis plans and memos that non-statisticians can audit),
+   and calibrated language (distinguishing 'verified', 'likely',
+   'assumed', and 'unknown' in reports). Many biostatisticians'
+   technical skill outpaces their communication; the gap shows up
+   as 'difficult to work with'.
+3. Authorship determines credit in an academic system where
+   credit allocates grants, promotions, and prestige. Unresolved
+   authorship disputes sour collaborations and sometimes
+   terminate them. ICMJE-style agreement at the outset (and
+   written down) avoids the confrontation at the end. The
+   conversation is uncomfortable up front and far more
+   uncomfortable later; have it early.

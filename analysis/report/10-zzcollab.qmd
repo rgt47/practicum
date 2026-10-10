@@ -1,4 +1,16 @@
-# The zzcollab Framework {#sec-zzcollab}
+# Assembling the Compendium {#sec-zzcollab}
+
+A collaborator clones your compendium, restores the lockfile,
+renders the paper, and gets a p-value of 0.06 where the manuscript
+reports 0.04. Every package version matches yours. The difference
+is in the data: the repository could not hold the outcomes file,
+the README said to copy it from the shared drive, and the shared
+drive now holds a later extract with corrections. Nothing failed,
+and nothing in the repository could tell either of you that the
+inputs differed. A compendium reproduces an answer only when every
+layer the answer depends on is pinned, and this chapter is the
+checklist for those layers, the Five Pillars, with the ways to
+assemble and audit them.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -14,142 +26,94 @@ Mathematics* (1911)
 ```
 :::
 
-::: {.callout-note}
-## Sources
+```{r}
+#| label: zzcollab-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-In-house `zzcollab` framework at
-`github.com/rgt47/zzcollab` (version 0.2.0 at the time
-of writing).
-Blog posts `14-penguins1zzcollab` and
-`42-zzedcindependence`. This chapter describes
-`zzcollab` as it exists at time of writing; check
-the framework's `CHANGELOG.md` for current status.
+```{r}
+#| label: fig-zzcollab-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: the Five Pillars assemble the
+#|   Environment band, which runs under every stage of the analysis,
+#|   with the code and data that the stages use."
+#| fig-alt: !expr pipeline_alt('environment')
+pipeline_diagram('environment')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 20 minutes.
+
+**You'll need.** @sec-rrtools for the compendium layout,
+@sec-renv for the lockfile, and @sec-docker for the container,
+in particular the canonical Dockerfile of @sec-docker-canonical.
+The code calls every function with its namespace
+(`renv::lockfile_read()`, `cli::hash_file_sha256()`), so it needs
+no `library()` call.
+
+**You'll be able to.**
+
+- Name the Five Pillars, what each pins, and the silent failure
+  its absence causes.
+- Assemble a compendium by hand from the `rrtools` layout, `renv`,
+  the canonical Dockerfile, and a checksum manifest for the data.
+- Audit a compendium against the pillars with a short script, and
+  fix what it reports.
+- Choose between assembling by hand and automating with `rrtools`,
+  `workflowr`, or `zzcollab`, for a given project.
+
+**Outline.**
+
+- [The Five Pillars](#sec-zzcollab-pillars)
+- [Assembling the compendium by hand](#sec-zzcollab-assemble)
+- [Auditing the pillars](#sec-zzcollab-audit)
+- [Choosing how much to automate](#sec-zzcollab-choosing)
+- [Optional: automating the assembly with zzcollab](#sec-zzcollab-optional)
 :::
 
-## Prerequisites
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-10.
 
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-10.
+1. What are the *Five Pillars* of a reproducible research
+   compendium, and what does each capture that the other four do
+   not?
+2. A project has a committed `renv.lock` and a Dockerfile. Which
+   pillars does it still lack, and how would anyone notice?
+3. When is a framework such as `rrtools`, `workflowr`, or
+   `zzcollab` worth adopting, and what does it leave for you to
+   do?
+:::
 
-1. What are the *Five Pillars* that `zzcollab`
-   identifies as essential for a reproducible
-   research compendium, and what does each pillar
-   capture that the other four do not?
-2. How does `zzcollab` relate to `rrtools`, `renv`,
-   and Docker? Does it replace them, wrap them, or
-   compose them?
-3. What does a `zzcollab` profile determine, and when
-   would you pick `publishing` over `tidyverse`?
+## The Five Pillars {#sec-zzcollab-pillars}
 
-## Learning objectives
+The preceding chapters each solved one layer of the
+reproducibility problem and each left the wiring to you. A
+compendium (@sec-rrtools) does not come with a lockfile; a
+lockfile (@sec-renv) does not come with a container; a container
+(@sec-docker) does not know where your data came from. The Five
+Pillars are the checklist that says when the wiring is complete.
+They are tool-neutral: the same five hold whether you assemble
+them by hand or let a framework do it, and @tbl-five-pillars
+states what each pins and what goes wrong without it.
 
-By the end of this chapter you should be able to:
+| Pillar | Pins | Without it | Check |
+|---|---|---|---|
+| Dockerfile | Operating system, system libraries, the R build | Packages restore onto a different R or BLAS (Basic Linear Algebra Subprograms), and the last digits of an estimate move | The base image's R version equals the lockfile's |
+| `renv.lock` | The exact version and source of every R package | A changed default in an upgraded package changes a number without an error | `renv::status()` reports no issues |
+| `.Rprofile` | Activation of the project library at startup | R loads your global library instead, and the lockfile is silently bypassed | `.libPaths()[1]` is inside `renv/library` where you render |
+| Source code | The analysis itself, in `R/` and `analysis/` | Nothing to rerun, or a version nobody can identify | Committed to Git, and the submitted version tagged |
+| Data | The inputs: raw files, or a documented path to them | A later extract gives a different answer from the same code | A committed checksum manifest verifies |
 
-- Scaffold a new research project with
-  `zzc <profile>` in one command.
-- Explain and audit the Five Pillars of a `zzcollab`
-  compendium.
-- Choose the appropriate profile (minimal,
-  tidyverse, rstudio, publishing) for a given
-  study.
-- Use the project `Makefile` targets (`make r`,
-  `make check-renv`, `make docker-render-qmd`) to
-  interact with the container.
-- Read how profiles are defined in
-  `templates/bundles.yaml`, and judge where a
-  research group's conventions belong.
-- Recognize when `zzcollab` is overkill and when
-  it is exactly the right level of infrastructure.
+: The Five Pillars as a tool-neutral checklist. A compendium
+missing any one is incomplete. {#tbl-five-pillars}
 
-## Orientation
-
-The three preceding chapters each solved one layer of the
-reproducibility problem and each left the wiring to the reader.
-A compendium does not come with a lockfile; a lockfile does not
-come with a container; a container does not know where your
-paper lives. Assembling the three by hand is about half an hour
-of work per project. It is also exactly the kind of work that
-gets done slightly differently every time, which defeats the
-consistency it was supposed to produce.
-
-`zzcollab` is an opinionated framework that does the assembly.
-It packages the ideas of `rrtools`, `renv`, and Docker into a
-single command-line workflow, trading flexibility for speed of
-setup and for uniformity across a group's projects. The trade
-is real in both directions and worth stating plainly. Every
-project in the group looks the same, and a collaborator knows
-where things live without asking. The price is rather less
-control over the layout than bare `rrtools` would give you. A
-reader who wants that control should use `rrtools` directly and
-will lose nothing this book teaches.
-
-The framework exists because the manual setup
-(Dockerfile, renv, rrtools layout, Makefile
-targets, check scripts) is roughly 30--60 minutes
-of error-prone work per project. For a research
-group that produces many projects, automating
-that setup pays back quickly. For a one-off
-analysis, plain `rrtools` (@sec-rrtools) suffices.
-
-## The statistician's contribution {#sec-zzcollab-human}
-
-The framework's whole purpose is to make the mechanical
-parts disappear. What it cannot decide for you is
-whether it should be used at all, and at what weight:
-
-**Choose the right profile.** A manuscript that
-must render to PDF needs LaTeX, which only the
-`publishing` profile's base image has. A simple
-descriptive analysis in the `publishing` profile
-waits for a 4 GB image it does not need. The profile
-is a substantive choice; defaulting to the heaviest
-one wastes time, the lightest one wastes more time
-when it fails to support what you need.
-
-**Decide where conventions live.** A research group
-has local conventions: a preferred database client, a
-set of in-house packages, journal-specific Quarto
-templates. Writing them down once, in a template
-project or a shared lockfile, saves every downstream
-project from re-enumerating them. The investment is
-made once; the benefit compounds.
-
-**Audit the Pillars.** `make check-renv` verifies
-that the code, `DESCRIPTION`, and `renv.lock` agree
-about packages; it does not check the Dockerfile,
-`.Rprofile`, or data, so those need a manual look.
-Skipping the audit before deposition or paper
-submission is the kind of small omission that breaks
-reproducibility years later.
-
-**Recognize the limits.** `zzcollab` is not the
-answer to every project. For interactive
-exploration, RStudio alone is faster. For a
-one-off script, scaffolding a compendium is
-overhead. The skill is knowing which projects
-warrant the framework.
-
-These decisions are what distinguish using
-`zzcollab` as a tool from using it as a ritual.
-
-## The Five Pillars
-
-`zzcollab` identifies five components as jointly
-necessary for reproducibility. A compendium
-missing any one is incomplete.
-
-| Pillar           | Role                                           |
-| ---------------- | ---------------------------------------------- |
-| `Dockerfile`     | Operating system, system libraries, R build    |
-| `renv.lock`      | Exact versions of every R package              |
-| `.Rprofile`      | Project-local R configuration (activates renv) |
-| Source code      | Analysis scripts and functions                 |
-| Data             | Raw and processed data (or DOI pointers)       |
-
-The pillars are easier to remember as a stack than as a
-list, because each one captures a layer the one above it
-takes for granted. @fig-five-pillars is that stack.
+The pillars are easier to remember as a stack than as a list,
+because each one captures a layer the one above it takes for
+granted. @fig-five-pillars is that stack.
 
 ```{mermaid}
 %%| echo: false
@@ -175,127 +139,434 @@ flowchart TD
   F --> L --> P --> S --> D
 ```
 
-**Pillar 1: Dockerfile.** Captures the OS and
-system libraries below R. Without it, an analysis
-that depends on `libgdal` or a specific BLAS
-implementation reproduces only on machines with
-those libraries pre-installed. The
-`zzcollab`-generated Dockerfile pins the rocker
-base image by tag and, when Docker can resolve it,
-by digest (for example
-`rocker/r-ver:4.6.0@sha256:...`), and installs the
-system libraries the project's R packages need.
+Two of the pillars need a word more than the table gives them.
+The `renv.lock` records the R version as well as every package,
+but it does not install R; the R installation comes from the
+Dockerfile, which is why the two must agree. And the data pillar
+does not require the data to be in the repository. Sensitive data
+often cannot live in the compendium; then the compendium holds a
+README documenting the access path, in the form @sec-federal sets
+out, and a manifest of checksums that lets anyone confirm they
+obtained the same files. The opening's failure was a data pillar
+with the README and without the manifest.
 
-**Pillar 2: `renv.lock`.** Records the R version
-and every R package version, including transitive
-dependencies; the R installation itself comes from
-the Dockerfile. Without it, package updates between
-the analysis run and the reproduction silently
-change behavior.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A project has a Dockerfile and a committed
+`renv.lock`, and its `.Rprofile` activates `renv`. Which pillars
+does a collaborator still have to take on trust?
 
-**Pillar 3: `.Rprofile`.** A project-local R
-startup file that activates `renv`'s project
-library. Without it, opening the project in a
-fresh R session loads the user's global library,
-defeating `renv`'s isolation.
-
-**Pillar 4: Source code.** The analysis itself,
-in `R/` (helpers) and `analysis/` (scripts and
-narrative). Version-controlled in git from day
-one.
-
-**Pillar 5: Data.** Raw and processed data, or a
-documented procedure for obtaining them.
-Sensitive data often cannot live in the compendium
-directly; in that case, the compendium contains a
-README documenting the access path, in the form
-@sec-federal will set out.
-
-The five pillars are a checklist. Every project
-should satisfy each; `make check-renv` and a quick
-manual audit verify that they do.
-
-## Profiles and bundles
-
-The command `zzc <profile>`, run inside an empty project
-directory, scaffolds a project using one of four
-profiles. Each profile is defined in
-`templates/bundles.yaml`, and its main job is to choose
-the rocker base image:
-
-| Profile      | Base image         | Approximate size | Use                            |
-| ------------ | ------------------ | ---------------- | ------------------------------ |
-| `minimal`    | `rocker/r-ver`     | 650 MB           | command-line work, CI          |
-| `tidyverse`  | `rocker/tidyverse` | 1.2 GB           | tidyverse data analysis        |
-| `rstudio`    | `rocker/rstudio`   | 980 MB           | RStudio Server development     |
-| `publishing` | `rocker/verse`     | 4.2 GB           | manuscripts that need LaTeX    |
-
-The `tidyverse` profile was formerly called `analysis`,
-and `zzc analysis` still works as a deprecated alias.
-There are no modeling or Shiny profiles; for those needs
-the framework's own advice is to start from one of the
-four and add packages inside the container.
-
-Choosing among them:
-
-- **`minimal`.** When you want to add packages
-  one at a time. Useful for teaching examples or
-  for projects with tight package budgets.
-- **`tidyverse`.** Default for descriptive,
-  exploratory, and tidyverse-heavy work.
-- **`rstudio`.** When collaborators will work in a
-  browser rather than a terminal.
-- **`publishing`.** When the deliverable is a
-  rendered PDF manuscript. The LaTeX layer is large
-  but avoids installing TeX at render time.
-
-Modeling packages need no special profile. Install
-`lme4` or `survival` inside the container, record them
-with `make snapshot`, and rebuild with
-`make docker-build`. When zzcollab generates the
-Dockerfile it reads the packages your code, `DESCRIPTION`,
-and `renv.lock` mention and adds the system libraries
-they need, so a profile mismatch costs a rebuild rather
-than a hand-edited `apt-get` line.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: profile choice
-
-**Question.** You are scaffolding a project that
-will fit a Cox proportional hazards model with
-`survival::coxph()` and a mixed-effects model with
-`lme4::glmer()`, then render the result as a PDF
-manuscript. Which profile?
-
-**Answer.**
-
-`publishing`, because the PDF manuscript is the one
-requirement a profile actually supplies: it is the
-only profile whose base image includes LaTeX. The
-modeling packages are not a profile question at all.
-Install `lme4` and `survival` inside the container,
-run `make snapshot` so that `renv.lock` and
-`DESCRIPTION` record them, and rebuild. Neither
-package needs an extra system library; `survival` is a
-recommended package that ships with R.
-
+**Answer.** Two. The source code is pinned only if it is
+committed and the version you reported is tagged; otherwise the
+collaborator cannot know which commit produced the paper. And the
+data are pinned only if they are in the repository or a manifest
+records their checksums; otherwise a later extract produces a
+different answer from the same code, with nothing to say so. The
+environment pillars cannot detect either problem.
 :::
 
-## The first-project walkthrough
+## Assembling the compendium by hand {#sec-zzcollab-assemble}
 
-The minimum viable `zzcollab` session:
+Assembling the pillars by hand takes about half an hour per
+project, and doing it once is the best way to understand what any
+framework that automates it is doing for you. Each step uses a
+tool from an earlier chapter; the commands below are
+display-only, because they create a project on your machine.
+
+1. **Layout and source code.** Scaffold the compendium with
+   `rrtools` and put it under Git (@sec-rrtools, @sec-git-solo):
+
+   ```r
+   rrtools::use_compendium("~/research/hfhome")
+   rrtools::use_analysis()
+   ```
+
+   ```bash
+   git init
+   ```
+
+2. **Lockfile and `.Rprofile`.** Initialize `renv`, which writes
+   both, install what the analysis uses, and snapshot
+   (@sec-renv):
+
+   ```r
+   renv::init()
+   renv::snapshot()
+   ```
+
+3. **Dockerfile.** Copy the canonical Dockerfile from
+   @sec-docker-canonical to the project root, with its
+   `.dockerignore`, and set the base image's tag to the R version
+   in `renv.lock`. `rrtools::use_dockerfile()` writes a different
+   Dockerfile; this book uses the canonical one, so that one file
+   is described everywhere.
+
+4. **Data.** Put the raw files in `analysis/data/raw_data/`, or a
+   README there that says how to obtain them, and commit a
+   checksum manifest of the files (below).
+
+5. **Tag.** Commit, and tag the commit you submit:
+
+   ```bash
+   git tag -a v1.0-submission -m "Submitted to journal"
+   ```
+
+The manifest is the step most projects skip. It is one line per
+file, the file's SHA-256 checksum (a 64-character fingerprint of
+its contents) and its path, in the format the `shasum` command
+reads and writes, so that you can create it in R and anyone can
+check it from a shell. The chunk below assembles a small HF-HOME
+compendium in a temporary directory, with the manifest step
+deliberately left out and a Dockerfile copied from an older
+project, so that the audit in the next section has something to
+find.
+
+```{r}
+#| label: zzcollab-toy-compendium
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+comp <- file.path(tempdir(), "hfhome-compendium")
+unlink(comp, recursive = TRUE)
+raw <- file.path(comp, "analysis", "data", "raw_data")
+dir.create(raw, recursive = TRUE)
+dir.create(file.path(comp, "R"))
+invisible(file.copy(
+  file.path(hf_dir, c("randomization.csv", "outcomes.csv")), raw
+))
+writeLines(
+  "derive_analysis_set <- function(rand, outc) merge(rand, outc)",
+  file.path(comp, "R", "derive.R")
+)
+writeLines('source("renv/activate.R")', file.path(comp, ".Rprofile"))
+writeLines(
+  '{"R": {"Version": "4.4.0", "Repositories": []}, "Packages": {}}',
+  file.path(comp, "renv.lock")
+)
+writeLines(c("FROM rocker/r-ver:4.3.1", "WORKDIR /work"),
+           file.path(comp, "Dockerfile"))
+invisible(system2("git", c("init", "-q", comp)))
+list.files(comp, recursive = TRUE, all.files = TRUE,
+           include.dirs = FALSE) |>
+  grep(pattern = "^[.]git/", invert = TRUE, value = TRUE)
+```
+
+Every pillar has a file. Whether every pillar is *pinned* is a
+different question, and the listing cannot answer it.
+
+::: {.callout-warning title='Pitfall'}
+**An `.Rprofile` that never runs.** R reads `.Rprofile` from the
+directory it starts in, then from your home directory. Render from
+a subdirectory (`cd analysis/paper`, or an RStudio project rooted
+there) and the project's `.Rprofile` at the root never runs: no
+error, no message, and the analysis uses your global library while
+the lockfile says otherwise. This book hit exactly this, because
+Quarto starts R in the directory being rendered; its fix is a
+second `.Rprofile` in `analysis/report/` that points `renv` at the
+project root. The check in @tbl-five-pillars catches it: run
+`.libPaths()[1]` from the directory where you render.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Step 3 sets the Dockerfile's base tag to the R
+version in `renv.lock`. What happens if the two disagree, and why
+is nothing likely to report it?
+
+**Answer.** `renv` restores the recorded package versions onto
+whatever R the image supplies. The build usually succeeds, because
+most package versions install on a neighboring R, and the analysis
+runs. What changes is the layer beneath the packages (R itself,
+and the numerical libraries it links), so results can differ in
+their last digits from the ones you reported, with no error
+anywhere.
+:::
+
+## Auditing the pillars {#sec-zzcollab-audit}
+
+A checklist you run by eye drifts; a checklist you run as code
+does not. The function below turns @tbl-five-pillars into five
+assertions about a project directory. It uses only `renv`, `cli`,
+and base R, so it audits a compendium however it was assembled.
+
+```{r}
+#| label: zzcollab-audit-fn
+audit_pillars <- function(root) {
+  path <- function(...) file.path(root, ...)
+  lock_r <- if (file.exists(path("renv.lock"))) {
+    renv::lockfile_read(path("renv.lock"))$R$Version
+  } else {
+    NA_character_
+  }
+  from <- if (file.exists(path("Dockerfile"))) {
+    grep("^FROM ", readLines(path("Dockerfile")), value = TRUE)[1]
+  } else {
+    NA_character_
+  }
+  rprofile <- if (file.exists(path(".Rprofile"))) {
+    readLines(path(".Rprofile"))
+  } else {
+    character(0)
+  }
+  code <- list.files(root, pattern = "[.](R|qmd|Rmd)$",
+                     recursive = TRUE)
+  manifest <- path("data-manifest.sha256")
+  data_ok <- file.exists(manifest) && {
+    m <- read.table(manifest, col.names = c("sha256", "file"))
+    all(vapply(path(m$file), cli::hash_file_sha256, character(1)) ==
+          m$sha256)
+  }
+  data.frame(
+    pillar = c("Dockerfile", "renv.lock", ".Rprofile",
+               "Source code", "Data"),
+    check = c("base image tag equals the lockfile's R version",
+              "lockfile present and readable",
+              "activates renv",
+              "analysis code present, under Git",
+              "raw files match the checksum manifest"),
+    ok = c(
+      !is.na(from) && !is.na(lock_r) &&
+        grepl(paste0(":", lock_r, "($|@)"), from),
+      !is.na(lock_r),
+      any(grepl("renv/activate.R", rprofile, fixed = TRUE)),
+      length(code) > 0 && file.exists(path(".git")),
+      data_ok
+    )
+  )
+}
+
+audit_pillars(comp)
+```
+
+Two pillars fail. The Dockerfile names R 4.3.1 while the lockfile
+records 4.4.0, and there is no manifest for the data. Fix both:
+set the base tag to the lockfile's version, and write the
+manifest.
+
+```{r}
+#| label: zzcollab-audit-fix
+lock_r <- renv::lockfile_read(file.path(comp, "renv.lock"))$R$Version
+writeLines(c(paste0("FROM rocker/r-ver:", lock_r), "WORKDIR /work"),
+           file.path(comp, "Dockerfile"))
+
+data_files <- list.files(raw, full.names = TRUE)
+writeLines(
+  paste0(vapply(data_files, cli::hash_file_sha256, character(1)),
+         "  ", file.path("analysis", "data", "raw_data",
+                         basename(data_files))),
+  file.path(comp, "data-manifest.sha256")
+)
+
+audit <- audit_pillars(comp)
+audit
+```
+
+::: {.callout-tip title='Verification'}
+Assert the audit rather than reading it, and confirm from a shell
+that the manifest is in the standard format (display-only; run it
+in the compendium's root):
+
+```{r}
+#| label: zzcollab-audit-verify
+stopifnot(all(audit$ok))
+```
 
 ```bash
-mkdir penguins-analysis
-cd penguins-analysis
+shasum -a 256 --check data-manifest.sha256
+```
+
+The shell check prints `OK` beside each file. In your own project,
+run `audit_pillars(".")` from the root before every tag, and
+regenerate the manifest only when you deliberately receive new
+data, committing it with the data change.
+:::
+
+The audit is a structural check. It confirms that each pillar is
+present and consistent; it cannot confirm that the analysis
+reproduces. That test is the one in @sec-renv and @sec-docker:
+build the image, restore the lockfile, run the analysis from a
+fresh clone, and compare the results with the ones you reported.
+
+::: {.callout-important title='LLM prompt'}
+A model can map an unfamiliar project onto the pillars quickly.
+Give it the files that decide each pillar, not a description.
+
+> **Context.** Below are the output of
+> `git ls-files` for an R analysis project, the `FROM` line of its
+> Dockerfile, the `R$Version` from its `renv.lock`, and the full
+> text of its `.Rprofile`.
+>
+> **Constraints.** Assess the Five Pillars (Dockerfile,
+> `renv.lock`, `.Rprofile`, source code, data) using only these
+> inputs. Do not recommend a framework or a template. Do not
+> propose moving or editing anything in the raw-data directory.
+>
+> **Criteria.** For each pillar: present, absent, or present but
+> inert, with the line of input that shows it. For each gap, the
+> smallest addition that closes it.
+
+*Failure mode.* Models report a pillar as present because a file
+with the right name exists: an `.Rprofile` that never activates
+`renv`, a Dockerfile whose tag disagrees with the lockfile, a data
+README with no checksums. Or they recommend adopting a framework,
+which answers a different question. *Check.* Run `audit_pillars()`
+on the project and compare its `ok` column with the model's
+verdicts. File names and configuration are structure; send no
+data files (@sec-ai-governance).
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** The audit passes on your compendium. A month later a
+colleague edits one value in `outcomes.csv` to correct a data
+entry error and reruns the analysis. What does the audit report,
+and what should happen next?
+
+**Answer.** The data pillar fails, because the file's checksum no
+longer matches the manifest. That is the audit doing its job: the
+inputs changed, and now someone knows. Raw data are evidence, so
+the correction should arrive as a new extract with its provenance
+recorded, the manifest regenerated and committed with it, and the
+changed result explained, not as a hand edit to the file.
+:::
+
+### Exercises
+
+1. In the toy compendium, change one outcome in
+   `analysis/data/raw_data/outcomes.csv` and rerun the audit.
+   Which pillar fails?
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-10-1
+outcomes_path <- file.path(raw, "outcomes.csv")
+lines <- readLines(outcomes_path)
+lines[2] <- sub(",0,", ",1,", lines[2], fixed = TRUE)
+writeLines(lines, outcomes_path)
+audit_pillars(comp)[c("pillar", "ok")]
+```
+
+Only the data pillar fails. A one-character change to one patient
+is invisible to every other check, and to anyone reading the
+results; the manifest is what makes it loud.
+:::
+
+2. Audit this book's own repository with
+   `audit_pillars(file.path("..", ".."))` and explain each failure.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-10-2
+audit_pillars(file.path("..", ".."))[c("pillar", "ok")]
+```
+
+Each `FALSE` is a pillar the book's repository does not supply in
+the form the audit checks. A missing Dockerfile means the R
+version and system libraries are whatever the reader's machine
+has; a missing data manifest means the reader cannot confirm the
+files match the ones the book was built from, though here the
+HF-HOME files can be regenerated from their seeded script. A book
+that teaches the pillars is held to them too.
+:::
+
+## Choosing how much to automate {#sec-zzcollab-choosing}
+
+Assembling by hand gives you full control and costs half an hour
+per project. It is also exactly the kind of work that gets done
+slightly differently every time, which defeats the consistency it
+was supposed to produce. Several tools automate parts of it; they
+differ in which pillars they supply and in how much of the layout
+they decide for you.
+
+| Approach | Supplies | Leaves to you | Suits |
+|---|---|---|---|
+| By hand | Whatever you choose, as above | Every step, and its consistency across projects | Learning the pillars; a single paper |
+| `rrtools` [@marwick2018packaging] | Package-style layout, a Dockerfile, a README | The lockfile, matching the Dockerfile to it, the data manifest | A paper with code, in the community-standard layout |
+| `workflowr` [@blischak2019workflowr] | A project website in which each results page records its Git commit and R session information | The lockfile, the container, the data manifest | An analysis that is shared as it develops, as a website |
+| `zzcollab` (@sec-zzcollab-optional) | Layout, `renv.lock`, `.Rprofile`, Dockerfile, a `Makefile`, dependency checks | The data manifest's upkeep, and the choice of profile | A group producing many projects that should look alike |
+
+: Ways to assemble a compendium. None removes the audit.
+{#tbl-zzcollab-approaches}
+
+The right level of infrastructure is itself a judgment. Excessive
+infrastructure on a small project is busywork; insufficient
+infrastructure on a large one is technical debt. A compendium is
+overkill for interactive exploration, for a one-off script, for a
+teaching example whose point is the code, and for a quick
+reproduction of someone else's analysis, whose structure should
+control. It is the right weight for a collaborative analysis
+passed between team members, for one that must survive months or
+years after its lead analyst has moved on, and for any analysis
+subject to the federal requirements of @sec-federal. A tool that
+makes the heavy path cheap moves the right answer toward more
+infrastructure on the margin, but never removes the need to
+decide.
+
+Whichever path you take, the group's conventions (a preferred
+database client, a set of in-house packages, a journal's Quarto
+template) are best written down once, in a template project or a
+shared lockfile, so that every new project inherits them rather
+than re-enumerating them.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague argues that adopting a framework makes
+the pillar audit unnecessary, since the framework writes every
+file. What is wrong with the argument?
+
+**Answer.** A framework writes the pillars once, at scaffolding
+time; the audit checks them now. Lockfiles drift as packages are
+installed, a Dockerfile's base tag falls behind a lockfile
+snapshotted under a newer R, and data change after the manifest is
+written. Each failure in @tbl-five-pillars can occur in a
+scaffolded project as easily as in a hand-built one.
+:::
+
+### Exercises
+
+3. For each project below, choose an approach from
+   @tbl-zzcollab-approaches and name the pillar you would check
+   most often: (a) a one-off descriptive table for a clinician's
+   abstract; (b) a two-year trial analysis passed between three
+   analysts; (c) a methods paper with a simulation study.
+
+::: {.callout-note collapse='true' title='Solution'}
+(a) A script, with no compendium; if the abstract becomes a paper,
+promote it then. (b) A framework that makes every project in the
+group look alike, `zzcollab` or a group template, with the data
+pillar checked most often, because extracts arrive throughout the
+trial. (c) `rrtools` or a hand-built compendium; the pillar to
+watch is the environment (Dockerfile and lockfile together),
+because simulation results depend on the random-number generator
+and numerical libraries. Other defensible answers exist; the
+reasoning should tie the approach to the project's lifetime and
+number of hands.
+:::
+
+## Optional: automating the assembly with zzcollab {#sec-zzcollab-optional}
+
+This section is optional. `zzcollab` is the author's in-house
+framework (@sec-lab-software), one way to automate the assembly
+beside `rrtools` and `workflowr`; nothing else in the book
+depends on it. It packages the ideas of `rrtools`, `renv`, and
+Docker into one command-line workflow, trading control over the
+layout for speed of setup and uniformity across a group's
+projects. It does not call `rrtools`; it writes its own layout,
+modeled on the same compendium.[^zzcollab-version]
+
+[^zzcollab-version]: Described as of the repository at
+    `github.com/rgt47/zzcollab` in October 2026. Profiles, `make`
+    targets, and the bundle schema have changed between versions;
+    check the repository's `CHANGELOG.md` and `make help` before
+    relying on the details below.
+
+### The first-project walkthrough
+
+The minimum `zzcollab` session (display-only):
+
+```bash
+mkdir hfhome-analysis
+cd hfhome-analysis
 zzc tidyverse             # scaffold (Five Pillars appear)
 make r                    # enter R session inside Docker
                           # ... do analysis ...
 make check-renv           # validate dependencies
 make docker-render-qmd    # render the Quarto report
 ```
-
-What happens at each step:
 
 **`zzc tidyverse`** runs the framework's
 scaffolding. After it completes, the directory
@@ -305,6 +576,9 @@ contains a `DESCRIPTION`, `R/`, `analysis/`, and
 `Dockerfile` on the `rocker/tidyverse` base, and a
 `Makefile`. It then offers to build the image. Git is
 a separate step (`zzc git`, or `git init` yourself).
+The generated Dockerfile pins the rocker base image by tag and,
+when Docker can resolve it, by digest (for example
+`rocker/r-ver:4.6.0@sha256:...`).
 
 **`make r`** drops you into an interactive R session
 inside the container, with the project directory
@@ -331,259 +605,194 @@ container. (`make docker-render` renders an R Markdown
 report instead, `analysis/report/report.Rmd` by
 default.)
 
-## The project `Makefile`
+### The project `Makefile`
 
-Every `zzcollab` project gets a `Makefile` with
-many targets; `make help` lists them. The ones used
-most:
+Every `zzcollab` project gets a `Makefile` with many targets;
+`make help` lists them. The ones used most:
 
-| Target                   | Action                                              |
-| ------------------------ | --------------------------------------------------- |
-| `make help`              | List all targets                                    |
-| `make r`                 | Drop into R inside the project's container          |
-| `make rstudio`           | Launch RStudio Server (port 8787)                   |
+| Target | Action |
+|---|---|
+| `make help` | List all targets |
+| `make r` | Drop into R inside the project's container |
+| `make rstudio` | Launch RStudio Server (port 8787) |
 | `make docker-render-qmd` | Render `analysis/report/index.qmd` in the container |
-| `make check-renv`        | Validate dependencies and add missing ones          |
-| `make check-renv-no-fix` | Validate dependencies without modifying files       |
-| `make snapshot`          | Snapshot `renv.lock` in the container, then validate |
-| `make docker-build`      | Rebuild the image (use after adding packages)       |
-| `make clean`             | Remove package build artifacts                      |
+| `make check-renv` | Validate dependencies and add missing ones |
+| `make check-renv-no-fix` | Validate dependencies without modifying files |
+| `make snapshot` | Snapshot `renv.lock` in the container, then validate |
+| `make docker-build` | Rebuild the image (use after adding packages) |
+| `make hash-data` | Write a SHA-256 manifest of the raw-data directory |
+| `make verify-data` | Check the raw data against that manifest |
+| `make clean` | Remove package build artifacts |
 
-The non-obvious ones:
+: Common `zzcollab` `make` targets. {#tbl-zzcollab-make}
 
-**`make rstudio`** for browser-based interactive
-work. After `make rstudio`, open
-`http://localhost:8787` in a browser and log in as
-`rstudio` with the password `rstudio`, which the
-target prints. The target publishes port 8787 on all
-of your machine's network interfaces, so with that
+`make hash-data` writes `data-manifest.sha256` in the same
+`shasum` format as the manifest in @sec-zzcollab-audit, so
+`audit_pillars()` reads either. `make docker-build` rebuilds the
+image after you add packages or system dependencies; `make r`
+silently uses the old image until you do. `make clean` removes
+package build artifacts (`*.tar.gz` and `*.Rcheck`); it does not
+touch rendered reports or Quarto's `_freeze/` directory.
+
+`make rstudio` is for browser-based work. Open
+`http://localhost:8787` and log in as `rstudio` with the password
+`rstudio`, which the target prints. The target publishes port
+8787 on all of your machine's network interfaces, so with that
 fixed password, use it only on a trusted network (see
 @sec-docker for binding to `127.0.0.1` instead).
 
-**`make docker-build`** rebuilds the image after
-you add packages or system dependencies. `make r`
-silently uses the old image until you do.
+### Choosing a profile
 
-**`make clean`** removes package build artifacts
-(`*.tar.gz` and `*.Rcheck`); it does not touch rendered
-reports or Quarto's `_freeze/` directory.
+The command `zzc <profile>`, run inside an empty project
+directory, scaffolds a project using one of four profiles, and a
+profile's main job is to choose the rocker base image:
 
-## How profiles are defined
+| Profile | Base image | Approximate size | Use |
+|---|---|---|---|
+| `minimal` | `rocker/r-ver` | 650 MB | Command-line work, continuous integration |
+| `tidyverse` | `rocker/tidyverse` | 1.2 GB | Tidyverse data analysis |
+| `rstudio` | `rocker/rstudio` | 980 MB | RStudio Server development |
+| `publishing` | `rocker/verse` | 4.2 GB | Manuscripts that need LaTeX |
 
-`templates/bundles.yaml` has three sections.
-`library_bundles` name sets of system packages,
-`package_bundles` name sets of R packages, and
-`profiles` combine a base image with one bundle of
-each. An abbreviated entry:
+: `zzcollab` profiles. {#tbl-zzcollab-profiles}
 
-```yaml
-# templates/bundles.yaml (excerpt)
+The `tidyverse` profile was formerly called `analysis`, and
+`zzc analysis` still works as a deprecated alias. There are no
+modeling or Shiny profiles; for those needs the framework's own
+advice is to start from one of the four and add packages inside
+the container. The profile is a substantive choice: a manuscript
+that must render to PDF needs LaTeX, which only the `publishing`
+profile's base image has, while a simple descriptive analysis in
+the `publishing` profile waits for a 4 GB image it does not need.
 
-package_bundles:
-  tidyverse:
-    description: "Tidyverse ecosystem for data analysis"
-    packages: [renv, devtools, tidyverse, here]
-    requires_libs: ["minimal"]
+Modeling packages need no special profile. Install
+`lme4` or `survival` inside the container, record them
+with `make snapshot`, and rebuild with
+`make docker-build`. When zzcollab generates the
+Dockerfile it reads the packages your code, `DESCRIPTION`,
+and `renv.lock` mention and adds the system libraries
+they need, so a profile mismatch costs a rebuild rather
+than a hand-edited `apt-get` line.
 
-profiles:
-  tidyverse:
-    description: "Data analysis with tidyverse"
-    base_image: "rocker/tidyverse"
-    libs: minimal
-    pkgs: tidyverse
-    size: "~1.2GB"
-```
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You are scaffolding a project that will fit a Cox
+proportional hazards model with `survival::coxph()` and a
+mixed-effects model with `lme4::glmer()`, then render the result
+as a PDF manuscript. Which profile?
 
-There is no `inherits` key, and in the current version
-the quickstart command accepts only the four built-in
-profile names. A group that wants different defaults
-can add a profile entry in a fork and select it with
-`zzc docker --profile <name>`, but the Dockerfile
-generator reads only the entry's `base_image`; the
-system libraries come from the packages the project
-uses, as described above, and R packages are added
-inside the container and recorded with
-`make snapshot`. Group conventions therefore live
-mostly in a template project or a shared `renv.lock`,
-not in a new profile. Check the repository's current
-`bundles.yaml` before relying on any of this, since the
-schema has changed between versions.
+**Answer.** `publishing`, because the PDF manuscript is the one
+requirement a profile actually supplies: it is the only profile
+whose base image includes LaTeX. The modeling packages are not a
+profile question at all. Install `lme4` and `survival` inside the
+container, run `make snapshot` so that `renv.lock` and
+`DESCRIPTION` record them, and rebuild. Neither package needs an
+extra system library; `survival` is a recommended package that
+ships with R.
+:::
 
-## When `zzcollab` is not the right tool
+### Bundles and extension
 
-`zzcollab` is overkill for:
+Profiles are defined in the repository's
+`templates/bundles.yaml`, which has three sections:
+`library_bundles` name sets of system packages, `package_bundles`
+name sets of R packages, and `profiles` combine a base image with
+one bundle of each. There is no `inherits` key, and the quickstart
+command accepts only the four built-in profile names. A group that
+wants different defaults can add a profile entry in a fork and
+select it with `zzc docker --profile <name>`, but the Dockerfile
+generator reads only the entry's `base_image`; system libraries
+come from the packages the project uses, and R packages are added
+inside the container and recorded with `make snapshot`. Group
+conventions therefore belong in a template project or a shared
+`renv.lock`, as for any other approach, not in a new profile.
 
-- **Interactive exploration.** Just open RStudio.
-- **One-off scripts.** Just write a script.
-- **Teaching examples whose point is the code,
-  not the infrastructure.** Less infrastructure
-  is clearer.
-- **Quick reproductions of someone else's
-  analysis.** Their existing structure should
-  control.
+### Exercises
 
-It is the right tool for: collaborative analyses
-that will be passed between team members,
-analyses that must survive for months or years
-after the lead analyst has moved on, and any
-analysis subject to the federal requirements taken
-up in @sec-federal.
+4. Scaffold a `zzcollab` project in a scratch directory, copy the
+   two HF-HOME files into `analysis/data/raw_data/`, run
+   `make hash-data`, and audit the result with `audit_pillars()`.
+   (This needs Docker and the `zzc` command, and creates a project
+   on your machine.)
 
-The 'right level of infrastructure' is itself a
-judgment. Excessive infrastructure on a small
-project is busywork; insufficient infrastructure
-on a large one is technical debt. `zzcollab`
-makes the high-infrastructure path cheap, which
-shifts the right answer toward more
-infrastructure on the margin.
+::: {.callout-note collapse='true' title='Solution'}
+A complete scaffold passes every row except, until you commit, the
+source-code row's Git check (`zzc git` or `git init`). If the
+Dockerfile row fails, compare its `FROM` line with the lockfile's
+`R$Version`: the two were written at different times, and the fix
+is to rebuild with `make docker-build` after a snapshot, not to
+edit the tag by hand. Run `make check-renv-no-fix` as well; unlike
+`make check-renv`, it changes nothing.
+:::
 
-## Collaborating with an LLM on `zzcollab`
+## Rules of thumb
 
-LLMs handle the framework well; the trap is
-generic 'set up a research project' suggestions
-that ignore the framework's existence.
+1. **Habit 1: the compendium is the unit.** Code, data,
+   environment, and document travel together; audit all five
+   pillars, not the ones a tool happens to write.
+2. **Habit 4: pin the environment.** The lockfile and the
+   Dockerfile pin different layers, and they must agree on the
+   R version.
+3. **Habit 2: raw data are evidence.** Commit a checksum manifest,
+   and change it only when new data arrive deliberately.
 
-**Prompt 1: auditing an analysis against the Five
-Pillars.** Paste a directory listing and ask: 'map
-this project onto the Five Pillars (Dockerfile,
-renv.lock, .Rprofile, source code, data). What is
-missing from each, and what would I need to add?'
-The audit is tool-neutral: the answer is the same
-whether you then add the files by hand, with
-`rrtools`, or with `zzcollab`.
+## Cumulative practice
 
-*What to watch for.* The LLM should identify
-each pillar concretely (Dockerfile present?
-renv.lock? `.Rprofile`? Source code? Data?). If
-it generates abstract guidance instead, push for
-the file-by-file inventory.
+5. *Cumulative (uses @sec-renv and @sec-docker).* Assemble a
+   compendium by hand for an analysis of the two HF-HOME files:
+   the `rrtools` layout, `renv` with a snapshot, the canonical
+   Dockerfile with its tag set from the lockfile, and a data
+   manifest. Run `audit_pillars()` until every row passes, then
+   build the image and render the report inside it from a fresh
+   clone.
+6. *On your own work (no key).* Audit a project of yours with
+   `audit_pillars()`, and record for each failing pillar what it
+   would take to close it and whether you think it is worth it.
 
-*Verification.* Check each claimed pillar yourself:
-open the file, and for the Dockerfile and lockfile,
-build and restore them. Optionally run `zzc tidyverse`
-in a scratch directory and compare its structure to
-your project.
+## Cheat sheet
 
-**Prompt 2: comparing frameworks.** Describe a
-project type and ask the LLM to compare
-`zzcollab`, `rrtools`, and `workflowr`.
+| Pillar | File | Create with | Check with |
+|---|---|---|---|
+| Dockerfile | `Dockerfile`, `.dockerignore` | Copy from @sec-docker-canonical | Base tag equals `renv::lockfile_read("renv.lock")$R$Version` |
+| `renv.lock` | `renv.lock` | `renv::init()`, `renv::snapshot()` | `renv::status()` |
+| `.Rprofile` | `.Rprofile` | `renv::init()` | `.libPaths()[1]` from the render directory |
+| Source code | `R/`, `analysis/` | `rrtools::use_compendium()`, `git init` | `git status`; `git tag` |
+| Data | `analysis/data/raw_data/`, `data-manifest.sha256` | `cli::hash_file_sha256()`, or `make hash-data` | `shasum -a 256 --check data-manifest.sha256` |
+| All five | | | `audit_pillars(".")` |
 
-*What to watch for.* Each framework has a niche.
-`zzcollab` is opinionated and fast; `rrtools` is
-flexible; `workflowr` emphasizes the analysis
-website. The LLM should not declare a winner; it
-should match each to a use case.
-
-*Verification.* Cross-reference each framework's
-README; if the LLM's claims about features are
-correct, the comparison is reliable.
-
-**Prompt 3: designing a package set.** Describe a
-niche (e.g., neuroimaging, RNA-seq,
-electrophysiology). Ask: 'list the R packages and
-system libraries a project in this niche typically
-needs.'
-
-*What to watch for.* The system libraries
-(neuroimaging needs FSL or AFNI tooling;
-RNA-seq often needs `Bioconductor` packages
-plus their `apt-get` dependencies). The LLM
-should produce plausible candidates; verify
-against domain documentation.
-
-*Verification.* In a scratch project, install the
-packages inside the container, run `make snapshot`,
-and rebuild with `make docker-build`. The build
-either succeeds or surfaces missing dependencies
-(which you then add).
-
-## Principle in use
-
-Three habits keep the framework proportionate to the
-project:
-
-1. **Pick the right profile up front.** Profile
-   mismatches are recoverable but slow. Match
-   profile to project type from day one.
-2. **Audit before deposition.** `make
-   check-renv` plus a manual Pillar inventory
-   before submitting or archiving.
-3. **Extend deliberately, not promiscuously.** A
-   custom bundle for genuine group conventions;
-   not for every one-off project.
-
-## Exercises
-
-**On your own machine, data, or collaborations.** These exercises create
-projects on disk, so no answer key is possible.
-
-1. Scaffold a `zzcollab` analysis project for
-   the Palmer Penguins dataset. Run `make r`,
-   load the data, produce a single scatter
-   plot, and save it to `analysis/`.
-2. Take an existing analysis of yours and
-   migrate it into a `zzcollab` compendium.
-   Confirm every Pillar is present and run
-   `make check-renv` to validate.
-3. Assemble the package set for your research
-   niche (e.g., 'survival analysis with heavy
-   tidymodels use') in a scratch `zzcollab`
-   project, record it with `make snapshot`, and
-   reuse that lockfile to start a real project.
-4. Compare the time to set up a project from
-   scratch with `rrtools` vs. with
-   `zzc tidyverse`. Time both. Document the
-   difference.
-5. Use `make rstudio` to launch RStudio Server
-   in a `zzcollab` container; access it from a
-   browser; render an analysis from inside the
-   browser session. Confirm the result matches
-   `make docker-render-qmd` from the terminal.
+: The Five Pillars at a glance. {#tbl-zzcollab-cheat-sheet}
 
 ## Further reading
 
-- The `zzcollab` README at
-  `github.com/rgt47/zzcollab`, authoritative
-  reference.
-- [@marwick2018packaging], broader
-  conceptual framing that `zzcollab` inherits.
-- The `rocker` project documentation for the
-  base images `zzcollab` builds on.
+- [@marwick2018packaging], the conceptual framing of the research
+  compendium that every approach in this chapter inherits.
+- [@boettiger2017rocker], the `rocker` images on which the
+  canonical Dockerfile and `zzcollab` both build.
+- [@blischak2019workflowr], the `workflowr` approach to an
+  analysis shared as a website.
 
 ## Prerequisites answers {#sec-quiz-answers-10}
 
-1. The Five Pillars are: (1) a **Dockerfile**
-   (captures OS and system libs), (2) an
-   **renv.lock** (captures R package versions),
-   (3) an **.Rprofile** (activates renv and sets
-   project-local R options), (4) **source code**
-   (the actual analysis), and (5) **data** (raw
-   and processed, or DOI pointers when data
-   cannot be shared). Each pillar captures a
-   layer that the others do not: Docker covers
-   the OS below R, `renv` covers R itself,
-   `.Rprofile` covers R's runtime configuration,
-   source code is the work product, and data is
-   the input. Remove any one and the analysis
-   cannot be reproduced.
-2. `zzcollab` *wraps* `renv` and Docker and
-   *follows* `rrtools`. It does not call `rrtools`;
-   it writes its own directory layout, modeled on
-   the Marwick, Boettiger, and Mullen compendium
-   that `rrtools` implements. It uses `renv` for
-   R package management and Docker for the
-   environment, and adds profile-based base images
-   (four profiles), a build system (`Makefile`),
-   and validation commands (`make check-renv`). It
-   does not replace `renv` or Docker; it removes
-   the manual wiring between them.
-3. A profile chiefly determines the rocker base
-   image: `rocker/r-ver` for `minimal`,
-   `rocker/tidyverse` for `tidyverse` (formerly
-   `analysis`), `rocker/rstudio` for `rstudio`,
-   and `rocker/verse` for `publishing`. Choose
-   `publishing` when the deliverable is a PDF
-   manuscript, because only its base includes
-   LaTeX; otherwise `tidyverse` gives a much
-   smaller image. Modeling packages are added
-   inside the container under any profile.
+1. The Five Pillars are: (1) a **Dockerfile** (captures the
+   operating system and system libraries), (2) an **renv.lock**
+   (captures R package versions), (3) an **.Rprofile** (activates
+   renv and sets project-local R options), (4) **source code** (the
+   actual analysis), and (5) **data** (raw and processed, or a
+   documented access path when data cannot be shared). Each pillar
+   captures a layer that the others do not: Docker covers the
+   operating system below R, `renv` covers the R packages,
+   `.Rprofile` covers R's runtime configuration, source code is the
+   work product, and data is the input. Remove any one and the
+   analysis cannot be reproduced.
+2. It still has to pin the source code and the data. The code is
+   pinned when it is committed and the reported version tagged;
+   the data, when the files are in the repository or a committed
+   checksum manifest records them. Nobody notices their absence
+   until a rerun gives a different answer, which is why the audit
+   in @sec-zzcollab-audit checks for them explicitly.
+3. A framework is worth adopting when many projects should look
+   alike or the setup will be repeated often; for a single paper,
+   assembling by hand or with `rrtools` is enough. Every framework
+   writes the pillars once. Keeping them consistent afterwards
+   (lockfile, Dockerfile tag, data manifest) is still yours, and
+   the audit is how you check it. `zzcollab` *wraps* `renv` and
+   Docker and *follows* `rrtools`'s layout without calling it.
