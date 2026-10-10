@@ -76,8 +76,10 @@ By the end of this chapter you should be able to:
 Missing data is, perhaps, the least-loved topic in an MS
 curriculum, and the reason is that its answers are rarely
 clean. Complete-case analysis is simple, but it throws
-information away and biases estimates under anything stronger
-than MCAR. Multiple imputation preserves the information, but
+information away, and it biases regression estimates when
+missingness depends on the outcome; whether it does depends less
+on the MCAR/MAR/MNAR label than many readers expect. Multiple
+imputation preserves the information, but
 it adds a modeling layer with assumptions of its own.
 Sensitivity analysis is essential, but it is open-ended. There
 is, in short, no method here that is free of difficulty.
@@ -116,9 +118,12 @@ attending to the imputation model's specification.
 **Outcome and predictor missingness are not
 symmetric.** Missing outcome data with MAR-on-
 covariates is well-handled by likelihood methods.
-Missing predictor data is trickier and almost
-always demands imputation. The two cases warrant
-different strategies.
+Missing predictor data is trickier: complete-case
+analysis stays unbiased if missingness does not
+depend on the outcome, but imputation recovers the
+precision of the partly observed rows and is needed
+when missingness does depend on the outcome. The
+two cases warrant different strategies.
 
 **Pre-specify the missing-data plan.** The SAP
 (@sec-analysis-plan) should specify the primary
@@ -162,20 +167,51 @@ the bad news. Conditional on observed
 covariates, missingness still depends on the
 unobserved outcome.
 
-The three are progressively more restrictive in
-the methods they allow:
+The labels describe the missingness process, but they
+do not by themselves say which analysis is valid. For
+the coefficients of a regression model, the question
+that decides whether complete-case analysis is biased
+is narrower: once the covariates in the model are held
+fixed, does missingness still depend on the outcome?
+If it does not, complete-case estimates are unbiased
+whatever the label, including the MNAR case of a
+covariate that goes missing because of its own value.
+If it does, they are biased, even under MAR
+[White and Carlin (2010), *Statistics in Medicine*
+29:2920-2931; Hughes et al. (2019), *International
+Journal of Epidemiology* 48:1294-1304]. Multiple
+imputation and likelihood methods rest on a different
+condition, MAR given the variables in the imputation
+model. The table is organized by what the missingness
+depends on:
 
-| Mechanism | Complete case | Likelihood / MI | Sensitivity needed? |
-|-----------|---------------|-----------------|---------------------|
-| MCAR      | Unbiased      | Unbiased        | No                  |
-| MAR       | Biased        | Unbiased        | No                  |
-| MNAR      | Biased        | Biased          | Yes                 |
+| Missingness depends on | Label | Complete case | MI / likelihood |
+|------------------------|-------|---------------|-----------------|
+| Nothing                | MCAR  | Unbiased      | Unbiased        |
+| Covariates in the model | MAR  | Unbiased      | Unbiased        |
+| Fully observed outcome (covariate missing) | MAR | Biased | Unbiased, outcome in imputation model |
+| Auxiliary variable that predicts the outcome | MAR | Biased | Unbiased, auxiliary in imputation model |
+| Missing covariate's own value | MNAR | Unbiased | Biased |
+| Unobserved outcome, given covariates | MNAR | Biased | Biased |
 
-In practice, MCAR is rare, MAR is the default
-working assumption, and MNAR is what sensitivity
-analyses are for. The data cannot distinguish
-MAR from MNAR, so the choice rests on substantive
-reasoning.
+Three qualifications. The table concerns regression
+coefficients: a mean or prevalence estimated from
+complete cases is biased under MAR in general. In
+logistic regression, missingness that depends on the
+outcome alone biases only the intercept, not the odds
+ratios, by the argument that justifies case-control
+designs. And unbiased is not efficient: a complete-case
+analysis that is unbiased can still discard precision
+that imputation would recover.
+
+In practice, MCAR is rare and MAR is the usual
+working assumption for the primary analysis. No row
+of the table can be confirmed from the observed data,
+because the data cannot distinguish MAR from MNAR, so
+the choice rests on substantive reasoning and a
+sensitivity analysis under departures from MAR is
+expected whatever the primary assumption
+[@ich2019e9r1].
 
 One case that recurs in biomarker work does not fit this
 taxonomy comfortably, and it is worth naming because the
@@ -343,31 +379,54 @@ nrow(airquality)                # rows available
 
 When complete-case is acceptable:
 
-- **MCAR holds.** Then complete-case is unbiased,
-  just less efficient than imputation.
-- **The lost rows are few** (under 5% perhaps).
-  The bias from MAR violations is bounded by the
-  fraction lost.
+- **Missingness does not depend on the outcome,
+  given the model's covariates.** Then complete-case
+  estimates of the regression coefficients are
+  unbiased, whether the mechanism is labeled MCAR,
+  MAR, or MNAR; imputation may still gain precision.
 - **As a sensitivity check.** Even when the
   primary analysis uses MI, reporting complete-case
   as a sensitivity shows whether conclusions
   depend on the imputation.
 
-When complete-case is not acceptable: substantial
-missingness with plausible MAR. The bias can be
-large.
+When complete-case is not acceptable: missingness
+that plausibly depends on the outcome, directly or
+through observed variables outside the analysis model
+that predict it. The bias can be large, and the
+fraction of rows lost does not by itself bound it:
+how strongly missingness depends on the outcome
+matters as much as how many rows go. No
+percentage threshold makes complete case safe.
 
 ## Single imputation: what *not* to do
 
 **Mean imputation** replaces missing values with
 the sample mean. Two problems:
 
-1. The variance is biased downward: the imputed
-   values have no noise, so the apparent
-   variability is too small. Standard errors are
-   too narrow; CIs too short.
-2. Coefficients on the imputed variable are
-   attenuated toward zero (regression dilution).
+1. The spread of the filled variable is biased
+   downward: the imputed values have no noise.
+   What that does to a standard error depends on
+   what was filled. Filling an outcome typically
+   gives intervals that are too short; filling a
+   covariate can instead inflate the residual
+   variance and widen them, as the simulation in
+   the exercise solutions shows. Neither error is
+   an honest one.
+2. Coefficients can be biased: the filled rows
+   carry no information about how the variable
+   relates to the outcome, and when it is
+   correlated with other covariates the bias
+   spreads to their coefficients too.
+
+One setting is an exception. In a randomized trial,
+a partly missing *baseline* covariate can be handled
+by mean imputation or by the missing-indicator method
+without biasing the treatment effect, because
+randomization makes the covariate independent of the
+arm [White and Thompson (2005), *Statistics in
+Medicine* 24:993-1007]. Outside that setting, and for
+the covariate's own coefficient, both remain
+antipatterns.
 
 ```{r}
 #| label: miss-antipattern-mean
@@ -616,10 +675,11 @@ nrow(airquality)                # 153 rows analyzed via MI
 # 4. sensitivity: delta adjustment
 # (assume Ozone with missingness is systematically
 # 0.5 SD lower than MAR-imputed values)
+delta <- -0.5 * sd(airquality$Ozone, na.rm = TRUE)
+post <- make.post(airquality)
+post["Ozone"] <- paste("imp[[j]][, i] <- imp[[j]][, i] +", delta)
 imp_delta <- mice(airquality, m = 25, method = "pmm",
-                  seed = 1, printFlag = FALSE)
-imp_delta$imp$Ozone <- imp_delta$imp$Ozone -
-                       0.5 * sd(airquality$Ozone, na.rm = TRUE)
+                  post = post, seed = 1, printFlag = FALSE)
 fits_delta <- with(imp_delta, lm(Ozone ~ Solar.R + Wind + Temp))
 pool(fits_delta) |> summary()
 ```
@@ -658,7 +718,8 @@ A sample reporting paragraph:
 > covariates and the treatment indicator. Pooled
 > estimates use Rubin's rules. Sensitivity to
 > MNAR was assessed via a delta adjustment of
-> $\pm 0.5$ SD on the imputed outcomes; results
+> $\pm 0.5$ SD on the imputed outcomes in the
+> intervention arm; results
 > were qualitatively similar (Supplementary
 > Table S5).
 
@@ -688,8 +749,23 @@ Three standard sensitivity approaches:
 the imputed values by $\pm \delta$ to mimic an
 MNAR scenario. Refit the analysis. The result
 shows how robust conclusions are to the MNAR
-direction. Implementation: edit `imp$imp` after
-calling `mice`, then re-fit.
+direction. Implementation: pass the shift through
+the `post` argument of `mice`, as in the worked
+example above, so that shifted values also inform
+the imputation of other variables in later
+iterations. In a trial, a shift applied equally to
+both arms largely cancels in the treatment
+contrast, so the informative scenario shifts the
+active arm only (patients who left the active arm
+did worse than MAR predicts):
+
+```r
+post <- make.post(trial)
+post["y"] <- paste("idx <- data$arm[where[, j]] == 'active';",
+                   "imp[[j]][idx, i] <- imp[[j]][idx, i] +", delta)
+imp_delta <- mice(trial, m = 25, post = post, seed = 1,
+                  printFlag = FALSE)
+```
 
 **Tipping-point analysis.** Vary $\delta$
 continuously and find the value at which the
@@ -698,7 +774,11 @@ loses statistical significance). The tipping
 point's clinical plausibility is the question:
 if it requires a $\delta$ much larger than
 clinical experience suggests is realistic, the
-conclusion is robust.
+conclusion is robust. When each arm gets its own
+shift, the tipping point becomes a boundary in two
+dimensions, $(\delta_{\text{active}},
+\delta_{\text{control}})$, and the report shows the
+region of that plane in which the conclusion holds.
 
 **Pattern-mixture models.** Specify different
 imputation models for different missingness
@@ -726,7 +806,7 @@ typical pre-specification:
 > follows Rubin's rules. Sensitivity to the MAR
 > assumption will be assessed via a delta
 > adjustment of $\pm 0.5$ SD on the imputed
-> outcome.
+> outcome in the intervention arm.
 
 Specifying details ($M$, methods, sensitivity)
 prevents the post-hoc choice that turns
@@ -811,18 +891,21 @@ than a silent one:
    complete-case analysis; then via multiple
    imputation with `m = 20`. Compare coefficients
    and standard errors.
-2. Construct a small synthetic dataset with 20%
-   MAR missingness on one covariate. Implement
-   three analyses: complete case, mean
-   imputation, and multiple imputation. Report
-   the bias of each in the coefficient of
+2. Construct a small synthetic dataset with
+   roughly 25% missingness on one covariate,
+   generated three ways: depending on another
+   covariate in the model, on the fully observed
+   outcome, and on the missing covariate's own
+   value. Implement three analyses: complete case,
+   mean imputation, and multiple imputation.
+   Report the bias of each in the coefficient of
    interest across 500 simulated replicates.
-4. Use the `mice::ampute()` function to induce
+3. Use the `mice::ampute()` function to induce
    MAR missingness on a complete dataset. Fit
    the analysis on the full data and on the
    amputed-then-imputed data. Compare estimates;
    verify MI recovers the truth approximately.
-5. Implement a delta-adjustment sensitivity
+4. Implement a delta-adjustment sensitivity
    analysis for an MI-based logistic regression.
    Vary $\delta$ over $(-1, 1)$ in steps of 0.25
    and plot the coefficient as a function of
@@ -832,7 +915,7 @@ than a silent one:
 document, and what a good one establishes is stated
 rather than computed.
 
-6. Write the missing-data section of a SAP for a
+5. Write the missing-data section of a SAP for a
    hypothetical trial in which ~15% of outcome
    observations are expected to be missing due
    to dropout. Pre-specify the primary approach
@@ -844,7 +927,7 @@ rather than computed.
    at the same one.
 
 ::: {.callout-tip icon=false collapse=true}
-## Solutions to exercises 1, 2, 4 and 5
+## Solutions to exercises 1 to 4
 
 **1. Complete case against multiple imputation.**
 
@@ -877,17 +960,18 @@ some estimates, while the between-imputation variance
 widens others. A method that only ever tightened intervals
 would be recovering information it does not have.
 
-**2. Bias of three methods under MAR.**
+**2. Bias of three methods under three reasons for
+missingness.**
 
 ```{r}
 #| label: soln-17-2
 set.seed(11)
 
-one_rep <- function(n = 200, beta = 1) {
+one_rep <- function(depends_on, n = 200, beta = 1) {
   x <- rnorm(n); z <- rnorm(n)
   y <- beta * x + 0.5 * z + rnorm(n)
-  # MAR: x goes missing more often when z is large
-  x[runif(n) < plogis(-1.4 + z)] <- NA
+  driver <- switch(depends_on, z = z, y = as.vector(scale(y)), x = x)
+  x[runif(n) < plogis(-1.6 + 2 * driver)] <- NA
   d <- data.frame(y, x, z)
 
   b_cc <- coef(lm(y ~ x + z, data = d))[["x"]]
@@ -896,7 +980,9 @@ one_rep <- function(n = 200, beta = 1) {
   d_mean$x[is.na(d_mean$x)] <- mean(d_mean$x, na.rm = TRUE)
   b_mean <- coef(lm(y ~ x + z, data = d_mean))[["x"]]
 
-  im <- mice(d, m = 5, printFlag = FALSE, seed = 1)
+  # no seed here: a fixed seed would reset the RNG and make
+  # every replicate draw the same data
+  im <- mice(d, m = 5, printFlag = FALSE)
   s_mi <- summary(pool(with(im, lm(y ~ x + z))))
   s_mi <- s_mi[s_mi$term == "x", ]
 
@@ -909,20 +995,47 @@ one_rep <- function(n = 200, beta = 1) {
     se_mi = s_mi$std.error)
 }
 
+mechanisms <- c(covariate_z = "z", outcome_y = "y", own_value_x = "x")
+
 # 100 replicates rather than 500, to keep the book's build fast
-res <- rowMeans(replicate(100, one_rep()))
+res <- t(sapply(mechanisms,
+                \(m) rowMeans(replicate(100, one_rep(m)))))
 round(res, 3)
 ```
 
-Read the two halves separately. All three methods are close
-to unbiased in the coefficient, because the missingness
-depends on `z` and `z` is in the model, which is what MAR
-means. The bias column is not where mean imputation fails.
+Read the rows before the columns, because the rows are the
+lesson. Each row deletes roughly a quarter of `x` from the
+same data-generating model; only the reason for the deletion
+changes. The Monte Carlo standard error of each bias is about
+0.009, so differences smaller than about 0.02 are noise.
 
-The standard errors separate the three, and not in the
-direction the usual slogan suggests. Multiple imputation is
-tightest, complete case wider, and mean imputation widest of
-all.
+When missingness depends on `z`, a covariate in the model,
+all three methods are close to unbiased. This is MAR, and
+complete case is fine.
+
+When missingness depends on `y`, complete case and mean
+imputation are biased by about $-0.15$ against a true slope
+of 1, and multiple imputation is close to unbiased. This is
+also MAR, because `y` is fully observed, so the label did not
+predict which method would fail. What matters is that the
+missingness depends on the outcome; MI recovers because the
+outcome is in its imputation model.
+
+When `x` goes missing because of its own value, the mechanism
+is MNAR, the case every method is supposed to fail. Complete
+case is close to unbiased, because once `x` and `z` are held
+fixed the deletion does not depend on `y`. Multiple
+imputation is the method that is biased, by about $+0.07$,
+because it fills the missing `x` values as though they
+resembled the observed ones. This is the pattern White and
+Carlin (2010) describe, and the reason the mechanism table
+earlier in the chapter is organized by what missingness
+depends on rather than by its label.
+
+The standard errors tell a second story, and not in the
+direction the usual slogan suggests. Multiple imputation and
+complete case are close, and mean imputation is widest in
+every row.
 
 The ordering is worth sitting with, because the textbook
 warning about mean imputation is that it *understates*
@@ -931,20 +1044,22 @@ different quantities are being confused. Mean imputation
 does shrink the spread of the variable it fills, which the
 antipattern earlier in this chapter demonstrates directly.
 But the standard error of a regression coefficient is not
-that spread: filling 20% of a covariate with a constant
+that spread: filling a quarter of a covariate with a constant
 destroys the covariance between `x` and `y` in those rows,
 which weakens the estimated relationship and inflates the
 residual variance. The reported error goes up, not down.
 
 The variance-understatement warning applies where the naive
 error ignores the imputation step, most sharply when the
-outcome itself is filled in. Here MI wins on the honest
-grounds: it uses all 200 rows rather than the roughly 160
-complete ones, and it carries the between-imputation
-variance forward rather than pretending the filled values
-were observed.
+outcome itself is filled in. Where MI does better here, it
+does so on the honest grounds: it uses all 200 rows rather
+than the roughly 145 complete ones, and it carries the
+between-imputation variance forward rather than pretending
+the filled values were observed. Its precision gain is
+modest when, as here, the other variables predict `x`
+poorly.
 
-**4. Ampute, impute, and check recovery.**
+**3. Ampute, impute, and check recovery.**
 
 ```{r}
 #| label: soln-17-4
@@ -972,7 +1087,7 @@ is the claim being checked. 'Approximately' is doing real
 work: a single run can miss by more than you expect, and
 one replicate is a demonstration rather than evidence.
 
-**5. Delta adjustment and the tipping point.**
+**4. Delta adjustment and the tipping point.**
 
 ```{r}
 #| label: fig-soln-17-5
@@ -981,8 +1096,9 @@ one replicate is a demonstration rather than evidence.
 #|   horizontal line marks zero. Where the curve crosses it, if it
 #|   does, is the tipping point."
 #| fig-alt: "Line plot of a logistic-regression coefficient against
-#|   delta from -1 to 1, declining steadily, with a dashed horizontal
-#|   reference line at zero."
+#|   delta from -1 to 1. The curve is nearly flat at first, then
+#|   declines as delta increases, with a dashed horizontal reference
+#|   line at zero."
 #| fig-width: 5.5
 #| fig-height: 3.2
 #| message: false
@@ -993,8 +1109,9 @@ d$y <- rbinom(n, 1, plogis(0.4 * d$x))
 d$x[runif(n) < 0.25] <- NA
 
 delta_fit <- function(delta) {
-  im <- mice(d, m = 10, printFlag = FALSE, seed = 4)
-  im$imp$x <- im$imp$x + delta
+  post <- make.post(d)
+  post["x"] <- paste("imp[[j]][, i] <- imp[[j]][, i] +", delta)
+  im <- mice(d, m = 10, post = post, printFlag = FALSE, seed = 4)
   s <- summary(pool(with(im, glm(y ~ x, family = binomial))))
   s$estimate[s$term == "x"]
 }
@@ -1047,22 +1164,40 @@ credible.
    inefficient. **MAR** (Missing At Random):
    missingness depends only on *observed* data;
    conditional on the observed, it is independent
-   of the unobserved. Complete-case is biased
-   but model-based methods (multiple imputation,
-   likelihood) are consistent. **MNAR** (Missing
-   Not At Random): missingness depends on the
-   unobserved data itself. No method is
-   consistent without additional assumptions;
-   sensitivity analysis is the honest response.
+   of the unobserved. Model-based methods
+   (multiple imputation, likelihood) are
+   consistent. **MNAR** (Missing Not At Random):
+   missingness depends on the unobserved data
+   itself. No method is consistent in general
+   without additional assumptions. For regression
+   coefficients, the label does not settle
+   whether complete-case analysis is biased: it
+   is unbiased whenever missingness does not
+   depend on the outcome given the model's
+   covariates, which can hold under MAR or MNAR,
+   and biased when it does, which can happen
+   under MAR. Because MAR cannot be tested
+   against MNAR, sensitivity analysis is expected
+   under any primary assumption.
 2. **Complete-case analysis** drops the ~12% of
    rows with missing data, reducing the
-   effective sample size; it is unbiased only
-   under MCAR. **Mean imputation** replaces
-   missing values with the sample mean, biasing
-   the variance estimate downward (artificially
-   narrow confidence intervals) and attenuating
-   coefficients toward zero when the missing
-   variable is a predictor. **Multiple
+   effective sample size; its coefficient
+   estimates are unbiased if missingness does not
+   depend on the outcome given the covariates,
+   whatever the mechanism label, and biased if
+   it does. **Mean imputation** replaces missing
+   values with the sample mean. It understates
+   the spread of the filled variable and can
+   bias coefficients, but its standard errors
+   are not reliably too narrow: for a missing
+   predictor the filled rows inflate the
+   residual variance, and the simulation in this
+   chapter's exercise solutions shows its
+   standard error is the widest of the three
+   methods. It is wrong in either direction,
+   except for a baseline covariate in a
+   randomized trial, where it leaves the
+   treatment effect unbiased. **Multiple
    imputation** produces $M$ plausible completed
    datasets, fits the model on each, and pools
    with Rubin's rules; the pooled standard error

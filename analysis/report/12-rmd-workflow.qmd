@@ -153,22 +153,38 @@ knitr::purl("paper.Rmd", documentation = 0)
 `documentation = 1` keeps prose as comments; `2` keeps
 prose as roxygen-style comments.
 
-**`.Rmd` → `.qmd`** with `knitr::convert_chunk_header()`
-or `quarto convert`:
+**`.Rmd` → `.qmd`** by renaming the file, then
+optionally rewriting the chunk headers with
+`knitr::convert_chunk_header()`:
 
 ```bash
-quarto convert paper.Rmd -o paper.qmd
+git mv paper.Rmd paper.qmd
 ```
 
-Most chunk options translate directly. The differences
-to handle by hand:
+```r
+knitr::convert_chunk_header("paper.qmd",
+                            output = "paper.qmd",
+                            type = "yaml")
+```
+
+There is no `quarto convert` step here. That command
+converts between `.ipynb` and `.qmd`; given an `.Rmd`
+it writes Jupyter notebook JSON into whatever file you
+name, `paper.qmd` included. Quarto renders a renamed
+`.Rmd` with knitr as it stands, so the rename alone
+produces a working document. The `convert_chunk_header()`
+call moves options such as `echo = FALSE` and
+`fig.cap = "..."` out of the braces into `#| echo: false`
+and `#| fig-cap:` lines. It does not add the `fig-` prefix
+to labels or touch cross-references. The differences to
+handle by hand:
 
 - YAML differences (Quarto uses slightly different
   format keys: `format: html` vs. `output: html_document`).
 - Chunk-option syntax: knitr uses
   ` ```{r chunk-name, echo = FALSE} `; Quarto's
   preferred syntax uses `#|` directives:
-  ```{r}
+  ```{{r}}
   #| label: chunk-name
   #| echo: false
   ```
@@ -238,13 +254,15 @@ the left branch without further thought. The tagged commit
 is the record of what was reported, and it should render
 with the toolchain that produced it.
 
-### What `quarto convert` leaves for you
+### What the rename leaves for you
 
-The command handles chunk headers and the obvious YAML
-keys. It does not touch cross-references, does not know
-that a project is a `bookdown` project, and does not audit
+Renaming the file and running
+`knitr::convert_chunk_header()` handles the chunk headers.
+Neither touches the YAML (`output:` still has to become
+`format:`), neither touches cross-references, neither knows
+that a project is a `bookdown` project, and neither audits
 what your packages assumed about knitr. Budget for those
-three by hand.
+by hand.
 
 **Cross-references fail silently, which makes them the
 dangerous item.** A `\@ref(fig:scatter)` left unconverted
@@ -322,7 +340,7 @@ heuristic.
 The fix in knitr Rmd:
 
 ````Rmd
-```r
+```{{r demographics, fig.cap = "Demographics", fig.pos = "H"}}
 plot(...)
 ```
 ````
@@ -401,13 +419,13 @@ formats:
 See @fig-demographics for the cohort breakdown
 (@tbl-baseline summarizes baseline characteristics).
 
-```r
+```{{r}}
 #| label: fig-demographics
 #| fig-cap: "Demographics by treatment arm"
 ggplot(...) + ...
 ```
 
-```r
+```{{r}}
 #| label: tbl-baseline
 #| tbl-cap: "Baseline characteristics"
 gtsummary::tbl_summary(...)
@@ -421,7 +439,7 @@ Labels follow the prefix convention: `fig-`, `tbl-`,
 In knitr Rmd, the equivalent syntax is more verbose:
 
 ````Rmd
-```r
+```{{r demographics, fig.cap = "Demographics by treatment arm"}}
 ggplot(...) + ...
 ```
 ````
@@ -591,10 +609,18 @@ knitr::spin("analysis.R", knit = FALSE, format = "Rmd")
 # → analysis.Rmd
 ```
 
-Step 2: convert to `.qmd`:
+Step 2: rename to `.qmd` and move the chunk options into
+`#|` lines (or skip Step 1's detour with
+`knitr::spin("analysis.R", knit = FALSE, format = "qmd")`):
 
 ```bash
-quarto convert analysis.Rmd -o analysis.qmd
+git mv analysis.Rmd analysis.qmd
+```
+
+```r
+knitr::convert_chunk_header("analysis.qmd",
+                            output = "analysis.qmd",
+                            type = "yaml")
 ```
 
 Step 3: add YAML, prose, cross-references:
@@ -612,9 +638,9 @@ execute:
 
 # Methods
 
-We analyzed &#96;{r} nrow(d)&#96; complete cases.
+We analyzed `{{r}} nrow(d)` complete cases.
 
-```r
+```{{r}}
 #| label: fig-scatter
 #| fig-cap: "Scatterplot of y on x1"
 plot(d$x1, d$y, xlab = "x1", ylab = "y")
@@ -622,7 +648,7 @@ abline(fit)
 ```
 
 @fig-scatter shows the relationship; the fitted slope
-is &#96;{r} round(coef(fit)["x1"], 2)&#96;.
+is `{{r}} round(coef(fit)["x1"], 2)`.
 ````
 
 Step 4: render. Half an hour from script to first-draft
@@ -727,7 +753,8 @@ convert and render documents of your own, so no answer key is possible.
   Technical Documents with R Markdown*, for long-form
   documents.
 - Quarto's `quarto convert` documentation for
-  format-conversion details.
+  `.ipynb` to `.qmd` conversion, and the knitr help page
+  `?knitr::convert_chunk_header` for `.Rmd` chunk headers.
 
 ## Prerequisites answers {#sec-quiz-answers-12}
 
@@ -736,7 +763,8 @@ convert and render documents of your own, so no answer key is possible.
    rendered `.Rmd` by treating any comment starting
    with `#'` as prose and everything else as code
    chunks. For `.qmd`, the same convention works
-   under `quarto convert`. Half an hour from script
+   with `knitr::spin('script.R', knit = FALSE,
+   format = 'qmd')`. Half an hour from script
    to literate document.
 2. LaTeX treats figures and tables as floats and
    rearranges them by default to avoid bad page

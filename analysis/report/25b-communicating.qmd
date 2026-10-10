@@ -4,10 +4,11 @@
 ```{=latex}
 \begin{flushright}\small
 ```
-*The single biggest problem in communication is the illusion
-that it has taken place.*
+*The great enemy of communication, we find, is the illusion
+of it.*
 
-[William H. Whyte]{.smallcaps}, *Is Anybody Listening?* (1950)
+[William H. Whyte]{.smallcaps}, 'Is Anybody Listening?',
+*Fortune* (1950)
 ```{=latex}
 \end{flushright}
 ```
@@ -127,14 +128,20 @@ consulted again from one who is merely correct.
 
 ## The narrative arc
 
+```{r}
+#| label: comm-trial-early
+#| ref.label: comm-trial
+#| include: false
+```
+
 The most portable structure for a scientific argument has
 three parts, and it is easier to remember as a skeleton of
 conjunctions than as a diagram.
 
 **And.** The stable state of the world, which the audience
 already accepts. 'Patients hospitalized with heart failure
-have a thirty-day readmission rate of about twenty-five per
-cent, and post-discharge home-health visits are widely
+have a thirty-day readmission rate of about twenty-five
+percent, and post-discharge home-health visits are widely
 believed to reduce it.'
 
 **But.** The disruption. The reason the work exists. 'But the
@@ -143,9 +150,12 @@ who received visits were systematically healthier than those
 who did not.'
 
 **Therefore.** The response, and the finding. 'Therefore we
-randomized 1,500 patients, and we find that home-health visits
-reduce thirty-day readmission by 4.2 percentage points, with a
-confidence interval from 1.1 to 7.3.'
+randomized `r format(nrow(trial), big.mark = ",")` patients,
+and we find that assignment to home-health visits reduces
+thirty-day readmission or death by
+`r sprintf("%.1f", diff)` percentage points, with a
+confidence interval from `r sprintf("%.1f", ci[1])` to
+`r sprintf("%.1f", ci[2])`.'
 
 Three sentences, and the audience now knows what you did, why,
 and what you found. Everything else in the talk or the memo is
@@ -184,7 +194,8 @@ know whether to believe it.
 
 **One idea per slide, and the idea is the title.** A slide
 titled 'Results' says nothing. A slide titled 'Home-health
-visits reduced readmission by 4.2 points' says the thing, and
+visits reduced readmission or death by
+`r sprintf("%.1f", diff)` points' says the thing, and
 the figure beneath it is the evidence for the title. If a
 listener reads only the titles, they should get the argument.
 
@@ -253,65 +264,103 @@ the model.
 #| message: false
 library(dplyr)
 
-# The trial as reported: 1:1 randomization, readmission
-# ascertained from a state health-information exchange.
-n_arm <- 1353
+# Sized as in the SAP of the analysis-plan chapter: 80% power
+# for 25% vs 20%, inflated for up to 10% unascertainable
+# outcomes. The primary outcome is readmission or death.
+p_planned    <- c(usual = 0.25, home = 0.20)
+planned_diff <- 100 * (p_planned[["usual"]] - p_planned[["home"]])
+n_arm <- ceiling(power.prop.test(p1 = p_planned[["usual"]],
+                                 p2 = p_planned[["home"]],
+                                 power = 0.80)$n / 0.90)
 
+# NA marks a patient with no linkage to the state
+# health-information exchange: randomized, outcome unknown.
 trial <- tibble(
   # a factor, so the arms keep trial order rather than
   # alphabetical order when grouped
-  arm     = factor(rep(c("Usual care", "Home health"), each = n_arm),
-                   levels = c("Usual care", "Home health")),
-  readmit = c(rep(1L, 336), rep(0L, n_arm - 336),    # usual care
-              rep(1L, 279), rep(0L, n_arm - 279))    # home health
+  arm   = factor(rep(c("Usual care", "Home health"), each = n_arm),
+                 levels = c("Usual care", "Home health")),
+  event = c(rep(1L, 285), rep(0L, n_arm - 285 - 76), rep(NA, 76),
+            rep(1L, 236), rep(0L, n_arm - 236 - 77), rep(NA, 77))
 )
 
 rates <- trial |>
   group_by(arm) |>
-  summarize(n = n(), events = sum(readmit),
-            rate = mean(readmit), .groups = "drop")
+  summarize(n = n(), n_obs = sum(!is.na(event)),
+            n_miss = sum(is.na(event)),
+            events = sum(event, na.rm = TRUE),
+            rate = events / n_obs, .groups = "drop")
+stopifnot(sum(rates$n) == nrow(trial),
+          all(rates$n_obs + rates$n_miss == rates$n))
 
-# prop.test takes control first, so the difference and the
-# interval are both usual care minus home health
-fit  <- prop.test(x = rates$events, n = rates$n, correct = FALSE)
-diff <- 100 * (rates$rate[1] - rates$rate[2])
-ci   <- 100 * fit$conf.int
+p_missing <- sum(rates$n_miss) / sum(rates$n)
+
+# Wald interval for usual care minus home health, written out
+# because the sensitivity analysis below needs fractional
+# (expected) event counts, which prop.test() does not accept.
+rd_wald <- function(x, n) {
+  p   <- x / n
+  est <- p[1] - p[2]
+  se  <- sqrt(sum(p * (1 - p) / n))
+  100 * c(estimate = est,
+          lower = est - qnorm(0.975) * se,
+          upper = est + qnorm(0.975) * se)
+}
+
+primary <- rd_wald(rates$events, rates$n_obs)
+diff    <- primary[["estimate"]]
+ci      <- primary[c("lower", "upper")]
 
 rates
-round(c(estimate = diff, lower = ci[1], upper = ci[2]), 1)
+round(primary, 1)
 ```
 
 ```{r}
 #| label: comm-sensitivity
-# Pre-specified MNAR sensitivity. 6.3% of outcomes were not
-# ascertainable. The concern is one-sided: if the intervention
-# arm's unascertained patients fared worse than their observed
-# peers, the effect shrinks. So apply the penalty there only.
-p_missing <- 0.063
-delta     <- 1.5          # intervention arm's missing, relative risk
+# Pre-specified delta adjustment. The concern is one-sided: if
+# the home-health arm's unascertained patients fared worse
+# than their observed peers, the effect shrinks. So the usual-
+# care arm's missing patients get the observed risk (MAR) and
+# the home-health arm's get delta times it.
+delta_shift <- function(delta) {
+  imputed <- rates$n_miss * rates$rate * c(1, delta)
+  rd_wald(rates$events + imputed, rates$n)
+}
 
-adjusted <- rates |>
-  mutate(
-    n_miss   = round(n * p_missing),
-    penalty  = c(1, delta),                 # usual care, home health
-    ev_adj   = events + round(n_miss * rate * penalty),
-    rate_adj = ev_adj / n
-  )
+delta  <- 1.5
+sens   <- delta_shift(delta)
+diff_s <- sens[["estimate"]]
+ci_s   <- sens[c("lower", "upper")]
 
-fit_s  <- prop.test(x = adjusted$ev_adj, n = adjusted$n,
-                    correct = FALSE)
-diff_s <- 100 * (adjusted$rate_adj[1] - adjusted$rate_adj[2])
-ci_s   <- 100 * fit_s$conf.int
+delta_grid <- seq(1, 1 / rates$rate[2], by = 0.01)
+lower_grid <- purrr::map_dbl(delta_grid, \(d) delta_shift(d)[["lower"]])
+delta_tip  <- delta_grid[which(lower_grid <= 0)[1]]
 
-round(c(estimate = diff_s, lower = ci_s[1], upper = ci_s[2]), 1)
+round(sens, 1)
+delta_tip
 ```
 
 Note what the second chunk establishes and what it does not.
-It shows the conclusion survives one specific departure from
-the missing-at-random assumption. It says nothing about
-whether a factor of 1.5 is the right departure to worry
-about, which is a clinical judgment the memo has to state in
-words.
+It fills in the expected number of events for the
+unascertained patients and keeps those patients in the
+denominator, so every randomized patient counts. It is a
+single deterministic imputation, not multiple imputation: the
+interval treats the filled-in outcomes as if they had been
+observed, and is therefore somewhat too narrow. It shows the
+conclusion survives one specific departure from the
+missing-at-random assumption, and it locates the tipping
+point, the smallest $\delta$ at which the interval reaches
+zero, at `r sprintf("%.2f", delta_tip)`. It says nothing
+about whether a factor of `r delta` is the right departure to
+worry about, which is a clinical judgment the memo has to
+state in words.
+
+Both chunks estimate the unadjusted difference in
+proportions. The SAP's primary estimator standardizes over
+baseline covariates (@sec-analysis-plan). Under
+randomization both target the same marginal risk
+difference; the example omits covariates to keep the
+arithmetic visible.
 
 ### Worked example: a memo
 
@@ -319,8 +368,8 @@ words.
 > **From:** A. Statistician
 > **Re:** HF-HOME primary analysis, 2026-06-15
 >
-> **Finding.** Home-health visits within seven days of
-> discharge reduced thirty-day all-cause readmission by
+> **Finding.** Assignment to home-health visits within seven
+> days of discharge reduced thirty-day readmission or death by
 > `r sprintf("%.1f", diff)` percentage points (95% CI
 > `r sprintf("%.1f", ci[1])` to `r sprintf("%.1f", ci[2])`;
 > from `r sprintf("%.1f%%", 100 * rates$rate[1])` to
@@ -339,13 +388,17 @@ words.
 >   v1.0, tagged before unblinding.
 > - Estimate: the interval excludes zero but includes effects
 >   as small as `r sprintf("%.1f", ci[1])` points. The trial
->   was powered to detect 4.5, so we are estimating an effect
->   at roughly the size we planned for, with the imprecision
->   that implies.
+>   was powered to detect `r sprintf("%.0f", planned_diff)`,
+>   so we are estimating an effect at roughly the size we
+>   planned for, with the imprecision that implies.
 > - Principal threat: `r sprintf("%.1f%%", 100 * p_missing)` of
 >   patients had no outcome ascertainable from the state
->   health-information exchange. These are handled by multiple
->   imputation, and the pre-specified MNAR sensitivity analysis
+>   health-information exchange. The primary analysis uses
+>   the patients with an ascertained outcome, which is valid
+>   if loss to the exchange is unrelated to readmission given
+>   arm and baseline covariates. The pre-specified
+>   sensitivity analysis, which gives unascertained
+>   home-health patients `r delta` times the observed risk,
 >   moves the estimate to `r sprintf("%.1f", diff_s)` points
 >   (CI `r sprintf("%.1f", ci_s[1])` to
 >   `r sprintf("%.1f", ci_s[2])`). The conclusion is
@@ -367,9 +420,10 @@ words.
 > 3. Single health system. External validity is unaddressed.
 >
 > **Next.** Draft methods and results in two weeks. I propose
-> adding the tipping-point analysis for the missing outcomes
-> (roughly one day) because a reviewer will ask for it and it
-> is cheaper to have it than to be asked.
+> presenting the SAP's tipping-point analysis for the missing
+> outcomes as a main-text figure (roughly one day) because a
+> reviewer will ask for it and it is cheaper to have it than
+> to be asked.
 
 Notice what the memo does not contain: the model formula, the
 covariate list, the diagnostics, the Table 1, the software
@@ -539,22 +593,69 @@ was not, and doing so is precisely the practice
 
 ### Worked example: three responses
 
+As in the memo, every number in the responses below is
+computed. Those for Comment 1.3 come from the chunks above;
+the subgroup figures for Comment 2.1 come from this one,
+which splits the ascertained patients by baseline ejection
+fraction.
+
+```{r}
+#| label: comm-subgroup
+subgroup <- tibble(
+  stratum = rep(c("Reduced EF", "Preserved EF"), each = 2),
+  arm     = rep(c("Usual care", "Home health"), times = 2),
+  n_obs   = c(560, 555, 580, 584),
+  events  = c(155, 120, 130, 116)
+)
+stopifnot(
+  sum(subgroup$n_obs)  == sum(rates$n_obs),
+  sum(subgroup$events) == sum(rates$events)
+)
+
+by_stratum <- subgroup |>
+  group_by(stratum) |>
+  summarize(
+    rd = 100 * (events[1] / n_obs[1] - events[2] / n_obs[2]),
+    se = 100 * sqrt(sum(events / n_obs * (1 - events / n_obs) /
+                          n_obs)),
+    .groups = "drop"
+  )
+
+rd_reduced   <- by_stratum$rd[by_stratum$stratum == "Reduced EF"]
+rd_preserved <- by_stratum$rd[by_stratum$stratum == "Preserved EF"]
+z_int <- (rd_reduced - rd_preserved) / sqrt(sum(by_stratum$se^2))
+p_int <- 2 * pnorm(-abs(z_int))
+
+by_stratum
+round(c(z = z_int, p = p_int), 2)
+```
+
 > **Comment 1.3.** *'The authors should report a sensitivity
-> analysis to the missing outcome data, which at 6.3% is not
+> analysis to the missing outcome data, which at
+> `r sprintf("%.1f%%", 100 * p_missing)` is not
 > negligible.'*
 >
 > We agree, and we thank the reviewer. A delta-adjustment
-> sensitivity analysis under a plausible MNAR mechanism was
+> sensitivity analysis with its tipping point was
 > pre-specified in SAP v1.0 but, on review, was reported only
 > in the supplement. We have moved it into the main text
-> (Results, p. 12) and added a tipping-point analysis
-> (Supplementary Figure S4). The conclusion is unchanged: the
-> effect estimate falls from 4.2 to 3.6 points, and the
-> interval continues to exclude zero until the imputed
-> outcomes are shifted by more than 1.4 standard deviations,
-> a magnitude we regard as implausible given that loss to
+> (Results, p. 12; Figure 3). Unascertained patients remain
+> in the denominator; in the home-health arm they are
+> assigned $\delta$ times the risk of their observed peers,
+> and in the usual-care arm the observed risk. The
+> conclusion is unchanged: at $\delta = `r delta`$ the effect
+> estimate falls from `r sprintf("%.1f", diff)` to
+> `r sprintf("%.1f", diff_s)` points, and the interval
+> continues to exclude zero until $\delta$ reaches
+> `r sprintf("%.2f", delta_tip)`, that is, until the
+> unascertained home-health patients are assumed to have a
+> risk of `r sprintf("%.0f%%", 100 * delta_tip * rates$rate[2])`
+> against `r sprintf("%.0f%%", 100 * rates$rate[2])` among
+> those observed. We regard a departure of that size as
+> unlikely, though not impossible, given that loss to
 > follow-up was driven by out-of-state address rather than by
-> clinical status.
+> clinical status, and the revised Discussion (p. 18) says
+> so.
 >
 > **Comment 2.1.** *'The effect appears larger in patients
 > with reduced ejection fraction. The authors should present
@@ -563,8 +664,10 @@ was not, and doing so is precisely the practice
 >
 > We have added the subgroup analysis (Supplementary Table
 > S7), which does show a larger point estimate in the reduced-
-> ejection-fraction stratum (5.8 vs 3.1 points), with an
-> interaction test that is not significant (p = 0.31). We
+> ejection-fraction stratum (`r sprintf("%.1f", rd_reduced)`
+> vs `r sprintf("%.1f", rd_preserved)` points), with an
+> interaction test that is not significant
+> (p = `r sprintf("%.2f", p_int)`). We
 > respectfully decline to present it as a primary finding, for
 > two reasons. First, it was not pre-specified: the analysis
 > plan (deposited at ClinicalTrials.gov before unblinding,
@@ -582,11 +685,15 @@ was not, and doing so is precisely the practice
 > **Comment 3.2.** *'A logistic regression is inappropriate
 > here; the authors should have used a Cox model.'*
 >
-> The outcome is binary readmission within a fixed 30-day
-> window, ascertained for all patients, and every patient was
-> followed for the full window or had their outcome
-> ascertained through linkage. There is therefore no censoring
-> to accommodate, and the estimand of interest is a risk
+> The outcome is binary readmission or death within a fixed
+> 30-day window. Every patient linked to the state exchange
+> is observed for the full window, and death is part of the
+> outcome rather than a competing event. The
+> `r sprintf("%.1f%%", 100 * p_missing)` who could not be
+> linked have a missing outcome, not a censored follow-up
+> time, and are addressed in our response to Comment 1.3.
+> There is therefore no censoring to accommodate, and the
+> estimand of interest is a risk
 > difference over a fixed horizon rather than a hazard ratio.
 > A Cox model would answer a different question and would
 > require an assumption (proportional hazards) that the design
@@ -601,7 +708,8 @@ the editor exactly where in the manuscript to look.
 
 Observe also what made the first response cheap to write. The
 sensitivity analysis existed, because the SAP pre-specified
-it; the tipping-point analysis took a day, because the
+it; promoting its tipping-point figure to the main text took
+a day, because the
 compendium rebuilds with one command; and the claim that the
 plan predates unblinding is verifiable, because the SAP was
 tagged in Git (@sec-analysis-plan) and deposited at the

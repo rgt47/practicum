@@ -538,11 +538,18 @@ jobs:
             local::.
             any::tinytest
       - name: Run tests
-        run: Rscript -e 'tinytest::test_all()'
+        run: |
+          Rscript -e 'res <- tinytest::test_all()' \
+            -e 'quit(status = as.integer(tinytest::any_fail(res)))'
 ```
 
 Push the workflow; on every commit, GitHub runs the
-tests and reports pass/fail. Regressions caught at
+tests and reports pass/fail. The second `-e` line is not
+optional. `tinytest::test_all()` reports failures but
+returns normally, so `Rscript` exits with status 0 and
+the job stays green however many tests fail. A CI step
+fails only on a nonzero exit status, so the script must
+convert 'any test failed' into one. Regressions caught at
 push time are far cheaper to fix than regressions
 caught in production.
 
@@ -777,7 +784,8 @@ a repository, or a colleague you supply.
    second.
 6. Set up GitHub Actions with a workflow that runs
    `tinytest::test_all()` on every push. Push and
-   verify the workflow runs green.
+   verify the workflow runs green, then break one
+   test and verify that it runs red.
 7. Introduce a deliberate bug into your pipeline.
    Verify the test suite catches it. If it does
    not, add a test that does.
@@ -934,12 +942,17 @@ circular, and no amount of adding cases repairs that.
    fast and narrow; end-to-end tests are slow and
    broad; integration tests sit in between, with
    good cost-benefit for analytic pipelines.
-3. `expect_snapshot()` captures the output of an
-   expression (printed text, numerical result,
-   plot) to a file on first run. On subsequent
-   runs it compares the new output against the
-   saved snapshot. Use it when the output is
-   complex (a printed object, a plot, a formatted
-   table) and not easily expressed as a literal
-   value. Review changes manually when they
-   occur; do not auto-accept.
+3. `expect_equal_to_reference()` captures the
+   *object* an expression returns (a coefficient
+   vector, a fitted summary, a data frame) by
+   saving it to an `.rds` file on first run, when
+   the test passes trivially. On subsequent runs it
+   compares the new object against the saved one,
+   so it detects changed values but ignores changes
+   in how they print. Use it when the output is
+   complex and not easily expressed as a literal
+   value. Inspect the stored reference once, since
+   the first run accepts whatever the code
+   produced, and review every later difference
+   manually before deleting and regenerating the
+   file.

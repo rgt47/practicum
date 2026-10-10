@@ -96,10 +96,11 @@ cannot understand.
 
 **Get the censoring convention right.** The
 `CNSR = 1` convention is the inverse of R's
-`survival::Surv(event = 1)`. Inverting once at the
-boundary (when reading ADTTE into R) is correct;
-inverting twice or not at all silently produces
-wrong survival curves. Verify on every analysis.
+`survival::Surv(event = 1)`. Converting once at the
+boundary (when reading ADTTE into R) with
+`event = CNSR == 0` is correct; converting twice or not
+at all silently produces wrong survival curves. Verify
+on every analysis.
 
 **Population flags carry inferential meaning.** A
 modified intent-to-treat (mITT) analysis includes
@@ -228,16 +229,24 @@ dataset you will encounter:
 | `PARAMCD`, `PARAM` | Parameter code and decoded name. |
 | `AVAL`, `AVALC` | Analysis value (numeric, character). |
 | `AVISIT`, `AVISITN` | Analysis visit (character, numeric). |
-| `CNSR` | Censoring indicator (1 = censored). |
+| `CNSR` | Censoring indicator (0 = event; a positive integer = censored). |
 | `ITTFL`, `SAFFL`, `EFFFL` | Population flags. |
 | `ANL01FL` | Analysis record flag. |
 | `DTYPE` | Derivation type (e.g. `'LOCF'`). |
 
 The `CNSR` convention is the single most common source of
-day-one errors for new statisticians. CDISC uses `CNSR = 1`
-for censored and `CNSR = 0` for event. The `survival::Surv()`
-function in R uses the opposite convention: `event = 1`. When
-moving between `ADTTE` and `Surv()`, invert.
+day-one errors for new statisticians. CDISC uses `CNSR = 0`
+for the event and a positive integer for censoring, usually
+`1`, though a sponsor may use `2`, `3`, and so on to
+distinguish censoring reasons. The `survival::Surv()`
+function in R uses the opposite convention: `event = 1`.
+When moving between `ADTTE` and `Surv()`, convert with
+`CNSR == 0`, which is true for events whatever the
+censoring codes are. The arithmetic shortcut `1 - CNSR`
+works only while every censored row has `CNSR = 1`: a
+`CNSR = 2` becomes `-1`, which `Surv()` turns into `NA`
+with nothing more than a warning, and those subjects
+drop out of the analysis.
 
 **Controlled terminology.** CDISC publishes codelists that
 enumerate the valid values of categorical variables. `SEX`,
@@ -408,8 +417,11 @@ head(adtte)
 
 ### Analyze from ADTTE
 
-Note the `1L - CNSR` inversion from the CDISC convention to
-`survival::Surv()`.
+Note the `CNSR == 0` conversion from the CDISC convention to
+`survival::Surv()`. It gives the same answer as `1L - CNSR`
+on this dataset, where `CNSR` is only 0 or 1, and the right
+answer on a sponsor's `ADTTE` that codes censoring reasons
+as 1, 2, and 3.
 
 ```{r}
 #| label: cdisc-survival
@@ -417,11 +429,11 @@ Note the `1L - CNSR` inversion from the CDISC convention to
 analysis <- adtte |>
   filter(EFFFL == 'Y', PARAMCD == 'OS')
 
-fit <- survfit(Surv(AVAL, 1L - CNSR) ~ TRT01P,
+fit <- survfit(Surv(AVAL, CNSR == 0) ~ TRT01P,
                data = analysis)
 print(fit)
 
-cox <- coxph(Surv(AVAL, 1L - CNSR) ~ TRT01P,
+cox <- coxph(Surv(AVAL, CNSR == 0) ~ TRT01P,
              data = analysis)
 summary(cox)
 ```
@@ -531,7 +543,7 @@ will look upside down: the treatment that delays
 the event will appear to have lower 'survival'
 because its participants accrue more
 administrative censoring as they live longer. The
-fix is `Surv(AVAL, 1L - CNSR)`. Spot the bug by
+fix is `Surv(AVAL, CNSR == 0)`. Spot the bug by
 sanity-checking against the median survival time
 or the event rate: if a treatment everyone agrees
 helps survival shows up worse than placebo, suspect
@@ -550,8 +562,10 @@ Three habits carry a submission through review:
    spec is the contract; the code is the
    implementation.
 2. **Verify the censoring convention at the
-   boundary.** `CNSR = 1` means censored; invert
-   once when crossing into R's `survival::Surv()`.
+   boundary.** `CNSR = 0` means the event and any
+   positive value means censored; convert once, with
+   `CNSR == 0`, when crossing into R's
+   `survival::Surv()`.
 3. **Use population flags deliberately.** ITT,
    safety, efficacy, each is a substantive
    choice the SAP pre-specifies. Match analysis
@@ -562,7 +576,17 @@ Three habits carry a submission through review:
 ::: {.callout-tip}
 ## Prompts to try
 
-1. Paste an SDTM domain (even a synthetic one) and ask the LLM
+Send a model the structure of trial data, never the data.
+The domains built in this chapter are fabricated and safe to
+paste. A real study's SDTM or ADaM holds individual patient
+data and the sponsor's confidential information: it goes to
+an LLM only through a deployment your organization has
+approved for that study, and often not at all. For real
+work, paste the variable list, the specification, or a few
+synthetic rows that match it (@sec-ai-governance).
+
+1. Paste a synthetic SDTM domain, or the variable list of a
+   real one, and ask the LLM
    to describe its shape, its role, and its relationship to
    other domains. Check whether the model correctly identifies
    the granularity (one row per what).
@@ -734,8 +758,10 @@ decision moves.
    SDTM. A biostatistician typically builds ADaM; SDTM is
    built by data management or clinical programmers.
 2. `CNSR = 1` indicates a censored observation. `CNSR = 0`
-   indicates the event of interest. This convention is the
-   inverse of `survival::Surv()`, which uses `event = 1`.
+   indicates the event of interest, and a sponsor may use
+   other positive integers for other censoring reasons. This
+   convention is the inverse of `survival::Surv()`, which
+   uses `event = 1`, so pass `CNSR == 0` as the event.
 3. `ADSL` is the subject-level anchor dataset. It contains
    exactly one row per subject, with treatment assignment,
    demographics, baseline covariates, key dates, and

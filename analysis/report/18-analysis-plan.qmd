@@ -4,13 +4,12 @@
 ```{=latex}
 \begin{flushright}\small
 ```
-*To call in the statistician after the experiment is done
-may be no more than asking him to perform a post-mortem
-examination: he may be able to say what the experiment died
-of.*
+*It is unacceptably easy to publish 'statistically
+significant' evidence consistent with any hypothesis.*
 
-[Ronald A. Fisher]{.smallcaps}, *Presidential Address to the
-First Indian Statistical Congress* (1938)
+[Joseph P. Simmons, Leif D. Nelson, and Uri
+Simonsohn]{.smallcaps}, *False-Positive Psychology*,
+Psychological Science (2011)
 ```{=latex}
 \end{flushright}
 ```
@@ -41,8 +40,9 @@ chapter in @sec-quiz-answers-18.
 
 By the end of this chapter you should be able to:
 
-- Draft a SAP using the 243B template as a starting
-  point.
+- Draft a SAP using a standard section template, such
+  as the published guideline of Gamble et al.
+  [-@gamble2017sap], as a starting point.
 - Pre-specify primary, secondary, and exploratory
   analyses with enough detail that a collaborator
   could execute them without further instruction.
@@ -94,9 +94,10 @@ The SAP is judgment work, not boilerplate.
 **Specify enough to constrain.** A SAP that says 'we
 will fit a regression model' has not specified
 anything. A SAP that says 'multivariable logistic
-regression of 30-day readmission on home-health
-visit (yes/no), adjusted for age (continuous), sex,
-ejection fraction (continuous), and discharge
+regression of 30-day readmission or death on
+randomized arm (home health vs. usual care),
+adjusted for age (continuous), sex, ejection
+fraction (continuous), and discharge
 medication count (continuous), with a 5% Type-I
 error rate, two-sided' has constrained the
 researcher degrees of freedom that matter. Aim for
@@ -111,13 +112,20 @@ provided they are labeled as such. Mixing them with
 the primary changes what the primary actually means.
 
 **Be honest about uncertainty in the plan.** When
-you do not know the right method until you see the
-data, say so. 'If the residuals show
-heteroscedasticity, we will use HC1 standard errors;
-otherwise classical SEs' is more honest than 'we
-will use HC1 SEs' (which constrains a choice that
-should be data-driven) or 'we will use SEs' (which
-constrains nothing).
+you do not know whether an assumption will hold,
+pre-specify a method that remains valid either way
+rather than a test that chooses between methods. 'If
+the residuals show heteroscedasticity, we will use
+HC1 standard errors; otherwise classical SEs' looks
+careful but is a pretest procedure: the combined
+rule's error rate is that of neither branch, and
+classical SEs chosen after a heteroscedasticity test
+that lacked power are the worst of both. 'We will
+use HC3 standard errors' commits to an estimator
+that is valid whether or not the variance is
+constant and costs little when it is
+[@long2000hc]. 'We will use SEs' constrains
+nothing.
 
 **Tag the SAP at data access.** Git tag
 `sap-v1.0-locked` at the moment the data become
@@ -163,9 +171,13 @@ The trade-off is honest: pre-registration restricts
 flexibility. The flexibility it restricts was
 producing inflated false-positive rates anyway.
 
-## The 243B SAP template
+## A SAP template
 
-A standard biostatistical SAP has these sections:
+A standard biostatistical SAP has these sections.
+The list is a condensed version of the published
+guideline for the content of clinical-trial SAPs
+[@gamble2017sap], which is the fuller checklist to
+use for a trial:
 
 1. **Background and rationale.** Why this study, in
    half a page. Sets the audience for the rest.
@@ -199,7 +211,8 @@ A standard biostatistical SAP has these sections:
     assumed mechanism (MCAR, MAR, MNAR); diagnostic
     checks.
 12. **Multiple testing.** Family-wise correction
-    (Bonferroni, Holm, etc.) or false discovery
+    (Bonferroni, Holm, fixed-sequence or other
+    gatekeeping procedures) or false discovery
     rate (BH) procedure; the family of tests it
     applies to.
 13. **Reporting.** What gets reported, in what
@@ -283,13 +296,32 @@ zzpower::power_table("ttest_2groups",
 ```
 
 In the SAP, report the sample size with the
-underlying assumptions:
+underlying assumptions, and apply the attrition
+assumption rather than merely stating it. The
+calculation gives the number of participants who
+must be *analyzed*; the number enrolled has to be
+larger by the factor $1/(1 - \text{attrition})$:
 
-> The study will enroll 64 participants per arm
-> (total $n = 128$), to achieve 80% power to detect
-> a standardized effect of 0.5 at a two-sided
-> $\alpha = 0.05$, assuming an attrition rate of
-> 10%.
+```{r}
+#| label: sap-attrition
+attrition  <- 0.10
+n_analyzed <- power.t.test(delta = 0.5, sd = 1,
+                           power = 0.80)$n
+n_enrolled <- ceiling(n_analyzed / (1 - attrition))
+
+c(analyzed = ceiling(n_analyzed), enrolled = n_enrolled)
+```
+
+> The study will enroll `r n_enrolled` participants
+> per arm (`r 2 * n_enrolled` in total), so that
+> with 10% attrition `r ceiling(n_analyzed)` per arm
+> remain for analysis, giving 80% power to detect a
+> standardized effect of 0.5 at a two-sided
+> $\alpha = 0.05$.
+
+A plan that says '64 per arm, assuming 10%
+attrition' and enrolls 64 has assumed the attrition
+and then ignored it.
 
 If the assumptions are uncertain, present a table of
 required sample sizes under several effect sizes,
@@ -325,8 +357,8 @@ In the SAP, separate them clearly:
 In the paper, label them in the methods section:
 
 > The primary analysis was a multivariable logistic
-> regression of 30-day readmission on home-health
-> visit, pre-specified in the analysis plan
+> regression of 30-day readmission or death on
+> randomized arm, pre-specified in the analysis plan
 > (Supplementary Material, version 1.0). Subgroup
 > analyses by age were exploratory and are reported
 > as hypothesis-generating.
@@ -475,26 +507,84 @@ hosting an artifact and depositing it.
 
 ## Worked example: SAP outline
 
+The design numbers in the plan below are computed,
+not typed, from four assumptions: a 25% event rate
+under usual care, a 5-point absolute reduction worth
+detecting, 80% power at two-sided $\alpha = 0.05$,
+and up to 10% of patients without an ascertainable
+outcome.
+
+```{r}
+#| label: sap-hfhome-n
+p_usual    <- 0.25
+p_home     <- 0.20
+missing_hf <- 0.10
+
+hf_design <- power.prop.test(p1 = p_usual, p2 = p_home,
+                             power = 0.80)
+n_eval    <- ceiling(hf_design$n)
+n_rand    <- ceiling(hf_design$n / (1 - missing_hf))
+or_hf     <- (p_home / (1 - p_home)) /
+  (p_usual / (1 - p_usual))
+power_750 <- power.prop.test(n = 750, p1 = p_usual,
+                             p2 = p_home)$power
+
+c(evaluable_per_arm  = n_eval,
+  randomized_per_arm = n_rand,
+  randomized_total   = 2 * n_rand)
+round(c(odds_ratio = or_hf, power_at_750 = power_750), 2)
+```
+
+The last line is a warning about typed numbers. An
+earlier draft of this plan read '1500 (750 per arm)
+for 80% power to detect OR = 0.75 at baseline rate
+0.25'. At those rates 750 per arm gives
+`r round(100 * power_750)`% power, not 80%, and no one
+checking the prose by eye would have noticed.
+
 > **Title:** Statistical Analysis Plan for the
 > Effect of Post-Discharge Home Health Visits on
-> 30-Day Readmission in Heart Failure (HF-HOME-RCT)
+> 30-Day Readmission or Death in Heart Failure
+> (HF-HOME-RCT)
 >
 > **Version:** 1.0, locked 2026-04-23.
 >
 > ## 1. Background
 >
 > Patients hospitalized with heart failure have a
-> 25% 30-day readmission rate. Home-health visits
+> 30-day risk of readmission or death of about 25%. Home-health visits
 > within 7 days of discharge have been associated
 > with reduced readmission in observational studies
 > [...]. We test the causal effect with a parallel-
 > group RCT.
 >
-> ## 2. Research question
+> ## 2. Research question and estimand
 >
-> Does receipt of $\geq 1$ home-health visit within
-> 7 days of discharge reduce 30-day all-cause
-> readmission in HF patients?
+> Among adults discharged alive after a heart-failure
+> admission, does assignment to a home-health
+> program (at least one visit within 7 days of
+> discharge), compared with usual care, reduce the
+> 30-day risk of readmission or death? The estimand,
+> by its five ICH E9(R1) attributes
+> [@ich2019e9r1]:
+>
+> - *Population:* patients meeting section 4.
+> - *Treatment conditions:* assignment to the
+>   home-health program versus usual care.
+> - *Variable:* all-cause readmission or death
+>   within 30 days of index discharge (section 5).
+> - *Intercurrent events:* death before readmission
+>   is handled by a composite strategy (it is an
+>   event), so the variable is defined for every
+>   patient. Not receiving the visit in the
+>   home-health arm, and receiving home health
+>   outside the protocol in the usual-care arm, are
+>   handled by a treatment-policy strategy: patients
+>   are analyzed as randomized, whatever they
+>   received.
+> - *Population-level summary:* the marginal risk
+>   difference, usual care minus home health, so
+>   that a positive value is a reduction.
 >
 > ## 3. Design
 >
@@ -512,36 +602,83 @@ hosting an artifact and depositing it.
 >
 > ## 5. Primary outcome
 >
-> Binary: 30-day all-cause readmission, defined as
-> any inpatient admission to any institution within
-> 30 days of index discharge. Source: institutional
-> EHR linked to state HIE.
+> Binary: all-cause readmission or death within 30
+> days of index discharge. Readmission is any
+> inpatient admission to any institution. Source:
+> institutional EHR linked to the state HIE and to
+> state death records.
 >
 > ## 8. Primary analysis
 >
-> Multivariable logistic regression of readmission
-> on treatment (home-health visit yes/no), adjusted
-> for age (continuous), sex, ejection fraction
-> (continuous), discharge medication count
-> (continuous), and site (random intercept).
-> Estimand: marginal odds ratio (Hernan and
-> Robins). Two-sided $\alpha = 0.05$. Sample size:
-> 1500 (750 per arm) for 80% power to detect
-> OR = 0.75 at baseline rate 0.25.
+> Logistic regression of the primary outcome on
+> randomized arm (as randomized, never as treatment
+> received), adjusted for age (continuous), sex,
+> ejection fraction (continuous), discharge
+> medication count (continuous), and site (fixed
+> effect, as a stratification factor). The arm
+> coefficient of this model is a *conditional* odds
+> ratio and is not the estimand. The estimand is
+> obtained by standardization (g-computation):
+> predict each randomized patient's risk under each
+> arm, average over all randomized patients, and
+> take the difference. 95% CI by nonparametric
+> bootstrap (2,000 resamples, percentile). Two-sided
+> $\alpha = 0.05$. The conditional odds ratio is
+> reported as a supportive summary, labeled as
+> conditional.
+>
+> Sample size: `r format(n_eval, big.mark = ",")`
+> evaluable patients per arm give 80% power to
+> detect a reduction from `r 100 * p_usual`% to
+> `r 100 * p_home`% (odds ratio
+> `r sprintf("%.2f", or_hf)`) at two-sided
+> $\alpha = 0.05$ (`power.prop.test`). Allowing for
+> up to `r 100 * missing_hf`% of patients without an
+> ascertainable outcome, we randomize
+> `r format(n_rand, big.mark = ",")` per arm
+> (`r format(2 * n_rand, big.mark = ",")` in total).
 >
 > ## 11. Missing data
 >
-> Outcome: complete from the institutional EHR; if
-> any missingness, complete-case primary; multiple
-> imputation by chained equations as sensitivity.
-> Covariates: $<5\%$ missing assumed MAR;
-> imputation as for outcome.
+> Outcome: missing only for patients who cannot be
+> linked to the state HIE (for example, after moving
+> out of state). Primary: the standardized estimator
+> of section 8, fitted to patients with an
+> ascertained outcome and averaged over all
+> randomized patients, which is valid if
+> missingness is independent of the outcome given
+> arm and the adjustment covariates. Sensitivity:
+> delta-adjustment tipping-point analysis. In the
+> home-health arm, unascertained patients are
+> assigned a risk $\delta$ times that of their
+> observed peers, with $\delta$ increased from 1
+> until the 95% CI includes zero; in the usual-care
+> arm they are assigned the observed risk. Missing
+> patients stay in the denominator. Covariates:
+> $<5\%$ missing expected; imputed by the pooled
+> mean (continuous) or mode (categorical), which is
+> valid for baseline covariates in a randomized
+> trial.
 >
 > ## 12. Multiple testing
 >
-> Primary outcome: no correction (one test).
-> Secondary outcomes: Bonferroni at $\alpha = 0.05/k$
-> for $k$ secondary tests.
+> Primary outcome at two-sided $\alpha = 0.05$.
+> Secondary outcomes by a fixed-sequence
+> (hierarchical) procedure, in this order:
+> (S1) 30-day all-cause readmission alone;
+> (S2) 30-day emergency department visit;
+> (S3) 90-day readmission or death. Each is tested
+> at $\alpha = 0.05$ only if the primary and every
+> earlier secondary test rejected; at the first
+> non-rejection testing stops, and the remaining
+> outcomes are reported as estimates with CIs and
+> no p-value. This controls the familywise error
+> rate at 0.05 across the primary and secondary
+> outcomes. Testing the primary at 0.05 and the
+> secondaries at Bonferroni-corrected levels
+> regardless of the primary result does not: the
+> two families each spend 0.05, and the familywise
+> rate can approach 0.10.
 
 This level of specificity is what 'pre-specified'
 means. Vagueness invites researcher degrees of
@@ -554,7 +691,8 @@ choices need human judgment.
 
 **Prompt 1: drafting boilerplate sections.** Paste
 the project description and ask: 'draft sections
-1--4 of a SAP using the 243B template.'
+1--4 of a SAP following the Gamble et al. (2017)
+guideline for SAP content.'
 
 *What to watch for.* The output will likely be the
 right shape. Verify the inclusion/exclusion
@@ -626,7 +764,7 @@ rather than computed.
 
 2. Draft a SAP (skeleton only) for a hypothetical
    cluster randomized trial of a patient-education
-   intervention. Use the 243B template, and include
+   intervention. Use the template above, and include
    the table from exercise 1.
 3. Locate a published paper with a publicly
    available SAP. Audit whether the paper's
@@ -708,7 +846,7 @@ value of $\rho$ is an assumption, not a measurement, and
 it should be attributed to a source and given a
 sensitivity range. And the number that gets recruited is
 `clusters`, rounded up, so the realized sample is
-generally larger than `n_cluster_adj`; quoting the latter
+generally larger than `n_cluster`; quoting the latter
 as the target understates what the trial must enroll.
 :::
 
@@ -717,6 +855,8 @@ as the target understates what the trial must enroll.
 - [@ich1998e9], *Statistical Principles for Clinical
   Trials*, the regulatory baseline document, and
   [@ich2019e9r1], its addendum on estimands.
+- [@gamble2017sap], the consensus guideline on what
+  a clinical-trial SAP must contain.
 - [@chan2013spirit], the SPIRIT statement on
   standard protocol items for clinical trials.
 - [@schulz2010consort], the CONSORT reporting

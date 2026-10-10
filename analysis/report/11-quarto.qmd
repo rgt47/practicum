@@ -153,7 +153,7 @@ fit <- glm(readmit ~ home_health + age + sex,
 ```
 
 The adjusted odds ratio for home-health-visit receipt
-was &#96;{r} round(exp(coef(fit)["home_health"]), 2)&#96;.
+was `{{r}} round(exp(coef(fit)["home_health"]), 2)`.
 ````
 
 Rendering produces a paper with the OR computed at
@@ -444,8 +444,8 @@ the analysis with corrected data, the prose still says
 different values. The fix is inline computation:
 
 ```qmd
-The mean age was &#96;{r} round(mean(d$age, na.rm = TRUE), 1)&#96;
-years (SD &#96;{r} round(sd(d$age, na.rm = TRUE), 1)&#96;).
+The mean age was `{{r}} round(mean(d$age, na.rm = TRUE), 1)`
+years (SD `{{r}} round(sd(d$age, na.rm = TRUE), 1)`).
 ```
 
 Now the prose is computed from the data at render
@@ -585,14 +585,14 @@ fit <- glm(readmit ~ home_health + age + sex,
 
 # Summary
 
-Among &#96;{r} nrow(d)&#96; patients, the 30-day readmission rate
-was &#96;{r} round(100 * mean(d$readmit), 1)&#96;%
+Among `{{r}} nrow(d)` patients, the 30-day readmission rate
+was `{{r}} round(100 * mean(d$readmit), 1)`%
 (@tbl-summary). After adjustment for age and sex,
 receipt of a home-health visit was associated with
-&#96;{r} if_else(coef(fit)["home_health"] < 0, "lower", "higher")&#96;
+`{{r}} if_else(coef(fit)["home_health"] < 0, "lower", "higher")`
 odds of readmission (OR
-&#96;{r} round(exp(coef(fit)["home_health"]), 2)&#96;,
-95% CI &#96;{r} ...&#96;; @fig-or).
+`{{r}} round(exp(coef(fit)["home_health"]), 2)`,
+95% CI `{{r}} ...`; @fig-or).
 
 ```r
 #| label: tbl-summary

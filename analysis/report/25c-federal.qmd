@@ -73,8 +73,8 @@ against work already done.
 One requirement is the exception, and it is worth flagging
 because its timing runs opposite to everything else here. The
 Data Management and Sharing Plan is a document rather than an
-artifact, and it is written and graded before any of the work
-it describes has begun.
+artifact, and it is written, and assessed by NIH program staff,
+before any of the work it describes has begun.
 
 The policy direction in the United States is unambiguous:
 public access for publicly funded research, with
@@ -135,7 +135,14 @@ Agencies were directed to publish updated public-access
 plans and implement them by the end of 2025. The result
 is a moving compliance target: NIH, NSF, DOE, NASA, and
 others have rolled out specific implementations on
-slightly different schedules.
+slightly different schedules. NIH's is the 2024 NIH Public
+Access Policy, which took effect on July 1, 2025, and
+requires the accepted manuscript of a peer-reviewed paper
+arising from NIH funding to be available in PubMed Central
+on its official date of publication, without embargo.
+Details of these policies change; check `sharing.nih.gov`
+for the current requirements rather than relying on any
+summary, this one included.
 
 For a researcher submitting in 2026 or later, the
 practical implications are:
@@ -150,9 +157,10 @@ practical implications are:
 
 ## The NIH DMSP (2023)
 
-Effective January 2023, every NIH grant application must
-include a **Data Management and Sharing Plan** of up to
-two pages. The plan addresses six elements:
+Effective January 2023, every NIH application for research
+that will generate scientific data must include a **Data
+Management and Sharing Plan**, recommended to run no more
+than two pages. The plan addresses six elements:
 
 1. **Data type.** What data will be generated; what
    format, what volume.
@@ -171,15 +179,23 @@ two pages. The plan addresses six elements:
 6. **Oversight.** Who is responsible for plan
    implementation, and how compliance will be monitored.
 
-The DMSP is reviewed during peer review and becomes part
-of the funded award's terms. NIH program officers can
-require updates, and post-award compliance is monitored.
+The DMSP is assessed by NIH program staff, not scored by
+peer reviewers: reviewers do not factor it into the
+overall impact score unless the funding opportunity says
+otherwise. The approved plan becomes a term of the award,
+program officers can require updates, and post-award
+compliance is monitored.
 
 A DMSP for a typical clinical study includes:
 
-- Quantitative data (CRFs, lab values, biomarker
-  measurements) deposited in dbGaP under controlled
-  access.
+- Participant-level data (CRFs, lab values, biomarker
+  measurements), de-identified before deposit, in a
+  controlled-access repository suited to the study:
+  commonly BioLINCC for NHLBI-funded studies, Vivli or
+  ICPSR for clinical-trial and other participant-level
+  data, or an archive the funding institute designates.
+  dbGaP is the home for studies that pair genotype with
+  phenotype, not for clinical data in general.
 - Synthetic or de-identified summary data deposited in
   Zenodo or OSF for unconditional public access.
 - Analysis code in a public GitHub repository, mirrored
@@ -222,25 +238,29 @@ is the decision as it actually runs.
 %%| echo: false
 %%| label: fig-repo-choice
 %%| fig-alt: "Decision flowchart for choosing a deposition target.
-%%|   The first question asks whether the artifact contains PHI or
-%%|   restricted data. If yes, a domain repository such as dbGaP,
-%%|   TCIA or GEO is used where one exists, otherwise institutional
-%%|   controlled access plus a synthetic public surrogate. If no, a
+%%|   The first question asks whether the artifact contains
+%%|   participant-level or restricted data. If yes, the data are
+%%|   de-identified first, then deposited under controlled access
+%%|   in a domain repository such as dbGaP, TCIA, BioLINCC, Vivli or
+%%|   ICPSR where one fits, otherwise in institutional controlled
+%%|   access plus a synthetic public surrogate. If no, a
 %%|   second question separates code from data: code goes to GitHub
 %%|   with a Zenodo release for the DOI, while data goes to a domain
 %%|   repository such as GEO, SRA, NeuroVault or ICPSR where one
 %%|   exists, otherwise Zenodo, OSF or Dryad."
 %%| fig-cap: "Choosing a deposition target. The first question is
-%%|   whether the artifact carries protected information; the second
+%%|   whether the artifact carries participant-level or restricted
+%%|   data, which are de-identified before any deposit; the second
 %%|   is whether a repository specific to the data type exists. A
 %%|   general-purpose repository is the right answer for code and
 %%|   supplementary tables and the wrong answer for primary
 %%|   genomic or imaging data."
 flowchart TD
-  A{"Does it contain<br/>PHI or restricted data?"}
-  A -->|"Yes"| B{"Domain repository<br/>for this data type?"}
+  A{"Participant-level<br/>or restricted data?"}
+  A -->|"Yes"| X["De-identify first<br/><i>before any deposit</i>"]
+  X --> B{"Domain repository<br/>for this data type?"}
   A -->|"No"| C{"Code, or data?"}
-  B -->|"Yes"| D["dbGaP, TCIA, GEO<br/><i>controlled access, DUA</i>"]
+  B -->|"Yes"| D["dbGaP, TCIA, BioLINCC,<br/>Vivli, ICPSR<br/><i>controlled access, DUA</i>"]
   B -->|"No"| E["Institutional controlled<br/>access, plus a synthetic<br/>public surrogate"]
   C -->|"Code"| F["GitHub for work,<br/>Zenodo release for the DOI"]
   C -->|"Data"| G{"Domain repository<br/>for this data type?"}
@@ -274,8 +294,10 @@ underlying a specific paper.
 **GitHub**. Code, but not designed for long-term
 preservation; pair with a Zenodo deposit for a DOI.
 
-**Domain-specific repositories**. dbGaP for genomic
-data, ClinicalTrials.gov for trial registration,
+**Domain-specific repositories**. dbGaP for studies
+pairing genotype with phenotype, BioLINCC (NHLBI) and
+Vivli for clinical-trial data, TCIA for de-identified
+cancer imaging, ClinicalTrials.gov for trial registration,
 GEO/SRA for sequencing data, NeuroVault for brain
 images, ICPSR for social-science data. Use these when
 they exist for your data type; the metadata standards
@@ -380,7 +402,7 @@ some cells. The DESCRIPTION's `>= 1.0.0` is satisfied;
 the actual computation is different. You cannot tell
 from the discrepancy whether the difference is a bug in
 your code, a difference in dplyr's behavior, or a real
-data issue, you have lost the version-pinned baseline
+data issue; you have lost the version-pinned baseline
 that would let you investigate. With an `renv.lock`,
 the reviewer (or you) restores the exact environment
 (dplyr 1.0.3) and reproduces the published numbers
@@ -399,7 +421,9 @@ infection rates:
 > baseline labs, surgical details, postoperative
 > outcomes), approximately 1 MB per patient
 > ($\approx$ 200 MB total). Imaging data (CT scans)
-> separately, $\approx$ 200 GB total. Both contain PHI.
+> separately, $\approx$ 200 GB total. Both contain PHI
+> as collected; neither is deposited until it has been
+> de-identified (@sec-deident).
 >
 > **Related tools.** Data captured in REDCap, exported
 > to a structured CSV. Analysis in R with `renv`-pinned
@@ -411,27 +435,41 @@ infection rates:
 > structure. DICOM for imaging. Quarto for analytic
 > reports.
 >
-> **Data preservation and access.** PHI-containing CRFs
-> deposited in dbGaP under controlled access (DUA via
-> the institutional IRB). De-identified summary data
-> (Table 1, primary outcomes) deposited in Zenodo with
-> CC-BY 4.0 license. Imaging deposited in TCIA under
-> controlled access.
+> **Data preservation and access.** CRF data
+> de-identified under Expert Determination, so that
+> within-patient intervals survive, and deposited in
+> ICPSR under controlled access (or in the archive the
+> funding institute designates, if it designates one).
+> De-identified summary data (Table 1, primary
+> outcomes) deposited in Zenodo with CC-BY 4.0
+> license. Imaging de-identified (DICOM headers
+> scrubbed, burned-in text removed, faces defaced
+> where the scan includes them) and deposited in TCIA
+> if the cohort falls within its cancer-imaging
+> scope, otherwise in a repository agreed with the
+> program officer.
 >
-> **Access, distribution, reuse.** PHI data: requestor
-> must complete DUA and IRB approval at their
-> institution. De-identified data: open access at
-> publication. Code: GitHub, mirrored to Zenodo for
-> DOI, MIT license.
+> **Access, distribution, reuse.** Controlled-access
+> data: requestor signs the repository's data use
+> agreement and meets its approval requirements,
+> which may include IRB review at their institution.
+> Open data: available at publication. Code: GitHub,
+> mirrored to Zenodo for DOI, MIT license.
 >
 > **Oversight.** PI is responsible for plan
 > implementation. Co-investigators sign data-sharing
-> agreements at study onset. Annual review with NIH
-> program officer.
+> agreements at study onset. Progress on the plan
+> reported to NIH in the annual progress report.
 
-This level of specificity passes review and produces a
-reproducible artifact. Vague language ('data will be
-shared appropriately') gets flagged.
+This level of specificity is what program staff look for,
+and it produces a reproducible artifact. Vague language
+('data will be shared appropriately') gets flagged. If the
+analysis needed actual dates rather than shifted ones, a
+limited data set shared under a data use agreement is the
+alternative; it remains PHI, so it is shared only with
+recipients who sign that agreement and only as the consent
+form and IRB permit. Confirm that a repository accepts
+limited data sets before naming one in the plan.
 
 ## Collaborating with an LLM on policy compliance
 
@@ -448,8 +486,11 @@ that addresses each of the six required elements.'
 shape. Verify the named repositories are actually
 appropriate for the data type. Verify the access
 mechanism (controlled vs. open) is correct given the
-PHI status. LLMs sometimes propose 'Zenodo' for PHI
-data, which is wrong.
+data. LLMs sometimes propose depositing PHI, or
+participant-level data in an open repository such as
+Zenodo; identifiable data do not belong in a public
+repository, and de-identified participant-level data
+usually belong under controlled access.
 
 *Verification.* Cross-check against your IRB-approved
 data-sharing plan and the institutional data
@@ -470,15 +511,26 @@ who has had a DMSP reviewed by NIH program staff.
 **Prompt 3: choosing a repository.** Describe the data
 and ask: 'which repository is appropriate?'
 
-*What to watch for.* Domain-specific repositories
-(dbGaP, GEO, TCIA) should be preferred when applicable.
-LLMs sometimes default to Zenodo or OSF as
-'general-purpose' answers, which is fine for code or
-supplementary tables but inappropriate for primary
-genomic or imaging data.
+*What to watch for.* Domain-specific repositories should
+be preferred when applicable, but each has a defined
+scope: dbGaP for studies of genotype and phenotype, GEO
+for gene-expression data, TCIA for de-identified cancer
+imaging. General clinical-trial and CRF data more
+commonly go to BioLINCC, Vivli, ICPSR, or an archive the
+funding institute designates, and an LLM may reach for
+dbGaP or TCIA when neither fits. LLMs also
+default to Zenodo or OSF as 'general-purpose' answers,
+which is fine for code or supplementary tables but
+inappropriate for primary participant-level, genomic, or
+imaging data. For every repository named here the
+default is de-identified data; deposit more only where the
+repository's terms and your governing agreements
+explicitly allow it.
 
-*Verification.* Cross-check against domain norms; see
-which repositories the leading papers in your field cite.
+*Verification.* Check the suggestion against the
+repository's own statement of scope and the NIH
+repository guidance at `sharing.nih.gov`; see which
+repositories the leading papers in your field cite.
 
 ## Principle in use
 

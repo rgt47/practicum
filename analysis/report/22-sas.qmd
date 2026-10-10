@@ -96,11 +96,22 @@ places where the two disagree by default and say nothing
 about it:
 
 **Match the tool to the audience.** A regulatory
-submission to FDA requires SAS-formatted
-deliverables (CDISC datasets, statistical
-analysis output). An academic paper accepts R.
-The choice of tool follows the audience, not
-analyst preference.
+submission to FDA requires its datasets in SAS
+XPORT (XPT version 5) transport format, structured
+to CDISC standards as the FDA Data Standards
+Catalog specifies. XPT is an open, documented
+format that R writes as readily as SAS does. FDA
+does not require SAS software: its Statistical
+Software Clarifying Statement (2015) says
+sponsors may use any suitable software, and R
+Consortium pilots have since carried R-based
+submission packages through FDA review. SAS
+nonetheless remains the incumbent in sponsors
+and CROs, so it is what most industry teams
+expect you to read and write. An academic paper
+accepts R. The choice of tool follows the
+audience and the validated pipeline it already
+has, not analyst preference.
 
 **Verify cross-language equivalence.** When you
 translate an R analysis to SAS (or vice versa),
@@ -364,7 +375,7 @@ The R analog is a factor with explicit labels.
 `PROC MEANS`, `PROC UNIVARIATE`. These
 correspond roughly to `arrange`, `head`/`tail`,
 `str`/`glimpse`, `table`/`count`, `summary`/`mean`,
-`summary`/`quantile`. Knowing these five is
+`summary`/`quantile`. Knowing these six is
 enough to read 90% of SAS data-cleaning code.
 
 ## Procedure correspondence table
@@ -724,7 +735,7 @@ libname out clear;
 
 ```{r}
 #| label: sas-results-table
-# Standing in for the transport file PROC MIXED would have written,
+# Standing in for the transport file PROC LOGISTIC would have written,
 # so that the R side of the boundary executes here.
 results_path <- file.path(tempdir(), "results.xpt")
 haven::write_xpt(
@@ -861,8 +872,13 @@ the SAS equivalent.
 `CLASS` variables (the default mismatch).
 Mixed-models covariance structures (R's `lme4`
 default vs. SAS `PROC MIXED`'s `VC` default).
-Survival censoring conventions (R `event = 1`
-vs. SAS `event = 1` or CDISC `cnsr = 1`).
+Survival censoring conventions: in R's `Surv()`
+a status of 1 marks an event; SAS
+`PROC PHREG` and `PROC LIFETEST` name the
+*censoring* values in `time*status(0)`; and the
+CDISC ADaM `CNSR` variable codes 0 as an event
+and positive values as censored, the reverse of
+R.
 
 *Verification.* Run both versions on the same
 data; coefficients should agree to several

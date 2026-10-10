@@ -471,7 +471,8 @@ most to the one that changes the least:
 **Effect size first, p-value last.** 'The treatment
 reduced HbA1c by 0.6 percentage points (95% CI 0.3 to
 0.9)' communicates more than 'the effect was
-significant at p = 0.002'. P-values are unintuitive
+significant at p < 0.001', which is the p-value that
+interval implies. P-values are unintuitive
 and easily misinterpreted; effect sizes with
 uncertainty are not.
 
@@ -484,11 +485,17 @@ $X$' from 'the data are consistent with $X$' from
 'we cannot rule out $X$'. The verbs matter; the
 precision matters.
 
-**Specific examples.** 'For a 60-year-old patient with
-baseline HbA1c of 8%, the model predicts a reduction to
-about 7.4% under treatment, with a 95% CI from 7.1 to
-7.7%.' This is far more useful than the regression
-coefficient and SE that produce it.
+**Specific examples.** 'For 60-year-old patients with
+baseline HbA1c of 8%, the model estimates an average of
+about 7.4% under treatment (95% CI 7.1 to 7.7%).' This
+is far more useful than the regression coefficient and
+SE that produce it. Say which kind of interval it is.
+That one describes the *average* patient like this; a
+single patient's value is far less certain. With a
+residual SD of 0.6 points, the 95% prediction interval
+for one such patient runs from about 6.2 to 8.6%, and a
+clinician who reads the narrower interval as a forecast
+for the patient in front of them has been misinformed.
 
 For papers and reports, write the substantive
 conclusion in plain language and include the
@@ -525,22 +532,26 @@ picking none makes you complicit in bad analyses.
 
 ## Worked example: the intake document
 
-> **Project.** Effect of post-discharge home health
-> visits on 30-day readmission in heart-failure
+> **Project.** Post-discharge home health visits and
+> 30-day readmission or death in heart-failure
 > patients.
 >
 > **Investigator.** Dr. X, Cardiology.
 >
-> **Question.** Does receiving at least one home
-> health visit within 7 days of discharge reduce
-> 30-day all-cause readmission?
+> **Question.** Among heart-failure patients alive
+> and not readmitted 7 days after discharge (the
+> landmark), is receiving at least one home health
+> visit in those 7 days associated with lower
+> all-cause readmission or death over days 8 to 30,
+> after adjustment for measured confounders?
 >
 > **Data.** Retrospective EHR cohort, $n \approx 5{,}000$,
 > obtained from the institutional research data
 > warehouse under existing IRB. Includes
 > demographics, baseline ejection fraction,
-> medication on discharge, indicator for home health
-> use, and outcome.
+> medication on discharge, date of each home health
+> visit (needed for the landmark), dates of
+> readmission and death.
 >
 > **Deadline.** Manuscript draft by month 4; submit
 > month 6.
@@ -563,8 +574,22 @@ picking none makes you complicit in bad analyses.
 > perform additional analyses requested after month
 > 4 without renegotiation.
 >
-> **Red flags noted.** None at intake. To revisit if
-> EHR data quality is worse than expected at first
+> **Red flags noted.** (1) Immortal time: as first
+> posed ('a visit within 7 days' against a 30-day
+> outcome), patients readmitted before a visit could
+> happen would count as unexposed, flattering home
+> health. Addressed by the 7-day landmark above.
+> (2) Confounding by indication: referral for home
+> health depends on frailty and social support,
+> which the EHR records poorly; propensity methods
+> adjust only for what is measured, so the result is
+> an association, and a causal answer needs a
+> randomized trial. (3) Outcome capture: admissions
+> elsewhere are missed unless the EHR is linked to
+> the state health-information exchange. (4) Deaths
+> before readmission are counted in the outcome, not
+> treated as non-events. To revisit if EHR data
+> quality is worse than expected at first
 > exploration.
 
 This document, agreed in writing at the start, makes

@@ -173,8 +173,12 @@ jobs:
 
       - uses: r-lib/actions/setup-renv@v2   # restore renv.lock
 
+      - uses: quarto-dev/quarto-actions/setup@v2
+
       - name: Run tests
-        run: Rscript -e 'tinytest::test_all()'
+        run: |
+          Rscript -e 'res <- tinytest::test_all()' \
+            -e 'quit(status = as.integer(tinytest::any_fail(res)))'
 
       - name: Render report
         run: quarto render
@@ -184,10 +188,21 @@ Read it top to bottom. The `on` block says the workflow
 runs on every push to `main` and on every pull request. The
 single job, `check`, runs on a fresh Ubuntu machine. Its
 steps check out the code, install R, restore the exact
-package versions from `renv.lock`, run the test suite, and
-render the report. If any step exits with an error, the job
-fails and GitHub marks the commit with a red cross; if all
-pass, a green check.
+package versions from `renv.lock`, install Quarto, run the
+test suite, and render the report. If any step exits with a
+nonzero status, the job fails and GitHub marks the commit
+with a red cross; if all pass, a green check.
+
+Two details in that file are easy to get wrong. First, a
+fresh runner has R only because `setup-r` installed it, and
+Quarto only because `quarto-actions/setup` installed it;
+drop that step and `quarto render` fails with 'command not
+found'. Second, `tinytest::test_all()` prints its failures
+but returns normally, so `Rscript -e 'tinytest::test_all()'`
+exits with status 0 and the job stays green when tests
+fail. The second `-e` expression turns 'any test failed'
+into a nonzero exit status, which is the only signal CI
+reads.
 
 The `r-lib/actions` collection supplies the R-specific
 steps, `setup-r`, `setup-renv`, `setup-r-dependencies`, so
@@ -296,9 +311,10 @@ answer key is possible. A green or red run is the verification.
    to the repository. Show that CI catches the missing
    dependency even though the report renders on your own
    machine.
-5. Read the `publish.yml` workflow in this book's own
-   repository. Identify its triggers, the R and Python it
-   provisions, and the step that renders the book.
+5. Read the `.github/workflows/render-book.yml` workflow in
+   this book's own repository. Identify its triggers, the
+   conditions under which it provisions R and Python, and
+   the step that renders the book.
 
 ## Further reading
 

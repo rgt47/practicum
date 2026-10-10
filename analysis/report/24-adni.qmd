@@ -661,14 +661,24 @@ is wrong.
 
 **Prompt 3: missing-data section.** Describe
 the missingness profile and ask the LLM to
-draft the SAP's missing-data section.
+draft the SAP's missing-data section. Check
+the ADNI data use agreement before sending
+anything; describe the profile in aggregate
+and never paste participant-level rows.
 
 *What to watch for.* The recommendation should
-match the missingness fraction and likely
-mechanism. For 30% missingness on a
-predictor: complete-case is bad; multiple
-imputation is the default; sensitivity to
-MNAR is essential.
+turn on what the missingness plausibly depends
+on, not on its fraction or a bare MCAR/MAR
+label. For 30% missingness on a predictor,
+complete case is unbiased for the coefficients
+if missingness does not depend on the outcome
+given the covariates, but discards much
+precision; multiple imputation with the outcome
+in the imputation model is the usual primary
+analysis, and is needed if missingness may
+depend on the outcome. Sensitivity to MNAR is
+essential either way. Push back on a draft that
+calls complete case biased under MAR as a rule.
 
 *Verification.* Compare to @sec-missing's
 recommendations and to van Buuren (2018)

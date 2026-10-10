@@ -1,6 +1,7 @@
 project:
   pre-render:
     - ../../tools/us-spelling
+    - ../../tools/check-entities.sh
   type: book
   output-dir: _book
 
