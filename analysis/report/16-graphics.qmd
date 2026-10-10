@@ -1,5 +1,20 @@
 # Plotting with ggplot2 and purrr {#sec-graphics}
 
+A figure can mislead without printing a single false number. Draw
+discharge N-terminal pro-B-type natriuretic peptide (NT-proBNP) for
+the HF-HOME patients as one bar of means per ejection-fraction
+stratum, add standard-error whiskers, and the figure says two
+things: the reduced-ejection-fraction group is higher, and the
+difference is precise. Both are true of the means. The same values
+drawn as points show a spread of nearly three orders of magnitude,
+a mean pulled well above the typical patient by a long right tail,
+and two groups that overlap almost entirely. The bar
+chart passed every check its code could make; the failure is in
+what it lets the reader see. This chapter is about the judgments
+`ggplot2` cannot make for you, built around the figure a
+biostatistician is asked for most often: the trajectory of a
+repeated measure by treatment arm.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
@@ -14,881 +29,99 @@ notice what we never expected to see.*
 ```
 :::
 
-::: {.callout-note}
-## Sources
-
-Stat 545 Part VII; blog posts `16-plotsfrompurrr`,
-`38-tableplacementrmarkdown`; `zzlongplot` for
-longitudinal examples (@sec-adni).
-:::
-
-## Prerequisites
-
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-16.
-
-1. How do you produce one plot per level of a
-   categorical variable, returning the results as a
-   named list of `ggplot` objects?
-2. What does `patchwork::wrap_plots()` provide that
-   `facet_wrap()` does not?
-3. Why might you save a figure as PDF rather than PNG
-   for a journal submission, and when would you choose
-   PNG instead?
-
-## Learning objectives
-
-By the end of this chapter you should be able to:
-
-- Build publication-quality `ggplot2` figures for
-  continuous, categorical, and time-varying outcomes.
-- Generate many plots programmatically with
-  `purrr::map()` over a list of groups.
-- Compose multi-panel figures with `patchwork` and
-  arrange shared legends cleanly.
-- Produce PDF and PNG outputs at appropriate DPIs for
-  journal and Word submissions.
-- Build a house theme via a `theme_*()` function and
-  reuse it across all figures in a project.
-- Recognize when to reach for `zzlongplot` and
-  `zztable1` rather than rolling your own.
-
-## Orientation
-
-A figure is the only part of a paper that most readers will
-examine closely. It is also the part over which the analyst
-has the most control and, unfortunately, exercises the least
-deliberation. The default output of a plotting call is a
-decision, made by somebody who never saw your data, about
-what the reader's eye should be drawn to. Accepting it is
-also a decision.
-
-A figure that survives peer review is one whose data, encoding,
-and aesthetic choices all serve the single claim the figure
-exists to make. This chapter is mostly about the mechanics of
-getting there, since the mechanics are what can be taught in a
-chapter; the fuller principles of effective visualization are
-taken up in the companion textbook (chapters 15--16 of
-*Statistical Computing in the Age of AI*), and the ways a
-figure can mislead without printing a false number are taken
-up later, in @sec-ethics.
-
-The combination `ggplot2` + `purrr` + `patchwork` is
-the modern stack for going from a single exploratory
-plot to a polished multi-panel figure: ggplot2 for
-the plot, purrr for iteration over groups, patchwork
-for composition.
+```{r}
+#| label: graphics-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
 ```{r}
-#| label: setup-graphics
+#| label: fig-graphics-pipeline
 #| echo: false
-#| message: false
-#| warning: false
-reticulate::py_require(c("pandas", "matplotlib"))
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: figures are built in the
+#|   Report stage, from derived data and by code, so that they
+#|   regenerate whenever the data change."
+#| fig-alt: !expr pipeline_alt('report')
+pipeline_diagram('report')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 30 minutes.
+
+**You'll need.** @sec-wrangling for long and wide shapes, and
+@sec-joins for the joins that assemble the plotting data. The code
+uses:
+
+```r
 library(tidyverse)
 library(patchwork)
-library(palmerpenguins)
-library(broom)
-penguins_clean <- na.omit(penguins)
 ```
 
-## The statistician's contribution {#sec-graphics-human}
+**You'll be able to.**
 
-Software handles the mechanics; `ggplot2` will draw
-whatever you specify. Whether what you specify
-communicates or misleads is not something it can check:
+- Replace a bar of means with a display of the distribution and
+  its summary, and name what each element encodes.
+- Build a longitudinal trajectory figure by arm that shows
+  individual patients, a summary with its uncertainty, and the
+  number measured at each visit.
+- Compose panels with facets or `patchwork`, and generate one plot
+  per group with `purrr`.
+- Export a themed figure at a journal's size and format, and audit
+  it against a six-item figure checklist.
 
-**One plot, one message.** A figure trying to convey
-three relationships succeeds at none. Three figures
-each conveying one are usually clearer. Resist the
-'pack everything into one figure to save space'
-impulse.
+**Outline.**
 
-**Encode the claim, not the data.** A scatter plot
-with 5,000 points obscures any pattern. The same
-relationship as a hex-binned plot or a 2D density
-contour shows the structure without the visual
-noise. Choose the encoding for legibility: at that
-density the binned display is more faithful to the
-distribution than overplotted raw points, not less.
+- [Show the distribution, not a summary of
+  it](#sec-graphics-distribution)
+- [The trajectory figure, layer by layer](#sec-graphics-trajectory)
+- [Panels: facets, patchwork, and many plots](#sec-graphics-panels)
+- [Theme, color, and export](#sec-graphics-export)
+- [Worked example: the trajectory figure, end to
+  end](#sec-graphics-worked)
+:::
 
-**Show the distribution, not a summary of it.** A bar
-chart of group means with error bars is the default
-figure in the clinical literature and one of the least
-informative. It reports two numbers per group, hides
-skewness, bimodality, and outliers, and devotes most
-of its ink to a rectangle whose height is measured
-from an arbitrary zero. Harrell's chapter on
-descriptive statistics and graphics [@harrell2025bbr,
-ch. 4] makes the case at length: a bar has a high
-ink-to-information ratio, its width carries no
-information at all, and graphing the raw data is
-usually essential rather than optional. With a
-modest number of observations per group, plot the
-points: `geom_jitter()` or `ggbeeswarm::geom_quasirandom()`,
-with the summary overlaid rather than substituted for
-the data. With many observations, `geom_boxplot()` or
-`geom_violin()` still shows a shape where a bar shows
-none. This is not in tension with the previous
-judgment: encoding the claim means choosing the
-display that makes the claim legible, and 'the groups
-differ' is a claim about distributions.
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-16.
 
-**Consistency across the project.** All figures in a
-paper should share fonts, color palette, and theme
-defaults. A house theme function applied via
-`theme_set()` makes consistency the default. Without
-it, ggplot2 produces nine variants of gray.
+1. How do you produce one plot per level of a categorical
+   variable, returning the results as a named list of `ggplot`
+   objects?
+2. What does `patchwork::wrap_plots()` provide that `facet_wrap()`
+   does not?
+3. Why might you save a figure as PDF rather than PNG for a
+   journal submission, and when would you choose PNG instead?
+:::
 
-**Display uncertainty.** A point estimate without a
-CI invites over-trust. A regression line without a
-confidence band the same. The tools are simple
-(`geom_errorbar`, `se = TRUE` on `geom_smooth`); the
-discipline is the analyst's.
+## Show the distribution, not a summary of it {#sec-graphics-distribution}
 
-**Ask what the reader's eye is measuring.** A bar
-encodes length, so a truncated baseline makes a small
-difference fill the panel; a map encodes area, and land
-does not have a disease; a bubble's radius is read as
-area, so a radius proportional to a count exaggerates
-it. None of these prints a false number, and all of
-them mislead. @sec-ethics returns to these failure modes
-and their remedies at length; the habit to carry into every
-figure is to name the visual channel the reader is
-decoding before choosing it.
+`ggplot2` will draw whatever you specify, and the grammar that
+specifies it is taught well elsewhere.[^r4ds-ggplot] Whether the
+figure communicates or misleads is not something the package can
+check. The setup chunk below reads the running study, assembles
+one row per patient visit with an NT-proBNP result, and sets the
+house theme and arm colors that every figure in the chapter uses
+(@sec-graphics-export explains both).
 
-These judgments are what make figures publishable.
-
-## One plot per group with purrr
-
-The pattern: split data by a grouping variable, apply
-a plotting function to each group, collect into a
-named list.
+[^r4ds-ggplot]: R for Data Science [@wickham2023r4ds, chs. 1, 9,
+    and 11] covers aesthetics, geoms, scales, and labels. For
+    Python, `plotnine` reproduces the `ggplot2` grammar almost
+    verbatim; the judgments in this chapter do not change with the
+    language.
 
 ```{r}
-#| label: fig-purrr-adelie
-#| fig-cap: "One plot per species, produced by mapping a plotting
-#|   function over a split data frame. Only the Adelie panel is shown;
-#|   `plots` holds all three."
-#| fig-alt: "Scatter plot of body mass against flipper length for
-#|   Adelie penguins only, one panel from a list of three built by
-#|   mapping over species. Points rise from lower left to upper
-#|   right."
-#| fig-scap: "One plot per species, via purrr"
-#| fig-width: 6
-#| fig-height: 4
+#| label: graphics-setup
+#| message: false
 library(tidyverse)
-library(palmerpenguins)
-
-penguins_clean <- na.omit(penguins)
-
-# split by species
-plots <- penguins_clean |>
-  split(penguins_clean$species) |>
-  imap(\(d, name) {
-    ggplot(d, aes(flipper_length_mm, body_mass_g)) +
-      geom_point() +
-      geom_smooth(method = "lm") +
-      labs(title = name,
-           x = "Flipper length (mm)", y = "Body mass (g)") +
-      theme_minimal()
-  })
-
-# inspect one
-plots$Adelie
-```
-
-The same iteration writes every panel to disk. This
-is a side effect, so we reach for `walk2` rather than
-`map2`:
-
-```r
-# save all three panels as publication-quality PDFs
-walk2(plots,
-      paste0("figures/penguin-", names(plots), ".pdf"),
-      \(p, path) ggsave(path, p, width = 6, height = 4))
-```
-
-Three things to internalize:
-
-1. **`split()` returns a named list.** The names
-   propagate through `imap` and `walk2`.
-2. **`imap` and `walk2` use both the value and the
-   name.** Useful for titles, file paths, and
-   identifying which plot is which.
-3. **`walk2` for side effects.** Returns invisibly;
-   `map2` would build a list of `ggsave`'s NULL
-   returns.
-
-For a `dplyr`-native version:
-
-```{r}
-#| label: graphics-group-map
-penguins_clean |>
-  group_by(species) |>
-  group_map(\(d, k) {
-    ggplot(d, aes(flipper_length_mm, body_mass_g)) +
-      geom_point() +
-      labs(title = k$species)
-  })
-# returns a list of plots, with the group keys in `k`
-```
-
-## Multi-panel figures with patchwork
-
-`patchwork` composes distinct plots into one figure.
-Where `facet_wrap` produces small multiples of the
-same plot, `wrap_plots` (or the `+` and `/`
-operators) combines independent plots that may
-differ in everything.
-
-```{r}
-#| label: fig-patchwork
-#| fig-cap: "Three distinct views of the penguin data composed into one
-#|   figure with patchwork. The species legend is collected once and
-#|   placed at the bottom."
-#| fig-alt: "Three penguin panels composed into one figure: a
-#|   scatter plot, a distribution summary, and a categorical
-#|   comparison, all colored by species. A single shared species
-#|   legend sits beneath the three panels rather than beside each."
-#| fig-scap: "Three views of the penguin data, composed with patchwork"
-#| fig-width: 7.5
-#| fig-height: 6
 library(patchwork)
 
-p1 <- ggplot(penguins_clean,
-             aes(flipper_length_mm, body_mass_g, color = species)) +
-        geom_point() +
-        labs(title = "A. Body mass vs flipper length")
-
-p2 <- ggplot(penguins_clean,
-             aes(species, body_mass_g, fill = species)) +
-        geom_boxplot() +
-        labs(title = "B. Body mass by species") +
-        guides(fill = "none")     # hide redundant fill legend
-
-p3 <- ggplot(penguins_clean,
-             aes(bill_length_mm, bill_depth_mm, color = species)) +
-        geom_point() +
-        labs(title = "C. Bill morphology")
-
-# 2x2 grid with shared legend at bottom
-(p1 + p2) / (p3 + plot_spacer()) +
-  plot_layout(guides = "collect") &
-  theme(legend.position = "bottom")
-```
-
-Operators:
-
-- `+` juxtaposes side by side.
-- `/` stacks vertically.
-- `|` is equivalent to `+` (horizontal).
-- `&` applies a theme to every plot in the
-  composition.
-- `plot_layout(guides = "collect")` collects
-  duplicate legends into one.
-
-For more control, `plot_layout` takes `widths`,
-`heights`, `nrow`, `ncol`, `byrow`, and other
-arguments.
-
-`facet_wrap` for small multiples of the same plot;
-`patchwork` for distinct plots in one figure.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: facet vs. patchwork
-
-**Question.** You have one dataset and want to show
-'distribution of body mass' as a histogram and
-'distribution of body mass by species' as boxplots,
-side by side. Should you use `facet_wrap`, `patchwork`,
-or both?
-
-**Answer.**
-
-`patchwork`. The two panels show *different views* of
-the same data: a histogram (one geom) and boxplots
-(a different geom). `facet_wrap` shows the same plot
-across panels conditioned on a variable; both panels
-must use the same geom and aesthetic mapping. Build
-each plot separately and combine with `p1 + p2`.
-
-```{r}
-#| label: fig-patchwork-operator
-#| fig-cap: "The `+` operator places two plots side by side. A
-#|   histogram of body mass and a boxplot of body mass by species,
-#|   composed without either plot knowing about the other."
-#| fig-alt: "Two panels side by side: a histogram of penguin body
-#|   mass on the left, and a boxplot of body mass by species on the
-#|   right."
-#| fig-width: 7
-#| fig-height: 3
-#| message: false
-d <- penguins_clean
-p_hist <- ggplot(d, aes(body_mass_g)) + geom_histogram()
-p_box  <- ggplot(d, aes(species, body_mass_g)) + geom_boxplot()
-p_hist + p_box
-```
-
-If the second plot was 'histogram of body mass for
-each species' (same geom, conditioned on species),
-`facet_wrap(~species)` would be the right tool.
-
-:::
-
-## House themes
-
-A function that returns a `theme()` object, applied
-once per session:
-
-```{r}
-#| label: theme-practicum
-theme_practicum <- function(base_size = 11) {
-  theme_minimal(base_size = base_size) +
-    theme(
-      plot.title         = element_text(face = "bold"),
-      plot.subtitle      = element_text(color = "gray40"),
-      axis.title         = element_text(face = "bold"),
-      axis.text          = element_text(color = "gray20"),
-      panel.grid.minor   = element_blank(),
-      legend.position    = "bottom",
-      strip.background   = element_rect(fill = "gray95", color = NA),
-      strip.text         = element_text(face = "bold")
-    )
+arm_colors <- c("Usual care" = "#E69F00", "Home health" = "#0072B2")
+scale_color_arm <- function(...) {
+  scale_color_manual(values = arm_colors, ...)
 }
-
-# apply globally
-theme_set(theme_practicum())
-
-# update geom defaults to match
-update_geom_defaults("point", list(size = 1.5, alpha = 0.7))
-update_geom_defaults("line",  list(linewidth = 0.6))
-```
-
-For project consistency, define `theme_practicum()`
-in a setup chunk at the top of every analysis file,
-or in a project-level helper that gets sourced. Every
-plot then matches without per-plot theme calls.
-
-For palettes, define and reuse:
-
-```{r}
-#| label: fig-house-palette
-#| fig-cap: "A named palette applied through a house scale function.
-#|   Naming the values by species rather than by position means the
-#|   colors stay attached to the right group no matter how the data
-#|   are subset or reordered."
-#| fig-alt: "Scatter plot of body mass against flipper length with
-#|   the three penguin species drawn in the house palette: dark blue,
-#|   dark red, and sea green."
-#| fig-width: 6
-#| fig-height: 4
-practicum_palette <- c(
-  "Adelie"    = "#1f4e79",
-  "Chinstrap" = "#9d2235",
-  "Gentoo"    = "#2e8b57"
-)
-
-scale_color_practicum <- function(...)
-  scale_color_manual(values = practicum_palette, ...)
-
-# in plots
-ggplot(penguins_clean,
-       aes(flipper_length_mm, body_mass_g, color = species)) +
-  geom_point(alpha = 0.8) +
-  scale_color_practicum()
-```
-
-For color-blind safety, verify the palette with the
-Coblis simulator
-(`colorbrewer2.org/learnmore/colorblind-simulator.html`)
-or `colorBlindness::cvdPlot()`.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: why a theme function?
-
-**Question.** `theme_set(theme_practicum())` applies your
-house style once, at the top of the document, and every
-subsequent plot inherits it. Defining `theme_practicum()`
-and adding it to each plot means typing it repeatedly. Why
-would anyone prefer the repetition?
-
-**Answer.**
-
-Because `theme_set()` is invisible state, and invisible
-state is what makes a figure hard to reproduce.
-
-A plot styled by `theme_set()` looks different depending
-on whether an earlier chunk ran. Lift that chunk into a
-different document, a slide deck, a colleague's session,
-and it renders with ggplot2's defaults instead. Nothing
-errors; the figure is simply not the one you approved.
-This is the same argument the book makes against a
-`.Rprofile` that attaches packages: code that only works
-because of something that happened earlier is code that
-travels badly.
-
-Adding the theme explicitly makes each plot
-self-contained. It also makes opting out possible, which
-matters more than it sounds: a figure prepared to a
-journal's specification needs to *not* carry your house
-style, and with `theme_set()` the only way to do that is
-to remember to reset it.
-
-The cost is real, so the honest position is that
-`theme_set()` belongs once, in the setup chunk at the top
-of an analysis script or document, where anyone reading
-the source sees it before the first plot. Anything whose
-pieces travel, a package, a function that returns a plot,
-a figure that will be lifted into slides, should add the
-theme explicitly, as the diagnostic figure later in this
-chapter does.
-:::
-
-## Export formats
-
-`ggsave()` writes to many formats, picked by
-extension:
-
-```r
-# vector for journal submission
-ggsave("figure1.pdf", plot = p, width = 6, height = 4,
-       device = cairo_pdf)
-
-# raster for Word, slides, web
-ggsave("figure1.png", plot = p, width = 6, height = 4,
-       dpi = 300)
-
-# vector for the web (preserves quality on zoom)
-ggsave("figure1.svg", plot = p, width = 6, height = 4)
-```
-
-DPI considerations are rules of thumb, not standards; the
-journal's author instructions govern:
-
-- On screens, the DPI value is largely ignored and the
-  pixel dimensions are what matter. The familiar 72 and
-  96 DPI figures are legacy conventions, not targets.
-- 300 DPI at the final printed size is a common minimum
-  for raster figures in print.
-- Line art and figures dominated by text are often
-  requested at 600 DPI or more when they must be raster.
-
-For LaTeX submission, prefer PDF (vector). For Word,
-prefer PNG at 300 DPI. For web, SVG (vector).
-
-`device = cairo_pdf` ensures non-default fonts are
-embedded so the PDF renders correctly on a system
-that lacks the font.
-
-For journals, check size requirements (typically
-column widths of 85--90 mm or 170--180 mm) and produce
-figures at exactly the target size, not larger.
-
-## Integrating with `zzlongplot` and `zztable1`
-
-The in-house `zzlongplot` package provides
-opinionated longitudinal-study plots: spaghetti plots
-with confidence ribbons, mean trajectories with
-group-specific overlays, ICC-aware error bars. The
-defaults match this practicum's conventions.
-
-The block below is shown, not run. `zzlongplot` is not in the
-book's lockfile, and `adni_long` stands for a long-format extract
-you would supply, with one row per participant visit and columns
-`RID` (participant), `VISIT`, `ADAS` (the score), and `DX`
-(diagnostic group). The trajectory example later in this chapter
-builds the same kind of figure in plain `ggplot2`.
-
-```r
-library(zzlongplot)
-zzlongplot::lplot(adni_long,
-      form        = ADAS ~ VISIT | DX,
-      cluster_var = "RID",
-      xlab        = "Visit",
-      ylab        = "ADAS-Cog")
-```
-
-When to reach for `zzlongplot`:
-
-- Longitudinal data with a standard time variable.
-- You want consistent styling with other figures in
-  this practicum.
-- You do not want to write fifty lines of ggplot2
-  every time.
-
-When to write your own ggplot2:
-
-- Custom encoding the package does not support.
-- Cross-sectional or non-longitudinal data.
-- You need a non-standard layout that fights the
-  package's defaults.
-
-The `zztable1` package similarly handles Table 1
-generation; covered in the analysis-plan chapter
-(@sec-analysis-plan).
-
-## Worked example: regression diagnostic figure
-
-```{r}
-#| label: fig-diagnostics
-#| fig-cap: "A composed regression-diagnostic figure: residuals versus
-#|   fitted, a normal Q-Q plot, and Cook's distance, all sharing the
-#|   house theme."
-#| fig-alt: "Three regression diagnostic panels sharing one visual
-#|   theme: residuals against fitted values scattered around zero, a
-#|   normal quantile-quantile plot whose points follow the reference
-#|   line, and a Cook's distance plot with a few taller spikes
-#|   marking influential observations."
-#| fig-scap: "A composed regression-diagnostic figure"
-#| fig-width: 7
-#| fig-height: 6
-fit <- lm(body_mass_g ~ flipper_length_mm + species,
-          data = na.omit(penguins))
-diag <- augment(fit)
-
-p_resid <- ggplot(diag, aes(.fitted, .resid)) +
-  geom_point(alpha = 0.5) +
-  geom_smooth(method = "loess", se = FALSE,
-              color = "red", linewidth = 0.6) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  labs(title = "Residuals vs. fitted",
-       x = "Fitted (g)", y = "Residual")
-
-p_qq <- ggplot(diag, aes(sample = .std.resid)) +
-  geom_qq(alpha = 0.5) +
-  geom_qq_line(color = "red") +
-  labs(title = "Normal Q-Q",
-       x = "Theoretical", y = "Standardized residual")
-
-p_cook <- ggplot(diag, aes(seq_len(nrow(diag)), .cooksd)) +
-  geom_col(width = 0.6) +
-  geom_hline(yintercept = 4 / nrow(diag),
-             linetype = "dashed", color = "red") +
-  labs(title = "Cook's distance",
-       x = "Observation", y = "Cook's distance")
-
-(p_resid + p_qq) / p_cook +
-  plot_layout(heights = c(1, 0.7)) +
-  plot_annotation(tag_levels = "A") &
-  theme_practicum()
-```
-
-To write the composed figure to disk for a manuscript,
-add a `ggsave` call after building it:
-
-```r
-ggsave("figures/diagnostics.pdf", width = 7, height = 6,
-       device = cairo_pdf)
-```
-
-The composition reads naturally: top row two related
-diagnostics, bottom row a single observation-level
-diagnostic. The house theme is added with
-`& theme_practicum()`, which `patchwork` applies to every
-panel, so the figure carries its style into any document the
-chunk is lifted into; `plot_annotation(tag_levels = "A")`
-letters the panels. Saved as a
-publication-quality PDF.
-
-## Worked example: a longitudinal trajectory figure
-
-The penguin data are cross-sectional, and cross-sectional
-scatter plots are the easy case. The figure a
-biostatistician is asked for most often is harder: the
-trajectory of a repeated-measures outcome over time, by
-treatment arm, with the individual patients visible
-behind the group means. To illustrate, we simulate a
-small two-arm trial in which a cognitive score (higher
-is worse, in the manner of ADAS-Cog) declines more
-slowly on the active arm than on placebo.
-
-```{r}
-#| label: fig-trajectory
-#| fig-cap: "A longitudinal trajectory figure for a simulated two-arm
-#|   trial. Thin lines are individual patients; heavy lines are arm
-#|   means with a 95% confidence ribbon. This is the figure the
-#|   in-house `zzlongplot` package produces by default."
-#| fig-alt: "Longitudinal trajectory plot for a two-arm trial. Thin
-#|   faint lines show individual patients over time; two heavy lines
-#|   give the arm means, each wrapped in a shaded 95 percent
-#|   confidence ribbon. The ribbons are narrow early and widen at
-#|   later time points."
-#| fig-scap: "A longitudinal trajectory figure"
-#| fig-width: 7
-#| fig-height: 4.5
-set.seed(1)
-n_id   <- 60
-months <- c(0, 6, 12, 18, 24)
-
-sim <- expand_grid(id = seq_len(n_id), month = months) |>
-  mutate(arm = if_else(id <= n_id / 2, "Placebo", "Active")) |>
-  group_by(id) |>
-  mutate(
-    slope = if_else(first(arm) == "Placebo", 0.45, 0.20) +
-            rnorm(1, 0, 0.08),
-    adas  = 20 + rnorm(1, 0, 4) + slope * month + rnorm(n(), 0, 1.5)
-  ) |>
-  ungroup()
-
-arm_means <- sim |>
-  group_by(arm, month) |>
-  summarize(mean = mean(adas), se = sd(adas) / sqrt(n()),
-            .groups = "drop")
-
-pal <- c(Placebo = "#9d2235", Active = "#1f4e79")
-
-ggplot(sim, aes(month, adas, color = arm)) +
-  geom_line(aes(group = id), alpha = 0.15) +
-  geom_ribbon(data = arm_means,
-              aes(month, ymin = mean - 1.96 * se,
-                  ymax = mean + 1.96 * se, fill = arm),
-              alpha = 0.2, color = NA, inherit.aes = FALSE) +
-  geom_line(data = arm_means, aes(month, mean, color = arm),
-            linewidth = 1.1, inherit.aes = FALSE) +
-  scale_color_manual(values = pal) +
-  scale_fill_manual(values = pal) +
-  labs(x = "Month", y = "ADAS-Cog (higher is worse)",
-       color = "Arm", fill = "Arm",
-       title = "Simulated cognitive decline by treatment arm")
-```
-
-The individual trajectories, drawn at low opacity,
-convey the within-arm heterogeneity that a plot of
-group means alone would hide. The confidence ribbon on
-the arm means keeps the reader from over-reading a
-separation that is within the noise. The real ADNI
-version of this figure appears in @sec-adni.
-
-## The same figure in Python
-
-Many students arrive with more Python than R, and a
-good deal of collaborative biostatistics now crosses
-the two languages. Where a comparison is instructive we
-show the Python equivalent alongside the R. Quarto
-executes Python chunks through `reticulate`, and the
-`r` object makes an R data frame available to Python
-without writing an intermediate file. Here is the
-body-mass-versus-flipper-length scatter in `pandas` and
-`matplotlib`.
-
-```{python}
-#| label: fig-py-scatter
-#| fig-cap: "The penguin scatter reproduced in Python. The cleaned R
-#|   data frame crosses into Python through reticulate's `r` object,
-#|   so no intermediate file is written."
-#| fig-alt: "Matplotlib scatter plot of penguin body mass against
-#|   flipper length, colored by species, reproducing the earlier
-#|   ggplot2 figure in Python. The same three species clusters
-#|   appear, in matplotlib's default styling rather than the house
-#|   theme."
-#| fig-scap: "The penguin scatter reproduced in Python"
-#| fig-width: 6
-#| fig-height: 4
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
-df = r.penguins_clean
-colors = {"Adelie": "#1f4e79", "Chinstrap": "#9d2235",
-           "Gentoo": "#2e8b57"}
-
-fig, ax = plt.subplots(figsize=(6, 4))
-for species, sub in df.groupby("species", observed=True):
-    ax.scatter(sub["flipper_length_mm"], sub["body_mass_g"],
-               label=species, color=colors[species], alpha=0.7, s=18)
-ax.set_xlabel("Flipper length (mm)")
-ax.set_ylabel("Body mass (g)")
-ax.legend(title="Species")
-fig.tight_layout()
-plt.show()
-```
-
-For a reader who wants the grammar of graphics in
-Python rather than the imperative `matplotlib` style,
-the `plotnine` package reproduces the `ggplot2` API
-almost verbatim (`from plotnine import ggplot, aes,
-geom_point`). The choice between them is a matter of
-taste and of what the rest of the analysis is written
-in. The judgment the figure requires, one message per
-plot, uncertainty shown, color chosen for legibility,
-does not change with the language.
-
-## Collaborating with an LLM on graphics
-
-LLMs handle ggplot well; the trap is busy plots that
-encode too much.
-
-**Prompt 1: drafting a plot.** Describe the data and
-the question, ask: 'write a ggplot that addresses
-the question. Use a color-blind-safe palette and
-clear axis labels with units.'
-
-*What to watch for.* The default LLM plot tends to be
-busy: too many aesthetics encoded, default ggplot
-theme. Push for clarity. Multiple iterations of
-'simpler' tend to improve.
-
-*Verification.* Render the plot. Ask whether a reader
-who has never seen the data could state the message
-in one sentence.
-
-**Prompt 2: combining plots.** Describe four plots,
-ask: 'combine these into a 2x2 grid with shared
-legend, panel labels A through D.'
-
-*What to watch for.* `patchwork::plot_layout(guides = "collect")`
-for the legend. For panel labels, prefer
-`plot_annotation(tag_levels = "A")`, which letters the
-panels in layout order and keeps the letters correct when
-panels are added or rearranged. Labels typed into
-`labs(title = "A. ...")` also work, but they must be
-renumbered by hand after every change to the layout.
-
-*Verification.* Render the combined plot. Are
-legends shared? Are panels labeled in the right
-order?
-
-**Prompt 3: theme function.** Ask: 'write a
-`theme_practicum()` function with serif body text,
-sans-serif axis labels, and a color-blind-safe
-default palette.'
-
-*What to watch for.* The output is a starting point.
-Test with a few plots; iterate.
-
-*Verification.* Apply to several plots; ensure
-consistency. Verify palette via Coblis or
-`colorBlindness::cvdPlot()`.
-
-## Principle in use
-
-Three habits carry from the first figure to the last:
-
-1. **One plot, one message.** Resist combining
-   relationships into one figure.
-2. **Set the theme once.** `theme_set(theme_practicum())`
-   in the setup chunk of every analysis script, and
-   `+ theme_practicum()` explicitly on any plot that
-   will travel to another document.
-3. **Export for the destination.** PDF for LaTeX,
-   PNG at 300 DPI for Word, SVG for web. Embed fonts
-   in PDFs.
-
-## Exercises
-
-1. Using the `palmerpenguins` data, build a
-   three-panel patchwork: (a) scatter of body mass
-   vs flipper length colored by species; (b)
-   residuals from a linear fit of (a); (c) QQ plot
-   of residuals. Share the species legend across
-   all three.
-2. Write a function `plot_per_site(data, site_col, outcome)`
-   that returns a named list of ggplot objects
-   (one per site level) and a helper that saves
-   each to `figures/<site>.pdf`.
-3. Define `theme_practicum()` and apply it to three
-   plots from any prior exercise. Verify the plots
-   render consistently in HTML, PDF, and Word
-   output.
-
-**On your own work.** No answer key; these depend on
-material you supply.
-
-4. Replicate one published figure from a recent
-   biomedical paper using ggplot2. Compare your
-   replication to the original; identify what is
-   the same and what is different.
-5. Verify your color palette with the Coblis
-   simulator. Adjust if any pair of categories
-   become indistinguishable under deuteranopia.
-
-::: {.callout-tip icon=false collapse=true}
-## Solutions to exercises 1 to 3
-
-**1. A three-panel patchwork with one shared legend.**
-
-```{r}
-#| label: fig-soln-16-1
-#| fig-cap: "Scatter, residuals, and a normal Q-Q plot of the same
-#|   fit, composed with patchwork and sharing one species legend
-#|   collected at the bottom."
-#| fig-alt: "Three panels: body mass against flipper length colored by
-#|   species; residuals against fitted values scattered around zero;
-#|   and a normal quantile-quantile plot whose points follow the
-#|   reference line. A single species legend sits beneath."
-#| fig-width: 7.5
-#| fig-height: 6
-#| message: false
-fit <- lm(body_mass_g ~ flipper_length_mm, data = penguins_clean)
-aug <- broom::augment(fit, data = penguins_clean)
-
-p_a <- ggplot(aug, aes(flipper_length_mm, body_mass_g,
-                       color = species)) +
-  geom_point(alpha = 0.8)
-
-p_b <- ggplot(aug, aes(.fitted, .resid, color = species)) +
-  geom_point(alpha = 0.8) +
-  geom_hline(yintercept = 0, linetype = 2)
-
-p_c <- ggplot(aug, aes(sample = .resid, color = species)) +
-  stat_qq() + stat_qq_line()
-
-(p_a / (p_b | p_c)) +
-  plot_layout(guides = "collect") &
-  theme(legend.position = "bottom")
-```
-
-`plot_layout(guides = "collect")` is what shares the
-legend, and the `&` operator applies the theme to every
-panel rather than only the last. Using `+` there is the
-usual mistake, and it silently themes one panel.
-
-**2. A named list of plots, and a saver.**
-
-```{r}
-#| label: soln-16-2
-#| message: false
-plot_per_site <- function(data, site_col, outcome) {
-  split(data, data[[site_col]]) |>
-    purrr::imap(\(d, nm) {
-      ggplot(d, aes(.data[[outcome]])) +
-        geom_histogram(bins = 15) +
-        labs(title = nm)
-    })
-}
-
-save_plots <- function(plots, dir = tempdir()) {
-  paths <- file.path(dir, paste0(names(plots), ".pdf"))
-  purrr::walk2(plots, paths,
-               \(p, path) ggsave(path, p, width = 6, height = 4))
-  paths
-}
-
-plots <- plot_per_site(penguins_clean, "island", "body_mass_g")
-names(plots)
-basename(save_plots(plots))
-```
-
-`imap()` rather than `map()` is what gives each plot its
-group name for the title. `.data[[outcome]]` takes the
-outcome as a string, which is the right choice when the
-caller is passing a variable name held in a variable.
-
-**3. A house theme, applied.**
-
-```{r}
-#| label: fig-soln-16-3
-#| fig-cap: "One theme function applied to two different plots. Fonts,
-#|   grid lines, and legend placement come from a single definition,
-#|   so a change there propagates to every figure in the book."
-#| fig-alt: "Two panels sharing the same minimal styling: a scatter
-#|   plot and a boxplot, both with light grid lines and a legend
-#|   beneath."
-#| fig-width: 7
-#| fig-height: 3.2
-theme_practicum <- function(base_size = 11) {
+theme_hfhome <- function(base_size = 11) {
   theme_minimal(base_size = base_size) +
     theme(
       panel.grid.minor = element_blank(),
@@ -896,67 +129,872 @@ theme_practicum <- function(base_size = 11) {
       legend.position  = "bottom"
     )
 }
+theme_set(theme_hfhome())
 
-p1 <- ggplot(penguins_clean,
-             aes(flipper_length_mm, body_mass_g, color = species)) +
-  geom_point(alpha = 0.8) + theme_practicum()
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+read_hf <- function(file) {
+  read_csv(file.path(hf_dir, file),
+           col_types = cols(patient_id = col_character()),
+           show_col_types = FALSE)
+}
+randomization <- read_hf("randomization.csv") |>
+  mutate(
+    arm = factor(arm, levels = c("Usual care", "Home health")),
+    ef_stratum = factor(ef_stratum,
+                        levels = c("Reduced EF", "Preserved EF"))
+  )
+visits <- read_hf("visits.csv")
 
-p2 <- ggplot(penguins_clean, aes(species, body_mass_g)) +
-  geom_boxplot() + theme_practicum()
-
-p1 | p2
+bnp <- read_hf("labs.csv") |>
+  filter(test_code == "NTPROBNP") |>
+  distinct() |>
+  inner_join(visits, by = c("patient_id", "visit_id"),
+             relationship = "one-to-one") |>
+  inner_join(randomization, by = "patient_id",
+             relationship = "many-to-one") |>
+  mutate(visit = factor(visit_type,
+                        levels = c("discharge", "clinic_day30"),
+                        labels = c("Discharge", "Day 30")))
+bnp_discharge <- bnp |> filter(visit == "Discharge")
+stopifnot(nrow(bnp_discharge) == nrow(randomization))
 ```
 
-Defining the theme as a function rather than calling
-`theme_set()` keeps it explicit at each use, which matters
-when a figure has to opt out. The cross-format
-verification the exercise asks for cannot be done from
-inside the book; render to each format and compare.
+The `distinct()` removes the exact duplicate result that
+@sec-wrangling found, and the two `relationship =` declarations are
+the join checklist of @sec-joins. The orphan lab patient has no
+visit row, so the first inner join drops it.
+
+### Before and after
+
+```{r}
+#| label: fig-bar-vs-points
+#| fig-cap: "The same 2,432 discharge NT-proBNP values drawn twice.
+#|   (A) Bar of means with standard-error whiskers. (B) Every patient
+#|   as a point on a log scale, with the median and interquartile
+#|   range in black."
+#| fig-alt: "Two panels. Panel A shows two gray bars, reduced
+#|   ejection fraction taller than preserved, with tiny error
+#|   whiskers. Panel B shows the same data as clouds of points on a
+#|   logarithmic axis spanning from tens to tens of thousands of
+#|   pg/mL; the two clouds overlap almost entirely, and black
+#|   medians with interquartile ranges sit near the middle of each
+#|   cloud."
+#| fig-width: 7
+#| fig-height: 3.6
+bnp_means <- bnp_discharge |>
+  summarize(mean = mean(value), se = sd(value) / sqrt(n()),
+            .by = ef_stratum)
+
+p_before <- ggplot(bnp_means, aes(ef_stratum, mean)) +
+  geom_col(width = 0.6, fill = "grey65") +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2) +
+  labs(x = NULL, y = "NT-proBNP (pg/mL)", title = "Before")
+
+p_after <- ggplot(bnp_discharge, aes(ef_stratum, value)) +
+  geom_point(position = position_jitter(width = 0.25, height = 0,
+                                        seed = 1),
+             alpha = 0.15, size = 0.6) +
+  stat_summary(fun = median,
+               fun.min = \(x) quantile(x, 0.25),
+               fun.max = \(x) quantile(x, 0.75),
+               geom = "pointrange", color = "black") +
+  scale_y_log10(labels = scales::label_comma()) +
+  labs(x = NULL, y = "NT-proBNP (pg/mL, log scale)", title = "After")
+
+p_before + p_after + plot_annotation(tag_levels = "A")
+```
+
+```{r}
+#| label: graphics-bar-numbers
+#| include: false
+bnp_summary <- bnp_discharge |>
+  summarize(mean = mean(value), median = median(value),
+            min = min(value), max = max(value), .by = ef_stratum)
+fmt <- \(x) format(round(x), big.mark = ",")
+reduced <- bnp_summary |> filter(ef_stratum == "Reduced EF")
+```
+
+Panel A reports two numbers per group. The reduced-EF bar is a mean
+of `r fmt(reduced$mean)` pg/mL; the median reduced-EF patient is at
+`r fmt(reduced$median)`, and the values run from
+`r fmt(reduced$min)` to `r fmt(reduced$max)`. None of that is
+visible in a bar. Its whiskers are standard errors, which shrink
+with the sample size and say nothing about how much patients vary,
+and most of its ink is a rectangle whose height is measured from a
+zero no patient is near. Harrell's chapter on descriptive graphics
+[@harrell2025bbr, ch. 4] and Weissgerber and colleagues
+[@weissgerber2015beyond] make the case at length: plot the data,
+with the summary overlaid rather than substituted for it.
+
+Three judgments produced panel B, and each recurs in every figure
+in this chapter:
+
+- **State the claim.** 'The strata differ' is a claim about two
+  distributions, so the figure has to show distributions.
+- **Name the channel the reader decodes.** A bar encodes length
+  from zero; a point encodes position on a scale. A log scale is
+  the honest position scale for a laboratory value whose spread
+  grows with its level.
+- **Match the display to the density.** With about 1,200 points
+  per group, transparency keeps the cloud readable; with ten
+  thousand, a boxplot or violin shows the shape where points would
+  merge into ink.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A collaborator defends panel A: the whiskers show
+the uncertainty, so nothing is hidden. What do the whiskers show,
+and what do they not?
+
+**Answer.** They show the standard error of each mean, the
+uncertainty about where the group's average lies. With about 1,200
+patients per stratum that uncertainty is small, so the whiskers
+are short. They do not show how much patients differ from one
+another, which is what a reader comparing two groups of patients
+usually wants to know, and they hide the skew that makes the mean
+a poor description of the typical patient. Panel B shows both the
+spread (the points) and a robust summary (median and interquartile
+range).
 :::
+
+### Exercises
+
+1. Draw discharge creatinine by arm as points with the median and
+   interquartile range, and compute the numbers the summary layer
+   shows. Does creatinine need the log scale that NT-proBNP did?
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-16-1
+#| fig-alt: "Creatinine at discharge by arm, drawn as jittered
+#|   points with black medians and interquartile ranges; the two
+#|   arms look alike."
+#| fig-width: 5
+#| fig-height: 3.2
+creatinine <- read_hf("labs.csv") |>
+  filter(test_code == "CREAT", str_ends(visit_id, "-01")) |>
+  inner_join(randomization, by = "patient_id",
+             relationship = "one-to-one")
+
+creatinine |>
+  summarize(median = median(value), q1 = quantile(value, 0.25),
+            q3 = quantile(value, 0.75), n = n(), .by = arm)
+
+ggplot(creatinine, aes(arm, value)) +
+  geom_point(position = position_jitter(width = 0.25, height = 0,
+                                        seed = 1),
+             alpha = 0.15, size = 0.6) +
+  stat_summary(fun = median, fun.min = \(x) quantile(x, 0.25),
+               fun.max = \(x) quantile(x, 0.75),
+               geom = "pointrange") +
+  labs(x = NULL, y = "Creatinine at discharge (mg/dL)")
+```
+
+The arms look alike, as randomization intends. Creatinine is
+right-skewed but spans a far narrower range than NT-proBNP, so a
+linear scale shows the bulk of the data; a log scale is a choice to
+make from the spread you see, not a default.
+:::
+
+## The trajectory figure, layer by layer {#sec-graphics-trajectory}
+
+A trajectory figure shows a repeated measure over time by arm, with
+the individual patients visible behind the group summaries. In
+HF-HOME, NT-proBNP is measured at discharge and at the day-30 clinic
+visit. The data are already long, one row per patient visit, which
+is the shape @sec-wrangling said a trajectory plot needs: visit is
+a column, so it can be mapped to the x-axis.
+
+### Layer 1: every patient
+
+```{r}
+#| label: fig-trajectory-spaghetti
+#| fig-cap: "Every patient's NT-proBNP from discharge to day 30, one
+#|   faint line each, on a log scale."
+#| fig-alt: "A dense fan of faint gray lines joining discharge to
+#|   day 30 on a logarithmic NT-proBNP axis. Most lines slope gently
+#|   downward, some upward, and the spread at each visit covers
+#|   about three orders of magnitude."
+#| fig-width: 5
+#| fig-height: 3.5
+p_lines <- ggplot(bnp, aes(visit, value)) +
+  geom_line(aes(group = patient_id), color = "grey50", alpha = 0.04) +
+  scale_y_log10(labels = scales::label_comma()) +
+  labs(x = NULL, y = "NT-proBNP (pg/mL, log scale)")
+p_lines
+```
+
+The individual lines show what a plot of means alone would hide:
+patients move in both directions, and the spread between patients
+is far larger than any change over 30 days. At this density each
+line must be nearly transparent, and color by arm would only mix
+two clouds into mud, so the arms are left to the next layer.
+
+### Layer 2: the summary and its uncertainty
+
+```{r}
+#| label: fig-trajectory-summary
+#| fig-cap: "The arm summaries added: geometric mean and 95%
+#|   confidence interval at each visit, dodged so the arms do not
+#|   overprint."
+#| fig-alt: "The same faint gray patient lines with two colored
+#|   summaries on top: orange for usual care and blue for home
+#|   health. Each arm's geometric mean falls from discharge to day
+#|   30, and the two arms' intervals overlap at both visits."
+#| fig-width: 5
+#| fig-height: 3.8
+dodge <- position_dodge(width = 0.25)
+
+p_summary <- p_lines +
+  stat_summary(aes(color = arm, group = arm), fun = mean,
+               geom = "line", position = dodge, linewidth = 0.8) +
+  stat_summary(aes(color = arm, group = arm), fun.data = mean_se,
+               fun.args = list(mult = 1.96), geom = "pointrange",
+               position = dodge) +
+  scale_color_arm(name = NULL)
+p_summary
+```
+
+`scale_y_log10()` transforms the data *before* the statistics are
+computed, so `mean` here is the mean of log values: the geometric
+mean, with a confidence interval computed on the log scale. For a
+right-skewed laboratory value that is usually the summary you
+want, and it matches an analysis of log NT-proBNP.
+
+::: {.callout-warning title='Pitfall'}
+**Where the log happens changes the summary.** With
+`scale_y_log10()` the statistics see log values; with
+`coord_trans(y = "log10")` they see raw values, and only the
+drawing is transformed. The axes look identical, and the plotted
+means are not.
+
+```{r}
+#| label: graphics-log-placement
+bnp |>
+  summarize(arithmetic = mean(value),
+            geometric = exp(mean(log(value))), .by = c(visit, arm))
+```
+
+State the summary in the caption, and compute it once with
+`dplyr` to confirm that the figure plots what the caption says.
+:::
+
+### Layer 3: who is still being measured
+
+The day-30 summary is not computed on the same patients as the
+discharge one.
+
+```{r}
+#| label: graphics-attrition
+bnp |> count(visit, arm)
+
+bnp_discharge |>
+  mutate(seen_day_30 = patient_id %in%
+           bnp$patient_id[bnp$visit == "Day 30"]) |>
+  summarize(n = n(), geometric_mean = exp(mean(log(value))),
+            .by = seen_day_30)
+```
+
+Patients readmitted or dead before day 30 have no clinic visit, so
+the day-30 point averages over the patients who were well enough
+to attend. In this draw the patients who missed the visit started
+only slightly higher, so the selection is small; in a trial where
+the sickest patients drop out, a falling mean line can be produced
+entirely by who left.
+
+::: {.callout-warning title='Pitfall'}
+**A mean trajectory over a shrinking sample shows selection as
+change.** The line between two summaries implies the same patients
+at both ends. Print the number measured at each visit on the
+figure, and when attrition is related to the outcome, draw the
+patients measured at both visits as a sensitivity version.
+:::
+
+### Exercises
+
+2. Compute, without the plot, the geometric mean and 95% confidence
+   interval the summary layer draws for each arm and visit. Then
+   confirm that they match the numbers `ggplot2` computed, which
+   `layer_data()` returns.
+3. Redraw the trajectory for the patients measured at both visits
+   only. How many patients per arm remain, and does the picture
+   change?
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-16-2
+by_hand <- bnp |>
+  summarize(
+    geometric_mean = 10^mean(log10(value)),
+    lower = 10^(mean(log10(value)) -
+                  1.96 * sd(log10(value)) / sqrt(n())),
+    upper = 10^(mean(log10(value)) +
+                  1.96 * sd(log10(value)) / sqrt(n())),
+    .by = c(arm, visit)
+  ) |>
+  arrange(arm, visit)
+by_hand
+
+from_plot <- layer_data(p_summary, 3) |>
+  arrange(group, x)
+stopifnot(
+  isTRUE(all.equal(by_hand$geometric_mean, 10^from_plot$y)),
+  isTRUE(all.equal(by_hand$lower, 10^from_plot$ymin))
+)
+```
+
+`layer_data()` returns what the layer actually drew, on the scale
+it drew it (log10 here). Comparing it with an independent `dplyr`
+computation is the figure's equivalent of a unit test: it confirms
+that the caption's 'geometric mean and 95% CI' describes the
+points.
+:::
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-16-3
+#| fig-alt: "Trajectory for patients measured at both visits, with
+#|   the same faint lines and arm summaries; the picture is close to
+#|   the full-data version."
+#| fig-width: 5
+#| fig-height: 3.8
+completers <- bnp |>
+  filter(n() == 2, .by = patient_id)
+completers |> distinct(patient_id, arm) |> count(arm)
+
+p_summary + completers
+```
+
+Adding a data frame to a plot with `+` replaces its data and keeps
+every layer.[^plus-data] Here the completers' trajectory is close
+to the full version, which is consistent with the small difference
+at discharge between
+patients who did and did not attend the day-30 visit. Report the
+check either way; a sensitivity version that agrees is evidence,
+not wasted work.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** The two arms' 95% intervals overlap at day 30. Can
+you conclude from the figure that home health had no effect on
+NT-proBNP?
+
+**Answer.** No. Overlapping intervals for two groups do not
+establish that the difference between them is zero, or even that
+it is not significant; the interval for the *difference* is the
+quantity that answers the question (@sec-ethics returns to this
+fallacy). The figure is descriptive. The treatment comparison
+belongs to the pre-specified analysis in @sec-analysis-plan, and
+the figure should not be read as its substitute.
+:::
+
+[^plus-data]: Versions of `ggplot2` before 4.0 needed the `%+%`
+    operator for this; 4.0 deprecates it in favor of `+`.
+
+## Panels: facets, patchwork, and many plots {#sec-graphics-panels}
+
+Two tools put several panels in one figure, and they answer
+different questions (@tbl-facet-patchwork).
+
+| Tool | Panels are | Use when |
+|---|---|---|
+| `facet_wrap()`, `facet_grid()` | The same plot, conditioned on a variable | Comparing one display across strata or sites |
+| `patchwork` (`+`, `/`, `wrap_plots()`) | Independent plots, which may differ in everything | Combining different views into one figure |
+| `split()` with `purrr::imap()` | Separate figures, one per group | One file per site for a report or a monitoring committee |
+
+: Three ways to get many panels. {#tbl-facet-patchwork}
+
+### Facets: the same plot, by stratum
+
+```{r}
+#| label: fig-trajectory-facets
+#| fig-cap: "The trajectory faceted by ejection-fraction stratum. The
+#|   same layers are drawn in each panel, on shared axes."
+#| fig-alt: "Two side-by-side panels, reduced and preserved ejection
+#|   fraction, each with faint patient lines and the two arms'
+#|   geometric means and intervals. The reduced-EF panel sits higher
+#|   on the logarithmic axis; within each panel the arms overlap."
+#| fig-width: 7
+#| fig-height: 3.8
+p_summary + facet_wrap(vars(ef_stratum))
+```
+
+### Patchwork: different views in one figure
+
+```{r}
+#| label: fig-patchwork-compose
+#| fig-cap: "Two different views composed with patchwork: the
+#|   discharge distribution by stratum (A) and the trajectory by arm
+#|   (B), lettered by `plot_annotation(tag_levels = 'A')`."
+#| fig-alt: "Two panels side by side, tagged A and B. A shows
+#|   discharge NT-proBNP by ejection-fraction stratum as points with
+#|   medians; B shows the trajectory by arm with faint patient lines
+#|   and colored summaries. One legend for arm sits beneath."
+#| fig-width: 7.5
+#| fig-height: 3.8
+(p_after + labs(title = NULL)) + p_summary +
+  plot_layout(guides = "collect") +
+  plot_annotation(tag_levels = "A")
+```
+
+`plot_annotation(tag_levels = "A")` letters the panels in layout
+order and keeps the letters right when panels are added or moved;
+letters typed into `labs(title = "A. ...")` have to be renumbered by
+hand. `plot_layout(guides = "collect")` gathers duplicate legends
+into one.
+
+### One plot per group with purrr
+
+`split()` returns a named list, `imap()` passes each element and
+its name to a function, and `walk2()` writes files, a side effect,
+returning nothing:
+
+```{r}
+#| label: graphics-per-site
+site_plots <- bnp |>
+  split(bnp$site) |>
+  imap(\(d, site) p_summary + d + labs(title = site))
+
+site_dir <- file.path(tempdir(), "site-figures")
+dir.create(site_dir, showWarnings = FALSE)
+walk2(site_plots,
+      file.path(site_dir, paste0(names(site_plots), ".png")),
+      \(p, path) ggsave(path, p, width = 5, height = 3.8, dpi = 150))
+list.files(site_dir)
+```
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You want the discharge distribution by stratum and
+the trajectory by arm in one figure. Why does `facet_wrap()` not
+do it?
+
+**Answer.** Facets draw the same plot, with the same geoms and the
+same mapping, in each panel, conditioned on a variable. These are
+two different plots, with different x variables and different
+layers, so they are composed with `patchwork`. Faceting is the
+right tool when the second panel is the first one again for a
+different subset, as in the stratum figure above.
+:::
+
+### Exercises
+
+4. Write `plot_by(data, var)`, which returns a named list of
+   trajectory plots, one per level of the column named by the
+   string `var`. Apply it to `site` and to `ef_stratum`, and report
+   the names of each list.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-16-4
+plot_by <- function(data, var) {
+  split(data, data[[var]]) |>
+    imap(\(d, level) p_summary + d + labs(title = level))
+}
+
+names(plot_by(bnp, "site"))
+names(plot_by(bnp, "ef_stratum"))
+```
+
+`data[[var]]` takes the column name as a string, which is right
+when the caller holds the name in a variable (@sec-wrangling).
+`imap()` rather than `map()` is what gives each plot its group name
+for the title, and `split()` names the list by level, in factor
+order for a factor and alphabetical order for a character column.
+:::
+
+## Theme, color, and export {#sec-graphics-export}
+
+### Set the theme once, and add it where a plot travels
+
+The setup chunk defined `theme_hfhome()` and called
+`theme_set(theme_hfhome())` once, at the top of the document, where
+anyone reading the source sees it before the first plot. That is
+the right place for it in an analysis script or report. It is also
+invisible state: a plot lifted into a slide deck or a colleague's
+session renders with `ggplot2`'s defaults, with no error. Anything
+whose pieces travel (a function that returns a plot, a figure
+prepared for slides) adds the theme explicitly, as the worked
+example's function does with `+ theme_hfhome()`. The explicit form
+also makes opting out possible, for a figure that must follow a
+journal's style instead of the house one.
+
+### Choose colors that survive color-vision deficiency
+
+About one man in twelve has a red-green color-vision deficiency.
+The arm colors come from the Okabe-Ito palette
+(`palette.colors(palette = "Okabe-Ito")` in base R), and they are
+named by arm level, so a subset or a reordered factor cannot attach
+the wrong color to an arm. Check a palette by simulating each
+deficiency and measuring how far apart the colors remain:
+
+```{r}
+#| label: graphics-cvd-check
+color_distance <- function(colors) {
+  simulated <- list(
+    normal = colors,
+    deutan = colorspace::deutan(colors),
+    protan = colorspace::protan(colors),
+    tritan = colorspace::tritan(colors)
+  )
+  map_dbl(simulated, \(x) farver::compare_colour(
+    farver::decode_colour(x[1]), farver::decode_colour(x[2]),
+    from_space = "rgb", method = "cie2000"
+  )[1, 1])
+}
+
+round(color_distance(arm_colors), 1)
+round(color_distance(c("#D62728", "#2CA02C")), 1)
+```
+
+The numbers are CIEDE2000 color differences, on which a difference
+of a few units is near the limit of perception. The arm colors stay
+far apart under every simulation; the familiar red and green pair
+collapses under deuteranopia.
+
+### Export for the destination
+
+`ggsave()` picks the format from the file extension. Size the
+figure at the dimensions it will be printed, in the journal's
+units, so that text and line widths come out at the sizes you saw.
+@tbl-export summarizes the usual choices; the journal's author
+instructions govern.
+
+| Destination | Format | `ggsave()` settings | Note |
+|---|---|---|---|
+| LaTeX or journal production | PDF, vector | `device = cairo_pdf`, `units = "mm"` | Embeds fonts, so the PDF renders on systems that lack them |
+| Word, slides | PNG, raster | `dpi = 300` at the final size | Line art is often requested at 600 dpi or more |
+| Web | SVG, vector | needs the `svglite` package | Stays sharp on zoom |
+| Single journal column | any | `width = 85` to `90`, `units = "mm"` | Typical; check the journal |
+| Full page width | any | `width = 170` to `180`, `units = "mm"` | Typical; check the journal |
+
+: Export settings by destination. On screens the dpi value is
+largely ignored and the pixel dimensions are what matter.
+{#tbl-export}
+
+### Exercises
+
+5. Save `p_summary` as a PNG one journal column wide (85 mm) and
+   80 mm high at 300 dpi. Predict its pixel dimensions, then read
+   the file back with `png::readPNG()` and check your prediction.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-16-5
+png_path <- file.path(tempdir(), "trajectory-85mm.png")
+ggsave(png_path, p_summary, width = 85, height = 80, units = "mm",
+       dpi = 300)
+
+expected <- round(c(height = 80, width = 85) / 25.4 * 300)
+actual <- dim(png::readPNG(png_path))[1:2]
+expected
+actual
+stopifnot(all(abs(actual - expected) <= 1))
+```
+
+Pixels are millimeters divided by 25.4, times the dpi, so 85 mm
+at 300 dpi is about 1,004 pixels wide. A figure saved large and
+shrunk by the journal comes out with text too small to read;
+saving at the printed size is what keeps the 11-point base font
+at 11 points.
+:::
+
+## Worked example: the trajectory figure, end to end {#sec-graphics-worked}
+
+The function below assembles the chapter's layers into the figure a
+report would carry. It takes the long data and returns a plot, so
+the same code draws the full trial, a site, or a sensitivity
+subset, and it adds the theme explicitly because the plot is meant
+to travel.
+
+```{r}
+#| label: fig-trajectory
+#| fig-cap: "NT-proBNP from discharge to day 30 by arm in HF-HOME.
+#|   Gray lines are individual patients; points and bars are
+#|   geometric means with 95% confidence intervals; the numbers
+#|   under each visit are the patients measured in each arm."
+#| fig-alt: "Longitudinal trajectory figure on a logarithmic
+#|   NT-proBNP axis. Faint gray lines join each patient's discharge
+#|   and day-30 values. Orange (usual care) and blue (home health)
+#|   points with interval bars show each arm's geometric mean,
+#|   joined by lines that fall from discharge to day 30 and overlap
+#|   at both visits. Labels under each visit give the number of
+#|   patients measured in each arm, fewer at day 30 than at
+#|   discharge."
+#| fig-scap: "The HF-HOME NT-proBNP trajectory figure"
+#| fig-width: 6
+#| fig-height: 4.5
+plot_trajectory <- function(data) {
+  n_visit <- data |>
+    count(visit, arm) |>
+    pivot_wider(names_from = arm, values_from = n)
+  visit_labels <- set_names(
+    paste0(n_visit$visit, "\n",
+           scales::comma(n_visit$`Usual care`), " / ",
+           scales::comma(n_visit$`Home health`)),
+    n_visit$visit
+  )
+  dodge <- position_dodge(width = 0.25)
+
+  ggplot(data, aes(visit, value)) +
+    geom_line(aes(group = patient_id), color = "grey50",
+              alpha = 0.04) +
+    stat_summary(aes(color = arm, group = arm), fun = mean,
+                 geom = "line", position = dodge, linewidth = 0.8) +
+    stat_summary(aes(color = arm, group = arm), fun.data = mean_se,
+                 fun.args = list(mult = 1.96), geom = "pointrange",
+                 position = dodge) +
+    scale_y_log10(labels = scales::label_comma()) +
+    scale_x_discrete(labels = visit_labels) +
+    scale_color_arm(name = NULL) +
+    labs(x = "Visit (patients measured: usual care / home health)",
+         y = "NT-proBNP (pg/mL, log scale)") +
+    theme_hfhome()
+}
+
+p_trajectory <- plot_trajectory(bnp)
+p_trajectory
+
+fig_dir <- file.path(tempdir(), "figures")
+dir.create(fig_dir, showWarnings = FALSE)
+ggsave(file.path(fig_dir, "bnp-trajectory.pdf"), p_trajectory,
+       width = 170, height = 120, units = "mm", device = cairo_pdf)
+ggsave(file.path(fig_dir, "bnp-trajectory.png"), p_trajectory,
+       width = 170, height = 120, units = "mm", dpi = 300)
+```
+
+The figure answers one descriptive question: how NT-proBNP moved
+over 30 days in each arm, and how much patients varied around that
+movement. It does not claim a treatment effect, and its intervals
+are not a test; the comparison between arms belongs to the
+pre-specified analysis. The script writes the files to a temporary
+directory so that rendering the book leaves the repository
+unchanged; in a compendium, `fig_dir` is the project's `figures/`
+directory, and the files are rebuilt whenever the data change.
+
+::: {.callout-tip title='Verification'}
+Confirm that the counts printed under the axis are the counts in
+the data, and that both files were written.
+
+```{r}
+#| label: graphics-worked-verify
+axis_labels <- p_trajectory$scales$get_scales("x")$labels
+counted <- bnp |> count(visit, arm)
+label_matches <- map2_lgl(
+  as.character(counted$visit), counted$n,
+  \(v, n) str_detect(axis_labels[[v]], scales::comma(n))
+)
+stopifnot(
+  all(label_matches),
+  all(file.exists(file.path(fig_dir, c("bnp-trajectory.pdf",
+                                       "bnp-trajectory.png"))))
+)
+axis_labels
+```
+
+The labels were computed inside the function, so the check
+compares them with an independent `count()`: each arm's count at
+each visit must appear in that visit's label. Discharge shows every
+randomized patient in each arm, and day 30 fewer.
+:::
+
+Every figure in a report should pass the six checks in
+@tbl-figure-checklist, which collect this chapter's judgments.
+
+| Check | Question to ask | In the trajectory figure |
+|---|---|---|
+| Claim | What single statement is the figure for? | How NT-proBNP changed by arm over 30 days, and how much patients varied |
+| Channel | What is the reader's eye measuring? | Position on a log scale; no bars, areas, or truncated baselines |
+| Distribution | Is the variation visible, not only a summary? | Every patient's line behind the summaries |
+| Uncertainty | Does every estimate carry its interval, with the summary named? | Geometric means with 95% intervals; the caption says so; numbers measured per visit |
+| Theme | Does it match the other figures, with a palette safe for color-vision deficiency? | `theme_hfhome()` added explicitly; Okabe-Ito colors named by arm |
+| Export | Is it saved by code, at the printed size, in the destination's format? | `ggsave()` at 170 mm, PDF with `cairo_pdf` and PNG at 300 dpi |
+
+: The figure checklist. A figure that fails one row is not ready
+for a manuscript. {#tbl-figure-checklist}
+
+### One way to automate this: zzlongplot
+
+The in-house `zzlongplot` package (@sec-lab-software) draws this
+kind of figure from a formula, with sample sizes shown by default.
+It is optional: the `ggplot2` function above is the portable
+approach, and everything in this chapter works without it. The
+block is display-only, because `zzlongplot` is not in the book's
+lockfile. Its summaries are computed on the scale of the data you
+pass, so pass `log10(value)` for a geometric mean.
+
+```r
+bnp |>
+  mutate(day = if_else(visit == "Discharge", 0, 30),
+         log_bnp = log10(value)) |>
+  zzlongplot::lplot(form = log_bnp ~ day | arm,
+                    cluster_var = "patient_id",
+                    confidence_interval = 0.95,
+                    xlab = "Day", ylab = "log10 NT-proBNP (pg/mL)")
+```
+
+Reach for it when it saves you code on a standard longitudinal
+design and you have checked its output against a `ggplot2` version
+once, as Exercise 2 checks this chapter's figure; write your own
+when the encoding, the layout, or the summary is not one the
+package supports.
+
+::: {.callout-important title='LLM prompt'}
+Use a model to draft a figure, with the checklist as the
+acceptance criteria.
+
+> **Context.** `bnp` is a long data frame with one row per patient
+> visit: `patient_id` (character), `visit` (factor: Discharge,
+> Day 30), `arm` (factor: Usual care, Home health), and `value`
+> (NT-proBNP, pg/mL, right-skewed). Attendance falls at day 30.
+>
+> **Constraints.** Use `ggplot2` only. Draw individual patients as
+> faint lines; summarize each arm with `stat_summary()` on a
+> `scale_y_log10()` axis; show the number measured per arm at each
+> visit; use the colors in `arm_colors`. No bars, no
+> `geom_smooth()`, no `coord_trans()`. Letter any panels with
+> `plot_annotation(tag_levels = "A")`.
+>
+> **Criteria.** State in the caption which summary and interval
+> are drawn. Return a function of the data, not a plot of a global
+> object. List your assumptions before writing code.
+
+*Failure mode.* Models default to a bar of means with error bars,
+or to arithmetic means with a log axis added afterward, and they
+type panel letters into titles. *Check.* Walk
+@tbl-figure-checklist row by row, and compare `layer_data()` with
+a `dplyr` summary as in Exercise 2. The prompt sends variable names
+and types, not data (@sec-ai-governance).
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A reviewer asks for the trajectory figure 'with the
+p-value on it'. What do you say?
+
+**Answer.** The figure is descriptive: its job is to show the
+data, their variation, and the attrition. The treatment comparison
+is the pre-specified analysis, reported with its estimate and
+interval in the results, and a p-value placed on a figure of
+per-visit summaries invites the reader to treat overlapping
+per-arm intervals as the test. Offer the estimate and interval of
+the pre-specified contrast in the text or a table, and keep the
+figure for what it shows.
+:::
+
+## Rules of thumb
+
+1. **Habit 8: a plausible figure can be a wrong one.** A bar of
+   means and a mean line over a shrinking sample both look right;
+   show the distribution and the number measured.
+2. **Habit 10: every number is computed, including the ones in a
+   figure.** Build figures with functions, save them with
+   `ggsave()`, and check `layer_data()` against an independent
+   summary.
+3. **Habit 11: lead with the answer.** One claim per figure, named
+   in the caption, and no more claimed than the design supports.
+
+## Cumulative practice
+
+6. *Cumulative (uses @sec-joins and @sec-wrangling).* Draw the
+   creatinine trajectory across all three visit types (discharge,
+   home health, day 30) by arm. Assemble the data with declared
+   join relationships, show the number measured per arm at each
+   visit type, and explain what the middle time point compares.
+7. *On your own work (no key).* Find a bar-of-means figure in a
+   paper you have read recently, redraw it from its data or a
+   simulation of similar shape as points with summaries, and audit
+   both versions against @tbl-figure-checklist.
+
+::: {.callout-note collapse='true' title='Solution to exercise 6'}
+```{r}
+#| label: soln-16-6
+#| message: false
+#| fig-alt: "Creatinine trajectory across discharge, home-health,
+#|   and day-30 visits by arm, with labels showing far fewer
+#|   usual-care patients at the home-health visit than home-health
+#|   patients."
+#| fig-width: 6
+#| fig-height: 4.5
+creatinine_long <- read_hf("labs.csv") |>
+  filter(test_code == "CREAT") |>
+  inner_join(visits, by = c("patient_id", "visit_id"),
+             relationship = "one-to-one") |>
+  inner_join(randomization, by = "patient_id",
+             relationship = "many-to-one") |>
+  mutate(visit = factor(visit_type,
+                        levels = c("discharge", "home_health",
+                                   "clinic_day30"),
+                        labels = c("Discharge", "Home health",
+                                   "Day 30")))
+
+creatinine_long |> count(visit, arm)
+
+plot_trajectory(creatinine_long) +
+  scale_y_continuous(name = "Creatinine (mg/dL)")
+```
+
+The function needed no change, which is the payoff of writing it
+as a function of the data; only the y scale is replaced, because
+creatinine does not need the log axis. The middle time point is not
+a comparison of the arms. Home-health visits happen mostly in the
+home-health arm, so the few usual-care values there come from
+patients who received home health outside the protocol, and a
+patient with several home-health visits contributes several values,
+which the vertical strokes at the middle visit show. The count
+labels are what make that visible; without them the
+middle points read as a fair comparison.
+:::
+
+## Cheat sheet
+
+| Task | Code | Guards against |
+|---|---|---|
+| Show points and a robust summary | `geom_point(position = position_jitter(seed = 1))` + `stat_summary(fun = median, ...)` | A bar of means hiding the distribution |
+| Log axis, statistics on log values | `scale_y_log10()` | Arithmetic means of skewed values |
+| Individual trajectories | `geom_line(aes(group = patient_id), alpha = 0.04)` | Means that hide heterogeneity |
+| Mean and 95% CI per group | `stat_summary(fun.data = mean_se, fun.args = list(mult = 1.96))` | Estimates without intervals |
+| Separate overlapping groups | `position_dodge(width = 0.25)` | Arms overprinting each other |
+| Same plot by stratum | `facet_wrap(vars(ef_stratum))` | One panel per subset built by hand |
+| Compose different plots | `p1 + p2 + plot_layout(guides = "collect")` | Duplicate legends |
+| Letter panels | `plot_annotation(tag_levels = "A")` | Hand-typed letters out of order |
+| One plot per group | `split(df, df$site) \|> imap(...)` | Copy-pasted plotting code |
+| Write files in a loop | `walk2(plots, paths, \(p, f) ggsave(f, p))` | A list of `NULL` returns |
+| Replace a plot's data | `p + new_data` | Rebuilding layers for a subset |
+| Check what was drawn | `layer_data(p, i)` | A caption that does not match the plot |
+| House theme | `theme_set(theme_hfhome())` once; `+ theme_hfhome()` on traveling plots | Default styling in another document |
+| Named palette | `scale_color_manual(values = c("Usual care" = ...))` | Colors attached to the wrong group |
+| Export at printed size | `ggsave(f, p, width = 85, units = "mm", dpi = 300)` | Unreadable text after scaling |
+
+: Graphics at a glance. {#tbl-graphics-cheat-sheet}
 
 ## Further reading
 
-- [@wickham2016ggplot2], *ggplot2: Elegant Graphics
-  for Data Analysis*, the canonical reference.
-- [@wilke2019fundamentals], *Fundamentals of Data Visualization*
-  at `clauswilke.com/dataviz`, effective-
-  visualization principles.
-- The `patchwork`, `cowplot`, and `gganimate`
-  package vignettes.
-- [@harrell2025bbr] Chapter 4, on descriptive
-  statistics and graphics, and [@harrell2024checklist],
-  whose reporting items include displaying raw data
-  and avoiding bar charts of means.
-- [@harrell2025rworkflow] Chapter 14, a `ggplot2`
-  graphics chapter written for biomedical reporting,
-  including interactive figures in Quarto output.
+- [@wilke2019fundamentals], *Fundamentals of Data Visualization*,
+  the principles behind the checklist, at `clauswilke.com/dataviz`.
+- [@weissgerber2015beyond], on why bar graphs of continuous data
+  mislead and what to draw instead.
+- [@wickham2023r4ds] Chapters 1, 9, and 11, the `ggplot2` grammar,
+  layers, and labeling, for the generic tour this chapter omits.
 
 ## Prerequisites answers {#sec-quiz-answers-16}
 
-1. Use `split(data, data$group) |> map(\(d) ggplot(d, aes(x, y)) + geom_point())`
-   to produce a named list of plots, one per group.
-   Alternatively, in a tidyverse pipeline:
-   `data |> group_by(group) |> group_map(\(d, k) ggplot(d, aes(x, y)) + geom_point())`
-   (note: `group_map` returns an unnamed list;
-   `.keep = TRUE` only keeps the grouping column
-   inside each group's data. To name the list, add
-   the keys afterward, for example with
-   `set_names(group_keys(grouped)$group)` on the
-   result, where `grouped` is the grouped data).
-2. `facet_wrap()` splits a single plot into panels
-   by a factor. Every panel shares the same `aes`
-   mapping, same geom, same scales.
-   `patchwork::wrap_plots()` composes *distinct*
-   plots that can differ in every respect (different
-   geoms, different data, different scales). Use
-   `facet_wrap()` for small-multiples of the same
-   plot; `wrap_plots()` for multi-panel figures
-   showing different views.
-3. PDF is a vector format: it scales cleanly, looks
-   crisp at any zoom level, embeds fonts, and is
-   what journal production systems prefer for
-   typeset PDFs. PNG is raster: appropriate for
-   embedding in Word documents, PowerPoint slides,
-   or web pages where vector support is limited.
-   Save PDF for LaTeX submissions, PNG at 300 DPI
-   for Word and web.
+1. `split(data, data$group) |> map(\(d) ggplot(d, aes(x, y)) + geom_point())`
+   returns a named list of plots, one per group, because `split()`
+   names its output by level; `imap()` in place of `map()` also
+   passes each name, for titles or file names. A `dplyr`
+   alternative is
+   `data |> group_by(group) |> group_map(\(d, k) ggplot(d, aes(x, y)) + geom_point())`,
+   but `group_map()` returns an unnamed list, so the names must be
+   added afterward, for example with
+   `set_names(group_keys(grouped)$group)`, where `grouped` is the
+   grouped data.
+2. `facet_wrap()` splits a single plot into panels by a variable;
+   every panel shares the same mapping, geoms, and scales.
+   `patchwork::wrap_plots()` composes distinct plots that may
+   differ in every respect (geoms, data, scales). Use facets for
+   small multiples of one plot, and `patchwork` for a figure made
+   of different views.
+3. PDF is a vector format: it scales cleanly, embeds fonts, and is
+   what journal production systems prefer for typeset output. PNG
+   is raster, appropriate for Word documents, slides, and web pages
+   where vector support is limited. Save PDF for LaTeX submissions
+   and PNG at 300 dpi, at the printed size, for Word.

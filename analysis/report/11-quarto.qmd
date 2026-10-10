@@ -1,5 +1,16 @@
 # Reproducible Reports with Quarto {#sec-quarto}
 
+A number read off the console and typed into a sentence takes four
+seconds, and it is the most reasonable thing in the world to do.
+It also severs the connection between the analysis and the claim.
+On the day the data are corrected and the analysis is re-run, the
+figures update and the sentence does not, and nothing anywhere
+tells you so. Literate programming closes that gap: the sentence
+carries the code that computes its number, so the number cannot
+drift from the analysis. Quarto is the current tool for doing this
+in R, and most of this chapter is about the few places where it
+can still let a stale number through.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
@@ -15,165 +26,107 @@ explaining to human beings what we want a computer to do.*
 ```
 :::
 
-::: {.callout-note}
-## Sources
-
-Stat 545 Chapter 4 (Jenny Bryan, UBC); blog posts
-`29-setupquarto`, `07-multilanguagequartodemo`,
-`17-rapidconversionRtoRmd`.
-:::
-
-## Prerequisites
-
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-11.
-
-1. What is 'literate programming', and how does a
-   `.qmd` file embody it?
-2. Given a Quarto document that contains R code and
-   prose, what single command renders it to an HTML
-   file, and how does Quarto decide which output
-   format to produce?
-3. What is the purpose of `execute: freeze: auto` in a
-   Quarto project, and what problem does it solve?
-
-## Learning objectives
-
-By the end of this chapter you should be able to:
-
-- Explain the relationship among R scripts, R
-  Markdown, Jupyter notebooks, and Quarto.
-- Create a `.qmd` file that produces HTML and PDF
-  outputs from the same source.
-- Control code chunks with chunk options
-  (`echo`, `eval`, `include`, `warning`, `message`,
-  `fig-cap`, `fig-width`, `cache`).
-- Add cross-references to figures, tables, and
-  sections that resolve in both HTML and PDF output.
-- Use `bibliography` and `csl` to cite published work
-  in journal-specific format.
-- Parameterize a report with YAML `params:` and
-  render multiple variants.
-- Use `freeze` in a Quarto project to avoid re-running
-  expensive code on every render.
-
-## Orientation
-
-An analysis is not finished when the code runs. It is finished,
-rather, when a collaborator can reproduce the plots, the
-tables, and the very paragraphs of your paper from your source
-files with a single command.
-
-The gap between those two states is usually occupied by a
-manual step that nobody thinks of as a step: a number read off
-the console and typed into a sentence. It is the most
-reasonable thing in the world to do. It also takes four
-seconds and severs the connection between the analysis and the
-claim. On the day the data are corrected and the analysis is
-re-run, the figures update and the sentence does not. Nothing
-anywhere will tell you so. Literate programming exists to
-close that particular gap, and Quarto is the current standard
-tool for closing it in R.
-
-Quarto is the successor to R Markdown, sharing most of
-its syntax but with broader language support
-(R, Python, Julia, Observable JS), better cross-format
-fidelity, and a more polished publishing pipeline. For
-new projects, Quarto is the default. For legacy
-projects, R Markdown still works, and the decision to
-migrate an existing one deserves more care than it
-usually gets; @sec-rmd-workflow takes it up.
-
-## The statistician's contribution {#sec-quarto-human}
-
-Quarto's syntax is small and its documentation is good.
-The decisions that determine whether a document is a
-research artifact or merely a formatted report are not
-in the syntax:
-
-**Authorial decisions about what to compute inline.** A
-manuscript with `\(p < 0.05\)` hardcoded is fragile. A
-manuscript with the p-value computed inline from the
-fitted model auto-updates when you re-run with new
-data. The same goes for sample sizes, effect estimates,
-and any number that depends on the analysis. Inline
-computation is the literate-programming payoff;
-hardcoding numbers wastes it.
-
-**When to cache, when to re-run.** A 10-second
-analysis can be re-run on every render. A 10-minute
-MCMC cannot. `freeze` and the `cache` chunk option are
-the right tools, but using them carelessly produces
-stale results. The discipline: cache when the
-computation is expensive *and* deterministic; re-run
-when it is cheap or could change.
-
-**One source, multiple outputs.** A single `.qmd` can
-produce HTML for the website, PDF for the journal,
-and Word for the collaborator who insists. The
-trade-off: cross-format compatibility constrains what
-you can do (no inline HTML widgets in PDF; no LaTeX
-math in Word without conversion). Worth it for the
-single-source-of-truth benefit.
-
-**Citation and bibliography hygiene.** A paper with
-twenty undocumented references cited inline is a
-papier-maché methods section. Quarto with a
-`references.bib` and `csl` styling is the
-infrastructure for tracking and reformatting
-citations. Use it from the start; backfilling
-citations for an existing paper is tedious.
-
-These judgments are what make a Quarto document a
-research artifact rather than a glorified Word
-document.
-
-## Literate programming
-
-Donald Knuth's original idea [@knuth1984literate]:
-source code and prose should live together in one
-document, with the prose explaining the code as a human
-would explain it to another human. The compiler extracts the code; a
-'weaver' produces the human-readable document.
-
-Quarto implements this with code chunks and prose
-interleaved in a `.qmd` file:
-
-````qmd
-# Methods
-
-We analyzed the readmissions cohort using a multivariable
-logistic regression.
-
-```{{r}}
-fit <- glm(readmit ~ home_health + age + sex,
-           family = binomial, data = d)
+```{r}
+#| label: quarto-pipeline-setup
+#| include: false
+source('_pipeline.R')
 ```
 
-The adjusted odds ratio for home-health-visit receipt
-was `{{r}} round(exp(coef(fit)["home_health"]), 2)`.
+```{r}
+#| label: fig-quarto-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: Quarto is the Report stage,
+#|   which turns code and derived data into the document a reader
+#|   sees."
+#| fig-alt: !expr pipeline_alt('report')
+pipeline_diagram('report')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 25 minutes.
+
+**You'll need.** @sec-workstation for an installed Quarto
+(`quarto check` confirms it), and @sec-joins for the row-count
+check in the worked example. The executed code uses base R and the
+`quarto` command-line tool, so it needs no `library()` call.
+
+**You'll be able to.**
+
+- Replace every number typed into prose with inline code, and show
+  that the numbers change when the data do.
+- Label figures, tables, and sections so that a reference to a
+  missing one is reported at render time instead of going unnoticed.
+- Choose between `freeze` and `cache` for an expensive computation,
+  and predict when each will serve a stale result.
+- Render one report per site from a single parameterized source.
+
+**Outline.**
+
+- [Literate programming and the inline number](#sec-quarto-literate)
+- [Chunks, cross-references, and citations](#sec-quarto-chunks)
+- [Freeze and cache](#sec-quarto-freeze)
+- [Worked example: a report that survives a new extract](#sec-quarto-worked)
+- [Parameterized reports](#sec-quarto-params)
+- [Reference: front matter and websites](#sec-quarto-reference)
+:::
+
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-11.
+
+1. What is 'literate programming', and how does a `.qmd` file
+   embody it?
+2. Given a Quarto document that contains R code and prose, what
+   single command renders it to an HTML file, and how does Quarto
+   decide which output format to produce?
+3. What is the purpose of `execute: freeze: auto` in a Quarto
+   project, and what problem does it solve?
+:::
+
+## Literate programming and the inline number {#sec-quarto-literate}
+
+Donald Knuth's idea [@knuth1984literate] was that source code and
+prose should live in one document, with the prose explaining the
+code as one person would explain it to another. Quarto implements
+it with code chunks and prose interleaved in a `.qmd` file. The
+part that matters most for a statistician is the smallest: an
+inline expression, which puts a computed value inside a sentence.
+
+````qmd
+We compared the 30-day composite outcome between the randomized
+arms.
+
+```{{r}}
+obs <- trial[!is.na(trial$event_30d), ]
+rates <- tapply(obs$event_30d, obs$arm, mean)
+```
+
+Readmission or death within 30 days occurred in
+`{{r}} round(100 * rates[["Usual care"]], 1)`% of patients
+under usual care.
 ````
 
-Rendering produces a paper with the OR computed at
-render time. Re-running with new data re-computes
-the OR; the prose is automatically consistent with
-the analysis.
+Rendering runs the chunk, evaluates the inline expression, and
+writes its value into the sentence. Re-render after the data change
+and the sentence changes with them. Copying the number into Word
+instead is where 'I forgot to update Table 2' comes from.
 
-This contrasts with the workflow of running an analysis
-in R, copy-pasting numbers into Word, and updating
-manually if the analysis changes. The latter is where
-'I forgot to update Table 2' bugs come from.
+What to compute inline is the author's decision, and the rule is
+simple: any number that depends on the data. That includes the
+sample size in the abstract, the count of exclusions in the
+methods, every estimate and interval, and the p-value that a
+reviewer will check against the table. A manuscript with
+`p < 0.05` typed into it is correct only until the next extract.
 
-## The minimum Quarto document
+### The minimum document
 
 ````qmd
 ---
-title: "My analysis"
+title: "HF-HOME interim summary"
 format: html
 ---
-
-# Introduction
 
 Some prose here.
 
@@ -182,582 +135,718 @@ Some prose here.
 ```
 ````
 
-Save as `analysis.qmd`. Render with:
+Save it as `analysis.qmd` and render it from the shell with
+`quarto render analysis.qmd`, which writes `analysis.html`. The
+`format:` key decides the output; with none, Quarto writes HTML.
+One source can produce several formats, which keeps a single
+source of truth for the website, the journal, and the collaborator
+who edits only in Word, at the price of the constraints in
+@tbl-quarto-formats.
 
-```bash
-quarto render analysis.qmd
-```
+| Format | Command | What it cannot carry |
+|---|---|---|
+| HTML | `quarto render analysis.qmd --to html` | Nothing that matters here; it is the most capable target |
+| PDF | `quarto render analysis.qmd --to pdf` | Interactive HTML widgets; needs a LaTeX installation (`quarto install tinytex`) |
+| Word | `quarto render analysis.qmd --to docx` | Fine typographic control; LaTeX math is converted and may need checking |
 
-This produces `analysis.html`. Open in a browser. Done.
+: One source, three outputs. List several formats under `format:`
+to render them all at once. {#tbl-quarto-formats}
 
-For PDF output:
-
-```bash
-quarto render analysis.qmd --to pdf
-```
-
-Or set the format in the YAML:
-
-```yaml
----
-format:
-  pdf: default
-  html: default
----
-```
-
-## Code chunks and chunk options
-
-A code chunk in a `.qmd`:
-
-````qmd
-```{{r}}
-#| label: fig-readmissions
-#| fig-cap: "30-day readmission rates by home-health visit"
-#| fig-width: 6
-#| fig-height: 4
-#| echo: false
-#| warning: false
-
-ggplot(d, aes(home_health, fill = readmit)) +
-  geom_bar(position = "fill") +
-  labs(x = "Home health visit", y = "Proportion")
-```
-````
-
-Chunk options:
-
-- **`echo: false`** hides the code from the rendered
-  output (useful for papers; keep `true` for
-  teaching).
-- **`include: false`** runs the code but shows neither
-  code nor output (useful for setup chunks).
-- **`eval: false`** shows the code but does not run it
-  (useful for examples that should not actually
-  execute).
-- **`warning: false`**, **`message: false`** suppress
-  R's warnings and messages.
-- **`fig-cap`**, **`fig-width`**, **`fig-height`**
-  control figure rendering.
-- **`label: fig-foo`** gives the chunk a name and
-  enables cross-referencing.
-- **`cache: true`** caches the chunk's output between
-  renders (chunk-level alternative to `freeze`).
-
-Set defaults globally in YAML:
-
-```yaml
-execute:
-  echo: false
-  warning: false
-  message: false
-  cache: false
-```
-
-This silences code, warnings, and messages by default
-across all chunks; override per-chunk as needed.
-
-## Cross-references
-
-Quarto's cross-reference syntax:
-
-````qmd
-See @fig-readmissions for the bar plot.
-
-```{{r}}
-#| label: fig-readmissions
-#| fig-cap: "30-day readmission rates"
-ggplot(d, aes(...)) + ...
-```
-````
-
-The reference resolves to a clickable link in HTML and a
-formatted reference in PDF. Prefixes:
-
-- `fig-` for figures.
-- `tbl-` for tables.
-- `eq-` for equations.
-- `sec-` for sections (when section headers are
-  labeled, e.g., `# Methods {#sec-methods}`).
-
-Cross-references work across formats: HTML produces
-hyperlinks, PDF produces 'Figure 3' references, Word
-produces field codes.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: a broken reference is a loud failure
-
-**Question.** You write `@fig-trajectory` in the prose but
-the chunk producing that figure is a display-only block,
-so the label never resolves. What happens when you render,
-and why is that better than the alternative?
-
-**Answer.**
-
-Quarto emits `WARN: Unable to resolve crossref
-@fig-trajectory` and renders the text as `?fig-trajectory`.
-The build completes, so it is a warning rather than an
-error, but the defect is visible in both the log and the
-output.
-
-Compare the alternative. Written as 'Figure 3 shows the
-trajectory', the reference is a string. Insert a figure
-earlier, and the sentence now points at the wrong figure.
-Nothing warns, nothing renders oddly, and the reader
-follows you to a plot that does not show what you claim.
-The document is wrong in a way no tool can detect, because
-you never told the tool what you meant.
-
-This is the same distinction the book draws about inline
-code: a hardcoded number cannot go stale loudly, only
-quietly. Cross-references convert an entire class of
-manuscript error, the kind introduced by revision rather
-than by mistake, into a build warning.
-
-Worth knowing: this is not hypothetical for this book. Two
-chapters carried cross-references to anchors that did not
-exist, and the render found both immediately.
-:::
-
-## Bibliographies and citations
-
-Add a `.bib` file:
-
-```yaml
----
-bibliography: references.bib
-csl: apa.csl
----
-```
-
-Cite inline:
-
-```qmd
-This builds on prior work [@bryan2019happygit; @marwick2018rrtools].
-
-@wickham2019advr discusses copy-on-modify in detail.
-```
-
-`[@key]` produces a parenthetical citation; `@key`
-produces a textual one. Multiple keys are separated
-by semicolons. Quarto resolves the keys against the
-`.bib` file; the rendered output formats them per the
-`csl` style.
-
-Common CSL files: `apa.csl`, `vancouver.csl`,
-`nature.csl`. Get from `github.com/citation-style-language/styles`
-and place in the project directory or reference by URL:
-
-```yaml
-csl: https://www.zotero.org/styles/jama
-```
-
-## YAML front matter in depth
-
-```yaml
----
-title: "Effect of home-health visits on readmissions"
-author:
-  - name: A. Author
-    affiliation: University of X
-    orcid: 0000-0000-0000-0000
-  - name: B. Coauthor
-date: today
-date-format: "YYYY-MM-DD"
-
-format:
-  html:
-    theme: cosmo
-    toc: true
-    code-fold: true
-    fig-width: 7
-    fig-height: 5
-  pdf:
-    documentclass: scrartcl
-    fig-width: 6
-    fig-height: 4
-  docx: default
-
-bibliography: references.bib
-csl: nature.csl
-
-execute:
-  echo: false
-  warning: false
-  freeze: auto
-
-params:
-  dataset: "data/readmissions.csv"
-  outcome: "readmit"
----
-```
-
-The `format:` block sets format-specific options. The
-`execute:` block sets defaults for all code chunks. The
-`params:` block declares parameters accessible inside
-the document as `params$dataset`.
-
-## Caching with `freeze`
-
-For expensive computations:
-
-```yaml
-execute:
-  freeze: auto
-```
-
-`freeze` works per *document*, not per chunk, and only
-inside a Quarto project (a directory with a
-`_quarto.yml`). When the whole project is rendered with
-`quarto render`, Quarto executes each document and
-stores its results in `_freeze/`. On later project
-renders, `freeze: auto` reuses those results for every
-document whose source is unchanged; edit any part of a
-document, even one chunk, and the whole document
-re-executes. `freeze: true` reuses the stored results
-even after the source changes; `freeze: false`, the
-default, re-executes every document on every render.
-
-Two consequences catch people out. Rendering a single
-file (`quarto render analysis.qmd`) always executes it,
-whatever `freeze` says, so freeze helps only full project
-renders. And a stand-alone `.qmd` outside any project
-has no `_freeze/` at all; for chunk-level reuse there,
-use the knitr `cache: true` chunk option instead, which
-invalidates when that chunk's code changes.
-
-The choice, then: `freeze: auto` in a project with
-expensive analyses (a long bootstrap, an MCMC, a model
-fit); `cache: true` on an expensive chunk in a single
-document.
-
-`_freeze/` can be committed to git: it lets
-collaborators and CI builds that render the project
-reuse the stored output without re-running expensive
-analyses. (For
-deterministic chunks; for randomized chunks, the cache
-embeds the seed-aware result so this is fine if your
-chunks set seeds.)
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: hardcoded vs. inline
-
-**Question.** Your manuscript has 'The mean age was
-67.3 years (SD 12.1)'. The numbers were typed in by
-hand from the analysis. What is wrong with this, and
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Your manuscript says 'The mean age was 67.3 years
+(SD 12.1)', typed in from the console. What is wrong with this, and
 what is the Quarto fix?
 
-**Answer.**
-
-The numbers are detached from the data. If you re-run
-the analysis with corrected data, the prose still says
-67.3 / 12.1 even though the analysis now produces
-different values. The fix is inline computation:
+**Answer.** The numbers are detached from the data. Re-run the
+analysis on corrected data and the prose still says 67.3 and 12.1,
+while every table beside it has moved. The fix is inline
+computation:
 
 ```qmd
 The mean age was `{{r}} round(mean(d$age, na.rm = TRUE), 1)`
 years (SD `{{r}} round(sd(d$age, na.rm = TRUE), 1)`).
 ```
 
-Now the prose is computed from the data at render
-time. Re-rendering with corrected data updates the
-prose automatically. This is the literate-programming
-payoff: numbers and prose stay synchronized.
-
+The prose is now computed at render time, so a re-render on new
+data updates it. It is still possible for the rendered document to
+be stale, if the code was not re-run; @sec-quarto-freeze is about
+when that happens.
 :::
 
-## Parameterized reports
+### Exercises
 
-Run the same `.qmd` against different data:
+1. Write the sentence 'The mean age at index discharge was X years
+   (SD Y), and Z patients were older than 89' for the HF-HOME
+   demographics file
+   (`file.path('..', 'data', 'raw_data', 'hfhome', 'demographics.csv')`),
+   with every number inline. Compute the values in a chunk so that
+   you can check the rendered sentence against them.
 
-```yaml
-params:
-  dataset: "data/cohort1.csv"
-  outcome: "readmit"
-```
-
-```r
-d <- read.csv(params$dataset)
-```
-
-Render variants from the command line:
-
-```bash
-quarto render analysis.qmd \
-  -P dataset=data/cohort2.csv \
-  -P outcome=mortality
-```
-
-Or programmatically in R:
-
-```r
-quarto::quarto_render(
-  "analysis.qmd",
-  execute_params = list(dataset = "data/cohort2.csv",
-                        outcome = "mortality"),
-  output_file = "cohort2-report.html"
-)
-```
-
-Useful for: analysis reports per subgroup, sensitivity
-analyses with different inclusion criteria,
-reports per institution in multi-site studies.
-
-## Websites: many documents, one project
-
-A single `.qmd` renders to a document. A directory of them,
-governed by a `_quarto.yml`, renders to a website: a set of
-linked pages with shared navigation, a common theme, and a
-search box. This is the same project machinery that produces
-this book (a `type: book` project); a `type: website` project
-differs only in navigation, offering a top navbar and a sidebar
-rather than numbered chapters.
-
-The minimum is a `_quarto.yml` naming the pages and an
-`index.qmd` for the landing page:
-
-```yaml
-# _quarto.yml
-project:
-  type: website
-
-website:
-  title: "Readmissions analysis"
-  navbar:
-    left:
-      - href: index.qmd
-        text: Home
-      - href: methods.qmd
-        text: Methods
-      - href: results.qmd
-        text: Results
-
-format:
-  html:
-    theme: cosmo
-    toc: true
-```
-
-```bash
-quarto render        # builds the whole site into _site/
-quarto preview       # live-reloading local preview
-```
-
-For a biostatistician the website is the natural form of an
-internal analysis portal: a living site that a research team
-reads rather than a PDF that is emailed and goes stale. Because
-it is a Quarto project, every page carries the reproducibility
-guarantees of the rest of this chapter, inline computation, a
-pinned environment, a `freeze` cache, and the whole site is
-rebuilt and redeployed by the continuous-integration workflow of
-@sec-ci on every push. The STA 199-style course site and the
-`workflowr` analysis website solve the same problem; Quarto is
-the option that composes with the compendium (@sec-rrtools) you
-are already building.
-
-Publishing is one command to any of several hosts:
-
-```bash
-quarto publish netlify      # or gh-pages, quarto-pub, connect
-```
-
-The distinction from a parameterized report (above) is worth
-keeping clear. Parameters render the *same* document against
-*different* data; a website renders *different* documents into
-*one* navigable whole. A multi-site trial might use both: one
-parameterized report per site, collected into a website with a
-page per site and an overview landing page.
-
-## Worked example: a one-page report
+::: {.callout-note collapse='true' title='Solution'}
+The sentence, with its setup chunk:
 
 ````qmd
----
-title: "30-day readmission rates"
-author: A. Statistician
-date: today
-format:
-  html: default
-  pdf: default
-execute:
-  echo: false
-  warning: false
----
-
 ```{{r}}
 #| include: false
-library(ggplot2)
-set.seed(2026)
-n <- 500
-d <- data.frame(
-  age = round(rnorm(n, mean = 70, sd = 10)),
-  sex = sample(c("F", "M"), n, replace = TRUE),
-  home_health = rbinom(n, 1, 0.4)
-)
-d$readmit <- rbinom(
-  n, 1, plogis(-1.5 + 0.02 * (d$age - 70) - 0.4 * d$home_health)
-)
-fit <- glm(readmit ~ home_health + age + sex,
-           family = binomial, data = d)
-ci <- exp(confint.default(fit)["home_health", ])
+demo <- read.csv(file.path("..", "data", "raw_data", "hfhome",
+                           "demographics.csv"),
+                 colClasses = c(patient_id = "character"))
 ```
 
-# Summary
+The mean age at index discharge was
+`{{r}} round(mean(demo$age), 1)` years
+(SD `{{r}} round(sd(demo$age), 1)`), and
+`{{r}} sum(demo$age > 89)` patients were older than 89.
+````
 
-Among `{{r}} nrow(d)` simulated patients, the 30-day
-readmission rate was `{{r}} round(100 * mean(d$readmit), 1)`%
-(@tbl-summary). After adjustment for age and sex,
-receipt of a home-health visit was associated with
-`{{r}} ifelse(coef(fit)["home_health"] < 0, "lower", "higher")`
-odds of readmission (OR
-`{{r}} round(exp(coef(fit)["home_health"]), 2)`,
-95% CI `{{r}} round(ci[1], 2)` to `{{r}} round(ci[2], 2)`;
-@fig-or).
+The values it should render:
 
-```{{r}}
-#| label: tbl-summary
-#| tbl-cap: "Patient characteristics"
-gtsummary::tbl_summary(d, by = home_health)
+```{r}
+#| label: soln-11-1
+demo <- read.csv(file.path("..", "data", "raw_data", "hfhome",
+                           "demographics.csv"),
+                 colClasses = c(patient_id = "character"))
+c(mean = round(mean(demo$age), 1), sd = round(sd(demo$age), 1),
+  over_89 = sum(demo$age > 89))
 ```
 
+The count of patients over 89 matters beyond this chapter: ages
+above 89 are an identifier under the HIPAA (Health Insurance
+Portability and Accountability Act) Safe Harbor method
+(@sec-deident), so a de-identified extract would not let you
+compute it, and the sentence would have to change.
+:::
+
+## Chunks, cross-references, and citations {#sec-quarto-chunks}
+
+### Chunk options
+
+A chunk's options sit at its top, one per line after `#|`:
+
+````qmd
 ```{{r}}
-#| label: fig-or
-#| fig-cap: "Adjusted odds ratios"
-broom::tidy(fit, exponentiate = TRUE, conf.int = TRUE) |>
-  subset(term != "(Intercept)") |>
-  ggplot(aes(estimate, term, xmin = conf.low, xmax = conf.high)) +
-    geom_pointrange() +
-    geom_vline(xintercept = 1, linetype = "dashed")
+#| label: fig-outcome-by-arm
+#| fig-cap: "30-day readmission or death by randomized arm"
+#| fig-width: 6
+#| echo: false
+
+ggplot(obs, aes(arm, fill = factor(event_30d))) +
+  geom_bar(position = "fill")
 ```
 ````
 
-The data are simulated in the setup chunk so that the
-document renders as it stands; in a real report that
-chunk would read your data file instead. This produces
-an HTML report and a PDF, with every number computed
-from the data and a labeled table and figure.
-Re-running with new data updates everything
-automatically.
+| Option | Effect | Typical use |
+|---|---|---|
+| `echo: false` | Runs the code, shows the output, hides the code | Papers; keep `true` for teaching and review |
+| `include: false` | Runs the code, shows nothing | Setup chunks that read data and load packages |
+| `eval: false` | Shows the code, does not run it | Code that must not execute, such as a deployment command |
+| `warning: false`, `message: false` | Suppresses warnings or messages | A chunk whose warnings you have read and judged harmless |
+| `label: fig-...` | Names the chunk and makes it a cross-reference target | Every figure and table you refer to |
+| `fig-cap`, `fig-width`, `fig-height` | Caption and size of the figure | Every figure |
+| `cache: true` | Reuses the chunk's stored result (@sec-quarto-freeze) | An expensive chunk in a single document |
 
-## Collaborating with an LLM on Quarto
+: Chunk options in common use. {#tbl-quarto-chunk-options}
 
-LLMs handle Quarto well; the judgment about what to
-compute inline is human.
+The front matter is the YAML (YAML Ain't Markup Language) header
+between the `---` lines at the top of the file. Set defaults for
+every chunk under its `execute:` key, for example `echo: false`,
+and override them per chunk.
 
-**Prompt 1: drafting a methods section.** Describe
-the analysis and ask: 'draft the methods section as
-Quarto, with code chunks producing the key results
-and inline R for any numbers cited in the prose.'
+::: {.callout-warning title='Pitfall'}
+**A global `warning: false` hides the warnings that make failures
+loud.** `dplyr`'s many-to-many join warning (@sec-joins), `glm()`'s
+'fitted probabilities numerically 0 or 1', and a date parser's
+'failed to parse' are each the only sign of a wrong number, and
+with `warning: false` set under `execute:` none of them reaches
+the rendered document, where a reader would see it. Leave warnings
+on while the analysis is changing, and suppress them per chunk,
+after you have read them.
+:::
 
-*What to watch for.* Hardcoded numbers in the prose
-that should be inline R. The LLM may quote
-'p = 0.034' as a literal when it should compute it.
-Push for inline.
+### Cross-references
 
-*Verification.* Render the document; change the data;
-re-render. Numbers cited inline should change with
-the data; numbers hardcoded as literals will not.
+Label a figure, table, equation, or section, and refer to it by
+label; Quarto numbers it and writes 'Figure 3' or a link.
 
-**Prompt 2: setting up cross-references.** Paste the
-draft and ask: 'add appropriate
-`fig-cap`/`tbl-cap`/`eq-cap` labels and cross-
-references throughout.'
+````qmd
+See @fig-outcome-by-arm for the outcome by arm.
 
-*What to watch for.* Reference labels follow the
-`fig-`, `tbl-`, `eq-` prefix conventions. Each label
-should be unique. The LLM occasionally produces
-duplicate labels.
+```{{r}}
+#| label: fig-outcome-by-arm
+#| fig-cap: "30-day readmission or death by randomized arm"
+ggplot(obs, aes(arm, fill = factor(event_30d))) + geom_bar()
+```
+````
 
-*Verification.* Render and check that every reference
-resolves; broken refs render as `?`.
+| Prefix | Labels | Where the label goes |
+|---|---|---|
+| `fig-` | Figures | The chunk's `label:` option |
+| `tbl-` | Tables | The chunk's `label:`, or `{#tbl-...}` after a pipe table's caption |
+| `eq-` | Equations | `{#eq-...}` after the closing `$$` |
+| `sec-` | Sections | `{#sec-...}` after the heading, as in `# Methods {#sec-methods}` |
 
-**Prompt 3: parameterization.** Describe the report
-and the parameters and ask: 'parameterize this report
-so I can render it once per cohort.'
+: Cross-reference prefixes. {#tbl-quarto-xref}
 
-*What to watch for.* The LLM should use Quarto's
-`params:` syntax, not custom variable handling.
+The same source produces hyperlinks in HTML, numbered references
+in PDF, and field codes in Word.
 
-*Verification.* Render with two different parameter
-sets; verify the outputs differ as expected.
+### Citations
 
-## Principle in use
+Point the front matter at a BibTeX file and a citation style, and
+cite by key:
 
-Three habits keep the prose and the numbers in step:
+```yaml
+bibliography: references.bib
+csl: https://www.zotero.org/styles/jama
+```
 
-1. **Inline computation, not hardcoded numbers.**
-   Every number in the prose comes from the analysis.
-2. **Cross-reference everything.** Figures, tables,
-   equations, sections. Hand-typing 'see Figure 3'
-   produces broken references when figures move.
-3. **Use `freeze: auto` in projects.** Documents with
-   expensive analyses re-execute only when their source
-   changes; remember that a single-file render always
-   re-executes.
+```qmd
+This builds on prior work [@bryan2019happygit; @marwick2018rrtools].
+@wickham2019advr discusses copy-on-modify in detail.
+```
 
-## Exercises
+`[@key]` gives a parenthetical citation and `@key` a textual one;
+separate several keys with semicolons. The CSL (Citation Style
+Language) file sets the journal's format, so changing journals
+means changing one line. Start the `.bib` file on the first day:
+backfilling the citations of a finished draft is slow, and a
+methods section whose references were typed by hand cannot be
+reformatted or checked.
 
-**On your own machine, data, or collaborations.** These exercises render
-documents on your machine, so no answer key is possible. The rendered
-output is the check.
+::: {.callout-note collapse='true' title='Check'}
+**Question.** You write `@fig-trajectory` in the prose, but the
+chunk that should produce the figure is display-only, so the label
+never exists. What happens when you render, and why is that better
+than writing 'Figure 3'?
 
-1. Convert a short `.R` script into a `.qmd` that
-   renders to both HTML and PDF, with one figure
-   caption and one cross-reference.
-2. Add `bibliography: references.bib` and cite at
-   least one paper. Verify the reference appears in
-   both HTML and PDF outputs.
-3. Parameterize the document to take a `data_file`
-   parameter from YAML; render three versions from
-   three different CSV files using
-   `quarto render --to html -P data_file=foo.csv`.
-4. Put two `.qmd` files and a `_quarto.yml` containing
-   `execute: freeze: auto` in one directory, and give
-   one file an expensive code chunk. Run `quarto render`
-   (with no file name) twice and confirm the second
-   project render is fast. Then run
-   `quarto render slow.qmd` and observe that the
-   single-file render re-executes it.
-5. Replace every hardcoded number in a draft of yours
-   with inline R. Re-render with intentionally
-   different data; confirm everything updates.
+**Answer.** Quarto prints `WARN: Unable to resolve crossref
+@fig-trajectory` and renders the reference as `?@fig-trajectory`.
+The build completes, but the defect is visible in the log and in
+the output. Written as 'Figure 3', the reference is a string:
+insert a figure earlier and the sentence points at the wrong one,
+with nothing to warn you. Cross-references turn the errors that
+revision introduces into build warnings, as inline code does for
+numbers.
+:::
+
+### Exercises
+
+2. Convert a short `.R` script of yours into a `.qmd` that renders
+   to both HTML and PDF, with one captioned figure, one
+   cross-reference to it, and one citation from a `.bib` file.
+
+::: {.callout-note collapse='true' title='Solution'}
+A correct result renders both formats without a `WARN` line,
+shows 'Figure 1' (or a link) where you wrote the reference, and
+ends with a reference list in both outputs. Two failures are
+common. A reference rendered as `?@fig-...` means the label is
+missing or misspelled, or the chunk did not run. A citation
+rendered as its bare key, with a 'citation not found' warning,
+means the key is not in the `.bib` file the front matter names.
+If the PDF fails with a LaTeX error, run `quarto install tinytex`.
+:::
+
+## Freeze and cache {#sec-quarto-freeze}
+
+A ten-second analysis can run on every render; a ten-minute
+bootstrap or an MCMC (Markov chain Monte Carlo) fit cannot. Quarto
+offers two ways to store a result and reuse it, and they differ in
+scope, in what makes them re-run, and in when they are ignored
+(@tbl-quarto-freeze-cache). The rule for both is to store a result
+only when the computation is expensive *and* deterministic, and to
+re-run anything that is cheap or could change.
+
+| | `freeze` (Quarto) | `cache` (knitr) |
+|---|---|---|
+| Set with | `execute: freeze: auto` in `_quarto.yml` or a document's front matter | `cache: true` on a chunk, or under `execute:` |
+| Scope | A whole document | One chunk |
+| Applies | Only inside a Quarto project (a directory with `_quarto.yml`) | In any document |
+| Stored in | `_freeze/` at the project root | A `<document>_cache/` directory beside the document |
+| Re-executes when | `auto`: any change to the document's source, even one character, re-runs the whole document; `true`: never during a project render; `false` (the default): always | The chunk's code or options change |
+| Ignored when | You render a single file or a subdirectory, which always executes | Never ignored by the kind of render |
+| Does not notice | Changed data files, packages, or R version | Changed data files, packages, or upstream chunks (unless `dependson` names them) |
+| Commit to Git? | Commonly, so that collaborators and automated builds reuse expensive results | Usually not |
+
+: `freeze` and `cache` compared. {#tbl-quarto-freeze-cache}
+
+The two consequences in the 'Ignored when' row catch people out.
+`quarto render analysis.qmd` executes the document whatever
+`freeze` says, so freeze speeds up only full project renders. And
+a stand-alone `.qmd` outside any project has no `_freeze/` at all;
+for chunk-level reuse there, use `cache: true`.
+
+`_freeze/` can be committed to Git, so that a collaborator or a
+continuous-integration (CI) build that renders the project reuses
+the stored results instead of re-running a long analysis
+(@sec-git-teams discusses the merge conflicts this can bring). The
+stored results are whatever the last execution produced; a
+randomized chunk that sets its own seed reproduces them when it
+does re-run, and one that does not will produce different numbers
+from the stored ones.
+
+::: {.callout-warning title='Pitfall'}
+**Neither `freeze` nor `cache` sees the data.** Both decide whether
+to re-run by looking at code. Replace `data/trial.csv` with a new
+extract and a project render under `freeze: auto` serves the old
+numbers, with no warning, because the `.qmd` did not change; a
+cached chunk that reads the file does the same. This is the
+typed-number failure again, one level down, and the worked example
+below shows it happening. After a data change, render the document
+itself, or delete its entry in `_freeze/`. For a cached chunk, add
+`cache.extra: !expr tools::md5sum("data/trial.csv")`, which makes
+the file's checksum part of what the cache compares.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A project uses `freeze: auto`. You fix a typo in the
+discussion of `results.qmd` and run `quarto render`. Which chunks
+re-execute?
+
+**Answer.** Every chunk in `results.qmd`, and none in any other
+document. Freeze works per document, so any change to the source,
+prose included, invalidates the whole document's stored results.
+If you wanted only the expensive chunk protected, that is
+`cache: true` on the chunk, whose key is the chunk's own code.
+:::
+
+### Exercises
+
+3. For each scenario, say whether the code re-executes:
+   (a) project render, `freeze: auto`, prose edited;
+   (b) project render, `freeze: auto`, data file replaced;
+   (c) `quarto render report.qmd` with `freeze: true`;
+   (d) `cache: true` chunk, an upstream chunk edited;
+   (e) `cache: true` chunk, its own code edited.
+
+::: {.callout-note collapse='true' title='Solution'}
+| Scenario | Re-executes? | Why |
+|---|---|---|
+| (a) | Yes, the whole document | `auto` watches the source, and prose is source |
+| (b) | No | Freeze does not see data files; the results are stale |
+| (c) | Yes | A single-file render ignores `freeze` |
+| (d) | No | The cache key is the chunk's own code; add `dependson` |
+| (e) | Yes | The chunk's code is its cache key |
+
+: Exercise 3 key. {#tbl-quarto-ex3}
+
+Scenarios (b) and (d) are the dangerous ones, because each
+produces a document that looks current.
+:::
+
+## Worked example: a report that survives a new extract {#sec-quarto-worked}
+
+The example builds a one-paragraph HF-HOME report in a temporary
+Quarto project with `freeze: auto`, renders it against an interim
+extract, then replaces the data with the full extract and renders
+it twice more. It runs the real `quarto` command, so the output
+below is what you would see.[^quarto-env]
+
+[^quarto-env]: The `env` argument passes this session's library
+    paths to the R process that Quarto starts, so that it finds the
+    same packages. In a terminal you would type `quarto render`
+    alone.
+
+```{r}
+#| label: quarto-worked-setup
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+read_hf <- function(file) {
+  read.csv(file.path(hf_dir, file),
+           colClasses = c(patient_id = "character"))
+}
+randomization <- read_hf("randomization.csv")
+outcomes <- read_hf("outcomes.csv")
+trial <- merge(
+  randomization[c("patient_id", "site", "rand_date", "arm")],
+  outcomes[c("patient_id", "event_30d")],
+  by = "patient_id"
+)
+stopifnot(nrow(trial) == nrow(randomization),
+          !anyDuplicated(trial$patient_id))
+
+proj <- file.path(tempdir(), "hfhome-report")
+unlink(proj, recursive = TRUE)
+dir.create(file.path(proj, "data"), recursive = TRUE)
+writeLines(c("project:", "  type: default",
+             "execute:", "  freeze: auto"),
+           file.path(proj, "_quarto.yml"))
+writeLines(c(
+  '---',
+  'title: "HF-HOME: 30-day outcomes by arm"',
+  'format: gfm',
+  '---',
+  '',
+  '```{r}',
+  '#| include: false',
+  'd <- read.csv("data/trial.csv")',
+  'obs <- d[!is.na(d$event_30d), ]',
+  'pct <- function(a) round(100 * mean(obs$event_30d[obs$arm == a]), 1)',
+  '```',
+  '',
+  'Of `r nrow(d)` patients randomized, `r nrow(obs)` had the',
+  'primary outcome ascertained. Readmission or death within 30',
+  'days occurred in `r pct("Usual care")`% under usual care and',
+  '`r pct("Home health")`% with home health.'
+), file.path(proj, "report.qmd"))
+
+render_report <- function(target, ...) {
+  r_libs <- paste0("R_LIBS=",
+                   paste(.libPaths(), collapse = .Platform$path.sep))
+  status <- system2("quarto", c("render", target, ..., "--quiet"),
+                    env = r_libs)
+  stopifnot(status == 0)
+  md <- readLines(file.path(proj, "report.md"))
+  paste(md[nzchar(md)][-1], collapse = " ")
+}
+```
+
+The report's inline expressions use the R Markdown spelling, a
+backtick, `r`, and a space, which Quarto's knitr engine also
+accepts.[^inline-spelling] In your own documents use the `{{r}}`
+spelling shown earlier in the chapter.
+
+[^inline-spelling]: Quarto rewrites every `{{r}}` inline expression
+    in a document before any chunk runs, including one inside a
+    string in a chunk. A chapter written in Quarto therefore cannot
+    write that spelling into a file this way.
+
+The interim extract holds the patients randomized by the end of
+March 2025. Render the whole project, as a build script or CI would:
+
+```{r}
+#| label: quarto-worked-interim
+interim <- trial[trial$rand_date <= "2025-03-31", ]
+write.csv(interim, file.path(proj, "data", "trial.csv"),
+          row.names = FALSE)
+render_report(proj)
+```
+
+The full extract arrives. Replace the data file and render the
+project again:
+
+```{r}
+#| label: quarto-worked-stale
+write.csv(trial, file.path(proj, "data", "trial.csv"),
+          row.names = FALSE)
+stale <- render_report(proj)
+stale
+```
+
+The paragraph has not changed. Every number in it is computed, and
+every number is wrong, because `freeze: auto` saw an unchanged
+`report.qmd` and served the stored results. Render the document
+itself, which always executes:
+
+```{r}
+#| label: quarto-worked-current
+current <- render_report(file.path(proj, "report.qmd"))
+current
+```
+
+::: {.callout-tip title='Verification'}
+Compute the counts independently of the report and confirm that
+the current render states them and the stale one does not.
+
+```{r}
+#| label: quarto-worked-verify
+obs <- trial[!is.na(trial$event_30d), ]
+expected <- sprintf("Of %d patients randomized, %d had the",
+                    nrow(trial), nrow(obs))
+stopifnot(grepl(expected, current, fixed = TRUE),
+          !grepl(expected, stale, fixed = TRUE))
+expected
+```
+
+In your own project, the same check is a test (@sec-testing): read
+the rendered output and assert that it contains the numbers the
+analysis computes.
+:::
+
+::: {.callout-important title='LLM prompt'}
+Use a model to convert typed numbers to inline code, and check the
+result by changing the data.
+
+> **Context.** Below are the data dictionary for `trial.csv`
+> (`patient_id`, `site`, `rand_date`, `arm`, `event_30d`) and the
+> results paragraph of a Quarto report whose setup chunk reads
+> `data/trial.csv` into `d`. Every number in the paragraph was
+> typed by hand.
+>
+> **Constraints.** Replace every number that depends on the data
+> with an inline `{{r}}` expression computed from `d`, defining
+> any helper objects in the setup chunk. Use base R. Do not change
+> the wording, and do not write any data-dependent number as a
+> literal, including denominators inside an expression.
+>
+> **Criteria.** List each number you replaced and the expression
+> that now computes it. The document must render, and every number
+> in the paragraph must change when it is rendered against a
+> different extract.
+
+*Failure mode.* The model computes a value itself and writes it
+back as a literal, or writes `sum(d$event_30d) / 2432`, an inline
+expression with a typed denominator that renders the right number
+today and a wrong one on the next extract. *Check.* Render against
+the interim and the full extracts, as above, and compare the two
+paragraphs number by number
+(`regmatches(x, gregexpr("[0-9.]+", x))` lists them); a number that
+is the same in both is typed or must be justified. Then read each
+listed expression for constants. A dictionary and a paragraph hold
+no patient data, so they may go to any approved tool
+(@sec-ai-governance).
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** In the worked example, the stale render contained no
+typed numbers. Why did it still report the interim results, and why
+would no reviewer reading the output notice?
+
+**Answer.** Inline code guarantees that a number is computed when
+the document executes; it says nothing about whether the document
+executed. `freeze: auto` skipped execution because the source was
+unchanged, so the computed numbers were from the previous run.
+The paragraph is internally consistent and plausible, which is
+what makes it dangerous (Habit 8). A line in the report that
+states which extract it used, as in Exercise 4, makes the
+staleness visible.
+:::
+
+### Exercises
+
+4. Add a sentence to the worked example's report that states the
+   extract it was computed from, using the latest randomization
+   date in `d`, so that a stale render announces itself.
+
+::: {.callout-note collapse='true' title='Solution'}
+```qmd
+Computed from the extract of patients randomized through
+`{{r}} max(d$rand_date)`.
+```
+
+The stale render in the worked example would then name a date in
+March 2025 beside numbers the reader believes are final, which a
+reader can catch. Stating provenance in the output is a cheap form
+of the assertion habit: it does not prevent the stale render, but
+it turns a silent failure into a visible one.
+:::
+
+## Parameterized reports {#sec-quarto-params}
+
+A parameter lets one `.qmd` render against different inputs:
+one report per site in a multi-site trial, per sensitivity
+analysis, or per institution. Declare the parameter and its
+default in the front matter, and read it as `params$site`:
+
+```yaml
+params:
+  site: "All"
+```
+
+Render a variant from the shell (display-only):
+
+```bash
+quarto render report.qmd -P site:"Site C"
+```
+
+Or from R with the `quarto` package:
+
+```r
+quarto::quarto_render("report.qmd",
+                      execute_params = list(site = "Site C"),
+                      output_file = "report-site-c.html")
+```
+
+A parameterized report renders the *same* document against
+*different* data; a website (@sec-quarto-reference) renders
+*different* documents into one whole. A multi-site trial may use
+both: one parameterized report per site, collected into a site
+with an overview page.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Why give the report a `site` parameter rather than
+copying it into five files, one per site?
+
+**Answer.** Five copies drift. A fix to the denominator made in
+one copy is missing from the other four, and nothing reports the
+difference. With a parameter there is one source, so a correction
+reaches every site's report at the next render.
+:::
+
+### Exercises
+
+5. Give the worked example's report a `site` parameter that
+   defaults to `"All"` and, when set, restricts `d` to that site.
+   Render it for Site C and check the patient count against the
+   data.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-11-5
+site_report <- readLines(file.path(proj, "report.qmd"))
+site_report <- append(site_report,
+                      c("params:", '  site: "All"'), after = 3)
+site_report <- sub(
+  'd <- read.csv("data/trial.csv")',
+  paste('d <- read.csv("data/trial.csv");',
+        'if (params$site != "All") d <- d[d$site == params$site, ]'),
+  site_report, fixed = TRUE
+)
+writeLines(site_report, file.path(proj, "report.qmd"))
+site_c <- render_report(file.path(proj, "report.qmd"),
+                        "-P", shQuote("site:Site C"))
+site_c
+stopifnot(grepl(sprintf("Of %d patients", sum(trial$site == "Site C")),
+                site_c, fixed = TRUE))
+```
+
+The default `"All"` keeps the unparameterized render unchanged,
+and the filter sits in the setup chunk, so every inline number
+below it is computed for the chosen site. The `stopifnot()` is the
+check: the count in the rendered sentence equals the count computed
+from the data.
+:::
+
+## Reference: front matter and websites {#sec-quarto-reference}
+
+### Front matter
+
+The keys used in this chapter, with one example each:
+
+| Key | Sets | Example |
+|---|---|---|
+| `title`, `author`, `date` | Title block | `date: today` |
+| `format` | Output formats and their options | `html: {toc: true}`, `pdf: default` |
+| `execute` | Defaults for every chunk | `echo: false`, `freeze: auto` |
+| `bibliography`, `csl` | Citations and their style | `references.bib`, a CSL URL |
+| `params` | Parameters and their defaults | `site: "All"` |
+
+: Front-matter keys. Each format has many more options; the
+Quarto reference for that format lists them. {#tbl-quarto-yaml}
+
+Authors take a list of names with optional `affiliation` and
+`orcid` fields. Format options nest under each format, so HTML and
+PDF can have different figure sizes from one source.
+
+### Websites
+
+A directory of `.qmd` files governed by a `_quarto.yml` with
+`project: type: website` renders to a website: linked pages with
+shared navigation, theme, and search. This book is the same
+machinery with `type: book`. The minimum is a `_quarto.yml`
+naming the pages and an `index.qmd` landing page:
+
+```yaml
+project:
+  type: website
+website:
+  title: "HF-HOME analysis"
+  navbar:
+    left: [index.qmd, methods.qmd, results.qmd]
+```
+
+`quarto render` builds the site into `_site/`, `quarto preview`
+serves it with live reload, and `quarto publish gh-pages` (or
+`netlify`, `quarto-pub`, `connect`) publishes it. For a research
+team, a site is the natural form of an internal analysis portal:
+it carries every guarantee of this chapter and is rebuilt on every
+push by the CI workflow of @sec-ci, instead of being a PDF that is
+emailed and goes stale.
+
+## Rules of thumb
+
+1. **Habit 10: every number in the prose is computed.** Sample
+   sizes, estimates, intervals, and p-values are inline
+   expressions, and figures and tables are cross-referenced by
+   label.
+2. **Habit 8: a stale number is a plausible number.** `freeze` and
+   `cache` watch code, not data; after a data change, render the
+   document itself and check the counts it reports.
+3. **Habit 2: the rendered document is a build product.** Never
+   edit the `.html`, `.pdf`, or `.docx`; change the source and
+   render again.
+
+## Cumulative practice
+
+6. *Cumulative (uses @sec-joins).* Rebuild the worked example's
+   `trial` table with `dplyr::left_join()`, declaring the
+   relationship and refusing unmatched keys, and assert that it has
+   one row per randomized patient. Explain why the report's first
+   number depends on this join being right.
+7. *On your own work (no key).* Replace every typed number in a
+   draft of yours with inline code. Render it, render it again
+   against deliberately different data, and confirm that every
+   number changed.
+
+::: {.callout-note collapse='true' title='Solution to exercise 6'}
+```{r}
+#| label: soln-11-6
+#| message: false
+library(dplyr)
+
+trial_joined <- randomization |>
+  select(patient_id, site, rand_date, arm) |>
+  left_join(select(outcomes, patient_id, event_30d),
+            by = "patient_id",
+            relationship = "one-to-one", unmatched = "error")
+stopifnot(nrow(trial_joined) == nrow(randomization),
+          identical(sort(trial_joined$patient_id),
+                    sort(trial$patient_id)))
+nrow(trial_joined)
+```
+
+The report's first sentence counts the rows of `trial.csv`, so a
+join that dropped patients would shrink the denominator, and one
+that multiplied them would inflate it, while the sentence went on
+rendering a plausible number. Declaring the relationship and the
+unmatched behavior makes either failure stop the build.
+:::
+
+## Cheat sheet
+
+| Task | Code | Guards against |
+|---|---|---|
+| Render a document | `quarto render report.qmd` | A stale output (always executes) |
+| Render a project | `quarto render` | Inconsistent pages (respects `freeze`) |
+| Put a number in a sentence | `` `{{r}} nrow(d)` `` | Numbers typed from the console |
+| Refer to a figure | `@fig-label` | 'Figure 3' pointing at the wrong figure |
+| Cite a work | `[@key]` | Hand-typed, unformattable references |
+| Reuse a whole document's results | `execute: freeze: auto` | Re-running a slow analysis on every project render |
+| Reuse one chunk's result | `cache: true` | Re-running one slow chunk |
+| Re-run a cached chunk when data change | `cache.extra: !expr tools::md5sum("data/x.csv")` | A cache that does not see the data |
+| Render one variant | `quarto render report.qmd -P site:"Site C"` | Five drifting copies of one report |
+
+: Quarto at a glance. {#tbl-quarto-cheat-sheet}
 
 ## Further reading
 
-- Quarto documentation at `quarto.org`, canonical
-  reference.
-- [@xie2020cookbook], *R Markdown Cookbook*, recipes
-  that largely translate to Quarto.
-- [@knuth1984literate], the paper that named the idea
-  this chapter implements.
-- Stat 545 Chapter 4 (Jenny Bryan, UBC), excellent
-  applied introduction.
+- The Quarto documentation at `quarto.org`, the canonical
+  reference, in particular the guides to computations and to
+  managing execution (freeze and cache).
+- [@wickham2023r4ds] Chapters 28 and 29, Quarto and its output
+  formats.
+- [@knuth1984literate], the paper that named the idea this
+  chapter implements.
 
 ## Prerequisites answers {#sec-quiz-answers-11}
 
-1. Literate programming (coined by Knuth) interleaves
-   code with the prose that explains it, so the same
-   source file is the authoritative record of both
-   the computation and its interpretation. A Quarto
-   `.qmd` file embodies this by letting you write
-   narrative Markdown and executable R (or Python,
-   Julia) code chunks in one document. The render
-   process produces a human-readable artifact (HTML,
-   PDF, Word) with code, output, and prose
-   interleaved.
-2. `quarto render file.qmd` produces the default
-   output format declared in the document's YAML
-   `format:` key (HTML if no `format:` is present).
-   To force a format, use
+1. Literate programming (coined by Knuth) interleaves code with the
+   prose that explains it, so the same source file is the
+   authoritative record of both the computation and its
+   interpretation. A Quarto `.qmd` file embodies this by letting
+   you write narrative Markdown and executable R (or Python,
+   Julia) code chunks in one document. The render process produces
+   a human-readable artifact (HTML, PDF, Word) with code, output,
+   and prose interleaved.
+2. `quarto render file.qmd` produces the default output format
+   declared in the document's YAML `format:` key (HTML if no
+   `format:` is present). To force a format, use
    `quarto render file.qmd --to html` (or `--to pdf`,
    `--to docx`).
-3. In a Quarto project, `execute: freeze: auto` stores
-   each document's executed results in `_freeze/`
-   when the project is rendered. Later project renders
-   reuse them for every document whose source is
-   unchanged, and re-execute a document in full when
-   any part of it changes, avoiding re-running
-   expensive code on every render and making CI
-   deployments fast. It does not apply to a
-   single-file render, which always executes, and the
-   default is `freeze: false`. Commit `_freeze/` to
-   git so collaborators benefit from it.
+3. In a Quarto project, `execute: freeze: auto` stores each
+   document's executed results in `_freeze/` when the project is
+   rendered. Later project renders reuse them for every document
+   whose source is unchanged, and re-execute a document in full
+   when any part of it changes, avoiding re-running expensive code
+   on every render and making CI deployments fast. It does not
+   apply to a single-file render, which always executes, and the
+   default is `freeze: false`. Commit `_freeze/` to Git so
+   collaborators benefit from it.

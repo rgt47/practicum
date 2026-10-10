@@ -1,5 +1,36 @@
 # Data Wrangling Essentials {#sec-wrangling}
 
+```{r}
+#| label: wrangling-opening
+#| include: false
+library(tidyverse)
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+opening_sbp <- read_csv(file.path(hf_dir, "crf_export.csv"),
+                        show_col_types = FALSE) |>
+  mutate(site = str_to_title(str_squish(site))) |>
+  summarize(sbp = mean(sbp_discharge, na.rm = TRUE), .by = site)
+opening_d <- round(opening_sbp$sbp[opening_sbp$site == "Site D"], 1)
+opening_others <- round(
+  range(opening_sbp$sbp[opening_sbp$site != "Site D"]), 1
+)
+```
+
+The HF-HOME case report form (CRF) export arrives from five
+hospitals, and each wrote its own conventions into the file. Read
+it with the defaults, summarize systolic blood pressure at
+discharge by site, and Site D's mean is `r opening_d` mmHg against
+`r opening_others[1]` to `r opening_others[2]` at the other four:
+a site difference large enough to earn a sentence in the methods
+section and a covariate in the model. Nothing in the patients
+supports it. Site D writes a missing measurement as `-99`, the
+default read accepted it as a pressure, and the mean did what
+means do. Every decision a cleaning script makes (what a code
+means, which rows are excluded, which of two conflicting values
+survives) is a decision about what the analysis is of, made before
+any model and rarely questioned afterward. This chapter makes
+those decisions in code, where a reader can see them and count
+what each one did.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
@@ -14,45 +45,418 @@ Statistical Software (2014)
 ```
 :::
 
-::: {.callout-note}
-## Sources
+```{r}
+#| label: wrangling-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-Stat 545 Chapters 5--9 (Jenny Bryan, UBC) and blog
-posts `04-lowercasingdataframes`, `15-piping`,
-`43-dynamic-column-names`.
+```{r}
+#| label: fig-wrangling-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: wrangling turns the raw
+#|   export from the Acquire stage into the derived data every later
+#|   stage reads."
+#| fig-alt: !expr pipeline_alt('wrangle')
+pipeline_diagram('wrangle')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 25 minutes.
+
+**You'll need.** @sec-acquisition for reading files deliberately
+and for the raw-data rule. The code uses:
+
+```r
+library(tidyverse)
+```
+
+**You'll be able to.**
+
+- Read a raw export so that every missing-value code and site
+  convention stays visible until you decide what it means.
+- Recode per-site conventions (sex codes, date formats, missing
+  codes) and verify each recode with a cross-tabulation.
+- Choose the long or wide shape for the operation at hand, and
+  find the duplicates that make a pivot fail.
+- Report how many rows each filter removes, and save derived data
+  without touching the raw file.
+
+**Outline.**
+
+- [Reading the export deliberately](#sec-wrangling-reading)
+- [Recoding site conventions](#sec-wrangling-recode)
+- [Shapes: tidy, long, and wide](#sec-wrangling-shapes)
+- [Worked example: from CRF export to derived
+  baseline](#sec-wrangling-worked)
 :::
 
-## Prerequisites
-
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-13.
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-13.
 
 1. What is 'tidy data' as defined by Wickham (2014)
-   [@wickham2014tidy], and how does it differ from a
-   typical 'wide' clinical data layout?
-2. Write the `dplyr` pipeline that keeps only rows
-   where `age >= 18`, selects `age`, `sex`, and
-   `outcome`, and summarizes outcome by sex.
-3. What does `tidyr::pivot_longer()` do, and when
-   should you reach for it rather than `pivot_wider()`?
+   [@wickham2014tidy], and how does it differ from a typical
+   'wide' clinical data layout?
+2. Write the `dplyr` pipeline that keeps the patients with an
+   ejection fraction (`ef_pct`) below 40 and returns their mean
+   discharge systolic blood pressure by site.
+3. What does `tidyr::pivot_longer()` do, and when should you
+   reach for `pivot_wider()` instead?
+:::
 
-## Learning objectives
+## Reading the export deliberately {#sec-wrangling-reading}
 
-By the end of this chapter you should be able to:
+The `dplyr` and `tidyr` verbs take an afternoon to learn, and this
+chapter does not re-teach them.[^r4ds] What takes longer is
+deciding what the values mean, and that decision starts at the
+read. The raw-data rule of @sec-acquisition applies throughout:
+`crf_export.csv` is evidence, never edited, and everything the
+script produces is written somewhere else (Habit 2).
 
-- Identify tidy and non-tidy data layouts.
-- Use the core `dplyr` verbs (`filter`, `select`,
-  `mutate`, `arrange`, `summarize`, `group_by`)
-  idiomatically with the native pipe `|>`.
-- Reshape data with `pivot_longer()` and
-  `pivot_wider()`, including using `names_sep` and
-  `names_pattern` for compound column names.
-- Pass dynamic column names to `dplyr` verbs using
-  `{{ }}` and `.data[[ ]]`.
-- Clean column names with `janitor::clean_names()`.
-- Recognize common wrangling antipatterns and replace
-  them with tidy equivalents.
+[^r4ds]: The generic tour of `filter()`, `select()`, `mutate()`,
+    `summarize()`, and `arrange()` is R for Data Science
+    [@wickham2023r4ds, chs. 3 and 5]. Readers coming from `pandas`
+    will find that the verbs map closely onto `query()`,
+    `assign()`, and `groupby().agg()`.
+
+### What the defaults guessed
+
+`readr` guesses a type for every column from its first rows. The
+guesses are usually right about the type and silent about the
+meaning.
+
+```{r}
+#| label: wrangle-default-read
+library(tidyverse)
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+
+crf_default <- read_csv(file.path(hf_dir, "crf_export.csv"),
+                        show_col_types = FALSE)
+spec(crf_default)
+
+crf_default |>
+  summarize(mean_sbp = mean(sbp_discharge, na.rm = TRUE),
+            n = n(), .by = site) |>
+  arrange(site)
+```
+
+The summary has two problems before it has any results: fifteen
+spellings of five sites, and a Site D mean several points below
+the rest. Neither raised a message.
+
+### Read everything as text first
+
+A first read for discovery keeps every value as text and turns off
+`readr`'s own idea of what is missing, so that the empty strings,
+the `NA` strings, and the `-99` all arrive as written and can be
+counted.
+
+```{r}
+#| label: wrangle-raw-read
+crf_raw <- read_csv(file.path(hf_dir, "crf_export.csv"),
+                    col_types = cols(.default = col_character()),
+                    na = character())
+crf_raw |> count(sex)
+```
+
+The missing-value codes are a finding, so tabulate them by site.
+Pivoting the three numeric columns into one makes that a single
+`count()`:
+
+```{r}
+#| label: wrangle-missing-codes
+crf_raw |>
+  mutate(site = str_to_title(str_squish(site))) |>
+  pivot_longer(c(ef_pct, sbp_discharge, weight_kg),
+               names_to = "variable", values_to = "value") |>
+  filter(value %in% c("", "NA", "-99")) |>
+  count(site, value)
+```
+
+Each site uses one convention: an empty field at A and C, the
+string `NA` at B and E, and `-99` at D. Reading as text is Habit 7
+in practice: nothing is converted until you have decided what each
+value means.
+
+::: {.callout-warning title='Pitfall'}
+**A missing-value code that parses as a number becomes data.**
+`-99` is a valid double, so the default read stored it as one, and
+`na.rm = TRUE` removed only the true `NA`s. No type check knows
+that a systolic pressure cannot be negative. Name the codes when
+you convert (`parse_double(x, na = c("", "NA", "-99"))`) and then
+assert the plausible range, so that the next unannounced code
+stops the script.
+:::
+
+### Exercises
+
+1. For each site, count the missing-value codes in
+   `sbp_discharge` and in `weight_kg` separately. Then confirm
+   that the totals equal the number of missing values in the
+   clean `baseline.csv`, which the running study supplies as an
+   answer key.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-13-1
+missing_codes <- crf_raw |>
+  mutate(site = str_to_title(str_squish(site))) |>
+  pivot_longer(c(sbp_discharge, weight_kg),
+               names_to = "variable", values_to = "value") |>
+  filter(value %in% c("", "NA", "-99")) |>
+  count(variable, site, value)
+missing_codes
+
+baseline <- read_csv(file.path(hf_dir, "baseline.csv"),
+                     col_types = cols(patient_id = col_character()),
+                     show_col_types = FALSE)
+totals <- missing_codes |> summarize(n = sum(n), .by = variable)
+stopifnot(
+  totals$n[totals$variable == "sbp_discharge"] ==
+    sum(is.na(baseline$sbp_discharge)),
+  totals$n[totals$variable == "weight_kg"] ==
+    sum(is.na(baseline$weight_kg))
+)
+totals
+```
+
+The two totals match the clean table, so the three codes are the
+only ones in use. A real export has no answer key; the equivalent
+check is the plausible-range assertion after conversion.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Why read every column as character, with `na =
+character()`, instead of passing the right `na` codes to
+`read_csv()` from the start?
+
+**Answer.** Because you do not know the codes until you have
+looked, and an assumed list hides the ones you did not assume. The
+text read lets you count every code by site, which is how you
+learn that only Site D uses `-99`. Once the codes are known, naming
+them in the conversion step records the decision in code. A single
+`na =` list passed to `read_csv()` also applies to every column,
+including identifiers and free text, where a string such as `NA`
+might be a value.
+:::
+
+## Recoding site conventions {#sec-wrangling-recode}
+
+Each site's convention is reasonable on its own. The script's job
+is to map all five onto one, and to prove that the mapping did
+what you meant.
+
+### Labels and identifiers
+
+Site labels vary in case and spacing; `str_squish()` removes the
+stray spaces and `str_to_title()` fixes the case. Site E's system
+dropped the leading zeros of `r sum(nchar(crf_raw$patient_id) < 4)`
+patient IDs, which `str_pad()` restores. @sec-acquisition explains
+how the zeros were lost, and @sec-joins what they cost at the
+join.
+
+```{r}
+#| label: wrangle-labels
+crf_labeled <- crf_raw |>
+  mutate(
+    site = str_to_title(str_squish(site)),
+    patient_id = str_pad(patient_id, width = 4, pad = "0")
+  )
+crf_labeled |> count(site)
+```
+
+This export's header is already in `snake_case`. Most are not, and
+`janitor::clean_names()` is the one-line fix for headers such as
+`Patient ID` or `SBP at Baseline (mmHg)`.
+
+### Sex: a code means what the codebook says
+
+Four sites write a letter or a word; Site D writes a number. The
+recode below names every accepted spelling and leaves anything
+else as `NA`, so that an unexpected code is caught by the
+assertion rather than absorbed.
+
+```{r}
+#| label: wrangle-sex
+crf_sex <- crf_labeled |>
+  mutate(
+    sex_raw = sex,
+    sex = case_when(
+      sex %in% c("F", "Female", "f") ~ "F",
+      sex %in% c("M", "Male", "m") ~ "M",
+      site == "Site D" & sex == "2" ~ "F",
+      site == "Site D" & sex == "1" ~ "M"
+    )
+  )
+stopifnot(!anyNA(crf_sex$sex))
+crf_sex |> count(site, sex_raw, sex)
+```
+
+The cross-tabulation is the verification: every raw code appears
+once, beside the value it became, and a reader can check each row
+against the site's codebook.
+
+::: {.callout-warning title='Pitfall'}
+**A numeric sex code recoded from memory produces no `NA` and no
+warning.** Site D's codebook says 1 is male and 2 is female, the
+convention of ISO/IEC 5218; other systems number them the other
+way. A recode written from habit rather than from the codebook
+swaps the sex of all `r sum(crf_sex$site == "Site D")` Site D
+patients, and every sex-specific result downstream is plausible
+and wrong. Write the mapping from the codebook, and keep the raw
+column until the cross-tabulation has been checked.
+:::
+
+### Dates: one format per site
+
+The five sites write dates in four formats. Because each site is
+internally consistent, the safe parse is per site:
+
+```{r}
+#| label: wrangle-dates
+parse_site_date <- function(x, site) {
+  case_when(
+    site %in% c("Site A", "Site B", "Site E") ~ ymd(x, quiet = TRUE),
+    site == "Site C" ~ mdy(x, quiet = TRUE),
+    site == "Site D" ~ dmy(x, quiet = TRUE)
+  )
+}
+
+crf_dates <- crf_sex |>
+  mutate(across(c(dob, discharge_date),
+                \(x) parse_site_date(x, site)))
+stopifnot(!anyNA(crf_dates$dob), !anyNA(crf_dates$discharge_date),
+          all(crf_dates$dob < crf_dates$discharge_date))
+range(crf_dates$discharge_date)
+```
+
+```{r}
+#| label: wrangle-dates-lazy
+#| include: false
+lazy_dates <- as.Date(parse_date_time(
+  crf_raw$discharge_date, orders = c("ymd", "mdy", "dmy"),
+  quiet = TRUE
+))
+lazy_wrong <- which(lazy_dates != crf_dates$discharge_date)
+```
+
+The tempting alternative is one call to
+`lubridate::parse_date_time()` with a list of orders. On this file
+it returns a date for every row, and `r length(lazy_wrong)` of them
+are wrong: Site D's `r crf_raw$discharge_date[lazy_wrong[1]]`
+becomes `r format(lazy_dates[lazy_wrong[1]])`. @sec-types takes up
+why ambiguous formats misparse and how to detect it.
+
+### Numbers: name the codes, then check the range
+
+```{r}
+#| label: wrangle-numbers
+crf_clean <- crf_dates |>
+  mutate(across(c(ef_pct, sbp_discharge, weight_kg),
+                \(x) parse_double(x, na = c("", "NA", "-99"))))
+stopifnot(
+  all(between(crf_clean$ef_pct, 5, 90)),
+  all(between(crf_clean$sbp_discharge, 50, 250), na.rm = TRUE),
+  all(between(crf_clean$weight_kg, 30, 250), na.rm = TRUE)
+)
+crf_clean |>
+  summarize(mean_sbp = mean(sbp_discharge, na.rm = TRUE), .by = site)
+```
+
+Site D's mean now sits with the others. The range check is an
+assertion, not a filter: when it fails, query the site and record
+the answer, rather than dropping the row. Where a protocol does
+exclude values, 'removed implausible values' is not a documented
+rule; 'removed SBP above 250 or below 50', with the number and
+percentage of patients computed by the script beside it, is.
+
+::: {.callout-tip title='Verification'}
+The running study ships the clean tables the export was written
+from, so you can check the recodes against an answer key that a
+real export would not have.
+
+```{r}
+#| label: wrangle-recode-verify
+demographics <- read_csv(file.path(hf_dir, "demographics.csv"),
+                         col_types = cols(patient_id = col_character()),
+                         show_col_types = FALSE)
+key <- match(crf_clean$patient_id, demographics$patient_id)
+stopifnot(
+  !anyNA(key),
+  identical(crf_clean$sex, demographics$sex[key]),
+  identical(crf_clean$dob, demographics$dob[key])
+)
+```
+
+The chunk prints nothing when every patient's sex and date of birth
+agree with the clean table.
+:::
+
+### Exercises
+
+2. Reverse the Site D mapping (1 as female, 2 as male), and count
+   how many patients then disagree with `demographics.csv`. Which
+   check in the chapter would have caught the error without the
+   answer key?
+3. Parse `discharge_date` with
+   `parse_date_time(orders = c("mdy", "dmy", "ymd"))` instead of
+   per site. How many dates differ from the per-site parse, and at
+   which sites?
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-13-2
+reversed <- crf_labeled |>
+  mutate(sex = case_when(
+    sex %in% c("F", "Female", "f") ~ "F",
+    sex %in% c("M", "Male", "m") ~ "M",
+    site == "Site D" & sex == "1" ~ "F",
+    site == "Site D" & sex == "2" ~ "M"
+  ))
+sum(reversed$sex != demographics$sex[key])
+```
+
+Every Site D patient disagrees, and nothing else in the script
+notices: there is no `NA`, so the `stopifnot()` passes. Only the
+cross-tabulation read against the codebook catches it, which is why
+the codebook, not memory, is the source of the mapping.
+:::
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-13-3
+other_order <- as.Date(parse_date_time(
+  crf_raw$discharge_date, orders = c("mdy", "dmy", "ymd"),
+  quiet = TRUE
+))
+differs <- other_order != crf_dates$discharge_date
+sum(is.na(other_order))
+crf_dates |> filter(differs) |> count(site)
+```
+
+Changing the order of the formats does not help: every date parses,
+none is `NA`, and the same Site D dates land on the wrong day.
+A parser that always returns a date cannot tell you it guessed.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Next month Site B begins exporting `Unknown` for
+sex. What does the recode in this section do, and what would a
+recode written as `if_else(sex %in% c("M", "Male", "m"), "M",
+"F")` do?
+
+**Answer.** The `case_when()` above has no `.default`, so
+`Unknown` becomes `NA` and `stopifnot(!anyNA(sex))` halts the
+script, which is the loud failure you want. The `if_else()` version
+assigns `F` to every value that is not a spelling of male, so
+`Unknown` silently becomes female. Listing what each value means,
+and refusing everything else, is what makes a new code visible.
+:::
+
+## Shapes: tidy, long, and wide {#sec-wrangling-shapes}
 
 ::: {.column-margin}
 ![Hadley Wickham, author of the tidyverse and of the tidy-data
@@ -62,925 +466,455 @@ via Wikimedia Commons.](images/portraits/wickham.jpg){fig-alt='Portrait
 photograph of Hadley Wickham.'}
 :::
 
-## Orientation
+Wickham's three rules [@wickham2014tidy] define tidy data, and the
+HF-HOME files break each of them somewhere
+(@tbl-tidy-rules).
 
-Real biomedical data arrive wide, irregular, and full of
-inconsistent coding. The gap between how they arrive and
-the shape a model requires is where most of a
-biostatistician's time actually goes. This is usually
-described apologetically, as though wrangling were a tax
-paid before the real work. It is worth resisting that
-framing. Every decision made during cleaning, which rows
-are excluded, which values are implausible, what a
-missing code means, what unit a column is in, is a
-decision about what the analysis is of. Those decisions
-are as consequential as the choice of model, and they are
-made earlier. They are also much less likely to be
-questioned by anyone downstream, because by the time the
-data reach a collaborator the decisions have become
-invisible facts about the dataset.
-
-That is the argument for doing this work in code rather
-than in a spreadsheet, and for doing it in an idiom that
-a reader can follow. A cleaning script is a claim about
-provenance: it says that this analytic dataset came from
-that raw file by exactly these steps and no others. The
-tidyverse stack is the dominant toolkit for making such
-a claim legible. That is the reason this book teaches it
-rather than any of the faster alternatives taken up in
-@sec-alternative-wrangling.
-
-We do not attempt to be exhaustive here; the tidyverse is
-far too large for that. We cover instead the verbs and
-the patterns that recur in clinical and epidemiological
-work.
-
-## The statistician's contribution {#sec-wrangling-human}
-
-The verbs take an afternoon to learn. What takes longer
-is knowing which shape the data should be in, and what
-each transformation costs to undo:
-
-**Tidy first, model later.** Untidy data leads to
-joins that are subtly wrong, summaries that mean the
-wrong thing, and models that conflate observations.
-Reshaping into tidy form before modeling is not
-optional; it is the precondition for the modeling
-to be correct.
-
-**Keep raw data raw.** Never overwrite the input file
-with cleaned data. The cleaning script is the
-authoritative record of what you did; the cleaned
-data is a build product. If `data/raw/visits.csv`
-is the original, write to `data/derived/visits.rds`,
-not back to `visits.csv`.
-
-**Document the cleaning rules.** 'Removed implausible
-values' is not a documented rule. 'Removed BP > 250 or
-BP < 50 (n = 12 rows, 0.6% of data)' is. The cleaning
-script's comments are the audit trail.
-
-**Recognize the cost of pivoting.** Pivoting is
-expensive on large data: a wide dataset of $10^6$ rows
-with 100 timepoints becomes a long dataset of $10^8$
-rows. Sometimes the analysis demands long; sometimes
-keeping it wide is appropriate. Pivot when the
-operation requires it, not as ritual.
-
-These judgments determine whether the wrangling
-script produces correct, audit-able data.
-
-## Tidy data: three rules
-
-Wickham (2014) defines tidy data by three rules:
-
-1. Each variable forms a column.
-2. Each observation forms a row.
-3. Each type of observational unit forms a separate
-   table.
-
-Rule 1 violation: 'blood pressure at visit 2' is
-encoded as a column rather than as a value of a
-'visit' variable.
-
-Rule 2 violation: one row contains data from multiple
-patients, or one patient's data is spread across
-multiple rows without a clear unit.
-
-Rule 3 violation: patient demographics are mixed with
-visit-level outcomes in one table; both should be
-separate (linked by a patient ID).
-
-A typical wide clinical layout violates rules 1 and 2:
-
-```
-patient_id  bp_v1  bp_v2  bp_v3  hr_v1  hr_v2  hr_v3
-       001    140    138    136     72     70     68
-       002    150    148    146     78     76     74
-```
-
-The same data tidied:
-
-```
-patient_id  visit  measure  value
-       001      1  bp           140
-       001      1  hr            72
-       001      2  bp           138
-       001      2  hr            70
-...
-```
-
-The tidy form makes group operations natural: 'mean BP
-by visit' is
-`filter(measure == "bp") |> group_by(visit) |> summarize(mean(value))`,
-not a custom column-traversal.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: which rule is broken?
-
-**Question.** A lab table has one row per patient and
-columns `hgb`, `hgb_units`, `cre`, `cre_units`. A
-colleague says it is untidy. Which of the three rules does
-it break, and what is the tidy form?
-
-**Answer.**
-
-Rule 1, and arguably rule 3.
-
-The rule 1 violation is that `hgb` and `cre` are values of
-a *test* variable that has been promoted into column
-names, exactly as `bp_v1` and `bp_v2` promote visit. The
-tidy form has columns `patient_id`, `test`, `value`,
-`units`, with one row per patient-test.
-
-The rule 3 case is subtler and worth noticing. Units are a
-property of the *test*, not of the patient-test
-observation: hemoglobin is in g/dL for every patient. So
-`units` belongs in a separate lookup table keyed by
-`test`, and repeating it on every row is duplication that
-can drift. In practice many analysts leave it denormalized
-and accept the risk, which is a defensible choice made
-deliberately rather than a rule you did not notice.
-:::
-
-## Core dplyr verbs
-
-The vocabulary of tidy wrangling:
-
-```{r}
-#| label: wrangle-verbs
-library(dplyr)
-library(palmerpenguins)
-data(penguins)
-
-# filter rows
-penguins |> filter(species == "Adelie")
-
-# select columns
-penguins |> select(species, body_mass_g, flipper_length_mm)
-
-# create new columns
-penguins |> mutate(mass_kg = body_mass_g / 1000)
-
-# sort
-penguins |> arrange(desc(body_mass_g))
-
-# group and summarize
-penguins |>
-  group_by(species, island) |>
-  summarize(mean_mass = mean(body_mass_g, na.rm = TRUE),
-            n = n(),
-            .groups = "drop")
-```
-
-The pipe `|>` (R 4.1+) chains operations
-left-to-right. Each verb takes a tibble and returns a
-tibble. The pipeline reads as a sequence of
-transformations: 'filter, then select, then group, then
-summarize'.
-
-The `magrittr` `%>%` is the older alternative, still
-widely used. Functionally equivalent for most code;
-`|>` has slightly different placeholder semantics
-(`_` instead of `.`). For new code, prefer `|>`.
-
-### The same verbs in pandas
-
-Many students arrive with more `pandas` than `dplyr`,
-and a good deal of collaborative biostatistics now
-crosses the two. The verbs map almost one to one, which
-makes the translation worth having in front of you.
-
-| Task | dplyr | pandas |
+| Rule | Broken when | HF-HOME example |
 |---|---|---|
-| Filter rows | `filter(species == "Adelie")` | `df[df["species"] == "Adelie"]` |
-| Select columns | `select(species, body_mass_g)` | `df[["species", "body_mass_g"]]` |
-| New column | `mutate(kg = body_mass_g / 1000)` | `df.assign(kg = df["body_mass_g"] / 1000)` |
-| Sort | `arrange(desc(body_mass_g))` | `df.sort_values("body_mass_g", ascending=False)` |
-| Group and summarize | `group_by(species) \|> summarize(m = mean(body_mass_g))` | `df.groupby("species")["body_mass_g"].mean()` |
+| Each variable forms a column | A value is stored in a column name | A lab table with `ntprobnp_d0` and `ntprobnp_d30`: visit is a variable hidden in the names |
+| Each observation forms a row | One observation spans rows, or one row holds several | `labs.csv` records one discharge potassium twice, with different values |
+| Each type of observational unit forms a table | Properties of different units share a table | `labs.csv` repeats `unit` on every row, though the unit belongs to the test, not to the measurement |
 
-Quarto runs the Python through `reticulate`, and the
-`r` object carries the R data frame across without an
-intermediate file.
+: Wickham's tidy-data rules and where the running study breaks
+them. {#tbl-tidy-rules}
 
-```{r}
-#| label: wrangle-r-obj
-#| echo: false
-#| message: false
-# Declaring the Python dependency here rather than relying on whatever
-# interpreter happens to be on PATH is the same argument this book makes
-# for renv: the document states what it needs, and the build provisions
-# it.
-reticulate::py_require("pandas")
-library(palmerpenguins)
-penguins_df <- na.omit(penguins)
-```
+Tidy is not the goal; a correct analysis is. The long form is
+usually the path to it, and the operation decides the shape.
 
-```{python}
-#| label: wrangle-pandas
-import pandas as pd
+### Long to wide, and the duplicate that stops it
 
-df = r.penguins_df
-
-# group and summarize: mean body mass and count per species
-df.groupby("species", observed=True)["body_mass_g"].agg(["mean", "size"])
-```
-
-## Common dplyr patterns
-
-**Renaming**:
+`labs.csv` is long: one row per visit and test. A per-patient
+table of discharge labs needs it wide, one row per patient and one
+column per test. Visit `-01` is always the discharge visit.
 
 ```{r}
-#| label: wrangle-rename
-penguins |> rename(mass = body_mass_g, flipper = flipper_length_mm)
+#| label: wrangle-pivot-warning
+#| warning: true
+labs <- read_csv(file.path(hf_dir, "labs.csv"),
+                 col_types = cols(patient_id = col_character()),
+                 show_col_types = FALSE)
+discharge_labs <- labs |> filter(str_ends(visit_id, "-01"))
+
+discharge_labs |>
+  select(patient_id, test_code, value) |>
+  pivot_wider(names_from = test_code, values_from = value) |>
+  filter(patient_id %in% c("0373", "2113"))
 ```
 
-**Counting**:
+`pivot_wider()` warns and returns list-columns, because two
+patient-test pairs have two values each. Count the keys before the
+pivot, as @sec-joins counts them before a join:
 
 ```{r}
-#| label: wrangle-count
-penguins |> count(species, sex, sort = TRUE)
+#| label: wrangle-pivot-duplicates
+dup_keys <- discharge_labs |>
+  count(patient_id, test_code) |>
+  filter(n > 1)
+discharge_labs |> semi_join(dup_keys, by = c("patient_id", "test_code"))
 ```
 
-**Distinct values**:
+One is an exact duplicate, which `distinct()` removes without
+loss. The other is a potassium re-run with a different value, and
+no rule in the data says which result stands. Supplying
+`values_fn = mean` would silence the warning by inventing a value
+nobody measured. Set the pair aside as a data query, and let the
+patient's potassium be missing until the site answers:
 
 ```{r}
-#| label: wrangle-distinct
-penguins |> distinct(species, island)
+#| label: wrangle-pivot-resolve
+labs_distinct <- discharge_labs |> distinct()
+lab_queries <- labs_distinct |>
+  filter(n() > 1, .by = c(patient_id, test_code))
+discharge_wide <- labs_distinct |>
+  filter(n() == 1, .by = c(patient_id, test_code)) |>
+  select(patient_id, test_code, value) |>
+  pivot_wider(names_from = test_code, values_from = value)
+
+stopifnot(!anyDuplicated(discharge_wide$patient_id))
+lab_queries
+nrow(discharge_wide)
 ```
 
-**Slicing**:
+The wide table has `r format(nrow(discharge_wide), big.mark = ",")` rows for
+`r format(nrow(crf_clean), big.mark = ",")` randomized patients.
+The extra one is an orphan lab record that @sec-joins catches with
+an anti-join.
+
+### The operation decides the shape
+
+A per-test summary wants the long form, where test is a column to
+group by:
 
 ```{r}
-#| label: wrangle-slice
-set.seed(1)                                      # slice_sample is random
-penguins |> slice_max(body_mass_g, n = 5)        # 5 heaviest
-penguins |> slice_sample(n = 100)                # random 100
+#| label: wrangle-long-summary
+labs_distinct |>
+  summarize(median = median(value), q1 = quantile(value, 0.25),
+            q3 = quantile(value, 0.75), n = n(), .by = test_code)
 ```
 
-**Conditional updates** with `case_when`:
+A condition that combines tests within a patient (low sodium *and*
+abnormal potassium) wants the wide form, where both values sit in
+one row. A trajectory plot wants long again, with visit as a
+column to map to the x-axis (@sec-graphics). Pivot when the
+operation requires it, not as a ritual; on a large file, a long
+table is many times the size of the wide one.
+
+### Writing your own verbs
+
+A helper that takes a column name needs one of two idioms. Embrace
+it with `{{ }}` when the caller types the name bare, and use
+`.data[[ ]]` when the caller passes a string:
 
 ```{r}
-#| label: wrangle-case-when
-penguins |> mutate(
-  size = case_when(
-    body_mass_g <  3500 ~ "small",
-    body_mass_g <  5000 ~ "medium",
-    body_mass_g >= 5000 ~ "large"
-  )
-)
+#| label: wrangle-tidy-eval
+count_by <- function(df, var) {
+  df |> count({{ var }})
+}
+count_by_name <- function(df, var_name) {
+  df |> count(.data[[var_name]])
+}
+
+count_by(crf_clean, site)
+count_by_name(crf_clean, "sex")
 ```
 
-**Across multiple columns**:
+::: {.callout-note collapse='true' title='Check'}
+**Question 1.** `labs.csv` repeats `unit` on every row. Which tidy
+rule does that bend, and is it worth fixing?
 
-```{r}
-#| label: wrangle-across
-penguins |> summarize(
-  across(where(is.numeric), \(x) mean(x, na.rm = TRUE))
-)
-```
+**Answer.** Rule 3. The unit is a property of the test: N-terminal
+pro-B-type natriuretic peptide (NT-proBNP) is in pg/mL for every
+patient, so the unit belongs in a lookup table keyed by
+`test_code`, and repeating it on every row is duplication that can
+drift. Many analysts leave it in place and accept the risk, which
+is a defensible choice when it is made deliberately and checked
+(`count(labs, test_code, unit)` should give one row per test).
 
-`across()` applies a function across multiple columns
-matched by `where()` (predicate), `starts_with()`,
-`matches()`, etc. Replaces the older `_at` and `_if`
-suffixes.
+**Question 2.** What does `count_by(crf_clean, "site")`, with the
+name passed as a string, return?
 
-## Reshaping with `tidyr`
-
-```{r}
-#| label: wrangle-pivot-vocab
-#| message: false
-library(tidyr)
-library(dplyr)
-
-# a small wide frame to demonstrate on: two measures, two visits
-vocab_wide <- tibble(
-  patient_id = c("P001", "P002"),
-  bp_v1 = c(148, 139), hr_v1 = c(78, 72),
-  bp_v2 = c(141, 135), hr_v2 = c(75, 70)
-)
-
-# wide to long
-vocab_long <- vocab_wide |> pivot_longer(
-  cols      = starts_with("bp_v"),
-  names_to  = "visit",
-  names_prefix = "bp_v",
-  values_to = "bp"
-)
-vocab_long
-
-# more complex: bp_v1, hr_v1, bp_v2, hr_v2 ...
-vocab_wide |> pivot_longer(
-  cols           = matches("_v"),
-  names_to       = c("measure", "visit"),
-  names_pattern  = "(.+)_v(.+)",
-  values_to      = "value"
-)
-# now has columns: patient_id, measure, visit, value
-
-# long to wide
-vocab_long |> pivot_wider(
-  names_from  = visit,
-  values_from = bp,
-  names_prefix = "bp_v"
-)
-```
-
-`names_pattern` and `names_sep` parse complex column
-names into multiple new columns. The first version of
-this is often wrong; print intermediate results and
-verify.
-
-### Reshape and plot: a runnable example
-
-To make the wide-to-long move concrete, we simulate a
-small trial with systolic blood pressure recorded at
-three visits, one row per patient. This is the wide
-clinical layout that arrives from a CRF export.
-
-```{r}
-#| label: wrangle-wide
-#| message: false
-library(tidyverse)
-
-set.seed(2)
-wide <- tibble(
-  patient_id = sprintf("P%03d", 1:8),
-  arm        = rep(c("Placebo", "Active"), each = 4),
-  bp_v1      = round(rnorm(8, 145, 8)),
-  bp_v2      = round(rnorm(8, 140, 8)),
-  bp_v3      = round(rnorm(8, 136, 8))
-)
-wide
-```
-
-`pivot_longer` turns the three `bp_v*` columns into a
-single `bp` value column indexed by `visit`, giving one
-row per patient per visit.
-
-```{r}
-#| label: wrangle-long
-long <- wide |>
-  pivot_longer(starts_with("bp_v"),
-               names_to = "visit", names_prefix = "bp_v",
-               values_to = "bp") |>
-  mutate(visit = as.integer(visit))
-head(long, 6)
-```
-
-The long form is the precondition for the trajectory
-plot: `visit` is now an explicit variable that can be
-mapped to the x-axis.
-
-```{r}
-#| label: fig-bp-trajectory
-#| fig-cap: "Systolic blood-pressure trajectories from the simulated
-#|   trial. Thin lines are individual patients; heavy lines are arm
-#|   means. Reshaping to long format is what makes visit an x-axis
-#|   variable."
-#| fig-alt: "Line chart of systolic blood pressure against visit
-#|   number. Faint lines trace each patient individually; two heavy
-#|   lines give the mean for each treatment arm. Both arm means
-#|   decline across visits, and the arms separate progressively."
-#| fig-scap: "Blood-pressure trajectories from the simulated trial"
-#| fig-width: 6.5
-#| fig-height: 4
-ggplot(long, aes(visit, bp, color = arm)) +
-  geom_line(aes(group = patient_id), alpha = 0.4) +
-  stat_summary(aes(group = arm), fun = mean, geom = "line",
-               linewidth = 1.3) +
-  scale_color_manual(values = c(Placebo = "#9d2235", Active = "#1f4e79")) +
-  labs(x = "Visit", y = "Systolic BP (mmHg)", color = "Arm") +
-  theme_minimal()
-```
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: when to pivot
-
-**Question.** Your data has one row per patient with
-columns `bp_baseline`, `bp_3mo`, `bp_6mo`. You want to
-plot BP trajectory over time, faceted by treatment
-arm. Should you pivot to long format?
-
-**Answer.**
-
-Yes. `ggplot2`'s grammar maps variables to aesthetics
-(x = time, y = bp, color = treatment). With the wide
-format, 'time' is implicit in the column names and
-cannot be a single x-axis variable. Pivoting to long
-makes time an explicit column:
-
-```{r}
-#| label: fig-cyu-pivot
-#| fig-cap: "The plot the pivot makes possible: one line per patient,
-#|   faceted by treatment arm, with time on the x-axis because the
-#|   pivot turned it into a column."
-#| fig-alt: "Two side-by-side panels, one per treatment arm, each
-#|   showing individual patient lines descending from baseline through
-#|   three months to six months."
-#| fig-width: 6
-#| fig-height: 3
-#| message: false
-# the wide layout described in the question
-cyu_wide <- tibble(
-  patient_id  = sprintf("P%03d", 1:6),
-  treatment   = rep(c("Placebo", "Active"), each = 3),
-  bp_baseline = c(150, 148, 152, 149, 151, 147),
-  bp_3mo      = c(147, 145, 150, 142, 143, 140),
-  bp_6mo      = c(146, 144, 149, 137, 139, 135)
-)
-
-cyu_long <- cyu_wide |>
-  pivot_longer(cols = starts_with("bp_"),
-               names_to  = "time",
-               names_prefix = "bp_",
-               values_to = "bp") |>
-  mutate(time = factor(time, levels = c("baseline", "3mo", "6mo")))
-
-ggplot(cyu_long, aes(time, bp, group = patient_id)) +
-  geom_line() +
-  facet_wrap(~ treatment)
-```
-
-The pivot is the precondition for the plot. If
-instead you wanted to compute a within-patient
-change ('bp_6mo - bp_baseline'), the wide format is
-preferable. The right shape depends on the
-operation.
-
+**Answer.** One row, with the literal string `"site"` as its value
+and every patient counted in it. `{{ }}` embraces whatever it is
+given, and a string is a constant, so the function counts by a
+constant. There is no error, and the result has the right shape
+with a meaningless number in it. `count_by_name(crf_clean, "site")`
+is the string version; the rule is that `{{ }}` takes what the
+caller types and `.data[[ ]]` takes a name your code computed.
 :::
 
-## `janitor::clean_names()`
+### Exercises
 
-Clinical CRF exports come with column names like
-`Patient ID`, `Age (years)`, `SBP at baseline (mmHg)`.
-These are unworkable in R: spaces, parentheses, units
-in names. `janitor::clean_names()` standardizes:
+4. Using `discharge_wide`, count the patients whose discharge
+   potassium is outside 3.5 to 5.0 mmol/L, the patients whose
+   sodium is below 135 mmol/L, and the patients with both. Why
+   does this question need the wide shape?
 
-```{r}
-#| label: wrangle-clean-names
-#| message: false
-library(janitor)
-
-# a CRF export as it usually arrives, with the header row
-# written by whoever built the spreadsheet
-crf <- data.frame(
-  "Patient ID"             = "P001",
-  "Age (years)"            = 64,
-  "SBP at Baseline (mmHg)" = 148,
-  check.names = FALSE
-)
-names(crf)
-
-d <- clean_names(crf)
-names(d)
-```
-
-Run on every dataset on arrival. Saves quoting and
-backtick-escaping for the rest of the project.
-
-## Dynamic column names
-
-When you want to write functions that take column
-names as arguments, two idioms apply.
-
-**`{{ }}` (embrace)** for bare names:
-
-```{r}
-#| label: wrangle-curly-curly
-summarize_col <- function(df, col, fn = mean) {
-  df |> summarize(result = fn({{ col }}, na.rm = TRUE))
-}
-
-summarize_col(penguins, body_mass_g, fn = median)
-```
-
-**`.data[[name]]`** for character strings:
-
-```{r}
-#| label: wrangle-data-pronoun
-summarize_col_str <- function(df, col_name, fn = mean) {
-  df |> summarize(result = fn(.data[[col_name]], na.rm = TRUE))
-}
-
-summarize_col_str(penguins, "body_mass_g", fn = median)
-```
-
-The two approaches reflect different sources of the
-column name. Bare-name interface (`{{ }}`) is what
-most users expect; string interface (`.data[[ ]]`) is
-useful for programmatic generation of names.
-
-`rlang::sym()` and `!!` are older patterns; `{{ }}` is
-preferred in modern code.
-
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: `{{ }}` or `.data[[ ]]`?
-
-**Question.** You are writing two functions. One is called
-as `summarize_by(df, species)`, with the column typed
-bare. The other loops over `names(df)` and receives each
-column name as a string. Which tool does each need, and
-what happens if you swap them?
-
-**Answer.**
-
-The first needs `{{ col }}`; the second needs
-`.data[[col_name]]`.
-
-Swapping them fails in two different ways, and the second
-is the dangerous one. Passing a bare name where a string
-is expected gives `object 'species' not found`, because
-`.data[[ ]]` evaluates its argument normally and there is
-no variable called `species` in scope. That is a loud
-failure and you fix it in seconds.
-
-Passing a string to `{{ }}` does not error. It embraces
-the literal string `"species"`, and `group_by("species")`
-groups by a constant, giving you one group containing
-every row. The result is a data frame of the right shape
-with silently wrong numbers, which is the class of bug
-this chapter's antipatterns section is about.
-
-The rule of thumb: if the caller types the column, use
-`{{ }}`; if the caller passes a name your code computed,
-use `.data[[ ]]`.
-:::
-
-## Common antipatterns
-
-**Loop over rows**:
-
-```r
-# bad
-result <- numeric(nrow(df))
-for (i in seq_len(nrow(df))) {
-  result[i] <- compute_something(df[i, ])
-}
-
-# good (vectorized)
-df |> mutate(result = compute_something_vectorized(...))
-```
-
-Vectorized operations are usually faster than row loops,
-by a margin that depends on the operation and the data
-size (time it with `bench::mark()` if it matters), and
-they are usually clearer.
-
-**Hardcoded column indices**:
-
-```{r}
-#| label: wrangle-antipattern-position
-df <- tibble(id = 1, age = 64, site = "A", sex = "F",
-             visit = 1, arm = "Active", outcome = 12.4)
-
-# bad: which columns are these? you have to go and count
-df[, c(2, 4, 7)]
-
-# good
-df |> select(age, sex, outcome)
-```
-
-Indices break when columns are reordered or added;
-names are robust.
-
-**Saving derived data as CSV**:
-
-```{r}
-#| label: wrangle-antipattern-write
-#| message: false
-library(readr)
-out <- tempdir()                      # a real directory, for the example
-
-# bad: flat CSV loses factor levels, dates, and attributes
-write.csv(d, file.path(out, "data.csv"), row.names = FALSE)
-
-# good: an .rds round-trips the object exactly
-write_rds(d, file.path(out, "cleaned.rds"))
-identical(d, read_rds(file.path(out, "cleaned.rds")))
-```
-
-Write derived data to its own location, never over the raw
-file: raw data should be read-only.
-
-**`stringsAsFactors` paranoia**:
-
-```{r}
-#| label: wrangle-antipattern-saf
-# unnecessary in R 4.0+: this is already the default
-getOption("stringsAsFactors")
-class(data.frame(x = "a")$x)
-```
-
-The default changed in R 4.0; the option is no-op now.
-
-## Worked example: cohort cleanup
-
-```{r}
-#| label: wrangle-cohort-cleanup
-#| message: false
-library(tidyverse)
-library(janitor)
-
-# A stand-in for the raw export, written to a temporary file so the
-# whole pipeline below runs exactly as it would against a real one.
-raw_path <- file.path(tempdir(), "visits.csv")
-tibble(
-  `Patient ID` = sprintf("P%03d", 1:6),
-  Age          = c(17, 34, 52, 68, 71, 45),
-  Outcome      = c(1, 0, 1, NA, 0, 1),
-  Treatment    = rep(c("Placebo", "Active"), 3),
-  Visit_Date   = "2026-03-01",
-  bp_baseline  = c(150, 142, 138, 155, 147, 141),
-  bp_6mo       = c(144, 139, NA, 148, 140, 136)
-) |>
-  write_csv(raw_path)
-
-# read raw export
-raw <- read_csv(raw_path, show_col_types = FALSE)
-
-# one inclusion rule per step, so that each step's exclusions
-# can be counted and reported
-named        <- raw |> clean_names()
-adults       <- named |> filter(age >= 18)
-with_outcome <- adults |> filter(!is.na(outcome))
-
-clean <- with_outcome |>
-  mutate(
-    age_group = cut(age, breaks = c(18, 40, 65, Inf),
-                    right = FALSE,
-                    labels = c("18-39", "40-64", "65+")),
-    visit_date = as.Date(visit_date)
-  )
-
-# pivot to long for repeated measures
-visits_all <- clean |>
-  pivot_longer(
-    cols      = starts_with("bp_"),
-    names_to  = "visit",
-    names_prefix = "bp_",
-    values_to = "bp"
-  )
-visits_long <- visits_all |> filter(!is.na(bp))
-
-flow <- tibble(
-  step = c("patients in raw export", "aged 18 or older",
-           "outcome recorded", "patient-visits after pivot",
-           "patient-visits with a BP value"),
-  n    = c(nrow(raw), nrow(adults), nrow(with_outcome),
-           nrow(visits_all), nrow(visits_long))
-)
-flow
-
-stopifnot(nrow(visits_all) == 2 * nrow(clean))
-
-# save the derived data
-saveRDS(visits_long, file.path(tempdir(), "visits_long.rds"))
-
-head(visits_long, 4)
-```
-
-The script is the audit trail: clean column names,
-filter inclusions documented as code with the rows each
-one removes counted in `flow`, derived
-variables computed and named, output written to a
-non-raw location. A reviewer can read the script and
-recover exactly what cleaning happened.
-
-One line in that script deserves a caveat, because
-`cut()` is the easiest thing in the chapter to write
-and the easiest to regret. Binning `age` into three
-groups is a legitimate *display* choice: a table of
-baseline characteristics is more readable by decade
-than by year. It is rarely a legitimate *modeling*
-choice. Categorizing a continuous predictor discards
-the within-category variation, assumes a step
-function where the biology is smooth, and makes the
-estimated effect depend on cutpoints that were
-chosen rather than measured. Harrell's treatment of
-information loss [@harrell2025bbr, ch. 18] and the
-modeling argument in *Regression Modeling Strategies*
-[@harrell2015rms] are the standard statements of the
-cost. Keep the continuous variable in the data frame,
-derive the grouped version alongside it under its own
-name, as the script above does, and let the analysis
-chapter decide which one the model sees. Deriving
-`age_group` is cheap; recovering `age` after you have
-overwritten it is not.
-
-## Collaborating with an LLM on wrangling
-
-LLMs handle dplyr/tidyr well; the trap is producing
-working code on the wrong data shape.
-
-**Prompt 1: tidying a dataset.** Paste the column
-names and one synthetic row with made-up values, never
-rows of real patient data, and ask: 'tidy this with
-`pivot_longer`. Show me the result.'
-
-*What to watch for.* The LLM will produce code that
-runs. Whether it produces the *correct* tidy form
-depends on understanding the semantics of the columns
-(are `bp_v1` and `bp_v2` two visits of the same BP
-measurement, or are they different measurement types?).
-
-*Verification.* Run the code; inspect the long form;
-check that one observation per row holds.
-
-**Prompt 2: writing a helper function with dynamic
-column names.** Describe the function (takes a column
-name, applies a verb) and ask the LLM to use modern
-tidy-eval idioms.
-
-*What to watch for.* `{{ }}` for bare names,
-`.data[[ ]]` for strings, `enquo`/`!!` for
-backwards-compatible code. The LLM may use older
-patterns; modern is preferred.
-
-*Verification.* Test the function with both bare
-names and strings to confirm it handles the input
-form you expect.
-
-**Prompt 3: cleaning column names.** Paste a list of
-messy names and ask: 'clean these names; explain the
-transformation rules.'
-
-*What to watch for.* The LLM may apply a one-off
-transformation rather than recommending
-`janitor::clean_names()`. The package solution is
-better because it is consistent across all your
-files.
-
-*Verification.* Compare the LLM output to
-`janitor::clean_names()`'s output on the same input.
-
-## Principle in use
-
-Three habits keep a cleaning script auditable:
-
-1. **Tidy data first.** Wide-to-long when the analysis
-   needs long; long-to-wide when it needs wide. Tidy
-   is not the goal; correctness is. Tidy is usually
-   the path to correctness.
-2. **Keep raw data read-only.** Cleaning scripts
-   produce derived data; the raw file is sacrosanct.
-3. **Use `clean_names()` on every read.** The cost is
-   one line; the benefit is the rest of the script
-   becomes easier to write.
-
-## Exercises
-
-1. Using `palmerpenguins::penguins`, compute the mean
-   bill length for each species-island combination,
-   dropping rows with missing bill length. Return a
-   tidy tibble with columns `species`, `island`,
-   `mean_bill`, `n`.
-2. Reshape a synthetic wide clinical dataset (one row
-   per patient, columns `bp_v1`, `bp_v2`, `bp_v3`)
-   into long format with one row per patient-visit.
-3. Write a function `summarize_col(df, col, fn)` that
-   accepts `col` as a bare column name and `fn` as a
-   function; apply it to the penguins data with
-   `col = bill_length_mm` and `fn = median`.
-4. Using `case_when`, derive a clinical
-   classification variable from three or four
-   continuous predictors. Verify the classification
-   covers all rows (no NAs introduced unexpectedly).
-
-**On your own data.** These have no answer key,
-because the answer depends on your data.
-
-5. Take a real CRF export from your own work (or
-   simulate one) with messy column names and apply
-   `janitor::clean_names()`. Document any rename
-   decisions you make manually beyond what janitor
-   does.
-
-::: {.callout-tip icon=false collapse=true}
-## Solutions to exercises 1 to 4
-
-**1. Mean bill length by species and island.**
-
-```{r}
-#| label: soln-13-1
-#| message: false
-penguins |>
-  filter(!is.na(bill_length_mm)) |>
-  group_by(species, island) |>
-  summarize(mean_bill = mean(bill_length_mm),
-            n = n(), .groups = "drop")
-```
-
-`.groups = "drop"` matters: without it the result stays
-grouped by `species`, and the next verb in a longer
-pipeline would silently operate within species.
-
-**2. Wide to long.**
-
-```{r}
-#| label: soln-13-2
-set.seed(7)
-bp_wide <- tibble(
-  patient_id = sprintf("P%03d", 1:4),
-  bp_v1 = round(rnorm(4, 145, 8)),
-  bp_v2 = round(rnorm(4, 140, 8)),
-  bp_v3 = round(rnorm(4, 136, 8))
-)
-
-bp_wide |>
-  pivot_longer(starts_with("bp_v"),
-               names_to = "visit", names_prefix = "bp_v",
-               values_to = "bp") |>
-  mutate(visit = as.integer(visit))
-```
-
-Twelve rows from four, one per patient-visit. Converting
-`visit` to integer is the step people forget; left as a
-character it sorts "10" before "2".
-
-**3. A function taking a bare column name.**
-
-```{r}
-#| label: soln-13-3
-summarize_col <- function(df, col, fn) {
-  df |> summarize(result = fn({{ col }}, na.rm = TRUE))
-}
-
-summarize_col(penguins, bill_length_mm, fn = median)
-```
-
-The `{{ }}` is what lets the caller write
-`bill_length_mm` rather than `"bill_length_mm"`. Passing
-`na.rm = TRUE` inside the function rather than leaving it
-to the caller is a design choice worth making
-deliberately.
-
-**4. A classification with `case_when`, and the check.**
-
+::: {.callout-note collapse='true' title='Solution'}
 ```{r}
 #| label: soln-13-4
-classified <- penguins |>
-  filter(!is.na(body_mass_g), !is.na(flipper_length_mm),
-         !is.na(bill_length_mm)) |>
-  mutate(
-    build = case_when(
-      body_mass_g >= 4500 & flipper_length_mm >= 210 ~ "large",
-      body_mass_g >= 3500                            ~ "medium",
-      .default = "small"
-    )
+discharge_wide |>
+  summarize(
+    potassium_abnormal = sum(K < 3.5 | K > 5.0, na.rm = TRUE),
+    sodium_low = sum(SODIUM < 135, na.rm = TRUE),
+    both = sum((K < 3.5 | K > 5.0) & SODIUM < 135, na.rm = TRUE),
+    potassium_missing = sum(is.na(K))
   )
-
-# the verification the exercise asks for
-stopifnot(!any(is.na(classified$build)))
-count(classified, build)
 ```
 
-`.default` is what guarantees full coverage. Written with
-a final explicit condition instead, any row matching none
-of the branches would become `NA`, and `count()` would
-show it. Running the `stopifnot()` is the difference
-between believing the classification is complete and
-knowing it.
+The condition compares two tests for the same patient, so both
+values must sit in one row. In the long form it needs a grouped
+filter across rows, which is harder to read and easier to get
+wrong. The one patient with a missing potassium is the queried
+re-run; `na.rm = TRUE` leaves that patient out of the counts, which
+the `potassium_missing` column makes visible rather than silent.
 :::
+
+## Worked example: from CRF export to derived baseline {#sec-wrangling-worked}
+
+The script below is the chapter in one place: it reads the export
+as text, recodes each site's conventions, asserts the result, adds
+derived variables, counts what each filter removes, and writes the
+derived data to its own directory. It reuses `parse_site_date()`
+from @sec-wrangling-recode.
+
+```{r}
+#| label: wrangle-worked-example
+raw_path <- file.path(hf_dir, "crf_export.csv")
+raw_md5 <- unname(tools::md5sum(raw_path))
+
+baseline_derived <- read_csv(
+  raw_path, col_types = cols(.default = col_character()),
+  na = character()
+) |>
+  mutate(
+    site = str_to_title(str_squish(site)),
+    patient_id = str_pad(patient_id, width = 4, pad = "0"),
+    sex = case_when(
+      sex %in% c("F", "Female", "f") ~ "F",
+      sex %in% c("M", "Male", "m") ~ "M",
+      site == "Site D" & sex == "2" ~ "F",
+      site == "Site D" & sex == "1" ~ "M"
+    ),
+    across(c(dob, discharge_date), \(x) parse_site_date(x, site)),
+    across(c(ef_pct, sbp_discharge, weight_kg),
+           \(x) parse_double(x, na = c("", "NA", "-99"))),
+    age = as.integer(floor(time_length(
+      interval(dob, discharge_date), "years"
+    ))),
+    age_group = cut(age, breaks = c(-Inf, 65, 80, Inf), right = FALSE,
+                    labels = c("under 65", "65 to 79", "80 or older"))
+  )
+
+randomized <- read_csv(file.path(hf_dir, "randomization.csv"),
+                       col_types = cols(.default = col_character()),
+                       show_col_types = FALSE)
+
+stopifnot(
+  !anyDuplicated(baseline_derived$patient_id),
+  !anyNA(baseline_derived$sex),
+  !anyNA(baseline_derived$discharge_date),
+  all(between(baseline_derived$ef_pct, 5, 90))
+)
+
+# one rule per step, so that each step's exclusions can be counted
+on_list    <- baseline_derived |>
+  filter(patient_id %in% randomized$patient_id)
+with_sbp   <- on_list |> filter(!is.na(sbp_discharge))
+with_vitals <- with_sbp |> filter(!is.na(weight_kg))
+
+flow <- tibble(
+  step = c("rows in the CRF export", "on the randomization list",
+           "discharge SBP recorded", "discharge weight recorded"),
+  n = c(nrow(baseline_derived), nrow(on_list), nrow(with_sbp),
+        nrow(with_vitals))
+) |>
+  mutate(removed = lag(n) - n)
+flow
+
+derived_dir <- file.path(tempdir(), "derived_data")
+dir.create(derived_dir, showWarnings = FALSE)
+write_rds(baseline_derived, file.path(derived_dir, "crf_baseline.rds"))
+write_csv(flow, file.path(derived_dir, "crf_flow.csv"))
+```
+
+The flow table answers a reviewer's first question about any
+subset, which is how many patients each rule removed and why. In a
+compendium, `derived_dir` is `analysis/data/derived_data/`
+(@sec-rrtools); the chunk writes to a temporary directory so that
+rendering the book leaves the repository unchanged.
+
+Two judgments in the script belong to the analysis rather than to
+the code. First, the flow does not define the analysis population.
+HF-HOME is analyzed as randomized, so the primary analysis includes
+all `r format(nrow(on_list), big.mark = ",")` patients on the
+list. The last two steps describe the subset with complete vital
+signs that a covariate-adjusted sensitivity analysis would use, and
+reporting its
+`r format(nrow(on_list) - nrow(with_vitals), big.mark = ",")`
+exclusions is what lets a reader judge it. @sec-missing explains
+why dropping them is not a neutral act.
+
+Second, `age_group` is derived *beside* `age`, not in place of it.
+Grouping age is a legitimate display choice for a table of
+baseline characteristics. It is rarely a legitimate modeling
+choice: categorizing a continuous predictor discards the variation
+within each group, assumes a step function where the biology is
+smooth, and makes the estimate depend on cutpoints that were chosen
+rather than measured [@harrell2025bbr, ch. 18; @harrell2015rms].
+Deriving `age_group` is cheap; recovering `age` after you have
+overwritten it is not.
+
+::: {.callout-tip title='Verification'}
+Confirm that the derived file round-trips exactly, that the raw
+file is byte-for-byte what it was before the script ran, and that
+the derived ages agree with the clean table.
+
+```{r}
+#| label: wrangle-worked-verify
+stopifnot(
+  identical(read_rds(file.path(derived_dir, "crf_baseline.rds")),
+            baseline_derived),
+  unname(tools::md5sum(raw_path)) == raw_md5,
+  identical(baseline_derived$age,
+            as.integer(demographics$age[key]))
+)
+```
+
+An `.rds` file keeps types, dates, and factor levels that a
+derived CSV would lose. The checksum is Habit 2 made executable:
+the script read the evidence and did not touch it.
+:::
+
+::: {.callout-important title='LLM prompt'}
+An agentic version: a coding agent writes and runs the recode, and
+you review the evidence it reports. HF-HOME is synthetic, so the
+agent may run against it; on a real export it would see the
+codebook and synthetic rows only.
+
+> **Context.** `analysis/data/raw_data/hfhome/crf_export.csv` is a
+> raw CRF export from five sites; `README.md` in the same directory
+> is the codebook and lists each site's sex coding, date format,
+> and missing-value codes. Write `R/derive_baseline.R`.
+>
+> **Constraints.** Use `readr`, `dplyr`, `stringr`, and
+> `lubridate`; add no packages. Read every column as character
+> with `na = character()`. Never write to `raw_data/`. Map each
+> code exactly as the codebook states, with no `.default` in any
+> recode. Do not use `parse_date_time()` with several orders, and
+> do not drop rows.
+>
+> **Criteria.** Before writing code, list each mapping you will
+> apply and the codebook line it comes from. After running, report
+> `count(site, sex_raw, sex)`, the missing codes found per site and
+> column, the number of `NA` dates (which must be zero), and the
+> row count in and out (which must be equal). If any assertion
+> fails, stop and report it instead of fixing it.
+
+*Failure mode.* The agent maps Site D's 1 and 2 from a convention
+it has seen elsewhere, or converts the numeric columns with
+`as.numeric()`, so that `-99` survives as a value; both pass every
+structural check. *Check.* Read the cross-tabulation against the
+codebook line by line, compare per-site means of `sbp_discharge`,
+and search the diff for `as.numeric(`, `.default`, and
+`parse_date_time(`. The governance rules are in
+@sec-ai-governance.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A reviewer asks why the primary analysis includes
+`r format(nrow(on_list), big.mark = ",")` patients when the flow
+table ends at `r format(nrow(with_vitals), big.mark = ",")`. What
+do you answer?
+
+**Answer.** The flow table describes a subset, not the analysis
+population. The trial is analyzed as randomized, so every
+randomized patient is in the primary analysis whether or not a
+discharge vital sign was recorded; excluding patients by a
+post-randomization measurement would break the comparison that
+randomization created. The subset with complete vital signs serves
+a sensitivity analysis, and the table reports what it lost.
+:::
+
+## Rules of thumb
+
+1. **Habit 2: raw data are evidence; derived data are a build
+   product.** Read the export, never write to it, and save what
+   you derive to its own directory, with a checksum to prove it.
+2. **Habit 7: convert late, validate early.** Read as text, count
+   the codes, then convert with the codes named and the ranges
+   asserted.
+3. **Habit 8: a bug that produces a plausible number is the
+   expensive kind.** A swapped code or a parsed `-99` raises
+   nothing; a cross-tabulation and a range check make it loud.
+
+## Cumulative practice
+
+5. *Cumulative (uses @sec-acquisition).* Turn the worked example
+   into a function, `derive_baseline(raw_path, out_dir)`, that
+   writes the derived `.rds` and the flow table and returns the
+   raw file's checksum. Call it twice into two directories and
+   verify that the two derived files are identical and that the
+   raw checksum did not change.
+6. *On your own work (no key).* Take a raw export from your own
+   work, or one in a public repository, and write the missing-code
+   table and the recode cross-tabulations of this chapter for it.
+   Record every decision you made that the codebook did not
+   determine.
+
+::: {.callout-note collapse='true' title='Solution to exercise 5'}
+```{r}
+#| label: soln-13-5
+derive_baseline <- function(raw_path, out_dir) {
+  dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+  derived <- read_csv(
+    raw_path, col_types = cols(.default = col_character()),
+    na = character()
+  ) |>
+    mutate(
+      site = str_to_title(str_squish(site)),
+      patient_id = str_pad(patient_id, width = 4, pad = "0"),
+      across(c(dob, discharge_date), \(x) parse_site_date(x, site)),
+      across(c(ef_pct, sbp_discharge, weight_kg),
+             \(x) parse_double(x, na = c("", "NA", "-99")))
+    )
+  flow <- tibble(
+    step = c("rows in the CRF export", "discharge SBP recorded"),
+    n = c(nrow(derived), sum(!is.na(derived$sbp_discharge)))
+  )
+  write_rds(derived, file.path(out_dir, "crf_baseline.rds"))
+  write_csv(flow, file.path(out_dir, "crf_flow.csv"))
+  unname(tools::md5sum(raw_path))
+}
+
+run_1 <- file.path(tempdir(), "run-1")
+run_2 <- file.path(tempdir(), "run-2")
+md5_1 <- derive_baseline(raw_path, run_1)
+md5_2 <- derive_baseline(raw_path, run_2)
+
+stopifnot(
+  md5_1 == md5_2,
+  unname(tools::md5sum(file.path(run_1, "crf_baseline.rds"))) ==
+    unname(tools::md5sum(file.path(run_2, "crf_baseline.rds")))
+)
+```
+
+The sex recode is left out to keep the key short; add it, with its
+assertion, in your own version. Comparing the derived files by
+checksum is stricter than comparing the data frames: it fails if
+anything about the serialization changes, which is what you want
+before you claim that a rerun reproduced a file.
+:::
+
+## Cheat sheet
+
+| Task | Code | Guards against |
+|---|---|---|
+| Read for discovery | `read_csv(f, col_types = cols(.default = col_character()), na = character())` | Codes converted before you have seen them |
+| Tabulate codes | `count(df, site, sex)` | Unseen spellings and conventions |
+| Normalize labels | `str_to_title(str_squish(site))` | Fifteen spellings of five sites |
+| Restore leading zeros | `str_pad(id, width = 4, pad = "0")` | Keys that match nothing |
+| Clean a header | `janitor::clean_names(df)` | Spaces and units in column names |
+| Recode by codebook | `case_when(x %in% c("F", "f") ~ "F", ...)` with no `.default` | New codes absorbed silently |
+| Name missing codes | `parse_double(x, na = c("", "NA", "-99"))` | Missing codes treated as data |
+| Assert ranges | `stopifnot(all(between(x, lo, hi), na.rm = TRUE))` | Implausible values passing through |
+| Long to wide | `pivot_wider(names_from = test_code, values_from = value)` | Per-patient conditions computed across rows |
+| Wide to long | `pivot_longer(cols, names_to = "variable", values_to = "value")` | Variables hidden in column names |
+| Find pivot duplicates | `count(df, id, key) \|> filter(n > 1)` | List-columns and invented values |
+| Group without `group_by()` | `summarize(m = median(x), .by = site)` | Groupings left on by accident |
+| Count each exclusion | one `filter()` per rule, `nrow()` after each | Unreported subsets |
+| Save derived data | `write_rds(df, file.path(derived_dir, "x.rds"))` | Overwritten raw data; lost types |
+
+: Verbs and shapes, with what each guards against.
+{#tbl-wrangling-cheat-sheet}
 
 ## Further reading
 
-- [@wickham2023r4ds] Chapters 3--7, canonical
-  applied wrangling introduction.
-- [@wickham2014tidy], the original Tidy Data
-  paper; essential for the three rules.
-- [@bryan2019stat545] Chapters 5--9, slower-paced
-  alternative.
-- [@harrell2025rworkflow] Chapters 10--13, the same
-  operations (manipulation, aggregation, merging,
-  longitudinal reshaping) in the `data.table` idiom,
-  read alongside @sec-alternative-wrangling.
-- [@harrell2025bbr] Chapter 18, 'Information Loss',
-  on why the `cut()` in the worked example belongs to
-  the table and not to the model.
-- The `dplyr` and `tidyr` cheat sheets at
-  `posit.co/resources/cheatsheets`.
+- [@wickham2023r4ds] Chapters 3, 5, and 7, the single-table verbs,
+  tidying, and data import.
+- [@wickham2014tidy], the original *Tidy Data* paper and the three
+  rules.
+- [@harrell2025bbr] Chapter 18, 'Information Loss', on why the
+  `cut()` in the worked example belongs to the table and not to
+  the model.
 
 ## Prerequisites answers {#sec-quiz-answers-13}
 
-1. Tidy data satisfies three properties: each
-   variable forms a column, each observation forms a
-   row, and each type of observational unit forms a
-   separate table. A typical wide clinical layout has
-   one row per patient and one column per (variable,
-   timepoint) pair, which violates the first two
-   properties: 'blood pressure at visit 2' is not a
-   variable, and one patient's row contains many
-   observations. Tidying makes group operations
-   natural and prevents whole categories of bugs.
-2. `df |> filter(age >= 18) |> select(age, sex, outcome) |> group_by(sex) |> summarize(mean_outcome = mean(outcome, na.rm = TRUE))`.
-   The pipe-chained verbs read as a sequence of
-   transformations.
-3. `pivot_longer()` reshapes from wide to long:
-   columns become values in a new column. Use it
-   when columns encode a variable (like visit
-   number) that should be a row index. Use
-   `pivot_wider()` when rows encode a variable that
-   should be a column (e.g., computing a difference
-   between two visit values). The right shape
-   depends on the next operation.
+1. Tidy data satisfy three rules: each variable forms a column,
+   each observation forms a row, and each type of observational
+   unit forms a table. A typical wide clinical layout has one row
+   per patient and one column per variable and time point
+   (`sbp_v1`, `sbp_v2`), which breaks the first two: visit is a
+   variable hidden in the column names, and one row holds several
+   observations.
+2. `crf |> filter(ef_pct < 40) |> summarize(mean_sbp = mean(sbp_discharge, na.rm = TRUE), .by = site)`.
+   On the raw export this is only correct after the missing-value
+   codes have been converted to `NA`, which is the point of this
+   chapter's first section.
+3. `pivot_longer()` reshapes wide to long: column names become
+   values of a new column. Use it when columns encode a variable,
+   such as visit, that should be a column of its own, for example
+   to plot a trajectory. Use `pivot_wider()` when a calculation
+   needs several values for the same unit in one row, such as a
+   change from discharge to day 30 or a condition that combines
+   two lab tests.

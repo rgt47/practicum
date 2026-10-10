@@ -59,3 +59,256 @@ pandas comparison is reduced to a footnote, and `rows_*` is an
 aside. The join checklist
 (@tbl-join-checklist) is meant to be reused in @sec-databases and
 @sec-analysis-plan; students can use it as a review rubric.
+
+### Why Reproducible Research
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics. The cases are
+from Baggerly and Coombes (2009), the Institute of Medicine (2012)
+report on the Duke trials, and Herndon, Ash, and Pollin (2014); the
+taxonomy is Goodman, Fanelli, and Ioannidis (2016), with the
+vocabulary of the NASEM (2019) report.
+
+*Rationale.* The chapter motivates the rest of the book, and every
+later chapter is a specific tool for clearing the reproducibility
+bar in a specific way. It opens with the Duke genomics case
+because it is a biostatistical failure with patient consequences,
+found by biostatisticians, and it names the book's motto, 'make
+silent failures loud', in the cases section, pointing to the habit
+list in @sec-habits. The federal-mandate argument is reduced to two
+sentences and a pointer to @sec-federal, which owns the policy
+detail. The former 'Orientation' and 'statistician's contribution'
+material is kept: the entropy paragraph opens @sec-why-failures,
+and the three workflow judgments are a subsection of the anatomy
+section. The executed 'break it, then fix it' example uses the
+HF-HOME baseline file and base R only, so it runs offline in under
+a second; its unseeded half deliberately produces different output
+on every build. The former Further reading items not kept in the
+chapter are useful for instructors who want more: Peng (2011) in
+*Science*; Sandve et al. (2013) and Wilson et al. (2017), two
+widely assigned 'simple rules' papers; Gentleman and Temple Lang
+(2007), which introduced the research compendium; Marwick's
+`rrtools` (2018); Wilkinson et al. (2016) on the FAIR principles;
+and the TIER Protocol (`projecttier.org`), a compendium template
+for the social sciences. The former exercise asking students to
+write a one-page reproducibility policy for a research group was
+cut; it works well as an in-class group activity.
+
+### Git and GitHub for Solo Developers
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics. The companion
+textbook, *Statistical Computing in the Age of AI* (chapter 2),
+covers Git's mechanics in team contexts; this chapter covers the
+same tools from the solo analyst's perspective. Jenny Bryan's
+*Happy Git and GitHub for the useR* and her 2018 *American
+Statistician* article are the models for the argument.
+
+*Rationale.* Solo Git is a harder sell than team Git, because
+every standard argument for version control is about
+collaboration. The chapter therefore opens with the March and
+November analysts and makes the case once, as a table of
+November's questions, in place of the three overlapping 'why'
+passes of earlier drafts. The habits that make the history useful
+(atomic commits, messages that say why, tags for irreversible
+moments, a remote as backup) are taught where each command
+appears. The 'Oh no, I...' table is meant as a lookup card for
+students' first months. Every exercise uses one throwaway practice
+repository that the student builds in Exercise 1, so that
+solutions can state the expected `git log` output; Git does not
+run at render time, so the keys were produced by running the
+exercises against Git 2.55 and abbreviating hashes, which will
+differ for every student. The `zzgit` plugin moved to a footnote
+beside the portable alternative (`gitleaks` as a pre-commit hook),
+and the Atlassian tutorials were dropped from Further reading.
+
+### Reproducible Reports with Quarto
+
+*Sources.* Stat 545, Chapter 4 (Jenny Bryan, University of British
+Columbia); the author's blog posts `29-setupquarto`,
+`07-multilanguagequartodemo`, and `17-rapidconversionRtoRmd`.
+
+*Rationale.* An analysis is finished not when the code runs but
+when a collaborator can regenerate the plots, the tables, and the
+paragraphs of the paper from source with one command, and the gap
+between those states is usually a number typed into a sentence.
+The chapter is organized around that gap: inline computation
+first, then the two mechanisms (`freeze` and `cache`) that can
+reopen it by serving stored results after the data change. The
+worked example runs the real `quarto` command on a temporary
+HF-HOME project and shows a project render under `freeze: auto`
+returning interim numbers after the full extract arrived, which is
+the chapter's silent failure made visible; it replaces the earlier
+display-only simulated report. The full front-matter listing and
+the website section are reduced to a reference section, the
+chunk-option, cross-reference, and output-format lists are tables,
+and the three-prompt LLM section is one callout whose check is the
+chapter's own: change the data, render again, and every number
+must change. Part 7 of the refactoring plan proposes merging this
+chapter with the troubleshooting half of `12-rmd-workflow`; that
+merge, and the error, cause, and fix table it would bring, are not
+yet done. Exercises 2 and 7 render on the student's own machine,
+so their keys describe a correct result rather than giving output.
+
+### Data Wrangling Essentials
+
+*Sources.* Stat 545, Chapters 5 to 9 (Jenny Bryan, University of
+British Columbia), and the author's blog posts
+`04-lowercasingdataframes`, `15-piping`, and
+`43-dynamic-column-names`.
+
+*Rationale.* Every cleaning decision (what a code means, which rows
+are excluded, which of two conflicting values survives) is a
+decision about what the analysis is of, made before any model and
+rarely questioned afterward. The chapter therefore teaches the
+decisions rather than the verbs: it opens on a missing-value code
+that parses as a blood pressure, and it works entirely on the
+HF-HOME CRF export, whose per-site sex codes, date formats, and
+missing-value codes are the pathologies students meet in real
+multisite data. The generic `dplyr` tour, the `pandas`
+side-by-side, and the `stringsAsFactors` and `%>%` digressions are
+cut in favor of a footnote to R for Data Science
+[@wickham2023r4ds]. The worked example reports the rows removed
+at each filter and distinguishes that subset from the
+as-randomized analysis population, so that the flow table cannot
+be mistaken for an exclusion from the primary analysis. Closed
+exercises have keys computed from the running study, which ships
+the clean tables as an answer key; the chapter says explicitly
+that a real export has none. The verbs-and-shapes card
+(@tbl-wrangling-cheat-sheet) is meant for the cheat-sheet
+appendix.
+
+### Plotting with ggplot2 and purrr
+
+*Sources.* Stat 545, Part VII (Jenny Bryan, University of British
+Columbia); the author's blog posts `16-plotsfrompurrr` and
+`38-tableplacementrmarkdown`; `zzlongplot` for longitudinal
+examples (@sec-adni).
+
+*Rationale.* A figure is the part of a paper most readers examine
+closely, and its defaults are decisions made by someone who never
+saw the data. The chapter opens with a before-and-after: a bar of
+means redrawn as points with a robust summary, on the running
+study's NT-proBNP. It then builds one longitudinal trajectory
+figure layer by layer (individual patients, summary and interval,
+the number measured at each visit), so that the figure is the
+chapter's spine rather than one example among many. The former
+'statistician's contribution' material is distributed to where
+each judgment arises and collected as the six-item figure
+checklist (@tbl-figure-checklist), which students can use as a
+review rubric. The generic `ggplot2` tour, the penguins examples,
+the regression-diagnostic figure, and the `matplotlib`
+side-by-side are cut in favor of R for Data Science
+[@wickham2023r4ds]; DPI guidance is reduced to a reference table.
+`zzlongplot` is presented as an optional in-house tool beside the
+portable `ggplot2` function, consistent with the book's policy on
+in-house packages. Closed exercises check the plotted numbers
+against independent `dplyr` summaries with `layer_data()`.
+
+### Testing Data Analysis Workflows
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
+
+*Rationale.* Analysis code is rarely tested because it appears to
+run once on known data, and the chapter answers that argument with
+the failure it misses: upstream drift that leaves every number
+plausible and wrong. It teaches `tinytest` (decision 14) for its
+lack of dependencies and small vocabulary, and moves the `testthat`
+comparison to a short translation table at the end; a fuller
+translation appendix is planned. The organizing distinction is
+between structural checks and tests of correctness, and the
+worked example puts both layers on the HF-HOME CRF export: a
+hand-built fixture with one row per site and an integration test
+against two independent records of the same patients. A planted
+bug (Site D's sex codes swapped) is run against the suite in the
+chapter, which introduces mutation testing by name; the earlier
+worked example, which duplicated the integration test, is removed.
+The CI section keeps the exit-status correction from Phase E1 and
+now demonstrates it by running a failing suite with and without
+the `quit()` line. The LLM callout is agentic and states the rule
+that an agent may not edit or weaken tests. Exercises 4 and 5 use
+the HF-HOME files and have executed keys; Exercise 7 needs the
+student's own project.
+
+### Missing Data: Diagnosis, Imputation, Reporting
+
+*Sources.* The survey of peer US biostatistics MS programs
+(@sec-peer-survey) found missing-data handling taught as a core or
+near-core topic at a majority of them, including dedicated courses
+at Michigan [@umich-biostat880-2024] and the University of
+Washington [@uw-biost531-2019], and coverage within the curricula
+at Emory [@emory-bios-2024], Yale [@yale-biostat-2024], Iowa
+[@uiowa-biostat-2024], UT Health Houston [@utheuston-biostat-2024],
+and Florida [@uf-phc6089-2025].
+
+*Rationale.* Every real clinical dataset has missing values, and the
+decisions around them often move point estimates more than the
+model choice does. The chapter opens with the running study's
+unascertained outcomes, computed from the HF-HOME files, and
+introduces the three mechanisms by story before notation. Its
+central claim, corrected in Phase E1, is that the MCAR/MAR/MNAR
+label does not decide whether complete-case analysis is biased;
+what decides it is whether missingness depends on the outcome given
+the model's covariates. The simulation that shows this (bias,
+standard error, and coverage for complete case, mean imputation,
+and multiple imputation under three deletion processes) now sits
+in the body beside the mechanism table rather than in a solution,
+and a Verification callout fails the build if its sign pattern
+changes. The section on missing outcomes in trials (Phase K) starts
+from the estimand, cites the National Research Council (2010)
+report, runs an MMRM on the `mmrm` package's `fev_data`, shows
+reference-based imputation with `rbmi` as display-only code (the
+package is not in the book's library), and works a two-dimensional
+tipping point on the HF-HOME files. That worked example also shows
+that the SAP's one-directional tipping rule has nothing to tip when
+the primary result is inconclusive, which instructors can use to
+discuss pre-specifying sensitivity analyses that do not presume the
+direction of the result. The limit-of-detection aside and the
+reporting-standards detail moved to 'Going further'; the sample
+reporting paragraph and the pre-specification subsection were cut
+in favor of @sec-analysis-plan. The former Further reading items
+not kept in the chapter remain useful for instructors: the `mice`
+documentation at `amices.org/mice`; ICH E9(R1) on estimands; Rubin
+(1976); Harrell's author checklist; and Harrell's *R Workflow*,
+chapter 6, on describing missingness before choosing an imputation
+model. The former open exercise (write the missing-data section of
+a SAP for a hypothetical trial with 15% dropout) is folded into the
+cumulative exercise against HF-HOME.
+
+### Statistical Analysis Plans
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
+
+*Rationale.* The SAP is the professional biostatistician's most
+important non-code document, and the chapter makes the narrow
+argument for it: not a defense against dishonesty, but the only
+dated record that separates a planned analysis from a long series
+of small, defensible, data-prompted choices. The opening uses the
+COMPare audit (Goldacre et al., 2019) as the silent failure; the
+former Orientation and 'statistician's contribution' sections,
+which repeated each other, are folded into the sections where each
+judgment arises (the narrow argument into 'Why pre-specify', the
+specificity and HC3 judgments into 'What a SAP contains', tagging
+into its own section). A small simulation of researcher degrees of
+freedom replaces the bare citation of Simmons et al. (2011); it
+reproduces the direction of their result, not their 60% figure,
+because its four forks are different and correlated. Estimands
+enter as a section (Part 11, decision 12), worked with HF-HOME and
+consistent with section 2 of the canonical SAP, including a
+computed demonstration that comparing patients by the visit they
+received answers no estimand. The thirteen-item section list became
+a table mapping each section to its Gamble et al. (2017) items and
+ICH E9 sections. The power curve marking 750 and 1,094 per arm turns
+the Phase E1 correction into a lesson about typed numbers, and a
+Verification checks that the running study's randomization file
+matches the SAP's computed sample size. `zzpower` remains as an
+option beside base R, with its registry list and `power_table()`
+example removed. A downloadable SAP skeleton is planned. The former
+Further reading items not kept in the chapter remain useful for
+instructors: SPIRIT (Chan et al., 2013); CONSORT (Schulz et al.,
+2010) and STROBE (von Elm et al., 2007); Simmons et al. (2011);
+Gelman and Loken (2013); *Regression Modeling Strategies* (Harrell,
+2015); and *Biostatistics for Biomedical Research*, chapter 22, on
+controlling the error rate of a decision rather than of a test.

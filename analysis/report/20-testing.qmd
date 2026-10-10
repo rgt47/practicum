@@ -1,5 +1,17 @@
 # Testing Data Analysis Workflows {#sec-testing}
 
+Your script reads a length-of-stay column from an institutional
+warehouse, and one quarter the warehouse begins reporting it in
+seconds where it previously reported days. Nothing errors. The
+column is still numeric, the join still succeeds, the model still
+fits, and every downstream number is wrong by a factor of 86,400.
+No amount of rereading your code will find the problem, because
+your code is not what changed. A one-line test asserting that
+length of stay falls in a plausible range fails on the first run
+after the change; this chapter is about writing that line, and
+about finding out whether the tests you already have would notice
+anything at all.
+
 ::: {.bookepigraph}
 ```{=latex}
 \begin{flushright}\small
@@ -14,192 +26,104 @@ Programming* (1970)
 ```
 :::
 
-::: {.callout-note}
-## Sources
+```{r}
+#| label: testing-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
 
-Adapted from author's lecture notes and supporting
-materials for a graduate practicum in biostatistics.
+```{r}
+#| label: fig-testing-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: tests belong to the Analyze
+#|   stage, beside the code they check, and run again every time
+#|   the code or the data change."
+#| fig-alt: !expr pipeline_alt('analyze')
+pipeline_diagram('analyze')
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 30 minutes.
+
+**You'll need.** @sec-wrangling for the `dplyr` verbs and
+@sec-types for dates and coded values. The code uses:
+
+```r
+library(tinytest)
+library(palmerpenguins)
+```
+
+and calls `dplyr`, `tidyr`, and `janitor` with their namespaces.
+
+**You'll be able to.**
+
+- Write `tinytest` unit tests that assert values, boundaries, and
+  errors, not only the shape of the output.
+- Build a small fixture that exercises every branch of a cleaning
+  function, and pair it with an integration test on the real file.
+- Show that a test suite would catch a bug by planting one
+  (mutation testing).
+- Run the suite in continuous integration so that a failing test
+  fails the build.
+
+**Outline.**
+
+- [Why test an analysis](#sec-testing-why)
+- [Unit tests with tinytest](#sec-testing-unit)
+- [Structure versus correctness](#sec-testing-correctness)
+- [Test smells](#sec-testing-smells)
+- [Worked example: testing the HF-HOME CRF cleaner](#sec-testing-worked)
+- [Running tests in continuous integration](#sec-testing-ci)
+- [For testthat readers](#sec-testing-testthat)
 :::
 
-## Prerequisites
+::: {.callout-note collapse='true' title='Skip ahead?'}
+If these answers come quickly, skip to the next chapter. The
+answers are in @sec-quiz-answers-20.
 
-Answer the following questions to see if you can bypass
-this chapter. You can find the answers at the end of the
-chapter in @sec-quiz-answers-20.
-
-1. Why would you test a one-off data analysis script
-   that will only ever run on a single dataset?
-2. What is the difference between a unit test, an
-   integration test, and an end-to-end test in the
-   context of a data analysis pipeline?
-3. What does `tinytest::expect_equal_to_reference()`
-   capture, and when is a reference test preferable to a
-   direct value-comparison test?
-
-## Learning objectives
-
-By the end of this chapter you should be able to:
-
-- Write unit tests for analytic helper functions
-  with `tinytest`.
-- Add an integration test that exercises the full
-  data pipeline on a small synthetic dataset.
-- Use `expect_equal_to_reference()` to capture complex
-  outputs (printed objects, summary tables).
-- Run the test suite locally via
-  `tinytest::test_all()` and in CI via GitHub
-  Actions.
-- Identify test smells (tests that pass for the
-  wrong reason, tests that hide bugs, flaky tests).
-- Apply visual regression testing to ggplot output,
-  via `vdiffr` under `testthat` or `tinysnapshot`
-  under `tinytest`.
-
-## Orientation
-
-Analysis code rarely gets tested, and the reason is a
-respectable one. Software is written to run on inputs its
-author has never seen; an analysis script is written to run on
-one dataset, once, and then to be thrown away. Testing
-something that runs once against known data can look like
-ceremony.
-
-The reasoning has two holes. The first is that the script does
-not run once. It runs every time a data extract is refreshed,
-an exclusion is revised, or a reviewer asks for a sensitivity
-analysis. By then its author has forgotten which of its
-branches were ever exercised. The second is more serious: the
-claim 'it runs on one known dataset' is doing no work, because
-the failures that matter in analysis code do not stop it
-running. A filter that removes the wrong rows, a join that
-duplicates a patient, a unit conversion applied twice, all
-produce output. The question a test answers is not 'did it
-run' but 'would I have noticed if it were wrong', and for most
-analysis scripts the honest answer is no.
-
-We bring in this chapter the habits of software engineering to
-bear on that question.
-
-The framework used in this chapter is `tinytest`, and
-the rest of this book assumes it. The reasons for the
-choice hold for any project, not only this book's. It has
-no dependencies of its own, which matters when the point
-of the surrounding chapters is to pin an environment;
-each test file runs on its own; and the assertion
-vocabulary is small enough to hold in your head.
-
-::: {.callout-note}
-## A note on testthat
-
-`testthat` is the framework you are most likely to meet
-elsewhere, and the one the companion volume uses in the
-package-development context. The discipline this chapter
-teaches, testing statistical content rather than plumbing,
-is identical under either, and most of the translation is
-mechanical. Three differences are worth knowing before you
-read `testthat` code:
-
-- **There is no wrapper.** `testthat` groups assertions
-  inside `test_that("description", { ... })`. In
-  `tinytest` each `expect_*()` call is itself a test, and
-  the description goes in an `info=` argument. Files stay
-  flatter, and a failure reports the file and line rather
-  than a block name.
-- **The vocabulary is smaller.** `tinytest` has no
-  `expect_named()`, `expect_setequal()`, `expect_type()`
-  or `expect_s3_class()`. Use `expect_equal(names(x), ...)`,
-  `expect_equal(sort(a), sort(b))`,
-  `expect_equal(typeof(x), ...)` and `expect_inherits()`.
-  This is a feature rather than a gap: each is a plain
-  comparison whose failure output shows the two values.
-- **Snapshots work differently.**
-  `expect_equal_to_reference()` stores an `.rds` of the
-  object rather than printed text.
-
-Where a project already depends on `testthat`, stay with
-it. Mixing frameworks in one suite buys nothing.
+1. Why would you test a one-off data analysis script that will
+   only ever run on a single dataset?
+2. What is the difference between a unit test, an integration
+   test, and an end-to-end test in the context of a data analysis
+   pipeline?
+3. What does `tinytest::expect_equal_to_reference()` capture, and
+   when is a reference test preferable to a direct
+   value-comparison test?
 :::
 
-## The statistician's contribution {#sec-testing-human}
+## Why test an analysis {#sec-testing-why}
 
-Writing a test is five minutes of work. Writing a test
-that would actually fail if the code were wrong is the
-part that requires thought:
+Analysis code rarely gets tested, and the reason is a respectable
+one. Software is written to run on inputs its author has never
+seen; an analysis script is written to run on one dataset, once.
+The reasoning has two holes. The script does not run once: it runs
+every time an extract is refreshed, an exclusion is revised, or a
+reviewer asks for a sensitivity analysis, and by then its author
+has forgotten which branches were ever exercised. And the failures
+that matter in analysis code do not stop it running. A filter that
+removes the wrong rows, a join that duplicates a patient, a unit
+conversion applied twice: all produce output. The question a test
+answers is not 'did it run' but 'would I have noticed if it were
+wrong', and for most analysis scripts the honest answer is no.
 
-**Test the statistical content, not just the
-plumbing.** A test that 'returns a tibble of the
-right shape' is a structural check, not a test of
-correctness. A test that the regression coefficient
-on a known synthetic dataset matches the closed-form
-answer is a test of correctness.
+Three ordinary occasions make the case concrete
+(@tbl-testing-occasions).
 
-**Edge cases are where bugs live.** Empty input,
-single observation, all-NA, perfect collinearity,
-boundary value (zero variance, all-zero counts,
-class with one observation). Test these
-deliberately.
+| Occasion | What changes | What the test asserts |
+|---|---|---|
+| Refactoring | Your code, on purpose: `base::merge()` becomes a `dplyr` join | The output is identical to a saved baseline |
+| Upstream drift | The data, silently: days become seconds | Values fall in plausible ranges; codes are in the codebook |
+| Documentation | Nobody's memory of the intent | Given input X, the function returns Y, and a false claim fails the build |
 
-**Test the pipeline, not just the helpers.** Unit
-tests catch helper-function bugs. Integration tests
-on synthetic data catch pipeline bugs, including
-ones where helpers work individually but the
-composition fails.
+: Three occasions a test pays for itself. {#tbl-testing-occasions}
 
-**Don't mock the code under test.** Mocking out a
-function call inside a test of that function makes
-the test tautological. The test passes because you
-made it pass, not because the code is correct.
-
-These judgments are what make tests useful rather
-than performative.
-
-## Why test analyses?
-
-The Orientation argued the general case. Three specific
-occasions make it concrete, and each is a moment that
-arrives in ordinary projects rather than unusual ones.
-
-The first is **refactoring**. You restructure a cleaning
-script to use `dplyr` where it previously used
-`base::merge`, and the output should be identical. Note
-what is peculiar about this situation: you have a
-precise expectation, you have no way to check it by
-looking, and the consequence of being wrong is a
-silently different cohort. A test that compares the
-output against a saved baseline settles the question in
-a second, and without one the honest position after a
-refactor is that you do not know whether it changed
-anything.
-
-The second is **upstream drift**, and it is the case
-tests catch that nothing else does. Your script reads an
-extract from an institutional warehouse, and one quarter
-the warehouse begins reporting a duration in seconds
-where it previously reported days. Nothing errors. The
-column is still numeric, the join still succeeds, the
-model still fits, and every downstream number is wrong
-by a factor of 86,400. A test asserting that the column
-falls in a plausible range catches this on the first run
-after the change; no amount of reading your own code
-ever will, because your code is not what changed.
-
-The third is **documentation**. A test of the form
-'given input X, this function returns Y' is a statement
-about intent that cannot rot, because it is executed.
-Comments drift away from the code they describe;
-assertions cannot, since a false one fails the build.
-
-Against these the cost is a few minutes per test,
-weighed against a silent miscalculation in something you
-have published under your name.
-
-Tests come in layers, and the layers catch different
-failures. @fig-test-layers is the shape, with the
-important qualification that the pyramid familiar from
-software engineering is somewhat flatter for analysis
-code: the integration layer, a small synthetic dataset
-run through the whole pipeline, does more work here than
-it does in most applications.
+Tests come in layers that catch different failures
+(@fig-test-layers). For analysis code the pyramid familiar from
+software engineering is flatter: the integration layer, a small
+synthetic dataset run through the whole pipeline, does more work
+here than in most applications.
 
 ```{mermaid}
 %%| echo: false
@@ -223,54 +147,38 @@ flowchart TD
   U --> I --> E
 ```
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: what would you have tested?
-
+::: {.callout-note collapse='true' title='Check'}
 **Question.** A cleaning script filters to adults with
-`filter(age >= 18)`. Six months later someone discovers
-the export encodes unknown age as `-1`, so those rows were
-silently dropped as minors. Which layer of the diagram
-would have caught it, and what would the test have
-asserted?
+`filter(age >= 18)`. Six months later someone discovers that the
+export encodes unknown age as `-1`, so those rows were silently
+dropped as minors. Which layer would have caught it, and what would
+the test have asserted?
 
-**Answer.**
-
-The integration layer, and only if the synthetic dataset
-contained a `-1`.
-
-That qualification is the whole lesson. A unit test on the
-filter would pass: given ages 17, 25 and 40, it correctly
-keeps two. The function is not broken. The *data* violated
-an assumption the function never stated, and no test of
-the function alone can see that.
-
-An integration test catches it if the synthetic fixture
-exercises the case, which is why the guidance says the
-fixture should exercise every branch, including the
-branches you do not think exist. A fixture built from
-plausible values only would miss it too.
-
-There are two assertions worth writing, and they fail at
-different times. One on the input, asserting that `age`
-falls in a plausible range before the filter runs, which
-fails the day the export changes. One on the output,
-asserting that the number of rows dropped is what the
-codebook predicts, which fails the day the meaning
-changes.
-
-The first is a claim about the data; the second is a claim
-about your understanding of it. Analysis pipelines mostly
-break for the second reason, and mostly get tested only
-for the first.
+**Answer.** The integration layer, and only if the synthetic
+dataset contained a `-1`. A unit test of the filter passes: given
+ages 17, 25, and 40 it correctly keeps two. The function is not
+broken; the *data* violated an assumption the function never
+stated. Two assertions are worth writing, and they fail at
+different times. One on the input, that `age` falls in a plausible
+range before the filter runs, fails the day the export changes.
+One on the output, that the number of rows dropped is what the
+codebook predicts, fails the day the meaning changes. The first is
+a claim about the data; the second is a claim about your
+understanding of it.
 :::
 
-## Unit tests with tinytest
+## Unit tests with tinytest {#sec-testing-unit}
+
+The book uses `tinytest`. It has no dependencies of its own, which
+matters when the surrounding chapters are about pinning an
+environment; each test file runs on its own; and its assertion
+vocabulary is small enough to hold in your head. If you will work
+in a `testthat` project, @sec-testing-testthat translates.
 
 For a function in `R/clean.R`:
 
 ```{r}
 #| label: test-age-group-fn
-# R/clean.R
 #' Compute age groups from numeric age
 #' @param age numeric vector
 age_group <- function(age) {
@@ -309,37 +217,110 @@ expect_error(age_group("twenty"),
              info = "non-numeric input is rejected")
 ```
 
-Each `expect_*()` call is one test. There is no
-enclosing block, which is the most visible difference
-from `testthat`: the `info=` string does the work
-`test_that()`'s description does, and a failure reports
-the file and line number alongside it.
+Each `expect_*()` call is one test, and its `info=` string says
+what it checks; a failure reports the file and line beside it. The
+tests above follow the rule that edge cases are where bugs live:
+boundaries, missing values, and the wrong type. For other
+functions the list includes empty input, a single observation, a
+group with one member, zero variance, and perfect collinearity.
 
-Run all tests:
+Run every test file from the project root, or a package's tests
+by name (display-only; both need a project with an
+`inst/tinytest/` directory):
 
 ```r
-tinytest::test_all()          # from the project root
-# or, for a package:
+tinytest::test_all()
 tinytest::test_package("practicum")
 ```
 
-The layout `tinytest` expects is `inst/tinytest/` for the
-test files and a one-line `tests/tinytest.R` that runs
-them, which is what `zzcollab` scaffolds. Shipping tests
-under `inst/` has a consequence worth knowing: they are
-installed with the package, so a user who has your
-compendium can run its test suite without your source
-tree. For an analysis whose credibility rests on being
+`tinytest` expects the test files in `inst/tinytest/` and a
+one-line `tests/tinytest.R` that runs them, which is the layout
+`tinytest::setup_tinytest()` creates and the one `zzcollab`
+scaffolds. Tests under `inst/` are installed with the package, so
+someone who has your compendium can run its tests without your
+source tree. For an analysis whose credibility rests on being
 checkable by someone else, that is the right default.
 
-## Integration tests on synthetic data
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Written as `expect_true(is.na(age_group(NA)))`, the
+`NA` test errors instead of passing. What does that tell you about
+the function, beyond the test?
 
-Unit tests catch helper-function bugs. They do not
-catch bugs where the helpers work individually but
-the pipeline composition fails.
+**Answer.** Bare `NA` is logical, and `cut()` requires a numeric
+argument, so `age_group(NA)` stops with `'x' must be numeric`. The
+same input arises in production: a column that is empty in every
+row is read by `read.csv()` as logical, and the function then fails
+on it. The test has found a real input the function does not
+handle, which is what a test is for.
+:::
 
-Integration tests run the full pipeline on a small
-synthetic dataset:
+### Exercises
+
+1. `age_group()` is tested for typical ages, boundaries, `NA`, and
+   non-numeric input. One gap remains: what the function does with
+   an age outside the range the breaks cover. Find the behavior,
+   decide whether it is the behavior you want, and write the test
+   that pins whichever answer you choose.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-20-1
+as.character(age_group(c(-5, 0, 200)))
+```
+
+A negative age returns `NA`, because the breaks begin at 0 and
+`cut()` places anything below the first break outside every
+interval. An age of 200 is absorbed into `65+`, because the last
+break is `Inf`. The asymmetry is the finding: an impossible age at
+the top of the range is silently accepted, and an impossible age
+at the bottom becomes the same `NA` a genuinely missing age
+produces. Pinning the current behavior:
+
+```{r}
+#| label: soln-20-1b
+expect_true(is.na(age_group(-5)),
+            info = "age below the first break gives NA")
+```
+
+Preferring an error instead, the test comes first and the function
+changes to satisfy it:
+
+```{r}
+#| label: soln-20-1c
+age_group_strict <- function(age) {
+  stopifnot(is.numeric(age))
+  if (any(age < 0, na.rm = TRUE))
+    stop("negative age")
+  cut(age, breaks = c(0, 18, 40, 65, Inf), right = FALSE,
+      labels = c("under-18", "18-39", "40-64", "65+"))
+}
+
+expect_error(age_group_strict(-5), pattern = "negative age",
+             info = "negative age is rejected")
+expect_equal(as.character(age_group_strict(30)), "18-39",
+             info = "a valid age still bins correctly")
+```
+
+Either is defensible. Leaving the behavior untested is not,
+because then it is not a decision at all, only whatever `cut()`
+happened to do.
+:::
+
+## Structure versus correctness {#sec-testing-correctness}
+
+A test that the result 'is a tibble of the right shape' is a
+structural check, not a test of correctness. A test that a
+regression coefficient on a known synthetic dataset equals the
+closed-form answer, or that a cell survives the pipeline unchanged,
+is a test of correctness. Write both, and do not mistake the first
+for the second.
+
+### Integration tests on synthetic data
+
+Unit tests catch helper bugs. They do not catch bugs where the
+helpers work individually and their composition fails. An
+integration test runs the whole pipeline on a small synthetic
+dataset:
 
 ```{r}
 #| label: test-integration
@@ -372,9 +353,6 @@ raw <- tibble::tibble(
 
 clean <- run_pipeline(raw)
 
-# structural assertions. tinytest has no expect_s3_class or
-# expect_named, and does not need them: both are ordinary
-# comparisons, and a failure prints the two values.
 expect_inherits(clean, "tbl_df", info = "returns a tibble")
 expect_equal(names(clean),
              c("patient_id", "age_group", "sex",
@@ -385,36 +363,57 @@ expect_equal(names(clean),
 expect_equal(nrow(clean), 5,
              info = "patient 4 excluded; patient 3 has one NA bp")
 
-# specific values
 expect_equal(clean$bp[clean$patient_id == 1 & clean$visit == 1],
              120,
              info = "a known cell survives the pipeline unchanged")
 ```
 
-The synthetic dataset is small (4 patients, 2
-visits) but exercises each cleaning rule: age
-exclusion (patient 4), missing values (patient 3
-visit 2). A test that runs in a fraction of a second
-covers the pipeline's logic.
+The dataset has four patients and two visits, but it exercises
+each cleaning rule: the age exclusion (patient 4) and a missing
+value (patient 3, visit 2). The rule generalizes: for each filter,
+derivation, pivot, and recode, the fixture has at least one row
+that exercises it, including the branches you do not think exist.
 
-For each cleaning rule (filter, derive, pivot,
-recode), the synthetic dataset should have at least
-one row that exercises it.
+### Reference tests
 
-::: {.callout-note icon=false collapse=true}
-## Check your understanding: structural vs. correctness
+For an output that is tedious to assert literally, compare it with
+a stored reference. The first run writes the object to a file and
+passes; later runs compare against it.
 
-**Question.** Your test asserts
-`expect_equal(nrow(result), 100)`. The test passes.
-Does this mean the result is correct?
+```{r}
+#| label: test-reference
+ref_file <- file.path(tempdir(), "lm-coefs.rds")
+unlink(ref_file)
+fit <- lm(mpg ~ wt + hp, data = mtcars)
 
-**Answer.**
+refit <- lm(mpg ~ wt + hp, data = mtcars[-1, ])
 
-No. The test asserts only that the result has 100
-rows. It says nothing about which rows, what
-values, or whether the right rows were filtered.
-A bug that produces 100 rows of the wrong patients
-passes the test silently. To test correctness:
+c(first_run = expect_equal_to_reference(coef(fit), ref_file),
+  later_run = expect_equal_to_reference(coef(fit), ref_file),
+  changed   = expect_equal_to_reference(coef(refit), ref_file))
+```
+
+When a reference test fails, you decide whether the change is
+intended (delete the file and regenerate it) or a regression. The
+stored object is compared by value, so a coefficient that changed
+fails and a `print` method that gained a blank line does not.
+Inspect the reference once when it is first written, because the
+first run accepts whatever the code produced.
+
+| Use a reference test when | Avoid it when |
+|---|---|
+| The output is complex and tedious to assert literally | The output changes for trivial reasons: an unseeded random draw, the locale, an unstable sort |
+| The question is 'is this what was reviewed' | The stored object is too large to inspect when it changes, so 'accept or investigate' becomes a coin toss |
+
+: When a reference test helps. {#tbl-testing-reference}
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Your test asserts `expect_equal(nrow(result), 100)`,
+and it passes. Does this mean the result is correct?
+
+**Answer.** No. It says nothing about which rows, what values, or
+whether the right rows were filtered; 100 rows of the wrong
+patients pass. Add assertions on content:
 
 ```{r}
 #| label: test-structural-vs-correct
@@ -428,446 +427,20 @@ expect_equal(sort(result$patient_id),      # correctness
 expect_equal(result$age, expected_ages)
 ```
 
-The combination tests structure *and* content. The
-structural test alone is a false positive
-generator. This pattern, 'looks right at the
-surface, wrong underneath', is the most common
-testing failure mode in data analysis.
-
+'Looks right at the surface, wrong underneath' is the most common
+testing failure in data analysis, and a structural test alone is
+built to miss it.
 :::
 
-## Reference tests
-
-For complex outputs that are hard to assert
-literally, compare against a stored reference:
-
-```r
-fit <- lm(mpg ~ wt + hp, data = mtcars)
-expect_equal_to_reference(coef(fit), "ref/mtcars-coefs.rds",
-                          info = "coefficients unchanged")
-
-expect_equal_to_reference(summary(fit)$r.squared,
-                          "ref/mtcars-r2.rds")
-```
-
-On first run the object is written to the named file and
-the test passes trivially. On subsequent runs the value is
-compared against it; if it differs the test fails, and you
-decide whether the change is intended (delete the file and
-regenerate) or a regression.
-
-One difference from `testthat` is worth understanding
-rather than glossing. `expect_snapshot()` captures
-*printed output* as text, so it also detects changes in
-formatting. `expect_equal_to_reference()` stores the
-*object*, so it compares values and ignores how they
-print. For analysis code the object comparison is usually
-what you want: a coefficient that changed matters, and a
-`print` method that gained a blank line does not.
-
-Reference tests are useful when:
-
-- Output is complex and tedious to assert literally.
-- Output is human-readable formatting (tables,
-  printed summaries, plot text).
-- You care more about 'is this what was reviewed' than
-  'is this exactly the right value'.
-
-Snapshots are not useful when:
-
-- Output changes for trivial reasons (random seed,
-  system locale, an unstable sort). These produce false
-  positives.
-- The stored object is too large to inspect when it
-  changes, which makes 'accept or investigate' a coin
-  toss.
-
-## Visual regression testing with vdiffr
-
-For ggplot output, `vdiffr` saves an SVG of the
-rendered plot and compares on subsequent runs:
-
-```r
-library(vdiffr)
-
-fit <- lm(mpg ~ wt, data = mtcars)
-p <- ggplot(broom::augment(fit), aes(.fitted, .resid)) +
-      geom_point() +
-      geom_hline(yintercept = 0)
-expect_doppelganger("regression-residual-plot", p)
-```
-
-vdiffr handles cross-platform rendering issues
-(font differences, anti-aliasing) better than raw
-image comparison. Useful for catching unintended
-changes to plot code (an axis label change, a
-geom swap).
-
-Note that `vdiffr` is built on `testthat` and expects to
-run inside it, so this is the one place in the chapter
-where the two frameworks do not substitute for each
-other. If visual regression matters to a project, that is
-a reason to use `testthat` there. The
-`tinytest`-native alternative is `tinysnapshot`, whose
-`expect_snapshot_plot()` stores a reference image and
-compares later renders against it; it is younger and
-less widely used than `vdiffr`.
-
-## Continuous integration
-
-`usethis::use_github_action("check-standard")` sets
-up GitHub Actions to run `R CMD check` on every
-push and pull request, on multiple OS / R-version
-combinations. (Older material calls this
-`use_github_action_check_standard()`, a function
-`usethis` has since removed in favor of naming the
-workflow as an argument.) For a non-package analysis
-project, the equivalent is a workflow that runs tests.
-It assumes a `DESCRIPTION` file listing the project's
-dependencies, as a research compendium has; without one,
-replace `local::.` with the packages the tests need:
-
-```yaml
-# .github/workflows/test.yaml
-name: tests
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: r-lib/actions/setup-r@v2
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          packages: |
-            local::.
-            any::tinytest
-      - name: Run tests
-        run: |
-          Rscript -e 'res <- tinytest::test_all()' \
-            -e 'quit(status = as.integer(tinytest::any_fail(res)))'
-```
-
-Push the workflow; on every commit, GitHub runs the
-tests and reports pass/fail. The second `-e` line is not
-optional. `tinytest::test_all()` reports failures but
-returns normally, so `Rscript` exits with status 0 and
-the job stays green however many tests fail. A CI step
-fails only on a nonzero exit status, so the script must
-convert 'any test failed' into one. Regressions caught at
-push time are far cheaper to fix than regressions
-caught in production.
-
-## Test smells
-
-Common patterns that look like tests but produce
-false confidence:
-
-**Tautological tests.**
-
-```{r}
-#| label: test-antipattern-tautology
-# foo ignores its argument and always returns 42. It is wrong for
-# every input, and the test below still passes.
-foo <- function(x) 42
-
-expect_equal(foo(1), foo(1),      # always passes
-             info = "foo works")
-```
-
-The test cannot fail because it tests `foo()` against
-itself. Useless.
-
-**Tests that mock the tested function.**
-
-```r
-fit_model <- function(d) list()          # stub, for the test
-expect_equal(typeof(fit_model(d)), "list")
-```
-
-You replaced the function under test with a stub; the
-test passes because the stub returns a list, not because
-`fit_model` works. `tinytest` has no mocking facility,
-which makes this smell harder to write by accident than
-it is under `testthat`'s `with_mocked_bindings()`.
-
-**Brittle snapshots.**
-
-```r
-expect_equal_to_reference(do_thing(today()),
-                          "ref/do_thing.rds")   # date in output
-```
-
-The stored object includes the current date, so the test
-fails every day after the first. Either take the date out
-of the returned object or compare the parts that should be
-stable, which usually means asserting on specific fields
-rather than on the whole object.
-
-**Overly permissive tolerances.**
-
-```{r}
-#| label: test-antipattern-tolerance
-result <- 0.9                                # nowhere near 0.5
-
-expect_equal(result, 0.5, tolerance = 0.5)   # passes for any value
-```
-
-A 100% tolerance is no test.
-
-**Tests that test the test framework, not the
-code.**
-
-```{r}
-#| label: test-antipattern-vacuous
-expect_true(TRUE)
-```
-
-These are placeholders that should be filled in.
-Watch for them in code reviews.
-
-## Worked example: testing a cleaning pipeline
-
-```{r}
-#| label: test-worked-cleaning
-#| message: false
-# R/cleaning.R
-clean_visits <- function(raw) {
-  raw |>
-    janitor::clean_names() |>
-    dplyr::filter(age >= 18) |>
-    tidyr::pivot_longer(
-      cols = dplyr::starts_with("bp_"),
-      names_to = "visit",
-      names_prefix = "bp_v",
-      values_to = "bp"
-    ) |>
-    dplyr::filter(!is.na(bp))
-}
-
-# inst/tinytest/test-cleaning.R
-# In the package this line loads the function above; here it is
-# already in scope, so the tests run as written.
-# source("../../R/cleaning.R")
-
-# the age filter
-raw <- tibble::tibble(
-  patient_id = 1:3,
-  age        = c(25, 17, 30),
-  bp_v1      = c(120, 110, 130),
-  bp_v2      = c(122, 112, 128)
-)
-result <- clean_visits(raw)
-expect_equal(sort(unique(result$patient_id)), c(1, 3),
-             info = "cleaning excludes minors")
-
-# the NA filter
-raw <- tibble::tibble(
-  patient_id = c(1, 1, 2),
-  age        = c(25, 25, 30),
-  bp_v1      = c(120, NA, 130),
-  bp_v2      = c(NA,  118, 128)
-)
-result <- clean_visits(raw)
-expect_equal(nrow(result), 4,
-             info = "6 cells, 2 NA, so 4 rows survive")
-expect_true(all(!is.na(result$bp)),
-            info = "no NA blood pressures remain")
-
-# the reshape
-raw <- tibble::tibble(
-  patient_id = 1,
-  age        = 25,
-  bp_v1      = 120,
-  bp_v2      = 118
-)
-result <- clean_visits(raw)
-expect_equal(sort(names(result)),
-             sort(c("patient_id", "age", "visit", "bp")),
-             info = "long format has the expected columns")
-expect_equal(nrow(result), 2,
-             info = "one patient with two visits gives two rows")
-```
-
-The tests cover: the age filter, the NA filter, the
-pivot. Each test is a single named scenario; each
-asserts specific values, not just structure.
-Running the test suite catches any regression to
-the cleaning logic.
-
-## Collaborating with an LLM on tests
-
-LLMs draft tests well; the judgment about what to
-test needs human input.
-
-**Prompt 1: drafting tests.** Paste the function and
-ask: 'write `tinytest` tests covering happy path,
-edge cases, and error handling. Make the assertions
-specific to values, not just structure.'
-
-*What to watch for.* Default LLM tests tend to be
-shape-checks. Push for value-checks. Edge cases:
-empty, NA, single observation, type mismatch.
-
-*Verification.* Introduce a bug into the function
-and re-run the tests. If the bug is caught, the
-tests are useful. If not, add a more specific
-test.
-
-**Prompt 2: integration test on synthetic data.**
-Describe the pipeline; ask the LLM to generate a
-small synthetic dataset that exercises every
-branch.
-
-*What to watch for.* The LLM may generate a dataset
-that exercises the happy path but not the edges.
-Verify each branch (filter rules, missing-data
-paths, factor levels) is covered.
-
-*Verification.* Add a deliberate bug to one branch;
-the test should fail. If it does not, the synthetic
-data does not exercise that branch.
-
-**Prompt 3: diagnosing a flaky test.** Paste the
-test and the failure; ask: 'what's the source of
-non-determinism?'
-
-*What to watch for.* Common causes: random number
-generation without seed, parallel processing
-without seed-aware RNG, system-time-dependent
-output, locale issues. The LLM should know these.
-
-*Verification.* Apply the fix and run the test
-multiple times. If it stops being flaky, fixed.
-
-## Principle in use
-
-Three habits separate a suite that catches bugs from one
-that reports green:
-
-1. **Test the math, not just the shape.**
-   Structural checks alone produce false confidence.
-2. **Integration tests on synthetic data.** A
-   20-line synthetic dataset that exercises every
-   branch catches pipeline bugs that unit tests
-   miss.
-3. **CI as a tripwire.** GitHub Actions running
-   tests on every push catches regressions at the
-   commit, not at the publication.
-
-## Exercises
-
-1. `age_group()` earlier in this chapter is tested
-   for typical ages, boundaries, `NA`, and
-   non-numeric input. One gap remains: what the
-   function does with an age outside the range the
-   breaks cover. Find the behavior, decide whether
-   it is the behavior you want, and write the test
-   that pins whichever answer you choose.
-2. Write a `summarize_species()` function returning
-   mean body mass and count per species from
-   `palmerpenguins::penguins`. Give it one
-   structural test and one correctness test, and say
-   in a comment which is which and why the
-   structural one is insufficient on its own.
-3. Take the tautological test from this chapter,
-   `expect_equal(foo(1), foo(1))`, and replace it
-   with an assertion that fails against
-   `foo <- function(x) 42` while passing against a
-   correct implementation.
-
-**On your own project.** No answer key; these need code,
-a repository, or a colleague you supply.
-
-4. Add unit tests for two functions from an
-   existing analysis of yours. Aim for at least: a
-   happy-path test, an edge-case test, and an
-   error-path test.
-5. Write an integration test: a 20-line synthetic
-   dataset that exercises every branch of your
-   pipeline. Run the full pipeline in under a
-   second.
-6. Set up GitHub Actions with a workflow that runs
-   `tinytest::test_all()` on every push. Push and
-   verify the workflow runs green, then break one
-   test and verify that it runs red.
-7. Introduce a deliberate bug into your pipeline.
-   Verify the test suite catches it. If it does
-   not, add a test that does.
-8. Apply `tinysnapshot::expect_snapshot_plot()` (or,
-   in a `testthat` project,
-   `vdiffr::expect_doppelganger()`) to one of
-   your project's plots. Modify the plot's theme
-   slightly; verify the test fails and you can
-   accept or reject the change.
-9. Review a colleague's test suite rather than their
-   code. For each test, decide whether it checks
-   statistical content or only structure, and find
-   at least one test that would pass even if the
-   function under test were subtly wrong. Propose the
-   value-level assertion that would catch the bug,
-   and deliver the review in writing as a
-   pull-request comment (@sec-git-teams).
-
-::: {.callout-tip icon=false collapse=true}
-## Solutions to exercises 1 to 3
-
-**1. What happens outside the range of the breaks.**
-
-```{r}
-#| label: soln-20-1
-as.character(age_group(c(-5, 0, 200)))
-```
-
-A negative age returns `NA`. The breaks begin at 0, and
-`cut()` places anything below the first break outside every
-interval. An age of 200 is absorbed into `65+`, because
-the last break is `Inf`.
-
-The asymmetry is the finding. An impossible age at the top
-of the range is silently accepted as plausible; an
-impossible age at the bottom becomes `NA`, which is the
-same value a genuinely missing age produces. Downstream,
-a data-entry error of `-5` is indistinguishable from an
-age nobody recorded.
-
-Whether that is acceptable is a judgment, and the test
-should pin whichever judgment you make. Pinning the
-current behavior:
-
-```{r}
-#| label: soln-20-1b
-expect_true(is.na(age_group(-5)),
-            info = "age below the first break gives NA")
-```
-
-Preferring an error instead, the test comes first and the
-function changes to satisfy it:
-
-```{r}
-#| label: soln-20-1c
-age_group_strict <- function(age) {
-  stopifnot(is.numeric(age))
-  if (any(age < 0, na.rm = TRUE))
-    stop("negative age")
-  cut(age, breaks = c(0, 18, 40, 65, Inf), right = FALSE,
-      labels = c("under-18", "18-39", "40-64", "65+"))
-}
-
-expect_error(age_group_strict(-5), pattern = "negative age",
-             info = "negative age is rejected")
-expect_equal(as.character(age_group_strict(30)), "18-39",
-             info = "a valid age still bins correctly")
-```
-
-Either is defensible. What is not defensible is leaving
-the behavior untested, because then it is not a decision
-at all, only whatever `cut()` happened to do.
-
-**2. A structural test and a correctness test.**
-
+### Exercises
+
+2. Write a `summarize_species()` function returning mean body mass
+   and count per species from `palmerpenguins::penguins`. Give it
+   one structural test and one correctness test, and say in a
+   comment which is which and why the structural one is
+   insufficient on its own.
+
+::: {.callout-note collapse='true' title='Solution'}
 ```{r}
 #| label: soln-20-2
 #| message: false
@@ -899,15 +472,78 @@ expect_equal(out$n[out$species == "Adelie"],
              info = "correctness: n counts non-missing")
 ```
 
-The structural test is worth keeping, because a change in
-column names breaks callers. It is insufficient because
-every assertion in it would still pass if `mean()` were
-replaced by `median()`. Only the second test would fail,
-and only because it recomputes the answer a different way
-rather than comparing the function to itself.
+The structural test is worth keeping, because a change in column
+names breaks callers. It is insufficient because every assertion
+in it would still pass if `mean()` were replaced by `median()`.
+Only the second test would fail, and only because it recomputes
+the answer a different way rather than comparing the function with
+itself.
+:::
 
-**3. Replacing the tautology.**
+## Test smells {#sec-testing-smells}
 
+Some tests look like tests and produce only confidence. Two run
+below; @tbl-testing-smells lists the common kinds.
+
+```{r}
+#| label: test-antipattern-tautology
+# foo ignores its argument and always returns 42. It is wrong for
+# every input, and the test below still passes.
+foo <- function(x) 42
+
+expect_equal(foo(1), foo(1),      # always passes
+             info = "foo works")
+```
+
+```{r}
+#| label: test-antipattern-tolerance
+result <- 0.9                                # nowhere near 0.5
+
+expect_equal(result, 0.5, tolerance = 0.5)   # passes for 0 to 1
+```
+
+The tolerance example passes for any value from 0 to 1. With an
+expected value no larger than the tolerance, `all.equal()`, which
+`expect_equal()` uses, compares the absolute difference, so a
+tolerance of 0.5 around 0.5 accepts every proportion there is.
+
+| Smell | Example | Why it misleads | Fix |
+|---|---|---|---|
+| Tautology | `expect_equal(foo(1), foo(1))` | Compares the function with itself | Compare with a value computed another way |
+| Mocking the code under test | A stub `fit_model <- function(d) list()` inside the test | Tests the stub, not the function | Test the real function on a small input |
+| Brittle reference | `expect_equal_to_reference(do_thing(Sys.Date()), ...)` | Fails every day after the first, so failures stop being read | Remove the date, or compare stable fields |
+| Permissive tolerance | `expect_equal(x, 0.5, tolerance = 0.5)` | Accepts any proportion | Set the tolerance from the computation's real precision |
+| Placeholder | `expect_true(TRUE)` | Tests nothing | Write the test or delete the line |
+| Prefixed expectation | `tinytest::expect_equal(x, y)` in a test file | Not collected: the file reports zero tests, with only a message | Call `expect_equal()` without the prefix |
+| Shape only | `expect_equal(nrow(out), 100)` | Passes on the wrong rows | Assert values (@sec-testing-correctness) |
+
+: Test smells. Watch for them in code review. {#tbl-testing-smells}
+
+`tinytest` has no mocking facility, which makes the second smell
+harder to write by accident than under `testthat`'s
+`with_mocked_bindings()`.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague's test is
+`expect_equal(risk_difference(d), risk_difference(d), tolerance = 1e-8)`.
+They point out that the tolerance is tight. Is the test any good?
+
+**Answer.** No. It is a tautology with a tight tolerance: the
+expected value comes from calling the function under test, so it
+passes whatever the function returns. The tolerance is irrelevant.
+The fix is an expected value computed another way, for example
+the difference of two proportions worked out by hand on a
+ten-row fixture.
+:::
+
+### Exercises
+
+3. Replace the tautological test, `expect_equal(foo(1), foo(1))`,
+   with an assertion that fails against `foo <- function(x) 42`
+   while passing against a correct implementation that doubles its
+   argument.
+
+::: {.callout-note collapse='true' title='Solution'}
 ```{r}
 #| label: soln-20-3
 #| error: true
@@ -917,56 +553,507 @@ expect_equal(foo(1), 2, info = "foo doubles 1")
 expect_equal(foo(3), 6, info = "foo doubles 3")
 ```
 
-The fix is to assert against a value computed
-independently of the function, here by hand. Any assertion
-whose expected value comes from calling the function is
-circular, and no amount of adding cases repairs that.
+The fix is to assert against a value computed independently of the
+function, here by hand. Any assertion whose expected value comes
+from calling the function is circular, and no number of added cases
+repairs that.
 :::
+
+## Worked example: testing the HF-HOME CRF cleaner {#sec-testing-worked}
+
+The HF-HOME CRF (case report form) export,
+`analysis/data/raw_data/hfhome/crf_export.csv`, comes from five
+site systems that each write the same fields differently: Site D
+codes sex as `1` and `2`, Site C writes dates month first, Site E
+has lost the leading zeros of its patient IDs, and the site labels
+vary in case and spacing. The function below puts four fields into
+canonical form. Each site's coding lives in a lookup table passed
+as an argument with a default, so that the codebook is in one place
+and a change to it is a one-line change.
+
+```{r}
+#| label: test-crf-fn
+#' Clean the site-specific fields of the HF-HOME CRF export
+#'
+#' @param raw Data frame read from `crf_export.csv`, every column
+#'   character.
+#' @param site_d_sex Codes Site D uses for sex.
+#' @param date_formats Discharge-date format for each site.
+#' @return A data frame of `patient_id`, `site`, `sex`, and
+#'   `discharge_date` in canonical form.
+clean_crf <- function(raw,
+                      site_d_sex = c("1" = "M", "2" = "F"),
+                      date_formats = c("Site A" = "%Y-%m-%d",
+                                       "Site B" = "%Y-%m-%d",
+                                       "Site C" = "%m/%d/%Y",
+                                       "Site D" = "%d-%b-%Y",
+                                       "Site E" = "%Y%m%d")) {
+  site <- paste("Site", toupper(substring(trimws(raw$site), 6)))
+  sex <- ifelse(site == "Site D", site_d_sex[raw$sex],
+                toupper(substr(raw$sex, 1, 1)))
+  if (!all(sex %in% c("F", "M"))) {
+    stop("unrecognized sex code: ",
+         paste(unique(raw$sex[!sex %in% c("F", "M")]),
+               collapse = ", "))
+  }
+  data.frame(
+    patient_id     = sprintf("%04d", as.integer(raw$patient_id)),
+    site           = site,
+    sex            = unname(sex),
+    discharge_date = as.Date(raw$discharge_date,
+                             format = date_formats[site])
+  )
+}
+```
+
+The test file has two layers. The unit layer is a fixture with one
+row per site, each written the way that site writes it, and
+expected values worked out by hand from the codebook. The
+integration layer cleans the whole export and compares it with two
+independent records of the same patients: sex in the registration
+demographics and the discharge date in the baseline table.
+Agreement between independent sources is a check real trials run,
+and it needs no hand-written expectations.[^locale]
+
+[^locale]: `%b` matches English month abbreviations only in an
+    English locale. On a machine whose `LC_TIME` is set otherwise,
+    Site D's dates parse to `NA`, and the date tests below report
+    it.
+
+```{r}
+#| label: test-crf-tests
+#| eval: false
+# inst/tinytest/test-clean-crf.R
+hf_dir <- Sys.getenv("HFHOME_DIR")
+
+fixture <- data.frame(
+  patient_id     = c("0005", "0001", "0012", "0010", "7"),
+  site           = c("Site A", "site b", "SITE C", " Site D", "Site E "),
+  sex            = c("F", "Male", "f", "2", "M"),
+  discharge_date = c("2024-02-02", "2024-02-01", "02/03/2024",
+                     "05-FEB-2024", "20240209")
+)
+out <- clean_crf(fixture)
+
+expect_equal(out$patient_id, c("0005", "0001", "0012", "0010", "0007"),
+             info = "Site E IDs regain their leading zeros")
+expect_equal(out$site, paste("Site", LETTERS[1:5]),
+             info = "site labels are normalized")
+expect_equal(out$sex, c("F", "M", "F", "F", "M"),
+             info = "every site's sex coding; Site D codes 2 as F")
+expect_equal(out$discharge_date,
+             as.Date(c("2024-02-02", "2024-02-01", "2024-02-03",
+                       "2024-02-05", "2024-02-09")),
+             info = "every site's date format; Site C is month first")
+expect_error(clean_crf(transform(fixture, sex = "X")),
+             pattern = "unrecognized sex code",
+             info = "an unknown sex code stops the cleaning")
+
+crf <- read.csv(file.path(hf_dir, "crf_export.csv"),
+                colClasses = "character", fileEncoding = "UTF-8-BOM")
+demographics <- read.csv(file.path(hf_dir, "demographics.csv"),
+                         colClasses = "character")
+baseline <- read.csv(file.path(hf_dir, "baseline.csv"),
+                     colClasses = "character")
+both <- merge(clean_crf(crf), demographics[c("patient_id", "sex")],
+              by = "patient_id", suffixes = c("", "_demo"))
+both <- merge(both, baseline[c("patient_id", "discharge_date")],
+              by = "patient_id", suffixes = c("", "_base"))
+
+expect_equal(nrow(both), nrow(crf),
+             info = "every CRF patient is found in both sources")
+expect_equal(both$sex, both$sex_demo,
+             info = "sex agrees with the registration record")
+expect_equal(both$discharge_date, as.Date(both$discharge_date_base),
+             info = "discharge date agrees with the baseline table")
+```
+
+In a project this chunk is the file `inst/tinytest/test-clean-crf.R`.
+The chunk below writes it to a temporary file and runs it as
+`tinytest` would, with the data directory passed in an environment
+variable rather than written into the test.
+
+```{r}
+#| label: test-crf-run
+test_file <- file.path(tempdir(), "test-clean-crf.R")
+writeLines(knitr::knit_code$get("test-crf-tests"), test_file)
+hf_env <- list(
+  HFHOME_DIR = normalizePath(file.path("..", "data", "raw_data",
+                                       "hfhome"))
+)
+
+passing <- run_test_file(test_file, verbose = 0, set_env = hf_env)
+passing
+```
+
+Every test passes. That shows the tests agree with the function;
+it does not yet show that they would notice if the function were
+wrong. To find out, plant a bug a reviewer could plausibly miss,
+here Site D's sex codes swapped, and run the same tests again:
+
+```{r}
+#| label: test-crf-mutant
+clean_crf_correct <- clean_crf
+clean_crf <- function(raw) {
+  clean_crf_correct(raw, site_d_sex = c("1" = "F", "2" = "M"))
+}
+
+mutant <- run_test_file(test_file, verbose = 0, set_env = hf_env)
+mutant
+
+clean_crf <- clean_crf_correct
+```
+
+Both layers catch it: the fixture's Site D row, and the comparison
+with the registration record, which disagrees for every Site D
+patient. The swapped function returns a plausible data frame, with
+two sexes in plausible proportions, which is exactly the kind of
+bug that survives inspection (Habit 8).
+
+This check has a name: **mutation testing**
+[@demillo1978hints]. Each planted bug is a *mutant*; a test that
+fails on it *kills* it; and the share of mutants killed measures
+how much the suite can see. Tools for other languages generate
+mutants automatically (flipped comparisons, swapped constants,
+deleted lines). By hand, plant one mutant per rule in the codebook,
+starting with the rules whose failure would produce a plausible
+number.
+
+::: {.callout-tip title='Verification'}
+Confirm in code that the suite passes the correct function and
+fails the mutant, so that a later edit to the tests cannot quietly
+make them blind to it.
+
+```{r}
+#| label: test-crf-verify
+stopifnot(tinytest::all_pass(passing), tinytest::any_fail(mutant))
+```
+
+The chunk prints nothing when both hold.
+:::
+
+::: {.callout-important title='LLM prompt'}
+An agentic version: a coding agent writes tests and runs mutants,
+and you review the evidence rather than only the code.
+
+> **Context.** `R/clean_crf.R` cleans the HF-HOME CRF export. The
+> codebook, `analysis/data/raw_data/hfhome/README.md`, lists each
+> site's coding of sex, dates, IDs, and site labels. Existing tests
+> are in `inst/tinytest/`. Run code only against the synthetic
+> HF-HOME files.
+>
+> **Constraints.** Add tests in a new file,
+> `inst/tinytest/test-clean-crf-sites.R`. Do not edit
+> `R/clean_crf.R` or any existing test file, do not skip, delete,
+> or loosen a test, and add no packages. If a test you write fails
+> against the current function, stop and report it; do not change
+> the test to make it pass.
+>
+> **Criteria.** Before writing tests, list each codebook rule and
+> the fixture row that will exercise it. Then, for each rule,
+> create one mutant of `clean_crf()` in a temporary copy, run the
+> suite against it, and report a table of mutant, killed or
+> survived, and the test that killed it.
+
+*Failure mode.* An agent told to make tests pass will weaken them:
+it widens a tolerance, replaces a value check with a shape check,
+or edits the expected value to match the output. That is why the
+instruction forbids touching existing tests, and why the rule that
+tests are off-limits to an agent is part of the book's governance
+rules (@sec-ai-governance). *Check.* Run
+`git diff --stat -- inst/tinytest/ R/` and confirm that only the
+new test file changed; read every `expect_*()` in it for a
+hand-derived expected value; then run one mutant yourself, as in
+the chunk above, and confirm that the suite fails. The codebook
+and synthetic files hold no patient data.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Why does the fixture have one row per site, written
+by hand, rather than five rows sampled from the export?
+
+**Answer.** Every pathology in the export is per site, so a test
+must exercise every site to exercise every branch. Five sampled
+rows can easily miss Site D, whose numeric sex codes are the branch
+most likely to be wrong, and a sample changes when the export
+does. A hand-built row per site exercises each branch on purpose,
+and its expected values come from the codebook rather than from the
+function.
+:::
+
+### Exercises
+
+4. Make a second mutant that parses Site C's dates day first
+   (`"%d/%m/%Y"`). Predict which tests kill it, run the suite, and
+   count how many Site C dates the mutant gets silently wrong,
+   rather than `NA`.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-20-4
+day_first <- eval(formals(clean_crf_correct)$date_formats)
+day_first["Site C"] <- "%d/%m/%Y"
+clean_crf <- function(raw) {
+  clean_crf_correct(raw, date_formats = day_first)
+}
+mutant_c <- run_test_file(test_file, verbose = 0, set_env = hf_env)
+mutant_c
+
+crf <- read.csv(file.path(hf_env$HFHOME_DIR, "crf_export.csv"),
+                colClasses = "character", fileEncoding = "UTF-8-BOM")
+right <- clean_crf_correct(crf)
+wrong <- clean_crf(crf)
+in_c <- right$site == "Site C"
+c(site_c = sum(in_c),
+  became_na = sum(is.na(wrong$discharge_date[in_c])),
+  silently_wrong = sum(!is.na(wrong$discharge_date[in_c]) &
+                         wrong$discharge_date[in_c] !=
+                           right$discharge_date[in_c]))
+clean_crf <- clean_crf_correct
+```
+
+The fixture's date test and the comparison with the baseline table
+both kill the mutant. The counts show why the comparison matters
+more than it seems: dates whose day is above 12 become `NA`, which
+is loud, but every date whose day is 12 or below, and differs from
+its month, parses to a valid date in the wrong month. The third
+count is the one that matters: those dates pass every check except
+a comparison with something independent.
+:::
+
+5. The CRF's `sbp_discharge` column marks a missing value three
+   ways: an empty field, `NA`, and `-99`. Write `clean_sbp()`,
+   which returns numeric systolic blood pressure with every missing
+   code as `NA`, and a test that compares it with
+   `sbp_discharge` in `baseline.csv`.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-20-5
+clean_sbp <- function(x) {
+  x <- trimws(x)
+  x[x %in% c("", "NA", "-99")] <- NA
+  as.numeric(x)
+}
+
+crf_raw <- read.csv(file.path(hf_env$HFHOME_DIR, "crf_export.csv"),
+                    colClasses = "character",
+                    fileEncoding = "UTF-8-BOM",
+                    na.strings = character())
+crf_raw$patient_id <- sprintf("%04d", as.integer(crf_raw$patient_id))
+baseline <- read.csv(file.path(hf_env$HFHOME_DIR, "baseline.csv"),
+                     colClasses = c(patient_id = "character"))
+both <- merge(crf_raw[c("patient_id", "sbp_discharge")],
+              baseline[c("patient_id", "sbp_discharge")],
+              by = "patient_id", suffixes = c("_crf", "_base"))
+
+expect_equal(clean_sbp(both$sbp_discharge_crf),
+             as.numeric(both$sbp_discharge_base),
+             info = "every missing code becomes NA; values unchanged")
+c(missing_crf = sum(is.na(clean_sbp(both$sbp_discharge_crf))),
+  missing_baseline = sum(is.na(both$sbp_discharge_base)))
+```
+
+`na.strings = character()` keeps the raw codes as text, so that the
+function, not `read.csv()`, decides what is missing; with the
+default, `NA` is converted on reading and `-99` is not, and the
+test would no longer exercise the function's handling of either. A
+version that forgot `-99` would leave impossible pressures of -99
+mmHg in the data, which a mean would absorb without complaint; the
+comparison with the baseline table fails on it.
+:::
+
+## Running tests in continuous integration {#sec-testing-ci}
+
+Tests that run only when someone remembers to run them catch
+regressions late. Continuous integration (CI) runs them on every
+push; @sec-ci covers it in full. For an R package,
+`usethis::use_github_action("check-standard")` sets up GitHub
+Actions to run `R CMD check`, which runs the tests, on several
+operating systems and R versions. For an analysis project, the
+equivalent is a workflow that runs the tests. It assumes a
+`DESCRIPTION` file listing the project's dependencies, as a
+research compendium has; without one, replace `local::.` with the
+packages the tests need:
+
+```yaml
+# .github/workflows/test.yaml
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            local::.
+            any::tinytest
+      - name: Run tests
+        run: |
+          Rscript -e 'res <- tinytest::test_all()' \
+            -e 'quit(status = as.integer(tinytest::any_fail(res)))'
+```
+
+::: {.callout-warning title='Pitfall'}
+**A green CI job can contain failing tests.** The second `-e` line
+is not optional. `tinytest::test_all()` reports failures but
+returns normally, so `Rscript` exits with status 0 and the job
+stays green however many tests fail. A CI step fails only on a
+nonzero exit status, so the script must turn 'any test failed'
+into one.
+:::
+
+::: {.callout-tip title='Verification'}
+Run a one-test suite that fails, in a fresh R process as CI would,
+with and without the `quit()` line, and compare the exit statuses.
+
+```{r}
+#| label: test-ci-exit-status
+failing <- file.path(tempdir(), "failing-suite")
+dir.create(failing, showWarnings = FALSE)
+writeLines("expect_equal(1 + 1, 3)",
+           file.path(failing, "test-fail.R"))
+
+r_libs <- paste0("R_LIBS=",
+                 paste(.libPaths(), collapse = .Platform$path.sep))
+rscript <- function(...) {
+  system2(file.path(R.home("bin"), "Rscript"),
+          shQuote(c("--vanilla", ...)), env = r_libs,
+          stdout = FALSE, stderr = FALSE)
+}
+run_suite <- sprintf("res <- tinytest::run_test_dir('%s')", failing)
+
+c(without_quit = rscript("-e", run_suite),
+  with_quit = rscript("-e", run_suite, "-e",
+                      "quit(status = as.integer(tinytest::any_fail(res)))"))
+```
+
+Status 0 is what CI reads as success. Only the version with
+`quit()` reports the failing test as a failure.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A teammate's workflow runs
+`Rscript -e 'tinytest::test_all()'` and has been green for a
+month. What do you know about the tests?
+
+**Answer.** Only that the R process started and `test_all()`
+returned. Without the `quit(status = ...)` line, a run in which
+every test failed also exits with status 0. Open the log of the
+latest run and read the summary line, then add the `quit()` line
+and push a deliberately failing test to see the job turn red.
+:::
+
+## For testthat readers {#sec-testing-testthat}
+
+`testthat` is the framework you are most likely to meet elsewhere,
+and where a project already depends on it, stay with it; mixing
+frameworks in one suite buys nothing. The discipline of this
+chapter is the same under either, and most of the translation is
+mechanical (@tbl-testing-testthat).
+
+| `tinytest` | `testthat` |
+|---|---|
+| `expect_equal(x, y, info = "...")` at the top level of the file | `test_that("...", { expect_equal(x, y) })` |
+| `expect_inherits(x, "tbl_df")` | `expect_s3_class(x, "tbl_df")` |
+| `expect_equal(names(x), c(...))` | `expect_named(x, c(...))` |
+| `expect_equal(sort(a), sort(b))` | `expect_setequal(a, b)` |
+| `expect_equal_to_reference(x, "ref.rds")`, stores the object | `expect_snapshot()`, stores printed output; `expect_snapshot_value()`, stores the value |
+| `tinysnapshot::expect_snapshot_plot(p, "label")` | `vdiffr::expect_doppelganger("label", p)` |
+| `run_test_file()`, `test_all()` | `test_file()`, `devtools::test()` |
+
+: The same tests in both frameworks. {#tbl-testing-testthat}
+
+`tinytest`'s missing functions are a choice rather than a gap: each
+is a plain comparison whose failure prints the two values. Visual
+regression testing of `ggplot2` output is the one place the two
+ecosystems differ in maturity. `vdiffr`, which stores an SVG
+(Scalable Vector Graphics) file of the plot and compares later
+renders with it, runs only inside `testthat`; `tinysnapshot` is the
+`tinytest` equivalent, younger and less widely used.
+
+## Rules of thumb
+
+1. **Habit 9: test the statistics, not the shape.** Every test
+   file needs at least one assertion against a value computed
+   another way: by hand, in closed form, or from an independent
+   source.
+2. **Habit 8: plant the bug before you trust the test.** A suite
+   you have never seen fail has not shown that it can; run one
+   mutant per codebook rule.
+3. **Habit 3: version control from day one.** Run the tests in CI
+   on every push, with an exit status that turns red when any test
+   fails.
+
+## Cumulative practice
+
+6. *Cumulative (uses @sec-git-teams).* Review a colleague's test
+   suite rather than their code. For each test, decide whether it
+   checks statistical content or only structure, and find at least
+   one test that would pass even if the function under test were
+   subtly wrong. Write the mutant that survives, propose the
+   value-level assertion that kills it, and deliver the review as a
+   pull-request comment.
+7. *On your own work (no key).* Add unit tests for two functions
+   from an analysis of yours (a typical case, an edge case, and an
+   error), an integration test on a synthetic fixture that
+   exercises every branch, and a CI workflow that runs them. Plant
+   one mutant and confirm that the suite, and the CI job, turn red.
+
+## Cheat sheet
+
+| Task | Code | Guards against |
+|---|---|---|
+| Assert a value | `expect_equal(f(x), expected, info = "...")` | A function that returns the wrong number |
+| Assert an error | `expect_error(f(bad), pattern = "...")` | Bad input passing silently |
+| Assert a class | `expect_inherits(x, "data.frame")` | A changed return type |
+| Compare with a stored object | `expect_equal_to_reference(x, "ref.rds")` | Unreviewed changes to complex output |
+| Run one file | `run_test_file("test-x.R", set_env = list(...))` | Tests that depend on the working directory |
+| Run every test | `tinytest::test_all()` | Untested corners of the project |
+| Fail CI on a failed test | `quit(status = as.integer(any_fail(res)))` | A green job with failing tests |
+| Check the tests can see a bug | Plant a mutant; `any_fail(res)` | A suite that passes everything |
+
+: Testing at a glance. {#tbl-testing-cheat-sheet}
 
 ## Further reading
 
-- [@wickham2023rpkgs] testing chapters, the
-  canonical `testthat` reference.
-- `vdiffr` documentation on CRAN, visual
-  regression testing for `ggplot2`.
-- The `testthat` package vignettes.
+- [@wickham2023rpkgs], the testing chapters, the canonical
+  `testthat` reference, whose advice on designing a suite applies
+  under either framework.
 - The `tinytest` vignette,
-  `vignette('using_tinytest', package = 'tinytest')`,
-  the reference for the framework this chapter uses,
-  and the `tinysnapshot` documentation on CRAN for
-  snapshot and plot tests under `tinytest`.
+  `vignette('using_tinytest', package = 'tinytest')`, the
+  reference for the framework this chapter uses.
+- [@demillo1978hints], the paper that introduced mutation
+  analysis as a way to judge test data.
 
 ## Prerequisites answers {#sec-quiz-answers-20}
 
-1. Even a one-off analysis benefits from tests:
-   they catch regressions when you refactor
-   mid-analysis, they serve as executable
-   documentation of expected behavior, and they
-   detect silent failures when upstream data
-   changes format. The cost of writing a handful of
-   tests is small; the cost of silently
+1. Even a one-off analysis benefits from tests: they catch
+   regressions when you refactor mid-analysis, they serve as
+   executable documentation of expected behavior, and they detect
+   silent failures when upstream data change format. The cost of
+   writing a handful of tests is small; the cost of silently
    mis-analyzing data is much larger.
-2. A unit test exercises a single function with
-   known inputs and checks the output. An
-   integration test runs a pipeline segment
-   (multiple functions) on synthetic data and
-   checks the pipeline's output. An end-to-end
-   test runs the full analysis pipeline from raw
-   data to final figures/tables. Unit tests are
-   fast and narrow; end-to-end tests are slow and
-   broad; integration tests sit in between, with
-   good cost-benefit for analytic pipelines.
-3. `expect_equal_to_reference()` captures the
-   *object* an expression returns (a coefficient
-   vector, a fitted summary, a data frame) by
-   saving it to an `.rds` file on first run, when
-   the test passes trivially. On subsequent runs it
-   compares the new object against the saved one,
-   so it detects changed values but ignores changes
-   in how they print. Use it when the output is
-   complex and not easily expressed as a literal
-   value. Inspect the stored reference once, since
-   the first run accepts whatever the code
-   produced, and review every later difference
-   manually before deleting and regenerating the
-   file.
+2. A unit test exercises a single function with known inputs and
+   checks the output. An integration test runs a pipeline segment
+   (multiple functions) on synthetic data and checks the
+   pipeline's output. An end-to-end test runs the full analysis
+   pipeline from raw data to final figures and tables. Unit tests
+   are fast and narrow; end-to-end tests are slow and broad;
+   integration tests sit in between, with good cost-benefit for
+   analytic pipelines.
+3. `expect_equal_to_reference()` captures the *object* an
+   expression returns (a coefficient vector, a fitted summary, a
+   data frame) by saving it to an `.rds` file on first run, when
+   the test passes trivially. On subsequent runs it compares the
+   new object against the saved one, so it detects changed values
+   but ignores changes in how they print. Use it when the output is
+   complex and not easily expressed as a literal value. Inspect the
+   stored reference once, since the first run accepts whatever the
+   code produced, and review every later difference manually before
+   deleting and regenerating the file.
