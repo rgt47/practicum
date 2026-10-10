@@ -100,6 +100,7 @@ book:
     - D-peer-survey.qmd
     - E-lab-software.qmd
     - F-glossary.qmd
+    - G-instructor-guide.qmd
     - credits.qmd
     - colophon.qmd
 
@@ -126,6 +127,7 @@ format:
     toc-depth: 3
     anchor-sections: true
     smooth-scroll: true
+    reference-location: margin
 
   pdf:
     pdf-engine: xelatex

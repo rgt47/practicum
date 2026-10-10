@@ -146,37 +146,16 @@ flowchart TD
   H7 --> D
 ```
 
-The same seven habits, in the order of the figure:
+The figure groups seven of them. Here is the full
+list of twelve, as @sec-habits first set it out and
+as each chapter has cited it since:
 
-1. **The compendium is the unit.** A
-   research-compendium structure with `R/`,
-   `analysis/`, and a declared environment is the
-   unit of reproducibility.
-2. **Pin the environment.** `renv` pins R packages;
-   a container pins everything else, before the
-   compendium leaves your machine.
-3. **Version control from day one.** Every chunk of
-   analysis code is under Git; tag at submission.
-4. **Pre-specify, then tag.** Every clinically
-   meaningful analysis has a SAP, tagged in Git
-   before data lock. Pre-specification is what
-   distinguishes confirmatory from exploratory
-   work.
-5. **Test the statistics, not the shape.** A test
-   that checks only that a column exists passes on
-   a wrong answer; test the estimates, counts, and
-   invariants the conclusions rest on.
-6. **Every number in the prose is computed.**
-   Numbers, tables, and figures in a paper come
-   from code and inline expressions, never from
-   typing; manual steps are reproducibility holes.
-7. **Every model output is a hypothesis until
-   verified.** LLM suggestions included:
-   AI-amplified workflow demands amplified
-   verification.
+{{< include _habits.md >}}
 
-If you take only one habit from this book, take
-the first: every analysis lives in a compendium.
+All twelve serve the idea in @sec-habits: make silent
+failures loud. If you take only one habit from this
+book, take the first: every analysis lives in a
+compendium.
 Most of the others build on it, although a
 compendium alone prevents none of the failures of
 inference in @sec-ethics.

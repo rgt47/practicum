@@ -1,0 +1,61 @@
+# Instructor Guide {#sec-instructor-guide}
+
+This appendix is for instructors. It collects the material that
+explains why the book is built as it is, where each chapter's
+content comes from, and how its parts can be assigned. Students
+can skip it.
+
+## Course length
+
+The book is written for a two-quarter sequence at about two
+chapters a week, with a one-quarter core path of twenty
+chapters. The preface gives the core path week by week.
+
+## Why the book covers what it covers
+
+Several chapters exist because comparable graduate programs
+teach the topic and the author's students reported needing it
+in their first jobs. The survey of peer programs behind those
+decisions is in @sec-peer-survey.
+
+## Chapter sources and rationale
+
+Each entry records the lecture notes, courses, and prior
+material a chapter draws on, and the reason it is in the book.
+This material previously opened each chapter; it moved here so
+that chapters open with the problem they solve.
+
+### renv for Package Management
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
+
+*Rationale.* Package drift is the most common cause of an analysis
+that re-runs without error and returns a different number, and
+`renv` is the community-standard remedy. The chapter teaches the
+three verbs through the judgments they require (when to snapshot,
+which direction to resolve a `status()` report, which packages the
+static scan misses) and defers everything beneath the R layer to
+@sec-docker. The full Dockerfile that previously appeared here now
+lives only in @sec-docker-canonical; the chapter keeps the four
+lines that belong to `renv`. `zzrenvcheck` is presented as one way
+to automate an audit that `renv::status()` and
+`renv::dependencies()` perform first. Its exercises modify a
+project library, so their keys describe what a correct result
+looks like rather than giving output.
+
+### Joining and Reshaping
+
+*Sources.* Stat 545, Chapters 14 to 16 (Jenny Bryan, University of
+British Columbia); the `dplyr` two-table verbs reference.
+
+*Rationale.* The join call is trivial; the errors are not. The
+chapter is organized around the two silent failure modes (dropped
+rows and multiplied rows) and the arithmetic that catches them:
+predicted row counts, declared relationships, and anti-join
+audits. The generic verb tour is left to R for Data Science
+[@wickham2023r4ds], as it is throughout the data chapters, the
+pandas comparison is reduced to a footnote, and `rows_*` is an
+aside. The join checklist
+(@tbl-join-checklist) is meant to be reused in @sec-databases and
+@sec-analysis-plan; students can use it as a review rubric.

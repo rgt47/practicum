@@ -242,6 +242,24 @@ preface. We would
 emphasize that the exercises are the work. The
 chapters are merely the scaffolding.
 
+## The habits this book teaches {#sec-habits}
+
+The book has one idea under all of its tools: **make
+silent failures loud.** The errors that damage an
+analysis are rarely the ones that stop it. A join
+that multiplies rows, a package update that changes a
+number, and a figure built from a stale intermediate
+file all run without complaint. Each chapter teaches
+a habit that turns one of those quiet failures into a
+loud one, and each habit below is numbered so that
+later chapters can point back to it.
+
+{{< include _habits.md >}}
+
+You do not need to memorize the list now. Every
+chapter ends by naming the habits it has exercised,
+and @sec-synthesis returns to the whole list.
+
 ## The chapter pattern
 
 We note that every chapter follows the same

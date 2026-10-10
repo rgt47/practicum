@@ -2,6 +2,22 @@
 
 This directory contains all data files for the project, organized by processing stage.
 
+## HF-HOME running study (`raw_data/hfhome/`)
+
+The synthetic HF-HOME trial used as the book's running study (refactoring
+plan Part 5.1) lives in `raw_data/hfhome/`: eight CSV exports
+(demographics, randomization, baseline, visits, labs, medications,
+outcomes, and a raw CRF export with planted file pathologies) and a
+codebook, `raw_data/hfhome/README.md`, that documents every column and
+every planted pathology. The files are generated, not collected:
+
+```
+Rscript analysis/scripts/make_hfhome.R
+```
+
+regenerates them from `practicum::hfhome_generate()` (seed 20260423).
+Do not edit them by hand.
+
 ## Directory Structure
 
 ```

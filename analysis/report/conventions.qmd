@@ -1,6 +1,31 @@
 # Conventions {.unnumbered}
 
-This book uses a small set of visual conventions.
+This book uses a small set of visual conventions, and uses
+them the same way in every chapter.
+
+## Where you are
+
+Each chapter opens with the same diagram of a reproducible
+analysis, with the stage the chapter teaches highlighted. The
+six stages along the top are the order of work; the two bands
+beneath run under all of them.
+
+```{r}
+#| label: conventions-pipeline-setup
+#| include: false
+source('_pipeline.R')
+```
+
+```{r}
+#| label: fig-conventions-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "The analysis pipeline that opens each chapter. Here the
+#|   Wrangle stage is highlighted, as it is in the wrangling chapter."
+#| fig-alt: !expr pipeline_alt('wrangle')
+pipeline_diagram('wrangle')
+```
 
 ## In code blocks
 
@@ -11,6 +36,9 @@ This book uses a small set of visual conventions.
 - Numbered discs in the code gutter (1, 2, 3) are annotations.
   Hover or tap them to read the annotation, or read the
   numbered list below the block.
+- Code shown but not run, such as shell commands that would
+  change your machine, is said to be display-only where it
+  appears.
 
 A minimal example:
 
@@ -28,27 +56,46 @@ penguins |>                                       # <1>
 
 ## In prose
 
-- **Bold** marks a term on its first use.
+- **Bold** marks a term on its first use; the glossary in the
+  appendix defines it.
 - `monospace` marks code, file paths, and package names.
 - `package::function()` disambiguates function ownership when
   the package is not obvious from context.
+- Asides, history, and version notes are footnotes, shown in
+  the margin of the web edition and at the foot of the page in
+  print, so that the main text carries only what you need.
+- 'Habit 6' and similar refer to the numbered habits in
+  @sec-habits.
 
 ## Callouts
 
-::: {.callout-note title='Note'}
-Clarification that is useful but not essential on first read.
+The book uses exactly four kinds, so that each one means one
+thing.
+
+::: {.callout-note collapse='true' title='Check'}
+A short question after a major section, with its answer
+folded inside. Try it before you open it: retrieving an idea
+is what fixes it in memory.
 :::
 
 ::: {.callout-tip title='Verification'}
-A concrete check the reader should run. This is the book's
-signature callout and appears after every non-trivial example.
+A command to run after a worked example that confirms it did
+what it claims. If the check fails, stop and find out why
+before going on.
 :::
 
 ::: {.callout-warning title='Pitfall'}
-A failure mode reported by past students of the course.
+A silent failure that analysts actually hit: one that runs
+without error and produces a wrong answer.
 :::
 
 ::: {.callout-important title='LLM prompt'}
-An adversarial prompt for use with a language model, paired
-with an explicit verification step.
+A prompt for a language model or coding agent, placed beside
+the task it helps with, with the check that verifies what it
+returns. Send models structure, not data; @sec-ai-governance
+says why.
 :::
+
+Some chapters have not yet been converted to this scheme and
+still use earlier callout styles; they are being brought into
+line.
