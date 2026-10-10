@@ -693,8 +693,9 @@ The two sides agree on the fitted model only because three
 settings were made to agree: the covariance (`TYPE = UN` and
 `us()`), the estimation method (REML in both), and the denominator
 degrees of freedom (`DDFM = KR` and `method = "Kenward-Roger"`).
-Leave out `DDFM = KR` and SAS uses between-within degrees of
-freedom; leave out `method =` and `mmrm` uses Satterthwaite's. The
+Leave out `DDFM = KR` and SAS uses the between-within method,
+which with `TYPE = UN` and no `RANDOM` statement gives every
+effect the between-subject degrees of freedom; leave out `method =` and `mmrm` uses Satterthwaite's. The
 estimates agree either way; the confidence intervals and p-values
 do not.
 

@@ -1514,7 +1514,9 @@ provider trusts only runs from your repository and branch.
 
 : Supply-chain basics for a workflow. {#tbl-ci-security}
 
-[^tj-actions]: The incident is CVE-2025-30066. The SHA shown for
+[^tj-actions]: The incident is CVE-2025-30066: tags v1 through
+    v45.0.7 pointed at the malicious commit on 14 and 15 March
+    2025. The SHA shown for
     `actions/checkout` in the next listing was read from the
     action's repository with `git ls-remote` in October 2026.
 
@@ -1535,7 +1537,10 @@ jobs:
 The comment keeps the version readable. Pins do not update
 themselves, so add a Dependabot configuration that opens a pull
 request when a pinned action has a new release, with the SHA and
-the comment both updated (display-only):
+the comment both updated. Version updates are the safeguard here,
+because Dependabot alerts for vulnerable actions cover only
+actions referenced by a version tag, not those pinned to a SHA
+(display-only):
 
 ```yaml
 # .github/dependabot.yml

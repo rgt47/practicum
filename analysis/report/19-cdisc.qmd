@@ -21,7 +21,8 @@ shows where each convention can go silently wrong.
 *The nice thing about standards is that you have so many to
 choose from.*
 
-[Andrew S. Tanenbaum]{.smallcaps}, *Computer Networks* (1981)
+[Andrew S. Tanenbaum]{.smallcaps}, *Computer Networks*
+(attributed; wording and page vary by edition)
 ```{=latex}
 \end{flushright}
 ```
@@ -813,10 +814,15 @@ tplyr_table(adsl, TRT01P) |>
 ### R in submissions and validated packages
 
 R is accepted in submissions. The R Consortium's R Submissions
-Working Group has run pilot submissions to FDA built in R, the
-first of which, a package of TLFs, completed FDA review in 2022;
-later pilots extended the approach to a Shiny application and to
-ADaM datasets built in R.[^pilots] What a sponsor must show is
+Working Group has run pilot submissions to FDA built in R. Pilot
+1, four TLFs, received FDA's final review response in March 2022;
+Pilot 2, a Shiny application, received its response in September
+2023; Pilot 3, ADaM datasets and TLFs built in R, received its
+final response letter in August 2024; and Pilot 4, the Shiny
+application delivered through WebAssembly and through a
+container, received FDA's review letter in May 2026.[^pilots]
+These are test submissions, not drug approvals. What a sponsor
+must show is
 that the software it relies on is fit for purpose. The R
 Validation Hub, another R Consortium working group, publishes a
 risk-based approach to that question, and its `riskmetric` package
@@ -830,10 +836,13 @@ pkg_ref('survival') |>
   pkg_score()
 ```
 
-[^pilots]: As of 2026-10. The pilots' materials and FDA response
-    letters are public on the working group's GitHub organization
-    (`github.com/RConsortium`); check there for the current status
-    of the later pilots before citing them.
+[^pilots]: As of 2026-10. Dates are from the working group's
+    pilot pages (`rconsortium.github.io/submissions-wg`), the
+    pilot repositories on GitHub (`github.com/RConsortium`), and
+    R Consortium announcements of August 2024 (Pilot 3) and May
+    2026 (Pilot 4). Pilot 5, which replaces XPT with Dataset-JSON,
+    was resubmitted in January 2026; check its repository for the
+    current status before citing it.
 
 ### Double programming
 

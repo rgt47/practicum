@@ -875,7 +875,8 @@ aws_as_of <- data.frame(
            'General-purpose solid-state disk',
            'First 10 TB a month, after 100 GB free'),
   usd = c(0.0832, 0.17, 0.68, 1.008, 3.912, 0.023, 0.08, 0.09),
-  unit = c(rep('hour', 5), 'GB-month', 'GB-month', 'GB')
+  unit = c(rep('hour', 5), 'GB-month', 'GB-month', 'GB'),
+  checked = as.Date('2026-10-10')
 )
 price <- function(x) aws_as_of$usd[aws_as_of$item == x]
 hours_per_month <- 730
@@ -884,8 +885,11 @@ hours_per_month <- 730
 ```{r}
 #| label: tbl-cloud-as-of
 #| echo: false
-#| tbl-cap: "AWS facts this chapter relies on, as of 2025: on-demand
-#|   Linux prices in the us-east-1 region. Prices change and differ
+#| tbl-cap: "AWS facts this chapter relies on: on-demand Linux
+#|   prices in the us-east-1 region. Every price was checked on the
+#|   date shown against AWS's published price-list data; none is an
+#|   estimate. The 100 GB of free transfer out is pooled across
+#|   services and regions each month. Prices change and differ
 #|   by region; check the AWS pricing pages before you budget. Spot
 #|   capacity is advertised at up to 90 percent below on-demand, and
 #|   the actual discount varies by type, region, and week. Free-tier
@@ -896,6 +900,7 @@ knitr::kable(
   data.frame(Item = aws_as_of$item, Specification = aws_as_of$spec,
              `Price (USD)` = sprintf('%.4g per %s', aws_as_of$usd,
                                      aws_as_of$unit),
+             Checked = format(aws_as_of$checked),
              check.names = FALSE)
 )
 ```

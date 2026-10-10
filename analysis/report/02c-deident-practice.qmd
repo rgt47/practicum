@@ -117,10 +117,12 @@ prefixed `SYN-`), and telephone numbers (in the fictional `555-01`
 exchange) are synthetic; the ZIP codes are real codes, so the
 transformations behave as they would on real data; some patients
 are over 89; and the generator plants three ZIP prefixes, `036`,
-`059`, and `821`, that the HHS guidance lists among those whose
-areas have 20,000 or fewer people. The full list comes from
-current Census data, as the HHS guidance explains; check it there
-before applying this code to real data.[^zip3]
+`059`, and `821`, that the HHS guidance lists among the 17
+prefixes whose areas had 20,000 or fewer people in the 2000
+Census. The regulation asks for current Census data, and the
+guidance warns against relying on its 2000 list once newer data
+are published; derive the list from current data before applying
+this code to real data.[^zip3]
 
 [^zip3]: The three prefixes are the ones the HF-HOME generator
     plants, not the complete restricted list. Hard-coding a list

@@ -16,9 +16,9 @@ analysis set, and it rebuilds the one whenever the other changes.
 ```{=latex}
 \begin{flushright}\small
 ```
-*Make is a tool which controls the generation of
-executables and other non-source files of a program from
-the program's source files.*
+*Make provides a simple mechanism for maintaining up-to-date
+versions of programs that result from many operations on a
+number of files.*
 
 [Stuart Feldman]{.smallcaps}, *Make: A Program for
 Maintaining Computer Programs* (1979)
