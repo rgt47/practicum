@@ -1,19 +1,22 @@
 # Federal Requirements and Deposition {#sec-federal}
 
-The Data Management and Sharing Plan (DMSP) is due before any of
-the work begins. It is written with the grant application, two
-years before the first dataset exists, and NIH program staff
-approve it as a term of the award. The plan written in the last
-hour before submission says 'data will be deposited in a public
-repository at publication', and nobody objects. At publication
-the analyst discovers what the sentence committed to: the
-participant-level data carry protected health information (PHI),
-the repository named accepts only de-identified data, and
-unconditional public release was never something the consent
-form allowed. Nothing failed when the plan was written; it fails
-at the moment it is executed. This chapter is about writing the
-plan so that it can be carried out, and about the deposit that
-carries it out.
+The Data Management and Sharing Plan (DMSP) was written with the
+grant application, two years before the first dataset existed,
+and NIH program staff approved it as a term of the award. The
+plan written in the last hour before submission said 'data will
+be deposited in a public repository at publication', and nobody
+objected. At publication the analyst discovers what the sentence
+committed to: the participant-level data carry protected health
+information (PHI), the repository named accepts only
+de-identified data, and unconditional public release was never
+something the consent form allowed. Nothing failed when the plan
+was written; it fails at the moment it is executed. Writing the
+plan so that it can be carried out is the subject of
+@sec-federal-dmsp, beside the statistical analysis plan. This
+chapter is about the end of the project: what the federal
+public-access policies require at publication, which repository
+each artifact goes to, and the check that runs before anything
+leaves the institution.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -40,19 +43,19 @@ source('_pipeline.R')
 #| fig-width: 6.5
 #| fig-height: 2
 #| fig-cap: "Where this chapter sits: deposition is the Share stage,
-#|   where the compendium becomes a citable, preserved record. Its
-#|   plan, the DMSP, is written before the Plan stage begins."
+#|   where the compendium becomes a citable, preserved record,
+#|   and the DMSP written at the Plan stage is carried out."
 #| fig-alt: !expr pipeline_alt('share')
 pipeline_diagram('share')
 ```
 
 ::: {.callout-note title='In this chapter'}
-**Reading time.** About 20 minutes.
+**Reading time.** About 15 minutes.
 
-**You'll need.** @sec-deident for the de-identification
-pathways, @sec-renv for the lockfile, and @sec-analysis-plan for
-the HF-HOME trial. The code reads the running study's files and
-uses:
+**You'll need.** @sec-federal-dmsp for the HF-HOME DMSP and its
+deposit manifest, @sec-deident-practice for the de-identified
+release, and @sec-renv for the lockfile. The code reads the
+running study's files and uses:
 
 ```r
 library(dplyr)
@@ -60,8 +63,8 @@ library(dplyr)
 
 **You'll be able to.**
 
-- Write each of the six elements of an NIH DMSP so that a reader
-  could check, at publication, whether it was carried out.
+- Check a deposit, element by element, against the DMSP written
+  at the start of the project.
 - State which federal public-access requirements apply to a
   project, from a dated table you keep current.
 - Choose a repository and an access mode for each artifact from
@@ -71,7 +74,6 @@ library(dplyr)
 
 **Outline.**
 
-- [The DMSP comes first](#sec-federal-dmsp)
 - [What the policies require](#sec-federal-policy)
 - [Choosing a repository](#sec-federal-repository)
 :::
@@ -83,235 +85,17 @@ answers are in @sec-quiz-answers-25c.
 1. What does the 2022 Office of Science and Technology Policy
    (OSTP) 'Nelson memo' require of federally funded research,
    and by when were agencies to implement it?
-2. What are the six elements of an NIH DMSP under the 2023
-   policy, and who assesses the plan?
+2. Why are dbGaP and The Cancer Imaging Archive (TCIA) the wrong
+   repositories for a trial's general clinical data?
 3. Your code is public on GitHub. Is that a deposit, for the
    purposes of a DMSP?
 :::
 
-## The DMSP comes first {#sec-federal-dmsp}
-
-The rest of this chapter's requirements arrive at the end of a
-project, when almost everything they ask for exists: a
-compendium (@sec-rrtools), a lockfile (@sec-renv), a container
-(@sec-docker), a pipeline that rebuilds the analysis
-(@sec-targets). The DMSP is the exception. Its timing runs
-opposite to everything else here, which is why it belongs with
-the other planning documents, beside the statistical analysis
-plan (SAP) of @sec-analysis-plan.
-
-### The six elements
-
-```{r}
-#| label: federal-hf-size
-#| include: false
-hf_dir   <- file.path("..", "data", "raw_data", "hfhome")
-hf_n     <- nrow(readr::read_csv(file.path(hf_dir, "randomization.csv"),
-                                 col_types = readr::cols(.default = "c")))
-hf_files <- list.files(hf_dir, pattern = "\\.csv$", full.names = TRUE)
-hf_mb    <- ceiling(sum(file.size(hf_files)) / 1e6)
-```
-
-Since January 2023, every NIH application for research that will
-generate scientific data must include a DMSP, recommended to run
-no more than two pages. The plan is assessed by NIH program
-staff, not scored by peer reviewers: reviewers do not factor it
-into the overall impact score unless the funding opportunity says
-otherwise. The approved plan becomes a term of the award,
-program officers can require updates, and compliance is monitored
-after the award. @tbl-federal-dmsp-elements lists the six
-elements, what each must say to be checkable, and what HF-HOME
-says.
-
-| Element | What to write | HF-HOME |
-|---|---|---|
-| 1. Data type | What data, in what format and volume, and which will be shared | Case report form (CRF), outcome, and laboratory data for `r format(hf_n, big.mark = ",")` patients, about `r hf_mb` MB as CSV; participant-level data shared after de-identification |
-| 2. Related tools, software, code | What is needed to use the data; whether code is shared | R and Quarto; `renv.lock` and a Dockerfile in the deposit; code shared |
-| 3. Standards | Data and metadata standards | CDISC SDTM domains; the codebook as the data dictionary |
-| 4. Preservation, access, timelines | Named repository, persistent identifier, when | De-identified data in a controlled-access clinical-trial repository; code on Zenodo; at the primary publication or the end of the award, whichever is first |
-| 5. Access, distribution, reuse | Access conditions, license, limitations from consent | Data use agreement (DUA) for participant-level data; CC BY 4.0 for summaries; MIT license for code |
-| 6. Oversight | Who is responsible and how compliance is checked | PI and trial statistician; reported in the annual progress report |
-
-: The six DMSP elements. The middle column is the test: a
-sentence that names no file, repository, or date cannot be
-checked. {#tbl-federal-dmsp-elements}
-
-### Treat the plan as a workflow document
-
-A plan that says 'data will be deposited at Zenodo at
-publication' is compliant on paper and provides no mechanism to
-make it happen. A plan that builds deposition into the pipeline
-(a tagged release that mints a digital object identifier, or
-DOI, at every preprint; a continuous-integration job that checks
-the data DOI resolves) enforces itself. Two judgments decide
-whether the plan can be carried out:
-
-- **Public access does not mean unsupervised release.** PHI,
-  contractually restricted data, and preliminary unverified data
-  are inappropriate for unconditional public release. The
-  standard response is tiered access: de-identified
-  participant-level data under controlled access, with a
-  synthetic or summary dataset for open access.
-- **Point to the environment; do not describe it.** 'Analysis
-  used standard R packages' is uselessly vague. 'The deposit
-  includes `renv.lock` and a Dockerfile' is verifiable. Why a
-  lockfile and not the `Imports:` field of a `DESCRIPTION` file
-  is the subject of @sec-renv; the DMSP needs only the pointer,
-  and the deposit needs the files.
-
-### Worked example: the HF-HOME DMSP
-
-> **1. Data type.** Participant-level data from the
-> `r format(hf_n, big.mark = ",")` patients to be randomized:
-> demographics, randomization, baseline, visit, laboratory,
-> medication, and 30-day outcome records, as CSV files of about
-> `r hf_mb` MB in total. As collected, the files contain PHI.
-> Only de-identified data will be shared: participant-level
-> data de-identified by Expert Determination, so that day offsets
-> from discharge survive (@sec-deident), and summary data
-> (Table 1 and the primary results).
->
-> **2. Related tools, software, and code.** Data captured in the
-> trial's electronic data capture system and exported to CSV.
-> Analysis in R and Quarto; the deposit includes `renv.lock`, a
-> Dockerfile, and the code that rebuilds every reported number.
-> Code is shared under the MIT license.
->
-> **3. Standards.** CDISC Study Data Tabulation Model (SDTM)
-> domains for demographics, exposure, and disposition
-> (@sec-cdisc); the trial codebook as the data dictionary.
->
-> **4. Data preservation, access, and timelines.** De-identified
-> participant-level data deposited under controlled access in a
-> clinical-trial data repository agreed with the program officer
-> (BioLINCC if the funding institute is NHLBI and it requests the
-> data; otherwise Vivli). Summary data and the synthetic HF-HOME
-> generator on Zenodo under CC BY 4.0. Code on GitHub, archived
-> to Zenodo at each tagged release for a DOI. Deposit at the
-> primary publication or the end of the award, whichever comes
-> first.
->
-> **5. Access, distribution, and reuse.** Controlled-access data:
-> the requester signs the repository's DUA and meets its approval
-> requirements, which may include review by their own
-> institutional review board (IRB). The consent form permits
-> sharing of de-identified data for research; no data are
-> released beyond its terms.
->
-> **6. Oversight.** The PI is responsible for the plan; the trial
-> statistician maintains the deposit manifest and checks it
-> before each release. Progress is reported in the annual
-> progress report.
-
-This is the specificity program staff look for, and every
-sentence can be checked at publication. Vague language ('data
-will be shared appropriately') gets flagged. If an analysis
-needed actual dates rather than offsets, a limited data set
-shared under a DUA is the alternative; it remains PHI, so it is
-shared only with recipients who sign that agreement and only as
-the consent form and IRB permit. Confirm that a repository accepts
-limited data sets before naming one in the plan.
-
-::: {.callout-tip title='Verification'}
-The plan promises that only de-identified data leave the
-institution. Before writing that sentence, check which of the
-running study's files carry a Safe Harbor identifier as received,
-using the identifier list of @sec-deident-worked:
-
-```{r}
-#| label: federal-manifest
-#| message: false
-library(dplyr)
-
-hf_dir <- file.path("..", "data", "raw_data", "hfhome")
-identifiers <- c("mrn", "first_name", "last_name", "dob", "zip",
-                 "phone", "discharge_date", "rand_date",
-                 "visit_date", "event_date", "readmit_date",
-                 "death_date")
-
-files <- list.files(hf_dir, pattern = "\\.csv$")
-manifest <- tibble(
-  file = files,
-  identifier_columns = vapply(files, \(f) {
-    cols <- names(readr::read_csv(file.path(hf_dir, f), n_max = 0,
-                                  show_col_types = FALSE))
-    paste(intersect(cols, identifiers), collapse = ", ")
-  }, character(1))
-)
-manifest
-```
-
-`r sum(manifest$identifier_columns != "")` of the
-`r nrow(manifest)` files carry an identifier as received, because
-every file that records a date does, so they cannot be deposited
-as they are. The plan's
-first element has to promise de-identified data, and the
-deposit has to be built from a release such as the one in
-@sec-deident-worked.
-:::
-
-::: {.callout-important title='LLM prompt'}
-> **Context.** Attached: a draft NIH DMSP for a two-arm trial,
-> the consent form's data-sharing paragraph, and the funding
-> institute's name. No participant data.
->
-> **Constraints.** Audit the draft against the six NIH elements.
-> Do not rewrite it. Do not name a repository I did not name.
->
-> **Criteria.** For each element, list every sentence that names
-> no file, repository, date, or responsible person, and every
-> commitment that exceeds the consent form. Mark each item
-> 'missing', 'ambiguous', or 'conflicts with consent'.
-
-*Failure mode.* The standard elements are easy to audit, and the
-model does this well. It misses commitments that conflict with
-something it was not shown (a license that a third-party data
-source forbids, a repository that does not accept limited data
-sets), and it reports the plan as complete when every element is
-present but vague. *Check.* Apply the middle column of
-@tbl-federal-dmsp-elements to each sentence yourself, then give
-the audited plan to a colleague whose DMSP has been through NIH
-program staff (@sec-ai-governance).
-:::
-
-### Exercises
-
-1. Each sentence is from a draft DMSP. Say what is wrong and
-   rewrite it so that it can be checked: (a) 'Data will be made
-   available upon reasonable request.' (b) 'All data, including
-   CRFs, will be deposited in Zenodo at publication.'
-   (c) 'Standard statistical software will be used.'
-
-::: {.callout-note collapse='true' title='Solution'}
-(a) It names no repository, no timeline, and no access process,
-and 'upon request' is not deposit. Rewrite: 'De-identified
-participant-level data will be deposited under controlled access
-in [named repository] at the primary publication, available to
-requesters who sign its DUA.' (b) CRFs contain PHI as collected,
-and Zenodo is an open, general-purpose repository. Rewrite:
-'De-identified participant-level data under controlled access in
-[clinical-trial repository]; summary tables and code on Zenodo.'
-(c) Unverifiable. Rewrite: 'Analysis in R; the deposit includes
-`renv.lock`, a Dockerfile, and the code that rebuilds every
-reported number.'
-:::
-
-::: {.callout-note collapse='true' title='Check'}
-**Question.** A colleague argues that the DMSP can be written
-loosely because 'nobody scores it'. What is wrong with the
-argument?
-
-**Answer.** Being unscored at review is not being unenforced.
-Program staff assess the plan before award, the approved plan
-becomes a term of the award, and compliance is monitored
-afterward. A loose plan also fails its author: a plan written
-before the work is the only document that can commit the
-project to a deposit structure, and one that promises the wrong
-access mode is discovered at publication, when changing it means
-renegotiating with the program officer.
-:::
-
 ## What the policies require {#sec-federal-policy}
+
+The DMSP (@sec-federal-dmsp) said what the project would share,
+where, and when; this section and the next are the end of the
+project, when that plan is carried out.
 
 The policy direction in the United States has been toward public
 access for publicly funded research: shorter embargoes, a wider
@@ -371,7 +155,7 @@ you submit.
 
 ### Exercises
 
-2. Two HF-HOME papers are funded by NIH. Paper A was accepted on
+1. Two HF-HOME papers are funded by NIH. Paper A was accepted on
    2025-06-20 and Paper B on 2025-07-10, and both are published
    in September 2025. Under the 2024 NIH Public Access Policy,
    which must be public in PubMed Central on its publication
@@ -518,7 +302,7 @@ the leading trials in your field cite.
 
 ### Exercises
 
-3. Name an appropriate repository and access mode for each:
+2. Name an appropriate repository and access mode for each:
    (a) RNA-seq counts from a mouse experiment; (b) HF-HOME's
    participant-level outcome data; (c) the analysis code and
    codebook for (b); (d) a synthetic dataset that lets a reviewer
@@ -555,9 +339,9 @@ external, timestamped, immutable record is what makes it evidence.
 
 ## Rules of thumb
 
-1. **Habit 5: pre-specify, then tag.** The DMSP is the
-   pre-specification of sharing; write it so that it can be
-   checked at publication, and build deposition into the pipeline.
+1. **Habit 5: pre-specify, then tag.** The DMSP was the
+   pre-specification of sharing; check the deposit against each
+   of its elements, and build deposition into the pipeline.
 2. **Habit 4: pin the environment.** The plan points to
    `renv.lock` and a Dockerfile, and the deposit contains them.
 3. **Habit 1: the compendium is the unit.** Deposit code, data,
@@ -567,23 +351,42 @@ external, timestamped, immutable record is what makes it evidence.
 
 ## Cumulative practice
 
-4. *Cumulative (uses @sec-deident and @sec-renv).* Extend
-   `manifest` from the Verification into a deposit manifest: add
+3. *Cumulative (uses @sec-federal-dmsp and @sec-renv).* Rebuild
+   `manifest` from the Verification in @sec-federal-dmsp, and
+   extend it into a deposit manifest: add
    a `destination` column (controlled-access repository or
    Zenodo), add the codebook, `renv.lock`, and the Dockerfile as
    rows, and write a `stopifnot()` that fails if anything bound
    for an open repository is participant-level or has identifier
    columns.
-5. *On your own work (no key).* Pick a recent biomedical paper in
+4. *On your own work (no key).* Pick a recent biomedical paper in
    your field. Check whether its data and code are reachable at a
    persistent identifier, whether the access mode suits the data,
    and whether the paper's data-availability statement could be
    checked by a reader. Write one paragraph classifying its
    compliance.
 
-::: {.callout-note collapse='true' title='Solution to exercise 4'}
+::: {.callout-note collapse='true' title='Solution to exercise 3'}
 ```{r}
-#| label: soln-25c-4
+#| label: soln-25c-3
+#| message: false
+library(dplyr)
+
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+identifiers <- c("mrn", "first_name", "last_name", "dob", "zip",
+                 "phone", "discharge_date", "rand_date",
+                 "visit_date", "event_date", "readmit_date",
+                 "death_date")
+files <- list.files(hf_dir, pattern = "\\.csv$")
+manifest <- tibble(
+  file = files,
+  identifier_columns = vapply(files, \(f) {
+    cols <- names(readr::read_csv(file.path(hf_dir, f), n_max = 0,
+                                  show_col_types = FALSE))
+    paste(intersect(cols, identifiers), collapse = ", ")
+  }, character(1))
+)
+
 deposit <- manifest |>
   mutate(participant_level = TRUE,
          destination = "Controlled access, de-identified release") |>
@@ -615,7 +418,7 @@ identifier is absent, not that the data are safe to publish
 
 | Task | Do | Guards against |
 |---|---|---|
-| Write the DMSP | Name files, repositories, dates, responsible people | A plan that cannot be checked |
+| Carry out the DMSP | Check the deposit against each element (@sec-federal-dmsp) | A plan approved and never executed |
 | Plan data sharing | De-identified data under controlled access; synthetic or summary data open | PHI or participant-level data in an open repository |
 | Describe the environment | Point to `renv.lock` and a Dockerfile (@sec-renv) | 'Standard R packages' |
 | Track policy | One dated table with a 'Verified' column | Superseded requirements cited as current |
@@ -645,12 +448,11 @@ identifier is absent, not that the data are safe to publish
    were to have their updated policies in effect by the end of
    2025; @tbl-federal-asof records each agency's implementation
    and when it was last checked.
-2. Data type; related tools, software, and code; standards; data
-   preservation, access, and timelines; access, distribution, and
-   reuse considerations; and oversight. NIH program staff assess
-   the plan; peer reviewers do not score it unless the funding
-   opportunity says otherwise, and the approved plan becomes a
-   term of the award.
+2. Each has a narrow scope. dbGaP is for studies that pair
+   genotype with phenotype, and TCIA for cancer imaging; general
+   clinical-trial data fit neither, and belong, de-identified and
+   under controlled access, in a clinical-trial repository such as
+   BioLINCC or Vivli (@tbl-federal-repo-match).
 3. No. GitHub hosts; it makes no preservation commitment, and a
    URL names no fixed version. Archive a tagged release to Zenodo
    (or a domain repository) for a DOI and a snapshot, and cite

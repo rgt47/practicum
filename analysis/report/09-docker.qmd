@@ -46,8 +46,7 @@ pipeline_diagram('environment')
 ::: {.callout-note title='In this chapter'}
 **Reading time.** About 25 minutes.
 
-**You'll need.** @sec-renv for the lockfile and @sec-rrtools for
-the compendium layout the Dockerfile assumes, and Docker Desktop
+**You'll need.** @sec-renv for the lockfile, and Docker Desktop
 (or Docker Engine on Linux) installed. The one executed example
 uses base R and the HF-HOME files; every Docker command is
 display-only, because the book does not run Docker when it
@@ -325,9 +324,11 @@ question entirely.
 
 ## A research-compendium Dockerfile {#sec-docker-canonical}
 
-This is the book's one canonical Dockerfile; @sec-rrtools and
-@sec-renv use it unchanged. It assumes the compendium layout of
-@sec-rrtools, a `renv.lock` that includes `rmarkdown` and `knitr`
+This is the book's one canonical Dockerfile; @sec-renv and
+@sec-rrtools use it unchanged. It assumes a compendium with the
+paper at `analysis/paper/` (the layout @sec-rrtools, the next
+chapter, sets out in full), a `renv.lock` that includes
+`rmarkdown` and `knitr`
 (Quarto needs both to run R chunks), and the `.Rprofile` and
 `renv/activate.R` that `renv::init()` writes.
 

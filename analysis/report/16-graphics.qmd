@@ -241,6 +241,16 @@ in this chapter:
   thousand, a boxplot or violin shows the shape where points would
   merge into ink.
 
+::: {.callout-warning title='Ethics'}
+The channel a reader decodes is also the channel a figure can
+distort. A bar whose axis starts above zero exaggerates a
+difference by the ratio of the visible lengths, and an area or
+bubble that scales a quantity by its radius rather than its area
+inflates it by a square. Neither is an error R will report;
+@sec-ethics-visual treats them as misrepresentation, which is
+how a reader who notices will judge them (@sec-ethics).
+:::
+
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A collaborator defends panel A: the whiskers show
 the uncertainty, so nothing is hidden. What do the whiskers show,

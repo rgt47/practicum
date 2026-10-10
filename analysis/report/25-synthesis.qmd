@@ -1,4 +1,18 @@
-# Course Synthesis and Review {#sec-synthesis}
+# Capstone: HF-HOME from Export to Deposit {#sec-synthesis}
+
+Every chapter so far has taught one step, and has tested it on a
+fragment of the running study chosen to make that step visible.
+An analysis does not arrive in fragments. It arrives as a raw
+case-report-form export with five sites' conventions in it, a
+question someone needs answered, and a deadline, and the steps
+interact: a cleaning rule decides a denominator, a join decides
+who is in the trial, and a plan written after the outcome was
+seen decides nothing. This chapter is the capstone project of the
+second quarter. You take the HF-HOME study from the files in
+`analysis/data/raw_data/hfhome/` to a deposited compendium with a
+tagged analysis plan, executed tests, continuous integration, a
+one-page memo, and a response to a reviewer, and you are graded
+on the twelve habits rather than on the estimate.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -15,283 +29,420 @@ place for the first time.*
 ```
 :::
 
-::: {.callout-note}
-## Sources
-
-Adapted from author's lecture notes and supporting
-materials for a graduate practicum in biostatistics.
-:::
-
-## Prerequisites
-
-No Prerequisites quiz for this chapter. Quiz answers
-appear anyway, in case you want to self-assess what
-you have taken away from the book. See
-@sec-quiz-answers-25.
-
-## What the Practicum covered
-
-We have taken the reader, over the course of this book, through
-eight parts:
-
-1. **The reproducibility mindset.** Why
-   reproducibility matters and what the word means
-   (@sec-why), what the HIPAA Privacy Rule permits
-   you to share (@sec-deident), and the team norms
-   within which all of it is practiced
-   (@sec-team-science).
-
-2. **The workstation.** Setting up R, the editor,
-   Git, and dotfiles (@sec-workstation); the Unix
-   shell beneath them (@sec-shell); Git for solo
-   work (@sec-git-solo) and for a team
-   (@sec-git-teams); and remote compute
-   (@sec-cloud).
-
-3. **Reproducible infrastructure.** Research
-   compendia (@sec-rrtools), package version
-   pinning with `renv` (@sec-renv), environment
-   reproducibility with Docker (@sec-docker), the
-   all-in-one `zzcollab` framework
-   (@sec-zzcollab), and dependency-aware pipelines
-   with `targets` (@sec-targets).
-
-4. **Reproducible reporting.** Quarto for literate
-   documents (@sec-quarto) and the R Markdown
-   workflow it succeeds (@sec-rmd-workflow).
-
-5. **Data wrangling and graphics.** Getting data in
-   (@sec-acquisition), tidyverse wrangling
-   (@sec-wrangling), type handling (@sec-types),
-   joins (@sec-joins), database extraction with SQL
-   (@sec-databases), publication graphics
-   (@sec-graphics), and missing data
-   (@sec-missing).
-
-6. **Analysis practice.** Statistical analysis plans
-   (@sec-analysis-plan), CDISC data standards
-   (@sec-cdisc), testing analytic workflows
-   (@sec-testing), continuous integration
-   (@sec-ci), AI-assisted coding (@sec-ai-coding),
-   and the SAS bridge (@sec-sas) for cross-language
-   regulatory work.
-
-7. **Case studies.** Palmer Penguins
-   (@sec-penguins) for an end-to-end small
-   analysis, ADNI MCI prediction (@sec-adni) for a
-   longitudinal exercise, and the communication of a
-   finished result (@sec-communicating).
-
-8. **Obligations.** What you owe once the analysis
-   exists: the federal requirements and the mechanics
-   of deposition (@sec-federal), and the failures of
-   inference that no amount of compliance prevents
-   (@sec-ethics). Both were held to the end because
-   both presuppose a finished artifact, one to hand
-   over and one to be skeptical about.
-
-Four appendices, besides the credits and colophon, sit
-outside the sequence. @sec-alternative-wrangling is for
-reading the base R, `data.table`, and `arrow` code that a
-tidyverse education does not prepare you for.
-@sec-peer-survey records the curricular evidence on which
-several chapters rest their case for existing.
-@sec-lab-software describes the in-house packages the book
-uses, and @sec-glossary defines its terms.
-
-The parts are progressive: each builds on the
-previous. Reproducibility is impossible without
-infrastructure; infrastructure is wasted without
-disciplined reporting; reporting without an
-analysis plan is performative; and an analysis
-nobody can read is an analysis nobody will act on.
-
-## The habits you should take forward
-
-The book has taught a great many tools, and tools date.
-The habits do not, and @fig-habits-map is the shorter
-thing worth carrying out of it: seven practices, and the
-part of the book each one came from.
-
-```{mermaid}
-%%| echo: false
-%%| label: fig-habits-map
-%%| fig-alt: "Seven habit nodes, each tagged with the part of the
-%%|   book that argued for it, all converging on a single outcome
-%%|   node. The habits are: the compendium is the unit, pin the
-%%|   environment, version control from day one, pre-specify then
-%%|   tag, test the statistics rather than the shape, every number
-%%|   in the prose is computed, and every model output is a
-%%|   hypothesis until verified. The outcome node reads: an analysis
-%%|   that survives scrutiny, and a reviewer, and a decade."
-%%| fig-cap: "Seven habits and where the book argued for each. If
-%%|   the tools in this book are all replaced within a decade, which
-%%|   is likely, these are the commitments that survive the
-%%|   replacement, because each is a statement about what makes an
-%%|   analysis defensible rather than about any particular package."
-flowchart TD
-  H1["<b>The compendium is the unit</b><br/><i>Part III</i>"]
-  H2["<b>Pin the environment</b><br/><i>Part III</i>"]
-  H3["<b>Version control from day one</b><br/><i>Part II</i>"]
-  H4["<b>Pre-specify, then tag</b><br/><i>Part VI</i>"]
-  H5["<b>Test the statistics,<br/>not the shape</b><br/><i>Part VI</i>"]
-  H6["<b>Every number in the prose<br/>is computed</b><br/><i>Part IV</i>"]
-  H7["<b>Every model output is a<br/>hypothesis until verified</b><br/><i>Part VI</i>"]
-  H1 --> D["<b>An analysis that survives<br/>scrutiny, and a reviewer,<br/>and a decade</b>"]
-  H2 --> D
-  H3 --> D
-  H4 --> D
-  H5 --> D
-  H6 --> D
-  H7 --> D
+```{r}
+#| label: synthesis-pipeline-setup
+#| include: false
+source('_pipeline.R')
+synthesis_stages <- c('plan', 'acquire', 'wrangle', 'analyze',
+                      'report', 'share', 'git', 'environment')
 ```
 
-The figure groups seven of them. Here is the full
-list of twelve, as @sec-habits first set it out and
-as each chapter has cited it since:
+```{r}
+#| label: fig-synthesis-pipeline
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2
+#| fig-cap: "Where this chapter sits: everywhere. The capstone runs
+#|   every stage of the pipeline on the running study, over both
+#|   bands, so every box is highlighted."
+#| fig-alt: "Diagram of the analysis pipeline: six stages in order
+#|   (Plan, Acquire, Wrangle, Analyze, Report, Share) above two bands
+#|   that run under every stage (Version control and Environment).
+#|   Every stage and both bands are highlighted for this chapter."
+pipeline_diagram(synthesis_stages)
+```
+
+::: {.callout-note title='In this chapter'}
+**Reading time.** About 20 minutes to read; ten weeks to do.
+
+**You'll need.** Every earlier chapter, and above all
+@sec-penguins, whose @tbl-penguins-arc is the worked model for
+the milestone table below. The codebook for the data is
+`analysis/data/raw_data/hfhome/README.md`; read it before the
+first milestone.
+
+**You'll be able to.**
+
+- Plan a complete analysis as a sequence of milestones, each
+  with a deliverable and a test of whether it is done.
+- Take a multi-table clinical export from raw files to a
+  deposited, rebuildable compendium without editing a raw file
+  or typing a number.
+- Write a one-page memo and a response to a reviewer that a
+  stranger can check against the compendium.
+- Assess your own work, and a colleague's, against the twelve
+  habits.
+
+**Outline.**
+
+- [The project](#sec-synthesis-project)
+- [Milestones](#sec-synthesis-milestones)
+- [A ten-week schedule](#sec-synthesis-schedule)
+- [Assessment](#sec-synthesis-rubric)
+- [The habits you take forward](#sec-synthesis-habits)
+- [Why reproducible research, answered](#sec-synthesis-why)
+:::
+
+::: {.callout-note collapse='true' title='Ready to start?'}
+The capstone cannot be skipped, but these three questions show
+whether the earlier chapters are in hand. The answers are in
+@sec-quiz-answers-25.
+
+1. Which file in the HF-HOME export must not be read by any code
+   until the analysis plan is tagged, and how would a reviewer
+   confirm that it was not?
+2. Name three of the planted pathologies in `crf_export.csv` and
+   the chapter that taught you to find each.
+3. A colleague clones your deposit in five years. Which three
+   files must exist for them to rebuild your memo's numbers?
+:::
+
+## The project {#sec-synthesis-project}
+
+HF-HOME is the synthetic two-arm trial that has run through the
+book: 2,432 patients discharged after a heart-failure admission,
+randomized 1:1 to home-health visits within seven days or to
+usual care, stratified by site and ejection-fraction stratum,
+with readmission or death within 30 days as the primary outcome.
+The data are eight files: seven clean tables and the raw export
+`crf_export.csv`, which carries the five sites' conventions for
+dates, sex codes, missing values, and identifiers. The codebook
+lists every planted pathology and the chapter that taught you to
+find it, and the analysis plan of @sec-analysis-plan-worked fixes
+the estimand.
+
+The question you answer is the one the principal investigator
+(PI) asked at intake (@sec-team-science-intake): does a
+home-health visit within a week of discharge reduce 30-day
+readmission or death, and should the health system pay for it?
+You deliver seven artifacts:
+
+1. **A compendium** in a private Git repository, with the five
+   pillars (@sec-zzcollab-pillars), the raw files copied in
+   unchanged, and a log in the README of each use of a language
+   model and how its output was checked.
+2. **A statistical analysis plan (SAP)** and a data management
+   and sharing plan (DMSP), tagged before any code reads the
+   outcome file.
+3. **A derived analysis dataset** rebuilt by one command from
+   the raw files, and a de-identified release of it.
+4. **A test suite** in `inst/tinytest/`, run by continuous
+   integration (CI) on every push.
+5. **A report** in Quarto in which every number is computed.
+6. **A one-page memo** to the PI and a **response** to the
+   reviewer of your deposit.
+7. **A deposit**: a tagged release archived with a digital object
+   identifier (DOI).
+
+Work in the Zenodo sandbox (`sandbox.zenodo.org`) rather than the
+production service: the sandbox issues test DOIs, and a synthetic
+classroom dataset does not belong in the permanent scholarly
+record. Everything else is real. The data are synthetic, but
+`demographics.csv` contains direct identifiers in the form real
+ones take, and you handle it as protected health information: it
+never leaves the compendium, never enters a prompt to a language
+model (@sec-ai-governance), and never appears in the deposit.
+
+::: {.callout-warning title='Pitfall'}
+**The codebook has already told you the answer.** The README
+beside the data reports the observed event rates in each arm,
+because it documents the generator. In a real trial the outcome
+file would not exist on your machine until the SAP was signed;
+here the seal is a discipline you keep, not a mask the data
+impose. Do not read the README's Design section until your SAP
+is tagged. The tag is evidence only of the order of commits, and
+a plan written by someone who knows the result is a plan in name
+only.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Why does the brief require the raw files to be
+committed unchanged, when the clean tables beside the export
+would save a week of work?
+
+**Answer.** Because habit 2 treats the raw export as evidence and
+everything after it as a build product. The clean tables are the
+generator's answer to the cleaning problem, and using them would
+skip the steps (@sec-acquisition-files, @sec-wrangling-worked,
+@sec-types-worked) in which the analysis's denominator is
+decided. Starting from `crf_export.csv` makes every one of those
+decisions a line of code a reviewer can read; you may use the
+clean tables afterward as an oracle in your tests, which is what
+they are best for.
+:::
+
+## Milestones {#sec-synthesis-milestones}
+
+@tbl-synthesis-milestones is the capstone's version of
+@tbl-penguins-arc. Each row is a milestone with a deliverable,
+the chapter that taught it, the habits it exercises (numbered as
+in @sec-habits), and a 'done when' criterion that someone other
+than you can check. A milestone is done when its criterion is
+met, not when the work feels finished.
+
+| Milestone | Deliverable | Taught in | Habits | Done when |
+|---|---|---|---|---|
+| 1. Intake | `intake.md`: the question in one sentence, the decision it informs, the estimand, and the scope of work | @sec-team-science-intake, @sec-team-science-sow | 5, 11 | The PI (or the instructor) signs off on the question as written |
+| 2. Scaffold | Private repository with the five pillars; raw files committed with checksums | @sec-zzcollab, @sec-renv, @sec-docker, @sec-git-solo | 1, 2, 3, 4 | The audit of @sec-zzcollab-audit passes and `raw_data/` matches its recorded checksums |
+| 3. Acquire and clean | A script or `targets` pipeline from `crf_export.csv` to a typed, recoded baseline table | @sec-acquisition-files, @sec-wrangling-worked, @sec-types-worked, @sec-targets-pipeline | 2, 7, 8 | One command rebuilds the table from raw; every site's dates, sex codes, IDs, and missing-value codes resolve, asserted in code |
+| 4. Plan | SAP and DMSP, tagged `sap-v1.0` | @sec-analysis-plan, @sec-analysis-plan-tagging, @sec-federal-dmsp | 3, 5 | The tag predates the first commit that reads `outcomes.csv`, as `git log` shows |
+| 5. Tests and CI | A `tinytest` suite on the cleaner, the joins, and the primary estimate; a GitHub Actions workflow | @sec-testing-worked, @sec-testing-ci, @sec-ci | 8, 9 | A planted bug, such as undoing the Site E identifier repair, turns the CI run red |
+| 6. Join and de-identify | The analysis dataset from the seven tables; a de-identified release | @sec-joins-worked, @sec-deident-worked | 2, 6, 8 | Each join declares its relationship and logs its row counts; the orphan lab patient and duplicate lab rows are handled by a stated rule; the release passes the Safe Harbor checks |
+| 7. Analyze | The primary analysis and the pre-specified sensitivity analyses, with figures | @sec-analysis-plan-worked, @sec-missing-trials, @sec-graphics-worked | 5, 7, 12 | Every result is labeled pre-specified or exploratory, and every figure regenerates from derived data |
+| 8. Report | A Quarto report of methods and results | @sec-quarto-worked, @sec-communicating-sensitivity | 10 | Changing a raw value changes the prose; no estimate in the source is typed |
+| 9. Memo | A one-page memo to the PI | @sec-communicating-memo, @sec-communicating-null | 10, 11 | The answer is in the first sentence, the verb matches the design and the interval pattern, and it fits on one page |
+| 10. Deposit | Tagged release, README, de-identified data, sandbox DOI | @sec-git-solo-tags, @sec-federal-repository | 1, 3, 4 | A classmate rebuilds the report from the DOI in a fresh container |
+| 11. Review | A written review of a classmate's deposit | @sec-communicating-review, @sec-git-teams-review | 9, 11 | Every comment cites a file and line, and each is ranked by whether it could change the conclusion |
+| 12. Respond | A response to the review you received, and a revised release | @sec-communicating-reviewers | 3, 10, 11 | Every comment is numbered, quoted verbatim, and answered with the change made and where, or with the reason no change was made |
+
+: The capstone milestones, with the chapter that taught each and
+the habits it exercises. The 'done when' column is the check;
+use it before you hand anything in. {#tbl-synthesis-milestones}
+
+Milestones 3 and 6 are where most of the time goes, as they are
+in practice. The export's pathologies are listed in the codebook
+so that you know what to look for, not so that you can skip
+looking: the test of milestone 3 is that your code finds each
+pathology from the data and refuses to proceed if a new one
+appears, which is habit 8 applied to a whole file. The
+immortal-time trap in `visits.csv` belongs to milestone 7: a
+per-protocol comparison of patients who received a visit answers
+no question the trial was designed to answer
+(@sec-analysis-plan-estimands), and your SAP should say so before
+you are tempted.
+
+::: {.callout-tip title='Verification'}
+Before milestone 10, run the clean-room check. Clone the
+repository into a new directory, build the image, and render the
+report inside it, without using anything from your working copy
+(display-only, because it builds an image):
+
+```bash
+git clone --branch v1.0 <your-repo> /tmp/hfhome-check
+cd /tmp/hfhome-check
+make docker-build
+make docker-render REPORT=analysis/paper/paper.qmd
+```
+
+Then compare the rendered estimates with the ones in your memo.
+If the build fails, a dependency is not pinned; if it succeeds
+with different numbers, something in your working copy was not
+committed. Either is a finding for milestone 2, not a nuisance.
+:::
+
+::: {.callout-important title='LLM prompt'}
+> **Context.** Attached: the file tree of my compendium, my
+> `DESCRIPTION`, my test file names and assertion messages, and
+> the milestone table below. No data are attached.
+>
+> **Task.** For each milestone, list what a reviewer would open
+> to check the 'done when' criterion, and name any criterion my
+> tree gives no evidence for.
+>
+> **Constraints.** Do not invent files that are not in the tree.
+
+**Check what it returns.** Open each file it names and confirm it
+exists and does what the model says; a plausible list of checks
+against files that do not exist is the characteristic failure.
+The prompt sends structure, not data, so it is safe under
+habit 12; pasting rows of `demographics.csv` would not be.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** Milestone 4 comes after milestone 3. Does cleaning
+the baseline data before the SAP is tagged violate
+pre-specification?
+
+**Answer.** No, provided the cleaning does not touch the outcome.
+Pre-specification protects the analysis from choices made in
+knowledge of the result; cleaning the baseline covariates, blind
+to the outcome, is how trials work, and it often informs the SAP
+(for example, how many patients lack a systolic blood pressure).
+What the tag must predate is the first code that reads
+`outcomes.csv`. A reviewer checks it with
+`git log --follow -- <file>` on the scripts that read the
+outcome, compared with `git show sap-v1.0`.
+:::
+
+## A ten-week schedule {#sec-synthesis-schedule}
+
+The second quarter reads Parts IV to VIII at about two chapters a
+week, and the capstone runs alongside the reading. Each milestone
+falls in the week its chapter is taught or soon after, with two
+exceptions: the intake and the cleaning use first-quarter
+chapters, so they start at once. @tbl-synthesis-schedule is a
+suggestion; an instructor with a shorter term can drop milestone
+11 and have students respond to the instructor's review instead.
+
+| Week | Read | Capstone work | Due at the end of the week |
+|---|---|---|---|
+| 1 | @sec-quarto, @sec-renv | Read the codebook; intake conversation; create the repository | Milestone 1 |
+| 2 | @sec-docker, @sec-zzcollab | Pin the environment; commit raw files and checksums | Milestone 2 |
+| 3 | @sec-targets, @sec-cloud | Read and recode the export as a pipeline, outcome sealed | Milestone 3 |
+| 4 | @sec-analysis-plan, @sec-testing | Write and tag the SAP and DMSP; tests on the cleaner; CI | Milestones 4 and 5 |
+| 5 | @sec-cdisc, @sec-sas | Join the seven tables; de-identify; optionally derive an ADSL | Milestone 6 |
+| 6 | @sec-penguins, @sec-adni | Primary and sensitivity analyses; figures | Milestone 7 |
+| 7 | @sec-ethics, @sec-communicating | Report with computed numbers; draft the memo | Milestones 8 and 9 |
+| 8 | @sec-federal, this chapter | Clean-room check; tag `v1.0`; sandbox deposit | Milestone 10 |
+| 9 | (none) | Review a classmate's deposit | Milestone 11 |
+| 10 | (none) | Respond, revise, tag `v1.1`; a five-minute talk (@sec-communicating-talk) | Milestone 12 |
+
+: A suggested ten-week schedule for the second quarter. Reading
+is by chapter; the capstone column is the work of the week.
+{#tbl-synthesis-schedule}
+
+Two features of the schedule are deliberate. The SAP is due in
+week 4, after the cleaning and before the outcome is unsealed, so
+that the order of commits carries the pre-specification. And the
+deposit is due two weeks before the end, because a review of a
+deposit is only useful if there is time to act on it: the
+response in week 10 is where most students first discover what
+their README does not say.
+
+## Assessment {#sec-synthesis-rubric}
+
+The capstone is graded on the habits, not on the estimate. Two
+students who reach different conclusions from the same data can
+both earn full marks, and a student whose estimate matches the
+generator's can fail, because the estimate is not the evidence of
+competence: the trail that produced it is.
+@tbl-synthesis-rubric gives, for each habit, what the grader
+inspects and three levels.
+
+| Habit | What the grader inspects | Not yet | Meets | Exemplary |
+|---|---|---|---|---|
+| 1. Compendium is the unit | Repository layout and deposit | Code, data, or environment missing from the deposit | Five pillars present; the report rebuilds from the release | A stranger rebuilds it from the DOI alone, following only the README |
+| 2. Raw data are evidence | `raw_data/`, checksums, build scripts | A raw file edited or overwritten | Raw files unchanged and checksummed; derived data regenerated | Derived data are not committed at all; one command makes them |
+| 3. Version control from day one | Commit history and tags | A few large commits near the deadline | Regular commits with informative messages; `sap-v1.0` and `v1.0` tags | History reads as the project's audit trail; the response cites commits |
+| 4. Pin the environment | `renv.lock`, Dockerfile | Unpinned packages or base image | Lockfile restores; image pinned by version | Clean-room check documented and passing in CI |
+| 5. Pre-specify, then tag | SAP, tag date, `git log` on outcome scripts | SAP written or changed after outcomes were read, without an amendment | SAP tag predates outcome code; deviations listed | Every deviation dated, justified, and reported in the report and memo |
+| 6. Count before and after every join | Join code and its log | Joins without declared relationships | `relationship` and `unmatched` declared; row counts logged | Each excluded or unmatched row is accounted for in a CONSORT-style count |
+| 7. Convert late, validate early | Reading and typing code | Types guessed at read time; silent coercion | Columns read as text, converted once, validated before modeling | Validation failures stop the pipeline with a message naming the site and row |
+| 8. Plausible bugs are expensive | Assertions in the pipeline | No assertions | Assertions after each join and transformation | Each planted pathology has an assertion that would catch its recurrence |
+| 9. Test the statistics, not the shape | `inst/tinytest/` and CI | Tests only check that columns exist | Tests check denominators and re-derive the primary estimate | A planted bug is shown to fail the suite, in a recorded CI run |
+| 10. Every number is computed | Report and memo source | A typed estimate in either | Every number inline or from a computed table | The memo is rendered from the compendium, and its numbers are asserted |
+| 11. Lead with the answer; match the verb | Memo, report, response | Chronological memo; causal verb unlicensed by the design or interval | Answer first; verb matches design and interval pattern | Caveats ranked by whether they could change the conclusion |
+| 12. Model output is a hypothesis | AI-use log in the README | LLM output used unchecked, or data sent to a model | Log lists each use and how its output was verified | Log shows a model error caught by the stated check |
+
+: The capstone rubric, indexed to the twelve habits of
+@sec-habits. Each row is scored 0 (not yet), 2 (meets), or 3
+(exemplary). {#tbl-synthesis-rubric}
+
+Score each row 0, 2, or 3, for a maximum of 36. The gap between
+'not yet' and 'meets' is wider than that between 'meets' and
+'exemplary' on purpose: the rubric rewards doing every habit
+adequately over doing a few brilliantly, which is also how
+reviewers and regulators judge an analysis. Use the same rubric
+for milestone 11, so that the review you write and the review you
+receive speak the same language.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A student's memo reports the primary estimate
+correctly, but the report states it with a typed number that
+matches the computed one. Which row is affected, and does it
+matter if the numbers agree?
+
+**Answer.** Row 10, scored 'not yet'. Agreement today is not the
+criterion; the criterion is that the number cannot disagree
+tomorrow. A typed number survives the next data correction
+unchanged, and the response to reviewers in milestone 12 is
+usually where that correction arrives.
+:::
+
+## The habits you take forward {#sec-synthesis-habits}
+
+The book has taught a great many tools, and tools date. The
+habits do not. Here they are once more, as @sec-habits first set
+them out and as the rubric above grades them:
 
 {{< include _habits.md >}}
 
-All twelve serve the idea in @sec-habits: make silent
-failures loud. If you take only one habit from this
-book, take the first: every analysis lives in a
-compendium.
-Most of the others build on it, although a
-compendium alone prevents none of the failures of
-inference in @sec-ethics.
+All twelve serve the idea in @sec-habits: make silent failures
+loud. If you take only one habit from this book, take the first:
+every analysis lives in a compendium. Most of the others build on
+it, although a compendium alone prevents none of the failures of
+inference in @sec-ethics. The compendium need not be built by any
+particular tool; @sec-zzcollab assembles it by hand and treats
+`zzcollab` as one optional way to automate the assembly.
 
-## What this book did not cover
+## Why reproducible research, answered {#sec-synthesis-why}
 
-The scope of biostatistical computing exceeds any
-one book. Topic areas explicitly out of scope here
-but worth pursuing:
+@sec-why opened with the Duke genomic signatures: gene lists
+offset by one row and labels reversed, errors that stopped no
+code and produced results that looked like findings, exposed only
+by months of forensic reconstruction by two statisticians outside
+the team. Its title asked why anyone should do the work this book
+asks for. The capstone is the answer in practice.
 
-- **Statistical theory and inference.** Covered in
-  the companion book *Statistical Computing in the
-  Age of AI*. Linear models, GLMs, mixed-effects,
-  survival, Bayesian computation, simulation, and
-  bootstrap each get a chapter there.
-- **Bayesian computation.** A topic area of
-  comparable weight to this entire book. Covered
-  briefly in the companion's Bayesian chapter.
-- **Modern machine learning.** `tidymodels`, deep
-  learning, MLOps, and the broader ML pipeline are
-  one-book subjects on their own. The Practicum's
-  reproducibility habits transfer; the methods do
-  not.
-- **Causal inference.** Pre-specification
-  (@sec-analysis-plan) is necessary but not sufficient. The
-  potential-outcomes framework, instrumental
-  variables, sensitivity analysis for unmeasured
-  confounding, and modern econometric methods
-  belong elsewhere.
-- **Collaboration at industrial scale.** Multi-
-  sponsor pharma collaborations and CROs operate
-  under CDISC conventions beyond what
-  @sec-cdisc introduces.
+A reviewer of your HF-HOME deposit does not reconstruct anything.
+They clone a tagged release, build a pinned environment, and run
+one command, and every number in your memo is rebuilt from the
+raw export in front of them. If an identifier was misread at
+Site E, an assertion says so by name; if the plan changed after
+the outcome was seen, `git log` says so by date. The Duke errors
+were of exactly these kinds, and in a compendium like yours they
+are found in an afternoon, often by the analyst, before any
+patient is affected. That is what reproducibility buys: not
+correctness, which @sec-why-correctness and @sec-ethics show it
+cannot guarantee, but the ability of anyone, including you in five
+years, to find out quickly whether the analysis is correct.
 
-The omissions are deliberate. The book aimed to
-cover what every biostatistician needs in their
-first two years; it cannot cover what they may
-need over a career.
+## Rules of thumb
 
-## What to read next
+1. **Habit 5: pre-specify, then tag.** Seal the outcome until the
+   SAP is tagged; the order of commits is the evidence.
+2. **Habit 1: the compendium is the unit.** Run the clean-room
+   check before you deposit, not after the reviewer does.
+3. **Habit 11: lead with the answer.** Write the memo's first
+   sentence before the report; if you cannot, the analysis is not
+   finished.
 
-A curated reading list, roughly two years of
-material:
+## Cheat sheet
 
-**Year one (consolidation).**
+| Milestone | Command or file | Check |
+|---|---|---|
+| Scaffold | Layout of @sec-zzcollab-assemble, or `zzc tidyverse` | Pillar audit passes |
+| Checksums | `shasum -a 256 analysis/data/raw_data/hfhome/*` | Matches the committed record |
+| Clean | `targets::tar_make()` | `targets::tar_outdated()` is empty |
+| Tag the plan | `git tag -a sap-v1.0 -m 'SAP v1.0'` | Tag predates outcome code |
+| Join | `left_join(..., relationship = 'one-to-one', unmatched = 'error')` | Row counts logged |
+| Test | `tinytest::run_test_dir('inst/tinytest')` | A planted bug fails |
+| Render | `make docker-render REPORT=analysis/paper/paper.qmd` | Numbers change when data change |
+| Release | `git tag -a v1.0 -m 'Deposit'`; GitHub release with Zenodo sandbox | Test DOI resolves |
 
-- *R Packages*, 2nd ed. [@wickham2023rpkgs],
-  package development. Read end to end; build a
-  package with each chapter.
-- *R for Data Science*, 2nd ed.
-  [@wickham2023r4ds], tidyverse depth. The
-  Practicum touched many of these chapters; the
-  full book has more.
-- *Advanced R*, 2nd ed. [@wickham2019advr],
-  the R language. Memory model, functional
-  programming, environments, S4. Read when you
-  hit a corner case.
-- *Happy Git with R* [@bryan2019happygit],
-  Git for R users in depth.
-- *Bayesian Data Analysis*, 3rd ed.
-  [@gelman2013bda] or *Statistical Rethinking*,
-  2nd ed. [@mcelreath2020rethinking],
-  Bayesian computation. Pick one based on
-  preferred level.
+: The capstone at a glance. {#tbl-synthesis-cheat-sheet}
 
-**Year two (specialization).**
+## Further reading
 
-- *Modeling Survival Data*
-  [@therneau2000survival] for survival
-  analysis depth.
-- *Mixed-Effects Models in S and S-PLUS*
-  [@pinheiro2000mixed] for the canonical mixed-
-  models reference (still relevant in 2026).
-- *Tidy Modeling with R* [@kuhn2022tidymodels]
-  for the tidymodels framework.
-- *Reproducible Research with R and RStudio*,
-  3rd ed. [@gandrud2020reproducible] for the
-  publishing pipeline.
-- Whatever else your domain demands. Genomics:
-  *Modern Statistics for Modern Biology*
-  [@holmes2019msmb]. Imaging: the various
-  Bioconductor and FSL/AFNI tutorials.
-  Time series: *Forecasting Principles and
-  Practice* [@hyndman2021fpp].
+Three books repay a first read soon after the capstone; the
+reading that follows them depends on your applied area.
 
-The plan: in year one, consolidate the
-practicum's coverage into deeper proficiency. In
-year two, specialize toward your applied area.
+- *R Packages*, 2nd ed. [@wickham2023rpkgs], because a
+  compendium is a package in all but name.
+- *Happy Git with R* [@bryan2019happygit], for the Git habits the
+  capstone leans on.
+- *Reproducible Research with R and RStudio*, 3rd ed.
+  [@gandrud2020reproducible], for the publishing pipeline.
 
-## A note on judgment
-
-The Practicum has emphasized tools and habits.
-What it could not teach directly is judgment,
-the small decisions about which test, which
-covariate, which transformation, which audience.
-Judgment comes from practice: working on real
-problems, being wrong sometimes, learning the
-patterns of when each tool fits.
-
-The 'statistician's contribution' sections in each
-chapter were an attempt to articulate the
-judgments explicitly. Re-read them after you have
-practiced the tools for six months; they will
-read differently.
-
-## Sign-off
-
-You have finished a book that took its
-infrastructure as seriously as its statistics. The
-arc was deliberate: the biostatistician of 2026
-spends a substantial fraction of professional time
-on workflow, environment, and collaboration. A
-graduate course that taught only methods would
-leave the rest as on-the-job learning. This book
-covered the rest.
-
-The habits in this book pay for themselves at
-about the second project. By the fifth, the
-investment is invisible: it is just how you work.
-The hardest part is the first three projects,
-where the new infrastructure feels like overhead.
-The reward is permanence: a research record that
-ages well, an analysis you can re-run a decade
-later, a paper that holds up when a skeptical
-reviewer tries to rerun it.
+What the book left out, including statistical theory, Bayesian
+computation, machine learning, and causal inference, is listed in
+@sec-intro, with the companion volume as the next step.
 
 ## Prerequisites answers {#sec-quiz-answers-25}
 
-(No quiz for this chapter; this section exists to
-keep cross-reference anchors consistent across the
-book. If you would like a self-assessment, write a
-two-sentence answer to each of the following.)
-
-1. If a former collaborator emails in three years
-   asking you to reproduce one of your figures,
-   what three files do you need to have kept?
-2. What is one practice from this book you will
-   carry into the next project you start?
-3. What is the next book on your reading list?
+1. `outcomes.csv`. A reviewer runs `git log` on every script that
+   reads it and compares the earliest such commit with the date of
+   the `sap-v1.0` tag (`git show sap-v1.0`); the tag must come
+   first. The codebook's Design section, which reports the
+   observed rates, is under the same seal by agreement.
+2. Any three of: a byte-order mark and CRLF line endings
+   (@sec-acquisition-files); leading zeros lost from Site E's
+   identifiers (@sec-acquisition-files, @sec-joins-keys); four
+   date formats by site (@sec-types-dates); four sex codings
+   (@sec-wrangling-recode); and three codes for a missing number,
+   including `-99` (@sec-missing-diagnosis).
+3. The lockfile (`renv.lock`) and the Dockerfile, which pin the
+   environment, and the source of the report or memo, which
+   computes every number from the raw data; the raw data and the
+   scripts between them and the report must be in the deposit
+   too, or the README must say how to obtain them.

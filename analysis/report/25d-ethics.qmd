@@ -120,7 +120,7 @@ so each is caught at a different point.
 
 | Failure | Introduced at | Caught by |
 |---|---|---|
-| Aggregation harm | Data acquisition (@sec-acquisition) | Asking, before you assemble, whether the people in the data would be surprised |
+| Aggregation harm | Data acquisition and scraping (@sec-apis) | Asking, before you assemble, whether the people in the data would be surprised |
 | Causal overclaiming | The Results-to-Discussion transition | Reading your own discussion for causal verbs; peer review (@sec-communicating) |
 | Visual misrepresentation | Figure construction (@sec-graphics) | Asking what the reader's eye is measuring |
 | Overlapping-interval fallacy | Interpretation, and often the figure | Reporting the contrast, not the arms |

@@ -69,8 +69,7 @@ penguins |>                                       # <1>
 
 ## Callouts
 
-The book uses exactly four kinds, so that each one means one
-thing.
+The book uses five kinds, so that each one means one thing.
 
 ::: {.callout-note collapse='true' title='Check'}
 A short question after a major section, with its answer
@@ -96,6 +95,14 @@ returns. Send models structure, not data; @sec-ai-governance
 says why.
 :::
 
-Some chapters have not yet been converted to this scheme and
-still use earlier callout styles; they are being brought into
-line.
+::: {.callout-warning title='Ethics'}
+A short flag where a technical step can harm the people in the
+data or mislead a reader, pointing to the fuller treatment in
+@sec-ethics.
+:::
+
+Exercise solutions sit in folded blocks titled 'Solution'
+directly beneath each exercise. In the printed edition, which
+cannot fold, Check answers and solutions are collected at the
+end of each chapter instead, so that you can attempt a question
+before you see its answer.

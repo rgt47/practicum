@@ -47,17 +47,23 @@ pipeline_diagram('analyze')
 ::: {.callout-note title='In this chapter'}
 **Reading time.** About 30 minutes.
 
-**You'll need.** @sec-testing for `tinytest`, @sec-git-solo for
-commits and branches, and @sec-joins for the join checklist. The
-examples read the HF-HOME files with base R and call `dplyr` and
-`lintr` with their namespaces; one chunk attaches `dplyr`:
+**You'll need.** @sec-git-solo for commits, branches, and
+`git diff`, and @sec-shell for running commands in the project
+directory. The chapter comes before the data chapters on purpose,
+so that you use a model with these habits from the start; its
+planted-bug examples touch column types, joins, and tests, which
+you will meet in @sec-types, @sec-joins, and @sec-testing, and on
+first reading the pattern of each example is enough. The examples
+read the HF-HOME files with base R and call `dplyr` and `lintr`
+with their namespaces; one chunk attaches `dplyr`:
 
 ```r
 library(dplyr)
 ```
 
-No example calls a model; the tooling in @sec-ai-tooling needs an
-API key and is display-only.
+No example calls a model. The commands for calling one from R and
+for setting up a coding agent are dated, and live in an appendix,
+@sec-tooling; they need an API key and are display-only.
 
 **You'll be able to.**
 
@@ -78,7 +84,6 @@ API key and is display-only.
 - [Data governance and agent safety](#sec-ai-governance)
 - [Instruction files, documentation, and provenance](#sec-ai-practice)
 - [When not to reach for an LLM](#sec-ai-when-not)
-- [Tooling as of October 2026](#sec-ai-tooling)
 :::
 
 ::: {.callout-note collapse='true' title='Skip ahead?'}
@@ -182,7 +187,8 @@ Before you commit any generated code:
    re-derived in a fresh session or by a second model, the AI
    analogue of double programming.
 5. **Write a test** that locks the behavior in `tinytest`, so that
-   a regression is caught automatically.
+   a regression is caught automatically (@sec-testing teaches
+   the framework).
 6. **Only then commit**, with the provenance of @sec-ai-practice.
 
 ### Vibe coding versus agentic coding
@@ -272,7 +278,8 @@ opening story's extra covariate would have appeared on that list.
 
 The context names the per-site formats so that the model need not
 guess; the constraint forbids the guessing parser, whose silent
-day-month swap is the failure @sec-testing-worked plants; the
+day-month swap is the failure you will see planted in
+@sec-testing-worked; the
 criteria compare with an independent source rather than with the
 function's own output.
 :::
@@ -312,8 +319,9 @@ lintr::lint(text = "m <- mean(x, na.rm = T)\n",
             linters = lintr::T_and_F_symbol_linter())
 ```
 
-Wire both into the continuous-integration workflow of @sec-ci and
-the guarantee holds for every contributor, human or not.
+Wire both into the continuous-integration workflow you will meet
+in @sec-ci, and the guarantee holds for every contributor, human
+or not.
 
 ### The catalog
 
@@ -346,7 +354,12 @@ each with the check that makes it loud.
 Each chunk below contains code of the kind a model writes, a
 planted bug, and the assertion that catches it. Where the assertion
 fires, the chunk stops with its error, which is the behavior you
-want. The chunks read the HF-HOME files.
+want. The chunks read the HF-HOME files. Several rest on ideas the
+data chapters teach in full: column types (@sec-types), joins
+(@sec-joins), and missing values (@sec-missing). You need not
+follow every line yet; read each for its shape, which is the
+same every time: plausible code, a planted bug, and a one-line
+assertion that fails.
 
 ```{r}
 #| label: ai-hf-files
@@ -434,7 +447,8 @@ stopifnot(nrow(with_bnp) == nrow(discharge))
 ```
 
 `relationship = "one-to-one"` on the join turns the same duplicate
-into an error at the join site (@sec-joins-cardinality).
+into an error at the join site; you will meet this in
+@sec-joins-cardinality.
 
 **Brittle regex.** The pattern works on the example the model saw,
 `"Site A"`, and not on the variants the export contains.
@@ -792,8 +806,8 @@ documentation of the packages actually installed, and access to
 the running R session, remove most hallucinated-API errors at the
 source. In R the `btw` package provides this, and the Model Context
 Protocol (MCP), an open standard for connecting models to tools,
-lets an agent call it; @sec-ai-tooling shows the setup as of the
-date given there. Even with live documentation, the check is
+lets an agent call it; the dated appendix (@sec-ai-tooling) shows
+the setup as of October 2026. Even with live documentation, the check is
 unchanged: documentation tells the model what a function does, not
 whether it was the right function to call.
 
@@ -917,145 +931,6 @@ criteria the task is the second kind above, plausible on the
 examples and wrong on the rest.
 :::
 
-## Tooling as of October 2026 {#sec-ai-tooling}
-
-Everything in this section is perishable: package interfaces,
-product names, and model identifiers change on a schedule of
-months. The sections above do not depend on it.
-
-### Calling a model from R with `ellmer`
-
-`ellmer` [@wickham2026ellmer], from Posit, provides an R interface
-to LLM APIs (application programming interfaces). A prompt in a
-script is versionable, where a copy-paste from a chat window is
-not; an LLM call can sit inside an R function that takes input
-from your pipeline and returns output to it; and `ellmer` supports
-tool use (the model calls R functions you provide), structured
-output (validated against a schema), and streaming. Display-only,
-because it needs an API key:
-
-```r
-install.packages("ellmer")
-library(ellmer)
-
-# model identifiers are retired on a schedule: this one was current
-# as of October 2026; models_anthropic() lists what is available now
-model_id <- "claude-opus-5-5"
-chat <- chat_anthropic(model = model_id)
-# or chat_openai(), chat_google_gemini(), chat_ollama() for local
-
-chat$chat("Translate this regex to plain English: '^\\d{3}-\\d{2}-\\d{4}$'")
-chat$chat("What about variants with no separator?")
-
-# stream() returns a generator, consumed chunk by chunk
-stream <- chat$stream("Long analysis...")
-coro::loop(for (chunk in stream) cat(chunk))
-```
-
-Older code and tutorials call `chat_claude()`; current `ellmer`
-names the function `chat_anthropic()`, after the provider rather
-than the model family. Keep the model identifier in one variable,
-as here, and record its value alongside your results: a script
-that names a retired model stops running, and a result produced by
-an unrecorded model cannot be reproduced.
-
-Set the API key once, in a project-local `.Renviron` that is listed
-in `.gitignore` and never committed (display-only):
-
-```bash
-ANTHROPIC_API_KEY=<your key>
-OPENAI_API_KEY=<your key>
-```
-
-Restart R, and `ellmer` reads the variables automatically.
-
-A short worked example: a function that asks a model to explain
-another function and list its unhandled edge cases (display-only).
-
-```r
-explain_function <- function(fn, model_id) {
-  prompt <- paste0(
-    "Explain in one paragraph what this R function does, ",
-    "and identify any bugs or edge cases it does not handle:\n\n",
-    paste(deparse(fn), collapse = "\n")
-  )
-  chat <- chat_anthropic(model = model_id)
-  chat$chat(prompt)
-}
-
-explain_function(function(x) {
-  x |> filter(!is.na(value)) |> summarize(mean = mean(value))
-}, model_id = model_id)
-```
-
-The function sends code, not data. Its output is a starting point
-for review, checked against your own reading.
-
-### Coding agents
-
-An interactive coding agent gives the model direct file-edit and
-shell access: it reads files, makes targeted edits, runs the
-tests, and iterates on the output. As of October 2026 the common
-ones are Claude Code, Codex CLI, Gemini CLI, and GitHub Copilot CLI
-in the terminal (CLI, command-line interface), and Cursor and
-Positron Assistant in the IDE (integrated development environment).
-Reach for one for multi-file refactors where the model needs the
-whole project, for iterative debugging where it needs to run the
-code and observe failures, and for large tasks where copy-paste
-would be tedious. Use a chat window for quick lookups, and write
-the code yourself where you want control of every edit. An agent
-is more capable and more dangerous than a chat window, and every
-rule in @sec-ai-governance applies to it.
-
-### Live documentation with `btw`
-
-The `btw` package gives a model the documentation of your
-installed packages and a view of the R session, either by copying
-that context for a chat window or as an MCP server that an agent
-calls. As of October 2026 the setup is as follows (display-only;
-check the package README, because these interfaces change):
-
-```r
-install.packages("btw")
-btw::btw("{dplyr}", "?dplyr::left_join", trial)
-```
-
-```bash
-claude mcp add -s user r-btw -- Rscript -e "btw::btw_mcp_server()"
-```
-
-The first call gathers a package overview, a help page, and a
-description of a data frame for pasting into a chat; the second
-registers `btw`'s MCP server with Claude Code, and other agents
-have equivalent commands. A description of a data frame includes
-values from it, so the governance rules apply to what `btw` sends:
-point it at synthetic data.
-
-### Exercises
-
-5. Write a function of under 20 lines that uses
-   `chat_anthropic()` to summarize a block of R code passed as a
-   string, with the model identifier as an argument and the
-   provenance (model, date) attached to the result.
-
-::: {.callout-note collapse='true' title='Solution'}
-```r
-summarize_code <- function(code, model_id) {
-  chat <- ellmer::chat_anthropic(model = model_id)
-  reply <- chat$chat(paste0(
-    "Summarize what this R code does in three sentences. ",
-    "Do not suggest changes.\n\n", code
-  ))
-  structure(reply, model = model_id, date = Sys.Date())
-}
-```
-
-The identifier is an argument rather than a string inside the
-function, so it is set and recorded in one place, and the
-attributes carry the provenance with the result. The function
-sends code only; pass it nothing that contains data.
-:::
-
 ## Rules of thumb
 
 1. **Habit 12: every model output is a hypothesis until verified.**
@@ -1071,16 +946,17 @@ sends code only; pass it nothing that contains data.
 
 ## Cumulative practice
 
-6. *Cumulative (uses @sec-testing).* Write a `tinytest` file for
-   the risk-difference function of Exercise 2, with a four-patient
-   fixture whose answer you compute by hand, that fails for the
+5. *Looking ahead (uses @sec-testing; return to it after that
+   chapter).* Write a `tinytest` file for the risk-difference
+   function of Exercise 2, with a four-patient fixture whose
+   answer you compute by hand, that fails for the
    positional version when `arm` is a factor in the codebook's
    level order and passes for the fixed version. Run it against
    both.
 
 ::: {.callout-note collapse='true' title='Solution'}
 ```{r}
-#| label: soln-21-6
+#| label: soln-21-5
 test_lines <- c(
   "fixture <- data.frame(",
   "  arm = factor(c('Usual care', 'Usual care', 'Home health',",
@@ -1111,7 +987,7 @@ is computed by hand rather than by either function. In a project,
 into the test file so that the same test runs against both.
 :::
 
-7. *On your own work (no key).* Use a coding agent to refactor a
+6. *On your own work (no key).* Use a coding agent to refactor a
    small project of yours under an instruction file and the four
    Cs. Record one bug it introduced, how you caught it, and one
    improvement it made, with the provenance line for the commit.

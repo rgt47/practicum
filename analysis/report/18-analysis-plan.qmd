@@ -46,11 +46,13 @@ pipeline_diagram('plan')
 ```
 
 ::: {.callout-note title='In this chapter'}
-**Reading time.** About 30 minutes.
+**Reading time.** About 40 minutes.
 
-**You'll need.** @sec-git-solo for commits and tags, and
-@sec-missing for missing-data mechanisms and sensitivity analysis.
-The code uses base R's `stats` package and:
+**You'll need.** @sec-git-solo for commits and tags,
+@sec-missing for missing-data mechanisms and sensitivity analysis,
+@sec-deident-practice for the de-identified release a data-sharing
+plan promises, and @sec-renv for the lockfile it points to. The
+code uses base R's `stats` package and:
 
 ```r
 library(dplyr)
@@ -68,6 +70,9 @@ library(ggplot2)
   assumption, and show power across a range of sample sizes.
 - Tag the SAP before data access, and label every result in the
   paper as pre-specified or exploratory.
+- Write each of the six elements of an NIH data management and
+  sharing plan (DMSP) so that a reader could check, at
+  publication, whether it was carried out.
 
 **Outline.**
 
@@ -78,6 +83,7 @@ library(ggplot2)
 - [Pre-specified versus exploratory](#sec-analysis-plan-exploratory)
 - [Version control and tagging](#sec-analysis-plan-tagging)
 - [Worked example: the HF-HOME SAP](#sec-analysis-plan-worked)
+- [The data management and sharing plan](#sec-federal-dmsp)
 :::
 
 ::: {.callout-note collapse='true' title='Skip ahead?'}
@@ -90,6 +96,8 @@ answers are in @sec-quiz-answers-18.
 3. Why is it important, both scientifically and ethically, to
    distinguish pre-specified from exploratory analyses in the body
    of a SAP?
+4. What are the six elements of an NIH DMSP under the 2023
+   policy, and who assesses the plan?
 :::
 
 ## Why pre-specify {#sec-analysis-plan-why}
@@ -1105,6 +1113,233 @@ code; compare every attribute with @tbl-estimand-attributes; confirm
 that the estimator's output is the summary the estimand names.
 :::
 
+## The data management and sharing plan {#sec-federal-dmsp}
+
+The SAP is not the only plan written before the data exist. The
+Data Management and Sharing Plan (DMSP) is due with the grant
+application, two years before the first dataset exists, and NIH
+program staff approve it as a term of the award. The other federal
+requirements (@sec-federal) arrive at the end of a project, when
+almost everything they ask for exists: a compendium
+(@sec-rrtools), a lockfile (@sec-renv), a container
+(@sec-docker), a pipeline that rebuilds the analysis
+(@sec-targets). The DMSP is the exception. Its timing runs
+opposite to everything else there, which is why it belongs with
+the other planning documents, beside the SAP: both are written
+before the work, and both are checked, at publication, against
+what was done.
+
+### The six elements
+
+```{r}
+#| label: federal-hf-size
+#| include: false
+hf_dir   <- file.path("..", "data", "raw_data", "hfhome")
+hf_n     <- nrow(readr::read_csv(file.path(hf_dir, "randomization.csv"),
+                                 col_types = readr::cols(.default = "c")))
+hf_files <- list.files(hf_dir, pattern = "\\.csv$", full.names = TRUE)
+hf_mb    <- ceiling(sum(file.size(hf_files)) / 1e6)
+```
+
+Since January 2023, every NIH application for research that will
+generate scientific data must include a DMSP, recommended to run
+no more than two pages. The plan is assessed by NIH program
+staff, not scored by peer reviewers: reviewers do not factor it
+into the overall impact score unless the funding opportunity says
+otherwise. The approved plan becomes a term of the award,
+program officers can require updates, and compliance is monitored
+after the award. @tbl-federal-dmsp-elements lists the six
+elements, what each must say to be checkable, and what HF-HOME
+says.
+
+| Element | What to write | HF-HOME |
+|---|---|---|
+| 1. Data type | What data, in what format and volume, and which will be shared | Case report form (CRF), outcome, and laboratory data for `r format(hf_n, big.mark = ",")` patients, about `r hf_mb` MB as CSV; participant-level data shared after de-identification |
+| 2. Related tools, software, code | What is needed to use the data; whether code is shared | R and Quarto; `renv.lock` and a Dockerfile in the deposit; code shared |
+| 3. Standards | Data and metadata standards | CDISC SDTM domains; the codebook as the data dictionary |
+| 4. Preservation, access, timelines | Named repository, persistent identifier, when | De-identified data in a controlled-access clinical-trial repository; code on Zenodo; at the primary publication or the end of the award, whichever is first |
+| 5. Access, distribution, reuse | Access conditions, license, limitations from consent | Data use agreement (DUA) for participant-level data; CC BY 4.0 for summaries; MIT license for code |
+| 6. Oversight | Who is responsible and how compliance is checked | PI and trial statistician; reported in the annual progress report |
+
+: The six DMSP elements. The middle column is the test: a
+sentence that names no file, repository, or date cannot be
+checked. {#tbl-federal-dmsp-elements}
+
+### Treat the plan as a workflow document
+
+A plan that says 'data will be deposited at Zenodo at
+publication' is compliant on paper and provides no mechanism to
+make it happen. A plan that builds deposition into the pipeline
+(a tagged release that mints a digital object identifier, or
+DOI, at every preprint; a continuous-integration job that checks
+the data DOI resolves) enforces itself. Two judgments decide
+whether the plan can be carried out:
+
+- **Public access does not mean unsupervised release.** PHI,
+  contractually restricted data, and preliminary unverified data
+  are inappropriate for unconditional public release. The
+  standard response is tiered access: de-identified
+  participant-level data under controlled access, with a
+  synthetic or summary dataset for open access.
+- **Point to the environment; do not describe it.** 'Analysis
+  used standard R packages' is uselessly vague. 'The deposit
+  includes `renv.lock` and a Dockerfile' is verifiable. Why a
+  lockfile and not the `Imports:` field of a `DESCRIPTION` file
+  is the subject of @sec-renv; the DMSP needs only the pointer,
+  and the deposit needs the files.
+
+### Worked example: the HF-HOME DMSP
+
+> **1. Data type.** Participant-level data from the
+> `r format(hf_n, big.mark = ",")` patients to be randomized:
+> demographics, randomization, baseline, visit, laboratory,
+> medication, and 30-day outcome records, as CSV files of about
+> `r hf_mb` MB in total. As collected, the files contain PHI.
+> Only de-identified data will be shared: participant-level
+> data de-identified by Expert Determination, so that day offsets
+> from discharge survive (@sec-deident), and summary data
+> (Table 1 and the primary results).
+>
+> **2. Related tools, software, and code.** Data captured in the
+> trial's electronic data capture system and exported to CSV.
+> Analysis in R and Quarto; the deposit includes `renv.lock`, a
+> Dockerfile, and the code that rebuilds every reported number.
+> Code is shared under the MIT license.
+>
+> **3. Standards.** CDISC Study Data Tabulation Model (SDTM)
+> domains for demographics, exposure, and disposition
+> (@sec-cdisc); the trial codebook as the data dictionary.
+>
+> **4. Data preservation, access, and timelines.** De-identified
+> participant-level data deposited under controlled access in a
+> clinical-trial data repository agreed with the program officer
+> (BioLINCC if the funding institute is NHLBI and it requests the
+> data; otherwise Vivli). Summary data and the synthetic HF-HOME
+> generator on Zenodo under CC BY 4.0. Code on GitHub, archived
+> to Zenodo at each tagged release for a DOI. Deposit at the
+> primary publication or the end of the award, whichever comes
+> first.
+>
+> **5. Access, distribution, and reuse.** Controlled-access data:
+> the requester signs the repository's DUA and meets its approval
+> requirements, which may include review by their own
+> institutional review board (IRB). The consent form permits
+> sharing of de-identified data for research; no data are
+> released beyond its terms.
+>
+> **6. Oversight.** The PI is responsible for the plan; the trial
+> statistician maintains the deposit manifest and checks it
+> before each release. Progress is reported in the annual
+> progress report.
+
+This is the specificity program staff look for, and every
+sentence can be checked at publication. Vague language ('data
+will be shared appropriately') gets flagged. If an analysis
+needed actual dates rather than offsets, a limited data set
+shared under a DUA is the alternative; it remains PHI, so it is
+shared only with recipients who sign that agreement and only as
+the consent form and IRB permit. Confirm that a repository accepts
+limited data sets before naming one in the plan.
+
+::: {.callout-tip title='Verification'}
+The plan promises that only de-identified data leave the
+institution. Before writing that sentence, check which of the
+running study's files carry a Safe Harbor identifier as received,
+using the identifier list of @sec-deident-worked:
+
+```{r}
+#| label: federal-manifest
+#| message: false
+library(dplyr)
+
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+identifiers <- c("mrn", "first_name", "last_name", "dob", "zip",
+                 "phone", "discharge_date", "rand_date",
+                 "visit_date", "event_date", "readmit_date",
+                 "death_date")
+
+files <- list.files(hf_dir, pattern = "\\.csv$")
+manifest <- tibble(
+  file = files,
+  identifier_columns = vapply(files, \(f) {
+    cols <- names(readr::read_csv(file.path(hf_dir, f), n_max = 0,
+                                  show_col_types = FALSE))
+    paste(intersect(cols, identifiers), collapse = ", ")
+  }, character(1))
+)
+manifest
+```
+
+`r sum(manifest$identifier_columns != "")` of the
+`r nrow(manifest)` files carry an identifier as received, because
+every file that records a date does, so they cannot be deposited
+as they are. The plan's
+first element has to promise de-identified data, and the
+deposit has to be built from a release such as the one in
+@sec-deident-worked.
+:::
+
+::: {.callout-important title='LLM prompt'}
+> **Context.** Attached: a draft NIH DMSP for a two-arm trial,
+> the consent form's data-sharing paragraph, and the funding
+> institute's name. No participant data.
+>
+> **Constraints.** Audit the draft against the six NIH elements.
+> Do not rewrite it. Do not name a repository I did not name.
+>
+> **Criteria.** For each element, list every sentence that names
+> no file, repository, date, or responsible person, and every
+> commitment that exceeds the consent form. Mark each item
+> 'missing', 'ambiguous', or 'conflicts with consent'.
+
+*Failure mode.* The standard elements are easy to audit, and the
+model does this well. It misses commitments that conflict with
+something it was not shown (a license that a third-party data
+source forbids, a repository that does not accept limited data
+sets), and it reports the plan as complete when every element is
+present but vague. *Check.* Apply the middle column of
+@tbl-federal-dmsp-elements to each sentence yourself, then give
+the audited plan to a colleague whose DMSP has been through NIH
+program staff (@sec-ai-governance).
+:::
+
+### Exercises
+
+5. Each sentence is from a draft DMSP. Say what is wrong and
+   rewrite it so that it can be checked: (a) 'Data will be made
+   available upon reasonable request.' (b) 'All data, including
+   CRFs, will be deposited in Zenodo at publication.'
+   (c) 'Standard statistical software will be used.'
+
+::: {.callout-note collapse='true' title='Solution'}
+(a) It names no repository, no timeline, and no access process,
+and 'upon request' is not deposit. Rewrite: 'De-identified
+participant-level data will be deposited under controlled access
+in [named repository] at the primary publication, available to
+requesters who sign its DUA.' (b) CRFs contain PHI as collected,
+and Zenodo is an open, general-purpose repository. Rewrite:
+'De-identified participant-level data under controlled access in
+[clinical-trial repository]; summary tables and code on Zenodo.'
+(c) Unverifiable. Rewrite: 'Analysis in R; the deposit includes
+`renv.lock`, a Dockerfile, and the code that rebuilds every
+reported number.'
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague argues that the DMSP can be written
+loosely because 'nobody scores it'. What is wrong with the
+argument?
+
+**Answer.** Being unscored at review is not being unenforced.
+Program staff assess the plan before award, the approved plan
+becomes a term of the award, and compliance is monitored
+afterward. A loose plan also fails its author: a plan written
+before the work is the only document that can commit the
+project to a deposit structure, and one that promises the wrong
+access mode is discovered at publication, when changing it means
+renegotiating with the program officer.
+:::
+
 ## Rules of thumb
 
 1. **Habit 5: pre-specify, then tag.** Write the estimand and the
@@ -1115,17 +1350,21 @@ that the estimator's output is the summary the estimand names.
 3. **Habit 3: version control from day one.** An amendment is a new
    commit and a new tag, so that the order of plan and data stays
    auditable.
+4. **Habit 5 applies to sharing too.** The DMSP is the
+   pre-specification of sharing; write it so that it can be
+   checked at publication, naming files, repositories, dates, and
+   responsible people.
 
 ## Cumulative practice
 
-5. *Cumulative (uses @sec-git-solo and @sec-missing).* Draft a SAP
+6. *Cumulative (uses @sec-git-solo and @sec-missing).* Draft a SAP
    skeleton for a hypothetical cluster randomized trial of a
    patient-education intervention, with every section of
    @tbl-sap-sections. State the estimand by its five attributes,
    include the cluster sample-size table from exercise 2, write
    section 11 with a named primary assumption and two sensitivity
    analyses, and commit and tag it in a repository.
-6. *On your own work (no key).* Take an analysis you completed
+7. *On your own work (no key).* Take an analysis you completed
    without a SAP and write the retrospective SAP that should have
    preceded it. Mark each choice that was made after seeing the
    data, and label the results that depend on those choices as
@@ -1144,6 +1383,8 @@ that the estimator's output is the summary the estimand names.
 | Multiplicity | Fixed-sequence or Holm, with the family named | Familywise error near 0.10 |
 | Lock the plan | `git tag -a sap-v1.0-locked`, then `git push origin` the tag | An undatable plan |
 | Label results | Pre-specified or exploratory, in methods | Exploratory findings read as confirmatory |
+| Write the DMSP | Name files, repositories, dates, responsible people | A plan that cannot be checked |
+| Plan data sharing | De-identified data under controlled access; synthetic or summary data open | PHI or participant-level data in an open repository |
 
 : Analysis plans at a glance. {#tbl-sap-cheat-sheet}
 
@@ -1156,6 +1397,9 @@ that the estimator's output is the summary the estimand names.
   sensitivity analysis, with its parent guideline [@ich1998e9].
 - [@harrell2024checklist], the shortest useful audit of a draft
   SAP's analysis sections.
+- The NIH data management and sharing policy pages at
+  `grants.nih.gov`, the authoritative source for the six DMSP
+  elements.
 
 ## Prerequisites answers {#sec-quiz-answers-18}
 
@@ -1180,3 +1424,9 @@ that the estimator's output is the summary the estimand names.
    misleads readers about the evidential strength of the findings
    and is one of the most common sources of reproducibility failure
    in biomedical research.
+4. Data type; related tools, software, and code; standards; data
+   preservation, access, and timelines; access, distribution, and
+   reuse considerations; and oversight. NIH program staff assess
+   the plan; peer reviewers do not score it unless the funding
+   opportunity says otherwise, and the approved plan becomes a
+   term of the award (@sec-federal-dmsp).

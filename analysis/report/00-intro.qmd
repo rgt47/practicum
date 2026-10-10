@@ -40,81 +40,57 @@ We begin with an account of the territory the book
 covers, which is the practical work of
 biostatistical data analysis. The book is organized
 into eight parts, and every chapter belongs to one of
-them.
+them. @tbl-intro-parts names, for each part, the
+question it answers, its chapters, and the tools it
+teaches. Parts I to III are the first quarter of the
+two-quarter sequence: why the work is done this way,
+the tools it is done with, and the path from raw files
+to a dataset you can trust. Parts IV to VIII are the
+second quarter: the document and environment that make
+the analysis rebuildable, the plan and tests that make
+it defensible, the industrial conventions it may have
+to meet, its delivery to an audience, and a capstone
+that does all of it on one study.
 
-**Part I, the reproducibility mindset,** establishes
-why the rest matters: the case for reproducible
-analysis and what the word actually means
-(@sec-why), the HIPAA obligations that constrain what
-may be shared and that bind you from the moment data
-arrive (@sec-deident), and the team norms within
-which all of this is practiced (@sec-team-science).
+| Part | The question it answers | Chapters | Key tools |
+|---|---|---|---|
+| I. Why and with whom | Why work reproducibly, and what do you owe your collaborators and the people in the data? | @sec-why, @sec-team-science, @sec-deident | The three kinds of reproducibility, the intake conversation, the HIPAA pathways |
+| II. Your toolkit | What do you work with every day, and how do you keep a history of it? | @sec-shell, @sec-workstation, @sec-git-solo, @sec-git-teams, @sec-ai-coding | The shell, R and an IDE, Git and GitHub, language models and coding agents |
+| III. Data in hand | How do raw files become an analysis dataset you can trust? | @sec-acquisition, @sec-apis, @sec-wrangling, @sec-types, @sec-joins, @sec-databases, @sec-graphics, @sec-missing, @sec-deident-practice | `readr`, `dplyr`, `tidyr`, `forcats`, `stringr`, `lubridate`, SQL and `dbplyr`, `ggplot2`, `naniar`, `mice` |
+| IV. Documents and environments | How does the analysis rebuild, as a document, on someone else's machine? | @sec-quarto, @sec-renv, @sec-docker, @sec-zzcollab, @sec-targets, @sec-cloud | Quarto, `renv`, Docker, the research compendium, `targets`, remote compute |
+| V. Analysis practice | How do you show that the analysis was planned in advance and computes what it claims? | @sec-analysis-plan, @sec-testing | The SAP and DMSP, Git tags, `tinytest`, GitHub Actions |
+| VI. Industry | How does the work meet the conventions of regulated drug development? | @sec-cdisc, @sec-sas | SDTM, ADaM, SAS |
+| VII. Analysis to audience | How does a finished analysis reach its readers honestly, and in a form they can check? | @sec-penguins, @sec-adni, @sec-ethics, @sec-communicating, @sec-federal | Computed reports, the memo, the response to reviewers, repositories and DOIs |
+| VIII. Capstone | Can you take one study from raw export to deposit? | @sec-synthesis | All of the above |
 
-**Part II, the workstation,** builds the environment
-the work happens in: R, Quarto, Git, dotfiles, and
-editor choice (@sec-workstation), the Unix command
-line beneath them (@sec-shell), version control for
-one analyst (@sec-git-solo) and for a team
-(@sec-git-teams), and remote compute when the laptop
-is not enough (@sec-cloud).
+: The eight parts of the book. Parts I to III are the first
+quarter; Parts IV to VIII are the second. {#tbl-intro-parts}
 
-**Part III, reproducible infrastructure,** is the
-machinery that makes an analysis rebuildable:
-research compendia (@sec-rrtools), package pinning
-with `renv` (@sec-renv), environment pinning with
-Docker (@sec-docker), the `zzcollab` framework that
-composes them (@sec-zzcollab), and dependency-aware
-pipelines (@sec-targets).
-
-**Part IV, reproducible reporting,** covers the
-literate document that ties code to prose: Quarto
-(@sec-quarto) and the R Markdown workflow it
-succeeds (@sec-rmd-workflow).
-
-**Part V, data wrangling and graphics,** is the daily
-work: getting data in from files, interfaces, and web
-pages (@sec-acquisition), the tidyverse stack
-(@sec-wrangling, @sec-types, @sec-joins), querying
-databases with SQL (@sec-databases),
-publication-quality figures (@sec-graphics), and
-missing data (@sec-missing).
-
-**Part VI, analysis practice,** is the professional
-apparatus around the analysis: statistical analysis
-plans (@sec-analysis-plan), CDISC standards
-(@sec-cdisc), testing analytic workflows
-(@sec-testing), continuous integration (@sec-ci),
-AI-assisted coding (@sec-ai-coding), and SAS for
-regulatory bridging (@sec-sas), with Python shown
-alongside R where the comparison instructs.
-
-**Part VII, case studies,** carries two analyses end to
-end, a small clean one (@sec-penguins) and a
-longitudinal clinical one (@sec-adni), then treats the
-communication of a finished result
-(@sec-communicating).
-
-**Part VIII, obligations and synthesis,** returns to
-what you owe once the work exists: the federal
-requirements and the mechanics of depositing the
-artifact (@sec-federal), the failures of inference that
-no amount of compliance prevents (@sec-ethics), and the
-closing review (@sec-synthesis). These come last
+The order is a dependency order. The first quarter ends
+with data in hand because everything in the second
+quarter acts on a dataset: a Quarto document reports on
+it, a container pins the environment that built it, a
+plan constrains what may be done with it, and a deposit
+archives it. Ethics and deposition come late in Part VII
 deliberately. Deposition is instruction about handing
-over something you have not built until now. The ethics
+over something you have not built until then. The ethics
 chapter argues that the entire infrastructural apparatus
 of this book is orthogonal to whether an analysis
-misleads. That argument can only land once the apparatus
-has been built.
+misleads, and that argument can only land once the
+apparatus has been built.
 
-Three appendices follow: alternative wrangling
+Seven appendices follow: alternative wrangling
 paradigms for reading code that is not tidyverse
-(@sec-alternative-wrangling), the peer-program
-survey on which several chapters rest their case for
-existing (@sec-peer-survey), and an inventory of the
-lab's own software, which several chapters use and
-which we disclose rather than distribute quietly
-(@sec-lab-software).
+(@sec-alternative-wrangling), the peer-program survey
+on which several chapters rest their case for existing
+(@sec-peer-survey), an inventory of the lab's own
+software, which several chapters use and which we
+disclose rather than distribute quietly
+(@sec-lab-software), a glossary (@sec-glossary), an
+instructor guide (@sec-instructor-guide), the
+AI-tooling landscape as of this edition (@sec-tooling),
+and a guide to migrating R Markdown projects
+(@sec-rmd-migration).
 
 @fig-book-map is the shape of the whole, and it is
 worth a moment before starting: the parts are not
@@ -125,32 +101,36 @@ assuming the earlier ones.
 ```{mermaid}
 %%| echo: false
 %%| label: fig-book-map
-%%| fig-alt: "Flowchart of the book's eight parts as a dependency
-%%|   chain. Mindset leads to Workstation, which leads to
-%%|   Infrastructure. Infrastructure branches to both Reporting and
-%%|   Wrangling and graphics, and those two converge on Analysis
-%%|   practice, which leads to Case studies and finally to
-%%|   Obligations."
+%%| fig-alt: "Flowchart of the book's eight parts in two groups,
+%%|   one per quarter. In the first quarter, Why and with whom leads
+%%|   to Your toolkit, which leads to Data in hand. Data in hand
+%%|   leads into the second quarter at Documents and environments,
+%%|   which leads to Analysis practice. Analysis practice branches
+%%|   to Industry and to Analysis to audience, and both converge on
+%%|   the Capstone."
 %%| fig-cap: "The eight parts of the book and what each depends on.
-%%|   Infrastructure is what makes the mindset operational; reporting
-%%|   is what the infrastructure produces; the analysis practice and
-%%|   the case studies rest on everything above them. The obligations
-%%|   come last because both depositing an artifact and judging
-%%|   whether it misleads presuppose that the artifact exists."
+%%|   The first quarter ends with a dataset you can trust; the
+%%|   second makes the analysis of it rebuildable, defensible, and
+%%|   readable. Industry is a branch that the capstone draws on but
+%%|   does not require; everything else feeds the capstone directly."
 flowchart TD
-  P1["<b>I. Reproducibility mindset</b><br/><i>why, privacy, teams</i>"]
-  P2["<b>II. Workstation</b><br/><i>R, shell, Git, cloud</i>"]
-  P3["<b>III. Infrastructure</b><br/><i>compendia, renv,<br/>Docker, pipelines</i>"]
-  P4["<b>IV. Reporting</b><br/><i>Quarto</i>"]
-  P5["<b>V. Wrangling and graphics</b><br/><i>acquire, tidy, join,<br/>query, plot, impute</i>"]
-  P6["<b>VI. Analysis practice</b><br/><i>SAP, CDISC, tests,<br/>CI, AI, SAS</i>"]
-  P7["<b>VII. Case studies</b><br/><i>end to end, then<br/>communicate</i>"]
-  P8["<b>VIII. Obligations</b><br/><i>deposit it, then ask<br/>whether it misleads</i>"]
-  P1 --> P2 --> P3 --> P4
-  P3 --> P5
-  P4 --> P6
+  subgraph Q1["First quarter"]
+    P1["<b>I. Why and with whom</b><br/><i>reproducibility,<br/>teams, privacy</i>"]
+    P2["<b>II. Your toolkit</b><br/><i>shell, R, Git, AI</i>"]
+    P3["<b>III. Data in hand</b><br/><i>acquire, tidy, join,<br/>query, plot, impute,<br/>de-identify</i>"]
+  end
+  subgraph Q2["Second quarter"]
+    P4["<b>IV. Documents and<br/>environments</b><br/><i>Quarto, renv, Docker,<br/>compendium, targets</i>"]
+    P5["<b>V. Analysis practice</b><br/><i>SAP, DMSP, tests, CI</i>"]
+    P6["<b>VI. Industry</b><br/><i>CDISC, SAS</i>"]
+    P7["<b>VII. Analysis to audience</b><br/><i>case studies, ethics,<br/>communication, deposit</i>"]
+    P8["<b>VIII. Capstone</b><br/><i>HF-HOME, export<br/>to deposit</i>"]
+  end
+  P1 --> P2 --> P3 --> P4 --> P5
   P5 --> P6
-  P6 --> P7 --> P8
+  P5 --> P7
+  P6 -.-> P8
+  P7 --> P8
 ```
 
 ## What this book does not cover
@@ -216,11 +196,9 @@ For each chapter, the workflow we recommend is the
 following:
 
 1. **Read** the chapter through once, without
-   running code. Notice the structure: an opening
-   quiz, learning objectives, the
-   statistician's-contribution section, the
-   technical sections, the LLM sections, the
-   exercises.
+   running code. Notice the structure: the card,
+   the opening quiz, the sections with their
+   checks and callouts, the exercises.
 2. **Replicate** the examples in your own
    environment. Type, do not copy-paste. The
    typing forces you to read each character; the
@@ -229,16 +207,16 @@ following:
    LLM. The cognitive cost of producing the
    answer yourself is, it appears, part of the
    learning.
-4. **Extend** by pasting the AI-assisted practice
-   prompts (the 'Collaborating with an LLM'
-   sections) into an LLM and critiquing the
+4. **Extend** by sending the LLM prompt callouts
+   to a language model and critiquing the
    responses against your own work.
 
 The book is, we grant, somewhat dense. Reading two
 chapters per week is a sustainable pace, which makes
-the whole book a two-quarter sequence; a one-quarter
-core path of twenty chapters is laid out in the
-preface. We would
+the whole book a two-quarter sequence, Parts I to
+III in the first quarter and Parts IV to VIII in the
+second; a one-quarter core path of twenty chapters is
+laid out in the preface. We would
 emphasize that the exercises are the work. The
 chapters are merely the scaffolding.
 
@@ -262,36 +240,43 @@ and @sec-synthesis returns to the whole list.
 
 ## The chapter pattern
 
-We note that every chapter follows the same
-structure:
+Every chapter follows the same template, and the
+Conventions page before this introduction describes
+its visual elements. In order:
 
-- **Sources.** A callout noting what lecture notes
-  or prior material the chapter draws on.
-- **Prerequisites quiz.** Three open-ended
-  questions, in the style of *Advanced R*
-  [@wickham2019advr]. Answer them honestly; if
-  all three are easy, you can bypass the
-  chapter. Answers appear in the
-  Prerequisites-answers section at the end, and
-  each quiz links directly to them.
-- **Learning objectives.** What you will be able
-  to do.
-- **Orientation.** A short prose framing of the
-  topic.
-- **The statistician's contribution.** What no
-  tool can automate. The judgments that
-  distinguish defensible practice from rote use.
-- **Technical sections.** The how-to.
-- **Worked examples.** Code that demonstrates
-  the chapter's tools on a realistic problem.
-- **Collaborating with an LLM.** Prompts that
-  work, what to watch for, how to verify.
-- **Principle in use.** Three habits the chapter
-  has been building toward.
-- **Exercises.** The work.
-- **Further reading.** Where to go next on this
-  topic.
-- **Prerequisites answers.** End of chapter.
+- **Opening.** A paragraph that states the problem
+  the chapter solves, usually as a failure that runs
+  without error, followed by an epigraph.
+- **Pipeline diagram.** The analysis pipeline with
+  the stage the chapter teaches highlighted.
+- **Chapter card.** Reading time; what you'll need
+  from earlier chapters and which packages the code
+  loads; what you'll be able to do; and an outline.
+- **Skip ahead?** Three open-ended questions, in the
+  style of *Advanced R* [@wickham2019advr]. If all
+  three come easily, you can bypass the chapter.
+  Answers appear in the Prerequisites-answers section
+  at the end, and each quiz links directly to them.
+- **Sections.** Each teaches one idea through a
+  worked example on the running study, and ends with
+  exercises (solutions folded beneath them) and a
+  **Check**: a short question with its answer folded
+  inside.
+- **Callouts within the sections.** A
+  **Verification** is a command that confirms a
+  worked example did what it claims; a **Pitfall** is
+  a silent failure that analysts actually hit; an
+  **LLM prompt** is a prompt for a language model or
+  coding agent, placed beside the task it helps with,
+  together with the check that verifies its output.
+- **Rules of thumb.** The numbered habits the chapter
+  has exercised, each restated as a rule.
+- **Cumulative practice.** Exercises that combine
+  this chapter with earlier ones, and one to do on
+  your own work.
+- **Cheat sheet.** The chapter's commands in one
+  table, each with the check that confirms it worked.
+- **Further reading** and **Prerequisites answers.**
 
 The pattern is repeated deliberately. By the third
 chapter, the reader will know where to find each
@@ -303,11 +288,11 @@ The companion textbook is titled *Statistical
 Computing in the Age of AI*. This Practicum is named
 for its content (Biostatistics Practicum) rather than
 the AI framing, but the framing is present throughout.
-Every chapter has a 'Collaborating with an LLM'
-section showing how to use AI assistance for the
-chapter's tools, and @sec-ai-coding is the
-meta-chapter on AI-assisted coding more generally. The
-'LLM' in that section title is shorthand. It covers
+Chapters carry LLM prompt callouts showing how to use
+AI assistance for the chapter's tools, each with the
+check that verifies the output, and @sec-ai-coding is
+the chapter on AI-assisted coding more generally. The
+'LLM' in the callout title is shorthand. It covers
 both a chat interface and a coding agent, such as
 Claude Code, that reads a project's files and edits
 them directly. @sec-ai-coding treats the distinction
@@ -326,11 +311,10 @@ and to form his or her own view.
 
 This is a graduate practicum in the daily work of
 biostatistical data analysis. It comprises eight
-parts: the reproducibility mindset, the workstation,
-reproducible infrastructure, reproducible reporting,
-data wrangling and graphics, analysis practice, case
-studies, and the obligations that attach to a finished
-analysis. The
+parts: why and with whom the work is done, the
+toolkit, data in hand, documents and environments,
+analysis practice, industry, analysis to audience,
+and a capstone. The
 test of the book, in our view, is whether, after
 working through it, the reader can produce a
 reproducible, defensible analysis on a real

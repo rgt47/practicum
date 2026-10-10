@@ -48,8 +48,9 @@ pipeline_diagram('environment')
 ::: {.callout-note title='In this chapter'}
 **Reading time.** About 20 minutes.
 
-**You'll need.** @sec-git-solo for commits and tags, and
-@sec-rrtools for the compendium layout. The chapter calls every
+**You'll need.** @sec-git-solo for commits and tags. The
+compendium layout the chapter mentions in passing is assembled
+in full in @sec-rrtools, later in this part. The chapter calls every
 `renv` function with its namespace (`renv::snapshot()`), so it
 needs no `library()` call; install the package once with
 `install.packages("renv")`.

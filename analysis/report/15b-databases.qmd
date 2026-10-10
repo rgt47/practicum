@@ -829,7 +829,7 @@ records are corrected, late lab results arrive, a patient
 withdraws consent and their rows are purged. Run the same query
 six months later and you get a different table, with no error.
 So treat the extract, not the query, as the raw data
-(@sec-acquisition): run the query once, deliberately, write the
+(@sec-apis): run the query once, deliberately, write the
 result to a dated file, and keep the query text and a checksum of
 the file beside it. The analysis reads the file; the query stays
 as provenance.
@@ -901,7 +901,7 @@ analysis reproducible?
 an instruction whose result depends on when it ran, unlike a file
 in `data/raw/`. The dated extract with its query, row count, and
 checksum is what makes the analysis reproducible, and it is the
-file that gets archived. This is the role @sec-acquisition gives
+file that gets archived. This is the role @sec-apis gives
 an acquisition script: same pattern, different source.
 :::
 
