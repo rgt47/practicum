@@ -2756,23 +2756,31 @@ as the record of what was weighed.
 | 15 | Portrait policy (new) | **Open item for the author**: the Gentleman portrait is placed but Gentleman is not among the five named in the April image policy (`images/README.md`). Amend the policy or replace the portrait. |
 | 16 | Course length (new) | **Two quarters, with a one-quarter core path.** The book targets a two-quarter sequence at about two chapters a week (35 chapters is 17.5 weeks; the earlier claim that a single quarter is realistic was false). Quarter 1: Parts I to III of 5.2 (why, toolkit, data); Quarter 2: Parts IV to VIII (documents and environments, analysis practice, industry, case studies, capstone). A one-quarter core of 20 chapters, two a week, is printed in the preface ('Course length and the one-quarter core', implemented 2026-10-09): why, de-identification, shell, workstation, Git solo and teams, acquisition, wrangling, joins, graphics, missing data, Quarto, renv, Docker, analysis plans, testing, AI-assisted coding, ethics, communicating, and the penguins case study. Pharmaceutical-track students add CDISC and SAS. Consequences: cuts (decision 13) and Phase K additions should protect the core chapters' length; the capstone (5.4) belongs to Quarter 2. |
 
-### Decisions opened 2026-10-11 (Part 13)
+### Decisions recorded 2026-10-11 (Part 13)
 
-These are **open**. Nothing in Part 13 beyond Tier 1 is to be
-implemented until each is resolved and recorded here.
+The author accepted a different option than recommended on 21 and
+23; the options and the recommendation as weighed are retained for
+the record.
 
-| # | Decision | Options | Recommendation |
+| # | Decision | Options | Resolution |
 |---|---|---|---|
-| 21 | Topic additions (13.3) | Tier 1 only; Tier 1 and 2; all tiers | **Tier 1 and 2.** Tier 2 items are the most widely taught and clearly in scope; Tier 3 is borderline or narrowly taught. Tier 1 is approved with the plan (decision 24 adds to it). |
-| 22 | rgtlab tested alternatives (13.6) | Feature zzlongplot and zzrctsim; feature zzlongplot only; feature none | **Feature both.** Both meet the tested-and-trusted bar on re-run comparisons. zzrctsim waits until its MCSE formulas are cross-checked against rsimsum, and until the Gap 14 section exists (decision 21). |
-| 23 | Volume split (13.4) | Two volumes; three (industry volume); one volume; decide after additions | **Decide after additions.** The split depends on which tiers ship; the page estimates in 13.4 are projections. |
+| 21 | Topic additions (13.3) | Tier 1 only; Tier 1 and 2; all tiers | **All tiers (1, 2, and 3).** The recommendation was Tier 1 and 2 (Tier 2 items are the most widely taught and clearly in scope; Tier 3 is borderline or narrowly taught); the author chose to include Tier 3 as well, about 32.5k words, roughly +160 pages total. |
+| 22 | rgtlab tested alternatives (13.6) | Feature zzlongplot and zzrctsim; feature zzlongplot only; feature none | **Feature both.** Both meet the tested-and-trusted bar on re-run comparisons. zzrctsim's MCSE formulas should still be cross-checked against rsimsum before the Gap 14 section ships. |
+| 23 | Volume split (13.4) | Two volumes; three (industry volume); one volume; decide after additions | **Three volumes now.** The recommendation was to decide after the additions shipped and were measured; the author chose to commit now to a third, shorter industry volume (Part VI plus the new regulated-computing material), keeping Volume 2 nearer 600 pages. The 13.4 page estimates remain projections until Tier 2 and 3 content is written; the three-way split should be re-measured against the actual word counts once Phase K (updated for all tiers) completes. |
 | 24 | rgtlab corrections (13.6, items 1 to 7) | Apply as Tier 1; defer | **Apply as Tier 1.** Each fixes a statement in the current book that a re-run showed to be false or incomplete; none depends on decisions 21 to 23. |
 
 Consequences for the rest of this plan: house rule 2 and Phase H
 apply the middle course; Part 5.2 is adopted rather than proposed;
-Phase K proceeds with estimands in 18; Phase J omits the index and
-includes part introductions; the remaining `[conditional on decision
-N]` wording elsewhere in this document should be read in light of the
+Phase K proceeds with estimands in 18, and now also carries all three
+tiers of Part 13 additions (decision 21) and the Gap 14 zzrctsim
+section (decision 22); Phase J omits the index and includes part
+introductions; Tier 1, including the seven rgtlab corrections, should
+be done as the start of (or ahead of) Phase K rather than waiting for
+the rest; the volume split (decision 23) becomes a three-volume plan
+to design once Phase K's actual page counts are known, with the
+industry volume drawing on Part VI and the regulated-computing
+material from Gap 5; the remaining `[conditional on decision N]`
+wording elsewhere in this document should be read in light of the
 resolutions above.
 
 ### Options as weighed
@@ -3051,6 +3059,10 @@ Placement uses the current part order. Size is new words, including
 code; pages assume the book's current ratio of about 200 words per
 rendered page.
 
+**Decision 21 (2026-10-11): all three tiers are approved for
+implementation.** Tiers are kept below only as an implementation
+sequence (Tier 1 first), not as a scope boundary.
+
 **Tier 1: correct now (no decision needed beyond approval).**
 
 | Item | Where | Size |
@@ -3072,7 +3084,7 @@ rendered page.
 | Gap 11, style and lint | Move from @sec-ai-coding to @sec-testing; add Air and pre-commit | Move plus small section | 500 net |
 | Gap 12, licensing and citation | @sec-federal | Section | 1,000 |
 | Gap 13, trusted research environments | @sec-deident-practice | Section | 1,200 |
-| Gap 14, simulation studies | @sec-cloud job-array example, pointed to from @sec-analysis-plan | Section | 1,200 |
+| Gap 14, simulation studies | @sec-cloud job-array example, pointed to from @sec-analysis-plan | Section, plus the zzrctsim tested-alternative feature (13.6, decision 22, after the rsimsum cross-check) | 1,200 |
 | Gap 15, accessibility | @sec-graphics (figures); @sec-quarto (documents) | Two sections | 1,500 |
 | Gaps 16 to 18, preregistration; consulting role-play; replication exercise | @sec-analysis-plan; @sec-team-science and the Instructor Guide; @sec-why | Sections and exercises | 2,000 |
 
@@ -3092,20 +3104,27 @@ Tier 3 total: about 8,500 words, roughly +40 pages.
 
 ### 13.4 Consequences for length and the volume split
 
-With Tier 1 and 2 the PDF would be about 1,310 pages; with all tiers
-about 1,350. The additions are not evenly split:
+With all tiers approved (decision 21), the PDF is projected at about
+1,350 pages. The additions are not evenly split:
 
 | Volume (as proposed) | Now | With Tier 2 | With all tiers |
 |---|---|---|---|
 | 1, Parts I to III | about 550 | about 600 (the new functions chapter, accessibility in 16, TREs in 02c) | about 615 |
 | 2, Parts IV to VIII | about 640 | about 710 (regulated computing, tables, logging, packages, reporting guidelines) | about 735 |
 
-Volume 2 then approaches the print-on-demand page ceiling noted when
-the split was discussed (roughly 800 to 830 pages for common services,
-from memory, to be confirmed). One option is a third volume for the
-industry material: Part VI (@sec-cdisc, @sec-sas) plus the new
-regulated-computing sections, which would make a coherent short book
-for pharmaceutical-track students and bring Volume 2 near 600 pages.
+**Decision 23 (2026-10-11): three volumes, settled now rather than
+after the additions ship.** Volume 2 at about 735 pages would
+approach the print-on-demand page ceiling noted when the split was
+first discussed (roughly 800 to 830 pages for common services, from
+memory, to be confirmed). The third volume is the industry material:
+Part VI (@sec-cdisc, @sec-sas) plus the new regulated-computing
+sections from Gap 5 and 6, which makes a coherent short book for
+pharmaceutical-track students and should bring Volume 2 down near 600
+pages. These figures are still projections; Phase K should re-measure
+all three volumes' page counts once the Tier 2 and 3 content is
+written, and the exact chapter boundary for the industry volume
+(whether it also takes Gap 4's TLF section, which currently sits in
+@sec-cdisc) should be fixed at that point.
 
 ### 13.5 Process
 
