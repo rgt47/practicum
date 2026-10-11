@@ -1599,6 +1599,18 @@ independently of every other phase; a handful in the heaviest chapters
 remove most of the worst runs on their own. The rest are scheduled
 with the phase they depend on (Part 8).
 
+### Finding 32. Coverage gaps against comparable courses, books, and current practice
+
+*Added 2026-10-10.* A worldwide sweep of comparable courses, textbooks,
+and recent regulatory and professional sources found that the book is
+ahead of most peers on AI-assisted coding and covers the core tooling
+well, but lacks several foundational practice topics that most peers
+teach (writing and debugging functions, analysis code as a package,
+publication tables), carries five citations superseded in 2025 and
+2026, and has no treatment of regulated-industry computing (21 CFR
+Part 11, ICH E6(R3), package validation, run logging). The evidence,
+gap table, and proposed additions are in Part 13.
+
 ---
 
 ## Part 3. House rules for the readability refactor
@@ -2744,6 +2756,18 @@ as the record of what was weighed.
 | 15 | Portrait policy (new) | **Open item for the author**: the Gentleman portrait is placed but Gentleman is not among the five named in the April image policy (`images/README.md`). Amend the policy or replace the portrait. |
 | 16 | Course length (new) | **Two quarters, with a one-quarter core path.** The book targets a two-quarter sequence at about two chapters a week (35 chapters is 17.5 weeks; the earlier claim that a single quarter is realistic was false). Quarter 1: Parts I to III of 5.2 (why, toolkit, data); Quarter 2: Parts IV to VIII (documents and environments, analysis practice, industry, case studies, capstone). A one-quarter core of 20 chapters, two a week, is printed in the preface ('Course length and the one-quarter core', implemented 2026-10-09): why, de-identification, shell, workstation, Git solo and teams, acquisition, wrangling, joins, graphics, missing data, Quarto, renv, Docker, analysis plans, testing, AI-assisted coding, ethics, communicating, and the penguins case study. Pharmaceutical-track students add CDISC and SAS. Consequences: cuts (decision 13) and Phase K additions should protect the core chapters' length; the capstone (5.4) belongs to Quarter 2. |
 
+### Decisions opened 2026-10-11 (Part 13)
+
+These are **open**. Nothing in Part 13 beyond Tier 1 is to be
+implemented until each is resolved and recorded here.
+
+| # | Decision | Options | Recommendation |
+|---|---|---|---|
+| 21 | Topic additions (13.3) | Tier 1 only; Tier 1 and 2; all tiers | **Tier 1 and 2.** Tier 2 items are the most widely taught and clearly in scope; Tier 3 is borderline or narrowly taught. Tier 1 is approved with the plan (decision 24 adds to it). |
+| 22 | rgtlab tested alternatives (13.6) | Feature zzlongplot and zzrctsim; feature zzlongplot only; feature none | **Feature both.** Both meet the tested-and-trusted bar on re-run comparisons. zzrctsim waits until its MCSE formulas are cross-checked against rsimsum, and until the Gap 14 section exists (decision 21). |
+| 23 | Volume split (13.4) | Two volumes; three (industry volume); one volume; decide after additions | **Decide after additions.** The split depends on which tiers ship; the page estimates in 13.4 are projections. |
+| 24 | rgtlab corrections (13.6, items 1 to 7) | Apply as Tier 1; defer | **Apply as Tier 1.** Each fixes a statement in the current book that a re-run showed to be false or incomplete; none depends on decisions 21 to 23. |
+
 Consequences for the rest of this plan: house rule 2 and Phase H
 apply the middle course; Part 5.2 is adopted rather than proposed;
 Phase K proceeds with estimands in 18; Phase J omits the index and
@@ -2953,6 +2977,251 @@ described, has not been checked by reading them.
   practice reflect knowledge as of mid-2026 and will date fastest of
   anything in this plan. Product names in 4.6 belong in the dated
   'Tooling as of' appendix, not in chapter prose.
+
+## Part 13. Topic additions from the coverage sweep (2026-10-10)
+
+### 13.1 Method and evidence
+
+Three researchers worked from one brief containing the book's scope
+statement (it deliberately does not teach statistical theory or
+methods, which the companion book covers), its chapter titles, and all
+203 section headings, and checked coverage by grepping the chapter
+files. Each cited only sources it opened or saw in search results, and
+labeled which.
+
+| Sweep | Sources | Read in full |
+|---|---|---|
+| University courses (US, Canada, UK, Europe, Hong Kong, plus Data Carpentry and an industry course) | 27 | 21; 6 from catalog or search snippets only |
+| Textbooks, open books, reference sites (R4DS 2e, The Turing Way, Telling Stories with Data, Modern Statistics with R, R Packages, rstats.wtf, Happy Git, RAPs with R, UK RAP guidance and the 'Duck Book', Carpentries, R for Clinical Study Reports, pharmaverse, rOpenSci dev guide, Missing Semester, and others) | 30 | most; 5 partly |
+| Regulators, standards bodies, societies, tool vendors (FDA, EMA, ICH, ICMJE, NIH, EQUATOR, CDISC, NIST, ASA, RSS, Posit, R Validation Hub) | 34 | 2 fetched; the rest from search results |
+
+**Limits.** Coverage status rests on grep and section headings, not on
+re-reading every chapter, so 'partly covered' judgments are inferred.
+Many dates in the regulatory sweep come from search results or
+secondary sources and must be confirmed against primary sources before
+any of them is printed (house rule 14 and the verification pass). No
+course syllabus was found for several institutions searched (for
+example Michigan, Karolinska, Oxford, UCL, NUS); they are not counted.
+
+**What the sweep confirms is already covered.** Git, Quarto, import,
+wrangling, joins, dates, APIs and scraping, SQL, Arrow and DuckDB,
+testing and CI, renv and Docker, targets, cloud and HPC, ethics and
+privacy, de-identification, estimands, NIH data sharing, CDISC and the
+R submission pilots, TRIPOD+AI, Positron, and AI-assisted coding, on
+which the book is ahead of nearly every peer source.
+
+**What is out of scope** (companion book): regression, inference,
+machine learning methods, Bayesian workflow, bootstrap, power theory.
+
+### 13.2 Gap table
+
+'Peers' counts sources across the three sweeps that teach the topic
+(approximate). Fit: IN scope for a practicum, or BORDERLINE.
+
+| # | Topic | Peers | Status in the book | Fit | Settled? |
+|---|---|---|---|---|---|
+| 1 | Superseded citations: CONSORT 2010 to CONSORT 2025 and SPIRIT 2025; ICMJE 2024 to January 2026 (new AI section); riskmetric now maintenance-only (successor val.meter); Dataset-JSON status | regulatory sweep | STALE | IN | yes |
+| 2 | Writing functions, iteration, and debugging your own code (`traceback`, `browser`, `debugonce`, `rlang::abort`, `rlang::last_trace`) | 14+ (6 courses, 8 books) | PARTLY: functions used throughout, never taught; no debugging | IN | yes |
+| 3 | Analysis code as a package (DESCRIPTION, roxygen2, `R CMD check`, pkgdown) without zzcollab | 11 | PARTLY: only through zzcollab | IN | yes |
+| 4 | Publication and submission tables (gtsummary or gt Table 1; TLF assembly with rtables or tfrmt) | 6 | PARTLY: used in case studies, never taught | IN | yes |
+| 5 | Regulated-industry computing: 21 CFR Part 11, ICH E6(R3) data integrity and computerized systems, audit trails, R package validation (R Validation Hub), eSubmission mechanics (pkglite, eCTD layout) | industry course, R4CSR, pharmaverse, regulators | ABSENT (Part 11 and Validation Hub: no mentions) | IN | mostly |
+| 6 | Run logging and audit trails (logger or cli; logrx or whirl) | 3 | ABSENT | IN | yes |
+| 7 | Choosing a reporting guideline (CONSORT 2025 and -AI, SPIRIT 2025 and -AI, STROBE, TRIPOD+AI, TRIPOD-LLM, CHART, TARGET for target-trial emulation) | regulatory sweep | PARTLY: TRIPOD+AI only | IN | yes |
+| 8 | LLMs as analysis components, and evaluating an LLM step before trusting it (structured extraction with a validation set, a small evaluation harness) | 1 course (3 weeks), Posit vitals | PARTLY: appendix H only, no evaluation | IN | no (volatile) |
+| 9 | Regulation of AI in analysis: FDA 2025 draft credibility framework, FDA and EMA principles, NIH 2025 applicant rules, ICMJE AI section, EU AI Act dates | regulatory sweep, ASA and RSS statements | PARTLY: disclosure only | IN as a dated box | no (volatile) |
+| 10 | Declarative data validation (pointblank, validate) | 3 | ABSENT | IN | yes |
+| 11 | Style, lint, format (styler, lintr, Air, pre-commit) | 5+ | PARTLY: only in the AI chapter | IN | yes |
+| 12 | Licensing and citation of code and data (LICENSE, CITATION.cff, DOI linkage) | 5 | PARTLY: only in the example DMSP | IN | yes |
+| 13 | Trusted research environments, the Five Safes, federated analysis, output disclosure control | 2 + UK guidance | ABSENT by name | IN | mostly |
+| 14 | Planning and reporting a simulation study (ADEMP, Monte Carlo standard errors) | 2 | PARTLY: a simulation runs in 06; no plan or reporting | IN | yes |
+| 15 | Accessible figures and documents (alt text, color, WCAG 2.1 AA, Quarto options) | regulatory sweep; book uses fig-alt but does not teach it | ABSENT | IN | yes |
+| 16 | Preregistration, registered reports, preprints | 4 | PARTLY: SAP pre-specification only | IN | yes |
+| 17 | Consulting practice by performance: simulated intake role-play, jury-style presentation rubric | 4 | PARTLY: intake covered, no exercise | IN | yes |
+| 18 | A replication exercise (reproduce a published figure from deposited code and data) | 2 | PARTLY: cases discussed, nothing assigned | IN | yes |
+| 19 | Generating synthetic data and judging its utility and disclosure risk; differential privacy as a concept | 2 | PARTLY: synthetic data used, not taught | IN | partly |
+| 20 | Interactive deliverables (Shiny, teal, shinylive and webR) | 9 | ABSENT as a taught topic | BORDERLINE | partly |
+| 21 | Data-management operations (roles matrix, participant tracking, REDCap design) | 3 | PARTLY: REDCap mentioned | IN | yes |
+| 22 | Make and Snakemake beside targets; Python interoperability in a compendium | 5 to 6 each | PARTLY | BORDERLINE | yes |
+| 23 | Nix and rix as an alternative to renv plus Docker | 2 | ABSENT (one mention) | BORDERLINE | partly |
+| 24 | Smaller items: multiverse or specification-curve extension of the 25b sensitivity grid; profiling (profvis, bench) before scaling out; compute carbon; ICH M11 structured protocol; lay summaries and posters; professional-society AI statements | 1 to 3 each | ABSENT or PARTLY | IN or BORDERLINE | mostly |
+
+### 13.3 Proposed additions
+
+Placement uses the current part order. Size is new words, including
+code; pages assume the book's current ratio of about 200 words per
+rendered page.
+
+**Tier 1: correct now (no decision needed beyond approval).**
+
+| Item | Where | Size |
+|---|---|---|
+| Gap 1, superseded citations, each confirmed against its primary source | 25b, 18, 21, 19 | small |
+| rgtlab corrections 1 to 7 in 13.6 (zzrenvcheck claim, zzgit footnote, R.nvim name, zzcollab `make r`, zztable1 missing row, appendix E entries, HF-HOME codebook randomization note); decision 24 | 08, 05, 04, 10, 23, 24, E, HF-HOME README | small |
+
+**Tier 2: recommended additions (most widely taught, clearly in scope).**
+
+| Item | Where | Form | Size |
+|---|---|---|---|
+| Gap 2, functions, iteration, debugging | Part III, after @sec-types, before @sec-joins | **New chapter**, 'Writing and Debugging Functions', on HF-HOME | about 5,500 words |
+| Gap 3, analysis code as a package | @sec-zzcollab | Section | 1,500 |
+| Gap 4, publication and submission tables | @sec-communicating (Table 1); @sec-cdisc (TLFs) | Two sections | 2,500 |
+| Gaps 5 and 6, regulated-industry computing and run logging | @sec-cdisc (Part 11, E6(R3), validation, eSubmission); @sec-targets (logging) | Sections | 3,500 |
+| Gap 7, choosing a reporting guideline | @sec-communicating, cross-referenced from @sec-analysis-plan and @sec-adni | One table and section | 1,000 |
+| Gaps 8 and 9, LLM components with evaluation; regulation of AI | @sec-ai-coding (durable method); appendix H (code); 25c 'as of' table (dates) | Section and dated box | 2,000 |
+| Gap 10, declarative validation | @sec-testing, beside the assertions | Section | 1,200 |
+| Gap 11, style and lint | Move from @sec-ai-coding to @sec-testing; add Air and pre-commit | Move plus small section | 500 net |
+| Gap 12, licensing and citation | @sec-federal | Section | 1,000 |
+| Gap 13, trusted research environments | @sec-deident-practice | Section | 1,200 |
+| Gap 14, simulation studies | @sec-cloud job-array example, pointed to from @sec-analysis-plan | Section | 1,200 |
+| Gap 15, accessibility | @sec-graphics (figures); @sec-quarto (documents) | Two sections | 1,500 |
+| Gaps 16 to 18, preregistration; consulting role-play; replication exercise | @sec-analysis-plan; @sec-team-science and the Instructor Guide; @sec-why | Sections and exercises | 2,000 |
+
+Tier 2 total: about 24,000 words, roughly +120 pages.
+
+**Tier 3: optional (borderline or narrowly taught).**
+
+| Item | Where | Form | Size |
+|---|---|---|---|
+| Gap 19, synthetic data and differential privacy | @sec-deident-practice | Section and concept box | 1,200 |
+| Gap 20, interactive deliverables | New appendix, 'Interactive Deliverables' | Appendix | 3,000 |
+| Gap 21, data-management operations | @sec-team-science or @sec-acquisition | Section | 1,200 |
+| Gaps 22 and 23, Make and Snakemake, Python interop, Nix and rix | @sec-targets; @sec-docker | Asides | 1,500 |
+| Gap 24, smaller items | Their home chapters | Paragraphs | 1,500 |
+
+Tier 3 total: about 8,500 words, roughly +40 pages.
+
+### 13.4 Consequences for length and the volume split
+
+With Tier 1 and 2 the PDF would be about 1,310 pages; with all tiers
+about 1,350. The additions are not evenly split:
+
+| Volume (as proposed) | Now | With Tier 2 | With all tiers |
+|---|---|---|---|
+| 1, Parts I to III | about 550 | about 600 (the new functions chapter, accessibility in 16, TREs in 02c) | about 615 |
+| 2, Parts IV to VIII | about 640 | about 710 (regulated computing, tables, logging, packages, reporting guidelines) | about 735 |
+
+Volume 2 then approaches the print-on-demand page ceiling noted when
+the split was discussed (roughly 800 to 830 pages for common services,
+from memory, to be confirmed). One option is a third volume for the
+industry material: Part VI (@sec-cdisc, @sec-sas) plus the new
+regulated-computing sections, which would make a coherent short book
+for pharmaceutical-track students and bring Volume 2 near 600 pages.
+
+### 13.5 Process
+
+Additions follow the same rules as Phases H and K: one branch, the
+chapter template, HF-HOME examples with computed numbers, verification
+of every regulatory date against its primary source before it ships,
+and a second reader for the regulated-computing material (house rule
+14). Tier 1 can be done first and independently.
+
+### 13.6 rgtlab software as tested alternatives (review of 2026-10-10)
+
+**Rule.** A lab tool may appear beside the community standard (never
+in its place, decision 5) only if it is *tested and trusted*: (a) its
+test suite passes; (b) its tests check correctness of results, not
+only structure; and (c) on the same input its output agrees with the
+community tool within a stated tolerance, verified by running both.
+A tool failing any of (a) to (c) gets at most a sentence.
+
+**Method and evidence.** Three read-only reviewers covered the 18
+projects in `~/prj/sfw` under one brief, working on copies in the
+scratchpad, with R 4.6.1 and the local library. For every R package
+they ran the test suite and `R CMD check --as-cran --no-manual
+--ignore-vignettes` (vignettes were not built), and ran a comparison
+against the community tool. On 2026-10-11 the coordinator re-ran
+every result that a verdict rests on (marked R below): zzlongplot,
+zzrctsim, zztable1, zzpower, zzrenvcheck, zzgit, and zzedc. All
+reproduced. Results for the out-of-scope and MENTION-only methods
+packages (zzmesoimpute, zzalloc, zzfisher, zzcondpower,
+zzuncondexact, zzworld), zzvim-R, zzobj2fig, and the zzcollab scaffold
+rest on the reviewers' runs only; none of them changes a verdict. Not done: vignette builds,
+Docker builds, zzcollab shell tests, PostgreSQL backends, the gitleaks
+content scan (gitleaks absent), and comparisons against blockrand,
+randomizr, simstudy, rsimsum, and NADA2 (not installed). None of the
+packages is on CRAN; all are GitHub-only with a single maintainer.
+
+| Project | Tests | Comparison with the community tool | Verdict | Where | Beside |
+|---|---|---|---|---|---|
+| zzlongplot 0.6.0 | 312 pass; tests check interval arithmetic | HF-HOME NT-proBNP by arm and visit: means and 95% t bounds equal `stat_summary(mean_cl_normal)` to 3 decimals in all 4 cells (R) | **FEATURE** (keep existing section) | @sec-graphics, @sec-adni | ggplot2 |
+| zzrctsim 0.2.0 | 338 pass; bias and coverage within 3 MCSE | B = 1000, true effect −3: bias 0.015 (MCSE 0.015), coverage 0.956, versus a hand-written loop −0.019 (0.016), 0.951; one data set: `fit_ancova()` equals hand-coded `lm()` (−2.646391, SE 0.486232) (R) | **FEATURE** (new, in Gap 14) | @sec-cloud-worked, from @sec-analysis-plan-power | hand loop plus rsimsum |
+| zzcollab 0.2.0 | 158 pass; R CMD check 1 NOTE; tests mostly argument and git handling | scaffold passes the chapter's own pillar audit except the Git row, as Exercise 7 expects | Keep optional section; fix 3 claims | @sec-zzcollab | rrtools, workflowr |
+| zztable1 0.6.0 | 600 pass; mostly structural | counts, %, means, SDs, p-values agree with gtsummary and table1; **missing row blank with `missing = TRUE`** (R); LaTeX header puts `\\` in a cell (inspected) | **NOT YET** | @sec-penguins, @sec-adni | gtsummary |
+| zzpower 1.1.0 | 980 pass; tests exercise pwr, not zzpower | HF-HOME design 1,092 per arm versus 1,094 (`power.prop.test`) and 1,091.9 (`pwr`); d = 0.5 t-test 64 versus 63.77 (R); `p2` silently defaults to 0.30; default 10% dropout gives 1,213.5 per arm | MENTION | @sec-analysis-plan | power.prop.test, pwr |
+| zzrenvcheck 0.8.0 | 170 pass; parser tests are correctness tests | code packages match `renv::dependencies()`; but with default `transitive = FALSE` reports PASS while `renv::status()` lists 7 unrecorded packages; never compares code with the lock; does not flag unused lock entries (R, committed 0.8.0). Uncommitted 0.9.0 work in `~/prj/sfw` fixes the two-pass auto-fix and locks installed versions, but `transitive` still defaults to FALSE; re-test when released | MENTION; correct the text | @sec-renv | renv::status |
+| zzgit 0.1.1 | no suite | committed `.Renviron` with `DB_PASSWORD` to main without gitleaks (R); protected-branch guard is a push prompt, not a commit block; new-branch push fails (no `-u`) (R) | MENTION; reword footnote | @sec-git-solo | gitleaks pre-commit hook |
+| zzvim-R | 68 themis tests pass | renders `.qmd` through `rmarkdown::render(html_document)`, so `@fig-` cross-references stay literal | MENTION; correct | @sec-workstation | R.nvim |
+| zzobj2fig 0.4.0 | 337 pass (compile tests skipped, no pdfcrop) | cells match `summary(lm)` and kableExtra; headers mangled (`Std\_\_Error`); README shows CRAN and 'stable' badges | MENTION | Gap 4 TLF section | gt, kableExtra |
+| zzmesoimpute 0.2.0 | 126 pass; MLE recovery tested | censored MLE equals `survival::survreg` within 2e-3 over 500 reps; SD of log concentration 0.858 (LOD/2), 1.0005 (MLE), truth 1 | MENTION (methods) | @sec-missing-further | survreg, NADA2 |
+| zzedc 0.8.0 | 3,232 of 3,235 pass (3 stale UI-text tests); suite aborts if a PostgreSQL backend is configured but absent | 'encrypted' database has a plaintext `SQLite format 3` header (R); after rewriting one audit row and re-hashing the chain, `verify_audit_integrity()` returns valid (R); no validation package exists | **NOT YET**; never cite for Part 11 | @sec-acquisition, Gap 5 | REDCap |
+| simrun-demo | 1 trivial test | reruns to its logged value; no ADEMP, no MCSE; no remote | NOT YET | @sec-cloud-hpc | job arrays |
+| zzalloc 0.3.0 | 112 pass; correctness tests | stratified blocks of 4 on HF-HOME strata: imbalance never above 2, permutations uniform (p = 0.79), against a base-R reference | OUT OF SCOPE (methods) | footnote at most | blockrand, randomizr |
+| zzfisher, zzcondpower, zzuncondexact | 1,625, 159, 78 pass | match `fisher.test` to 2e-13, exact enumeration, and `Exact` to 1e-7 | OUT OF SCOPE (methods) | companion book | |
+| nof1power 0.1.0 | 1 placeholder test | empty scaffold, no exports | NOT YET; correct appendix E | none | |
+| zzworld 0.2.0 | 510 pass | Levenshtein equals stringdist on 5 inputs | OUT OF SCOPE | appendix E only | |
+
+**Corrections the book needs now** (Tier 1, independent of any
+addition):
+
+1. @sec-renv (`08-renv.qmd` lines 493 to 501): 'every package the code
+   uses is declared and locked, and no locked package is unused' is
+   false as written. Say what it checks (code against DESCRIPTION,
+   DESCRIPTION against the lock, with `transitive = TRUE` for full
+   coverage) and keep `renv::status()` as the authority.
+2. @sec-git-solo footnote (`05-git-solo.qmd` lines 175 to 179): the
+   guard is a confirmation before *pushing* to a protected branch;
+   content scanning requires gitleaks, without which it checks
+   filenames only and will commit an `.Renviron` holding a password.
+   The gitleaks pre-commit hook in the main text stays the
+   recommendation.
+3. @sec-workstation (`04-workstation.qmd` line 719): the plugin is
+   R.nvim, not 'R-Nvim'; do not imply zzvim-R renders Quarto with
+   cross-references.
+4. @sec-zzcollab (`10-zzcollab.qmd` lines 1261 to 1270): `make r`
+   without an image asks before running host R and defaults to No;
+   `make check-renv` installs zzrenvcheck from GitHub HEAD, unpinned,
+   on first use; `zzc --help` lists profiles that disagree with
+   `bundles.yaml` (fix in zzcollab, not the book).
+5. @sec-penguins and @sec-adni (`23-penguins.qmd` line 357,
+   `24-adni.qmd` line 752): the zztable1 examples fail the book's own
+   'Missing shown as a row' checklist. Remove them, or show gtsummary
+   only, until zztable1 is fixed.
+6. Appendix E: nof1power describes functions that do not exist;
+   zzedc's entry should state that encryption at rest is not active
+   and that no validation evidence exists; zzobj2fig and zzpower
+   entries should not imply maturity beyond version and tests.
+7. HF-HOME codebook (`raw_data/hfhome/README.md` line 21) says
+   'permuted blocks of 4'; the generator balances incomplete final
+   blocks across the trial to fix exactly 1,216 per arm
+   (`R/hfhome.R` line 524). Add that clause to the codebook.
+
+**Features to write** (each 150 to 400 words, after the community
+tool, with the comparison shown as computed output):
+
+- *zzlongplot* in @sec-graphics: the existing section already has the
+  right shape; add the computed agreement with `stat_summary`, the
+  per-point n, and the caveat that day-30 means describe attenders.
+- *zzrctsim* in the new simulation-study section (Gap 14): plan the
+  study by ADEMP in a hand-written loop first, report MCSE with a
+  helper, then show zzrctsim as a tested alternative that forces the
+  estimand to be declared and attaches an MCSE to every measure;
+  limits: Gaussian longitudinal outcomes only, one reference fitter.
+  Its MCSE formulas should first be cross-checked against rsimsum.
+
+**What would move the NOT YET tools up** (for the author's software,
+not the book): zztable1, render the missing row and value-level
+tests against gtsummary; zzpower, require `p2`, round enrolled n up,
+add reference-value tests; zzrenvcheck, compare code with the lock
+and default to transitive checks; zzedc, encryption that works or
+fails loudly, an externally anchored audit trail, and a validation
+package. Its tampering demonstration is itself a good teaching example
+for Gap 5: a hash chain without an external anchor is not an audit
+control.
+
+**Repository status to check before printing.** zzuncondexact is a
+private repository and simrun-demo has no remote; neither should be
+cited until public. Public status of the others was confirmed only
+for group B's packages.
 
 ## Appendix. Reproducing the measurements
 
