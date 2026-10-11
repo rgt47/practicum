@@ -716,13 +716,16 @@ Neovim, with an R plugin, is the keyboard-driven modal editor:
 highly customizable, fast, and usable over SSH without
 modification, with a steep learning curve. The capability that
 makes it viable for analysis rather than merely for editing is a
-link to a live R session: `R-Nvim` is the established choice, and
+link to a live R session: `R.nvim` is the established choice, and
 the in-house `zzvim-R` is the lighter one used in this book's own
 development, sending the current line, a visual selection, or a
-whole Quarto chunk to an embedded terminal and rendering the
-document without leaving the editor. Choose it if you already use
-vi or Neovim for other languages, or do most of your work over
-SSH.
+whole Quarto chunk to an embedded terminal. Its render command
+calls `rmarkdown::render()` rather than `quarto render`, so a
+`@fig-` cross-reference stays as literal text in the output;
+render from the terminal, or with a dedicated Quarto editor
+integration, when cross-references matter. Choose it if you
+already use vi or Neovim for other languages, or do most of your
+work over SSH.
 
 ### Shell and terminal
 

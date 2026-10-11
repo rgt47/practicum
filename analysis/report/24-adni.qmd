@@ -748,21 +748,13 @@ analytic_cohort |>
   as_kable()
 ```
 
-A descriptive Table 1 carries no row p-values. One way to automate
-a journal-styled version is the in-house `zztable1` package
-(@sec-lab-software), with a formula interface (display-only):
-
-```r
-zztable1::table1(
-  AGE + PTGENDER + PTEDUCAT + APOE4 + ADAS13 + MMSE ~ converted_3y,
-  data = analytic_cohort, totals = TRUE, pvalue = FALSE,
-  numeric_summary = 'median_iqr', theme = 'nejm'
-)
-```
-
-Its `pvalue` argument defaults to `TRUE`, and `theme` selects a
-journal style from `console`, `nejm`, `lancet`, `jama`, `bmj`, and
-`simple`. Whichever tool you use, match the target journal's
+A descriptive Table 1 carries no row p-values. The in-house
+`zztable1` package (@sec-lab-software) offers a similar formula
+interface with journal styles (`console`, `nejm`, `lancet`, `jama`,
+`bmj`, `simple`), but as of this writing it leaves the
+missing-value row blank instead of reporting the count where a
+variable like `APOE4` has missing values. Use `gtsummary` until
+that is fixed. Whichever tool you use, match the target journal's
 template.
 
 ### Cognitive trajectories

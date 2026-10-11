@@ -490,21 +490,25 @@ loads. Together they catch the common drift: a forgotten
 `snapshot()`, a package added without a lockfile update, and a
 colleague's machine that ran `update.packages()` outside `renv`.
 
-One way to automate the audit is the in-house `zzrenvcheck`
+One way to automate part of the audit is the in-house `zzrenvcheck`
 package (@sec-lab-software), which `zzcollab` projects run through
-`make check-renv` (@sec-zzcollab). Its `check_packages()` confirms
-that the code, `DESCRIPTION`, and `renv.lock` agree: every package
-the code uses is declared and locked, and no locked package is
-unused. It reads files only and never inspects the installed
-library, so it complements `renv::status()` rather than replacing
-it, and it runs without an installed environment, for example in
-continuous integration.
+`make check-renv` (@sec-zzcollab). Its `check_packages()` compares
+the code against `DESCRIPTION` and, separately, `DESCRIPTION`
+against `renv.lock`; by default it does not include indirect
+dependencies, so it can report success while `renv::status()` still
+lists packages missing from the lockfile, and it does not flag a
+locked package nothing uses. It reads files only and never inspects
+the installed library, so it is a narrower, faster check to run
+often, not a replacement for `renv::status()`, which remains the
+authority before a release.
 
 ```r
 zzrenvcheck::check_packages()
 ```
 
-Resolve every issue before tagging the release.
+Resolve every issue `check_packages()` reports, then run
+`renv::status()` to confirm; it checks more than `zzrenvcheck`
+does.
 
 ### Exercises
 

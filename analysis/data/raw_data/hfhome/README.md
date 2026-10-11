@@ -20,7 +20,12 @@ randomization to home-health visits within 7 days of discharge or
 usual care, stratified by site and ejection-fraction stratum
 (permuted blocks of 4), primary outcome readmission or death within
 30 days of index discharge (composite; death is an event), analyzed
-as randomized (treatment policy).
+as randomized (treatment policy). Permuted blocks within a stratum
+leave an incomplete final block when the stratum size is not a
+multiple of 4; the generator balances these leftover participants
+across the whole trial rather than within their stratum, which is
+why the arms come out exactly equal (1,216 each) despite the block
+scheme.
 
 - Randomized: 2,432 (1,216 usual care, 1,216 home health).
 - Outcome model calibrated to marginal risks of 25% (usual care) and 20% (home health).

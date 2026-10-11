@@ -821,9 +821,8 @@ Pilot 2, a Shiny application, received its response in September
 final response letter in August 2024; and Pilot 4, the Shiny
 application delivered through WebAssembly and through a
 container, received FDA's review letter in May 2026.[^pilots]
-These are test submissions, not drug approvals. What a sponsor
-must show is
-that the software it relies on is fit for purpose. The R
+These are test submissions, not drug approvals. What a sponsor must
+show is that the software it relies on is fit for purpose. The R
 Validation Hub, another R Consortium working group, publishes a
 risk-based approach to that question, and its `riskmetric` package
 scores a package on documentation, testing, maintenance, and use
@@ -836,13 +835,21 @@ pkg_ref('survival') |>
   pkg_score()
 ```
 
+As of this writing, `riskmetric` is maintenance-only: the Validation
+Hub has moved its development effort to a successor, `val.meter`,
+and directs feature requests there. Bug reports for `riskmetric`
+itself are still accepted. Check both packages' status before
+adopting either.
+
 [^pilots]: As of 2026-10. Dates are from the working group's
     pilot pages (`rconsortium.github.io/submissions-wg`), the
     pilot repositories on GitHub (`github.com/RConsortium`), and
     R Consortium announcements of August 2024 (Pilot 3) and May
-    2026 (Pilot 4). Pilot 5, which replaces XPT with Dataset-JSON,
-    was resubmitted in January 2026; check its repository for the
-    current status before citing it.
+    2026 (Pilot 4). Pilot 5 replaces XPT with Dataset-JSON: it was
+    submitted to FDA in fall 2025, FDA requested minor rework, and
+    the team resubmitted in January 2026, with completion hoped for
+    spring 2026. Check the working group's pilot pages for the
+    current status before citing a result.
 
 ### Double programming
 

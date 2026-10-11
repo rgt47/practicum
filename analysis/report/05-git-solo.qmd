@@ -172,11 +172,17 @@ compromised and rotated, even after the file is deleted, because
 the old commit still contains it.
 :::
 
-[^zzgit]: One way to automate this is the in-house `zzgit` zsh
-    plugin (@sec-lab-software), which wraps staging and committing
-    with a `gitleaks` scan, a guard against committing directly to
-    a protected branch, and a prompt for a Conventional Commits
-    subject line. It is optional; the habit it enforces is not.
+[^zzgit]: One way to automate part of this is the in-house `zzgit`
+    zsh plugin (@sec-lab-software), which wraps staging and
+    committing with a prompt for a Conventional Commits subject
+    line and a confirmation before pushing to a protected branch.
+    Content scanning requires `gitleaks` to be installed separately;
+    without it, `zzgit` falls back to a filename check only and will
+    commit a secret in a file like `.Renviron` without warning, and
+    the protected-branch confirmation guards a push, not a commit.
+    Install `gitleaks` as a pre-commit hook, with or without
+    `zzgit`, for the content scan itself. `zzgit` is optional; the
+    habit it enforces is not.
 
 ### Commits as units of reasoning
 

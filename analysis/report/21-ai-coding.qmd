@@ -830,7 +830,8 @@ Reviewed line by line; tests in inst/tinytest/ unchanged.
 
 Follow the target journal's AI-disclosure policy. The ICMJE
 (International Committee of Medical Journal Editors)
-recommendations [@icmje2024] and most publishers require
+recommendations, updated January 2026 with a standalone section on
+AI in publishing [@icmje2026], and most publishers require
 disclosure of AI assistance in writing and analysis, and none
 accept an AI as an author: authorship requires accountability for
 the work, which a model cannot take.
@@ -1012,8 +1013,8 @@ into the test file so that the same test runs against both.
 
 - [@huyen2024ai], *AI Engineering*, patterns for building and
   evaluating applications on foundation models.
-- [@icmje2024], the section on AI-assisted technology, for
-  authorship and disclosure.
+- [@icmje2026], the January 2026 update's Section V on AI in
+  publishing, for authorship and disclosure.
 - [@spracklen2025package], the measurement of package
   hallucinations behind slopsquatting.
 

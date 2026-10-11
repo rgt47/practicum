@@ -1262,20 +1262,28 @@ when Docker can resolve it, by digest (for example
 inside the container, with the project directory
 mounted, so files edited inside the container persist
 on the host. It does not build the image; if no image
-exists it says so and falls back to R on the host.
-Build first with `make docker-build` if you declined at
-scaffolding time.
+exists it asks whether to run R on the host instead,
+defaulting to No, so an unbuilt image stops you rather
+than silently substituting the host's R. Build first with
+`make docker-build` if you declined at scaffolding time.
 
 **`make check-renv`** runs
 `zzrenvcheck::check_packages(auto_fix = TRUE,
-strict = TRUE)` on the host. It checks that the
-packages your code uses, the packages `DESCRIPTION`
-declares, and the packages `renv.lock` records all
-agree, and with `auto_fix` it *edits* `DESCRIPTION` and
-`renv.lock` to add what is missing. It is not a
-read-only audit; use `make check-renv-no-fix` for a
-report that changes nothing. It does not build the
-Dockerfile or inspect `.Rprofile` or the data.
+strict = TRUE)` on the host; the first time it runs it
+installs `zzrenvcheck` itself from the latest commit on
+GitHub, unpinned. It checks that the packages your code
+uses and the packages `DESCRIPTION` declares agree, and,
+separately, that `DESCRIPTION` and `renv.lock` agree; by
+default it does not follow indirect dependencies, so
+passing this check is not the same as `renv::status()`
+reporting no issues (@sec-renv). With `auto_fix` it
+*edits* `DESCRIPTION` and `renv.lock` to add what is
+missing, which can take two runs: the first pass adds a
+package to `DESCRIPTION`, and the lockfile update follows
+on the next. It is not a read-only audit; use
+`make check-renv-no-fix` for a report that changes
+nothing. It does not build the Dockerfile or inspect
+`.Rprofile` or the data.
 
 **`make docker-render-qmd`** runs
 `quarto render analysis/report/index.qmd` inside the

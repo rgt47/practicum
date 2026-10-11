@@ -50,20 +50,24 @@ into one command-line workflow with profile-based project
 scaffolding. Treated at length in @sec-zzcollab.
 
 **`zzrenvcheck`** ([github.com/rgt47/zzrenvcheck](https://github.com/rgt47/zzrenvcheck)).
-Validates that every package used in source code is declared
-in `DESCRIPTION` and locked in `renv.lock`. It complements
-`renv` rather than replacing it: `renv` confirms the lockfile
-matches the installed library, while this confirms that the
-code, the manifest, and the lockfile agree. Declaration-only,
-so it runs without a container or an installed environment.
-Used in @sec-renv.
+Checks that packages used in source code are declared in
+`DESCRIPTION`, and, separately, that `DESCRIPTION` and
+`renv.lock` agree. It does not, by default, compare the code
+directly against the lockfile, or follow indirect dependencies,
+so it can report success on a project `renv::status()` would
+still flag. It complements `renv` for a quick, declaration-only
+check that needs no container or installed environment, but
+`renv::status()` remains the authority before a release. Used
+in @sec-renv.
 
 **`zzgit`** ([github.com/rgt47/zzgit](https://github.com/rgt47/zzgit)).
 A zsh plugin replacing the `git add . && git commit -am`
-reflex with an interactive stage-and-commit: secret scanning
-of the staged diff via `gitleaks`, a protected-branch guard,
-and a Conventional Commits wizard. Discussed in
-@sec-git-solo.
+reflex with an interactive stage-and-commit: a Conventional
+Commits wizard and a confirmation before pushing to a
+protected branch. Secret scanning of the staged diff requires
+`gitleaks` to be installed separately; without it, only a
+filename heuristic runs, which will not catch a secret's
+contents. Discussed in @sec-git-solo.
 
 **`zzvim-R`** ([github.com/rgt47/zzvim-R](https://github.com/rgt47/zzvim-R)).
 A Vim and Neovim plugin linking the editor to an embedded R
@@ -75,8 +79,12 @@ Mentioned in @sec-workstation.
 
 **`zztable1`** ([github.com/rgt47/zztable1](https://github.com/rgt47/zztable1)).
 Publication-quality summary tables with automatic format
-detection for LaTeX and HTML. The portable alternative is
-`gtsummary`. Used in both case studies.
+detection for LaTeX and HTML. Its counts, percentages, means,
+and p-values agree with `gtsummary`, but as of this writing it
+leaves the missing-value row blank instead of reporting the
+count, so a table with missing data should use `gtsummary`
+until that is fixed. The portable alternative is `gtsummary`.
+Mentioned in both case studies.
 
 **`zzlongplot`** ([github.com/rgt47/zzlongplot](https://github.com/rgt47/zzlongplot)).
 Longitudinal plots with grouping, change scores, and
@@ -88,7 +96,12 @@ portable alternative is `ggplot2` with `stat_summary`, which
 Generates LaTeX tables from data frames and statistical
 objects, and crops them to standalone PDF figures. Carries
 journal themes (APA, Nature, NEJM) and S3 methods for `lm`
-and `glm`. Its main entry point is `o2f()`.
+and `glm`. Its main entry point is `o2f()`. Table cells match
+`summary(lm)` and `kableExtra`, but as of this writing it
+mangles some column headers in LaTeX output (for example
+rendering `Std. Error` as `Std\_\_Error`); check headers
+before using generated output as-is. Version 0.4.0,
+GitHub-only, with a single maintainer.
 
 ## Statistical methods
 
@@ -96,12 +109,20 @@ and `glm`. Its main entry point is `o2f()`.
 An interactive Shiny power and sample-size calculator across
 two-group, paired, one-sample, two-proportion, and
 correlation designs, with power curves and downloadable
-reports. Used in @sec-analysis-plan.
+reports. Its answers are close to `power.prop.test` and `pwr`
+but not identical, because it uses a different approximation;
+cross-check with base R, as @sec-analysis-plan does. Two traps
+as of this writing: omitting the second proportion silently
+substitutes a default rather than erroring, and the default
+dropout adjustment returns a fractional sample size. Used in
+@sec-analysis-plan.
 
 **`nof1power`** ([github.com/rgt47/nof1power](https://github.com/rgt47/nof1power)).
-Power analysis and Monte Carlo simulation for N-of-1
-crossover trials, a design @sec-analysis-plan does not
-otherwise treat. Itself built as a `zzcollab` compendium.
+An early-stage scaffold for power analysis and Monte Carlo
+simulation for N-of-1 crossover trials, a design
+@sec-analysis-plan does not otherwise treat. As of this
+writing it exports no functions; the design is not yet
+implemented. Itself built as a `zzcollab` compendium.
 
 **`zzmesoimpute`** ([github.com/rgt47/zzmesoimpute](https://github.com/rgt47/zzmesoimpute)).
 Imputation for left-censored, below-detection-limit
@@ -125,7 +146,12 @@ A Shiny electronic data capture system for clinical trials:
 authentication, entry forms, quality-control reports, and
 export. The setting @sec-acquisition describes when it says
 clinical data usually arrive from a capture system rather
-than as a file.
+than as a file. As of this writing, its 'encrypted' database
+stores data in a plain SQLite file, and its audit trail can be
+rewritten to pass its own integrity check by anyone with write
+access to the database; neither functions as a control yet. No
+validation package or Validation Master Plan exists for it.
+Do not cite it as an example of 21 CFR Part 11 compliance.
 
 **`zzworld`** ([github.com/rgt47/zzworld](https://github.com/rgt47/zzworld)).
 Scoring for the WORLD item in cognitive assessment,

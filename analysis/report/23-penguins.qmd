@@ -353,20 +353,11 @@ among Adelies, and a model with both terms cannot separate them for
 the other two species. Leaving island out of the model is a
 modeling choice, not a finding that island does not matter.
 
-One way to automate a journal-styled Table 1 is the in-house
-`zztable1` package (@sec-lab-software), which takes a formula
-(display-only):
-
-```r
-zztable1::table1(
-  bill_length_mm + flipper_length_mm + body_mass_g + sex ~ species,
-  data = penguins_clean, totals = TRUE, pvalue = FALSE,
-  numeric_summary = "median_iqr", theme = "nejm"
-)
-```
-
-Its `pvalue` argument defaults to `TRUE`, so a descriptive Table 1
-needs `pvalue = FALSE` stated.
+The in-house `zztable1` package (@sec-lab-software) offers a
+similar formula interface for a journal-styled table, but as of
+this writing it leaves the missing-value row blank instead of
+reporting the count, which breaks the rule just stated. Use
+`gtsummary` until that is fixed.
 
 ### Exploratory scatter plot
 
