@@ -156,3 +156,118 @@ attributes carry the provenance with the result. The function
 sends code only; pass it nothing that contains data.
 :::
 
+### The LLM-evaluation harness, as of October 2026 {#sec-tooling-eval}
+
+@sec-ai-eval describes the durable idea: before an LLM step runs
+unsupervised on a column of data, build a labeled validation set,
+score the step against it, and decide a threshold before you see
+the number. The code that implements that idea is exactly the kind
+of detail this appendix exists to hold, because the function names
+on an LLM client change faster than the practice does. The script
+below is complete enough to run as written, given an API key and
+the packages installed; the HF-HOME `med_text` example is the one
+@sec-ai-eval walks through by hand.
+
+```r
+# R/eval_med_frequency.R
+library(ellmer)
+library(dplyr)
+
+#' Classify one dosing string's frequency with a structured LLM call
+#' @param med_text character scalar, a `medications.csv` dosing string
+#' @param model_id character scalar, an `ellmer`-supported model
+#'   identifier (current as of October 2026; see models_anthropic())
+#' @return one of "once daily", "twice daily", "as needed", "other"
+classify_frequency <- function(med_text, model_id) {
+  chat <- chat_anthropic(model = model_id, system_prompt = paste(
+    "You classify a medication dosing instruction by frequency.",
+    "Answer with exactly one category."
+  ))
+  chat$extract_data(
+    paste("Dosing instruction:", med_text),
+    type = type_enum(c("once daily", "twice daily",
+                       "as needed", "other"))
+  )
+}
+
+#' Score a labeled validation set against the classifier
+#' @param val_set data frame with columns `med_text`, `label`
+#' @param model_id passed to classify_frequency()
+#' @return val_set with a `predicted` column, plus printed accuracy
+#'   and a confusion matrix, as a side effect
+run_eval <- function(val_set, model_id) {
+  val_set$predicted <- vapply(val_set$med_text, classify_frequency,
+                              character(1), model_id = model_id)
+  accuracy <- mean(val_set$predicted == val_set$label)
+  confusion <- table(predicted = val_set$predicted,
+                     true = val_set$label)
+  log_line <- sprintf(
+    "%s | model=%s | n=%d | accuracy=%.3f",
+    Sys.Date(), model_id, nrow(val_set), accuracy)
+  cat(log_line, "\n", file = "eval-log.txt", append = TRUE)
+  list(val_set = val_set, accuracy = accuracy, confusion = confusion,
+       log_line = log_line)
+}
+
+val_set <- read.csv("validation/med-frequency-labels.csv",
+                    colClasses = "character")
+result <- run_eval(val_set, model_id = "claude-opus-5-5")
+result$accuracy
+result$confusion
+
+stopifnot(result$accuracy >= 0.90)
+```
+
+Three choices in this script are worth calling out, because each
+one is a place a reasonable-looking first draft goes wrong.
+
+**The model identifier is a parameter, never a literal buried in the
+classifier function.** `run_eval()` takes `model_id` and writes it
+into the log line alongside the date and the accuracy. When the
+identifier is retired, as @sec-ai-tooling's warning about
+`ellmer`'s model lifecycle describes, the log shows exactly which
+accuracy number belongs to which model, and re-running the harness
+against the replacement is a one-line change at the call site, not
+a search through the codebase for a hard-coded string.
+
+**The threshold is a `stopifnot()`, not a comment.** `accuracy >=
+0.90` is written here as a number chosen for illustration; in a
+real project it is the number decided in advance, per
+@sec-ai-eval's point about deciding the bar before seeing the
+result, and failing loudly, the same discipline
+@sec-testing-ci applies to a test suite's exit status, is what
+keeps a disappointing validation run from being quietly waved
+through.
+
+**The log is appended, not overwritten.** `eval-log.txt` accumulates
+one line per run, so that a later reader (including the harness's
+own author) can see the accuracy trend across model and prompt
+changes rather than only the most recent number. Commit this log
+alongside the code, the same provenance habit @sec-ai-practice
+teaches for a single generated function, extended to a step that
+runs many times.
+
+For a project that wants the dataset-solver-scorer structure built
+for it rather than hand-rolled as above, `vitals` [@couch2026vitals]
+expresses the same harness as a `Task` (display-only; current as of
+October 2026, check the package's own vignette for the exact
+interface before relying on it):
+
+```r
+library(vitals)
+
+freq_task <- Task$new(
+  dataset = val_set,                  # columns: input, target
+  solver  = generate(),               # calls the model under test
+  scorer  = model_graded_qa()         # or an exact-match scorer
+)
+freq_task$eval(model = "claude-opus-5-5", epochs = 1)
+```
+
+`vitals` writes its evaluation log in the same format Inspect uses,
+which is useful mainly if you expect to outgrow R for this task and
+want a log format the Python tooling can read; for a single
+column of a single compendium, the hand-written harness above is
+often the simpler choice, and it is the one that needs no further
+package to be understood.
+

@@ -78,6 +78,8 @@ library(dplyr)
 - [Changing a step](#sec-targets-change)
 - [The report as a target](#sec-targets-report)
 - [Pipelines in the compendium and the container](#sec-targets-compendium)
+- [Run logging and audit trails](#sec-targets-logging)
+- [Make and Snakemake beside targets](#sec-targets-make)
 :::
 
 ::: {.callout-note collapse='true' title='Skip ahead?'}
@@ -768,6 +770,265 @@ second's with every target skipped. If the second run rebuilds
 everything, the store is not on the mount: check that the
 container's working directory is the mounted project directory,
 so that `_targets/` is written to the host.
+:::
+
+## Run logging and audit trails {#sec-targets-logging}
+
+`tar_outdated()` and `tar_make()` answer 'what is stale' and 'build
+it'. Neither answers a different question a collaborator, a
+reviewer, or a regulator may ask later: what exactly ran, when, on
+which R and package versions, and did it finish without warnings.
+`targets` keeps part of that answer already, in the metadata
+alongside the store.
+
+```{r}
+#| label: targets-meta
+#| eval: !expr has_targets
+withr::with_dir(proj, targets::tar_meta(fields = c(
+  seconds, warnings, error
+)))
+```
+
+`tar_meta()` returns one row per target with its build time, any
+warning or error it raised, and (with other fields) the hash of
+its code and data, which is what `tar_outdated()` reads to decide
+staleness. This is a record of the pipeline's own bookkeeping, not
+a human-readable account of a run meant to stand on its own in an
+audit file, and the difference matters once a pipeline's output
+feeds a regulatory submission.
+
+Two of the gaps in `tar_meta()` as an audit record are worth
+naming before reaching for another tool. First, it describes the
+store, not a single execution: a target with `seconds = 0.3` and no
+error could have been built just now, or weeks ago on a different
+machine, and `tar_meta()` alone does not say which. (`tar_meta()`
+does include a `time` field recording the most recent build's
+timestamp, but a submission-grade run log usually wants the start
+and end of a whole pipeline execution, not of each target
+separately.) Second, it records nothing about the R session that
+built the targets beyond what the project's `renv.lock` separately
+pins; if a target was built under an R or package version that
+later drifted from the lockfile, `tar_meta()` would not flag it,
+`renv::status()` would (@sec-renv). A run log meant to satisfy an
+external reviewer needs both: a session-level record of what ran
+and when, and a target-level record of what it depended on.
+
+### Structured logging in general-purpose R
+
+Two packages add structured logging to ordinary R code, independent
+of `targets`. `logger` writes leveled log entries (`INFO`, `WARN`,
+`ERROR`) to a file or the console, with a layout you control, in the
+spirit of logging frameworks from other languages. `cli` is aimed
+more at readable, formatted console output for a package's users
+than at a durable audit record, but its structured message types are
+sometimes pressed into the same role. Neither is installed in this
+book's environment, so the pattern below is display-only:
+
+```r
+library(logger)
+log_threshold(INFO)
+log_info('starting analysis_set derivation, {nrow(randomization)} rows')
+```
+
+These give a pipeline step a log line it would not otherwise have,
+but writing good `logger` calls by hand, at every step that matters,
+is the discipline to maintain, and nothing checks that you did it
+consistently.
+
+### Run-logging tools built for an audit trail
+
+Two R packages, both on CRAN as of this writing, are built
+specifically to produce a record of a script's execution suitable
+as an audit trail, in the sense regulated clinical trial programming
+means by that phrase: the `pharmaverse` ecosystem's `logrx`
+[@pharmaverse2025logrx], and Novo Nordisk's `whirl`
+[@novonordisk2025whirl]. Both target clinical programming workflows
+more directly than general data science, so they are worth knowing
+about rather than reaching for by default.
+
+`logrx` wraps the execution of a single R script and writes a log
+that records the code that ran, the session information (R version,
+attached packages and their versions, platform), and flags any
+function call from a package that is not on an approved list, which
+is the detail that makes it useful for a submission where every
+function used must be traceable to a validated package. `whirl`
+runs one or more scripts (`whirl::run()`, with an option to run them
+in parallel) and, using the Quarto command line tool, writes each
+script its own human-readable HTML log recording its status (ran
+clean, warned, or errored), the executed code, the timestamp, and
+the session's package versions, plus a summary page across all the
+scripts in a batch.
+
+Neither package knows about `targets`' dependency graph; what each
+adds is a readable, archivable artifact of one execution, which
+`tar_meta()` does not produce. A pipeline that must satisfy an audit
+requirement can run `tar_make()` from inside a script that `whirl`
+or `logrx` wraps, so that the resulting log records the whole
+pipeline run (R version, package versions, start and end time)
+alongside the metadata `targets` itself keeps about which targets
+built and which were current. Treat this as a pointer rather than a
+recommendation to adopt either package without checking its current
+documentation against your submission's requirements: both are
+actively maintained, and neither is installed here, so every code
+block above is display-only.
+
+Which of `logrx` and `whirl` fits a given project depends on how the
+scripts are organized. `logrx` wraps one script at a time and leans
+toward flagging unapproved function calls, which suits a submission
+whose validation plan names an approved package list. `whirl` runs
+one or several scripts, in parallel if asked, and produces a
+Quarto-rendered log per script plus a batch summary, which suits a
+pipeline broken into several standalone programs rather than one
+`targets` plan. Either sits beside `targets` rather than inside it:
+the log records that the pipeline ran and under what environment,
+and `tar_meta()` and `tar_outdated()` remain the tools that say
+whether what ran was actually current.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A collaborator asks, 'does `tar_meta()` give us
+enough of an audit trail for a submission?' What is missing, and
+what would `whirl` or `logrx` add that it does not?
+
+**Answer.** `tar_meta()` tells you which targets are current and how
+long each took to build; it is a cache's own bookkeeping, not a
+report meant to be read by someone outside the project. It does not
+record the R version, the attached package versions, or the exact
+code that executed, in one human-readable document. `whirl` or
+`logrx` wrap the run and produce exactly that: a log, readable
+without re-running anything, of what ran, under what environment,
+with what result. The two are complementary, not substitutes for
+each other.
+:::
+
+### Exercises
+
+7. A reviewer asks for proof that the version of R and the package
+   versions used to build the pipeline's results match the ones
+   recorded in `renv.lock`. Using only tools and functions named in
+   this chapter and @sec-renv, describe the two checks you would run
+   and what a mismatch in each would look like.
+
+::: {.callout-note collapse='true' title='Solution'}
+First, `renv::status()` inside the environment that ran the
+pipeline: a mismatch shows as a report that the lockfile names
+different package versions than are installed, or a different R
+version than `sessionInfo()` reports. Second, a run-logging tool
+(`whirl::run()` or `logrx`) wrapping the script that calls
+`tar_make()`: its log records the session information actually in
+effect during that run, which can be compared line by line against
+`renv.lock`. `tar_meta()` alone answers neither question, because it
+records target-level build metadata, not session-level package
+versions.
+:::
+
+## Make and Snakemake beside targets {#sec-targets-make}
+
+`targets` is not the only dependency-aware build tool, and a
+biostatistician moves between ecosystems often enough that the
+other two are worth placing on the same map.
+
+**GNU Make**, the tool `targets`' epigraph credits, is older, far
+more ubiquitous, and language-agnostic: it ships on nearly every
+Unix-like system, and a `Makefile` can orchestrate steps written in
+R, Python, shell, or anything else, simply by calling each as a
+command-line program. Its staleness check is the file's modification
+timestamp, not the content or the code that produced it, which is
+both Make's simplicity and its limitation. Touching a file without
+changing its content makes Make think it is stale; editing the
+function behind a target without touching any file on disk, the
+everyday case `targets` tracks correctly through `tar_outdated()`,
+makes Make think nothing changed. Make is a reasonable choice for
+gluing together steps in different languages at a coarse grain (run
+the R pipeline, then a Python script, then a report), and a poor
+substitute for `targets`' fine-grained, R-object-aware caching inside
+an R analysis.
+
+**Snakemake** is the Python ecosystem's closer analogue to
+`targets`: a workflow manager built around rules with declared inputs
+and outputs, assembled into a dependency graph, with its own
+staleness checking and, notably, strong support for scaling a
+pipeline across a cluster's job scheduler, including SLURM
+(@sec-cloud-hpc), with far less hand-written batch-script boilerplate
+than @sec-cloud shows for a bare job array. A biostatistician who
+collaborates with a bioinformatics or computational-biology group,
+where Snakemake is close to a lingua franca, will meet it on the
+Python side of a mixed project even when the statistical analysis
+stays in R.
+
+### Python interoperability from an R-primary compendium
+
+Two projects that are R-primary but need one Python step (an
+off-the-shelf machine learning library, say, with no R equivalent)
+have two ways to call it without leaving the `targets` pipeline.
+`reticulate` embeds a Python session inside the R session, so a
+`tar_target()` can call a Python function and receive its result
+back as an R object directly, at the cost of keeping both
+languages' environments (an R library and a Python environment)
+pinned and compatible, which doubles the surface @sec-renv and
+@sec-docker have to cover. The plainer alternative is to shell out:
+a target whose command is `system2('python3', c('script.py',
+input_path))`, with the Python script reading and writing files
+that are themselves `targets` inputs and outputs (`format = "file"`
+on each side of the boundary). Shelling out loses `reticulate`'s
+convenient object passing, but it keeps the two languages' package
+management fully separate, and it is often the simpler choice for
+a single well-defined step rather than a continuously interleaved
+R-and-Python analysis.
+
+Whichever a project adopts, the choice is about which ecosystem's
+tool organizes the whole pipeline, not whether R and Python can be
+mixed at all; both Make and Snakemake can call out to R exactly as
+easily as a `targets` pipeline can call out to Python.
+
+The practical rule of thumb for a mostly-R biostatistics project is
+to let the language that does most of the analytical work own the
+pipeline, and to treat the other language's steps as single,
+well-defined targets or rules rather than interleaving the two
+throughout. A pipeline that calls `reticulate` from inside one
+`tar_target()` and also shells out to `Rscript` from inside one
+Snakemake `rule`, in the same project, usually means the team never
+settled the question and is paying the cost of both tools' setup at
+once: two lockfiles (`renv.lock` and a Python environment file), two
+dependency graphs to reason about, and two places a stale
+intermediate could hide. Settling it early, even informally, is
+worth more than either tool's specific features.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A collaborator proposes rewriting this chapter's
+`targets` pipeline in Make, arguing that 'everyone already has
+`make`'. What would the team lose?
+
+**Answer.** Make's staleness check is the file timestamp, so it
+would have to read and write every intermediate (the analysis set,
+the table) to a file, and a change to a function's code with no
+file touched would go undetected unless the Makefile recipe also
+hashed the function source, which is work `targets` already does.
+The team would gain ubiquity and language-agnosticism and lose
+`targets`' R-object-aware dependency tracking, `tar_outdated()`'s
+prediction of what will rebuild, and the ability to keep
+intermediate results as R objects rather than serialized files at
+every step.
+:::
+
+### Exercises
+
+8. A collaborator's analysis is 80 percent Python (data extraction
+   and a machine-learning model) and 20 percent R (a final
+   `gtsummary` table). Using this section, name the two reasonable
+   choices for which tool organizes the whole pipeline, and the
+   consideration that would decide between them.
+
+::: {.callout-note collapse='true' title='Solution'}
+Snakemake organizing the whole pipeline, with the R step called by
+shelling out to `Rscript`, or `targets` organizing it, with the
+Python step called through `reticulate` or shelled out to `python3`.
+The consideration is which language the team is more fluent in for
+maintaining the pipeline's own logic (not just the analysis code):
+a team that lives in Python day to day will find Snakemake's rules
+more natural to extend, and a team centered on R, with only one
+Python step, may prefer to keep `targets` as the organizing tool and
+treat Python as a dependency called from one target, the way this
+section's `reticulate` and shell-out options do.
 :::
 
 ## Rules of thumb

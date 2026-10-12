@@ -77,6 +77,8 @@ library(ggplot2)
 - [What would change the conclusion](#sec-communicating-sensitivity)
 - [The memo](#sec-communicating-memo)
 - [The talk](#sec-communicating-talk)
+- [Publication and submission tables](#sec-communicating-table1)
+- [Choosing a reporting guideline](#sec-communicating-guidelines)
 - [The response to reviewers](#sec-communicating-reviewers)
 - [Peer review as a practice](#sec-communicating-review)
 :::
@@ -588,6 +590,32 @@ the result will be positive is not pre-specified for the result you
 got. The two-dimensional grid answers the question for any result.
 :::
 
+### Beyond one grid: multiverse and specification-curve analysis
+
+The tipping-point grid varies one assumption the SAP named in
+advance: the risk of unascertained patients relative to their
+observed peers. A related but distinct idea, useful when several
+analytic choices are each individually defensible and none was
+pre-specified strongly enough to rule the others out, is to vary
+all of them at once and report the distribution of results rather
+than a single preferred one. Specification curve analysis
+[@simonsohn2020speccurve] enumerates every combination of
+defensible choices (which covariates to adjust for, which exclusion
+criteria to apply, which link function to fit), computes the
+estimate under each, plots the resulting curve of estimates ordered
+from smallest to largest, and tests jointly whether the pattern
+differs from what chance would produce. For a result like HF-HOME's,
+where the primary estimator is pre-specified and the SAP already
+narrows the choice, the HF-HOME-specific version of the idea is
+narrower: vary the covariate set used in the standardized estimator
+of the cumulative exercise, alongside the missingness assumption of
+the tipping-point grid, and show whether the inconclusive
+conclusion survives every combination jointly, not just each
+dimension separately. A multiverse analysis is a transparency tool
+for choices that are genuinely contested, not a substitute for
+pre-registering the one that matters most; a trial with a tagged
+SAP has already made the harder commitment.
+
 ### Exercises
 
 2. Using `grid` and `rates`, find the combinations that conclude
@@ -912,6 +940,280 @@ consistent with the data. A point-and-interval plot against zero
 and the MCID fixes both.
 :::
 
+### A plain-language summary
+
+Many journals, funders, and institutional review boards now ask for
+a one-page summary written for the trial's participants and the
+general public, separate from the technical abstract, and it is the
+same audience-matching problem as the talk, pushed one register
+further. Every word this chapter has used to be precise, 'interval',
+'MCID', 'inconclusive', is also a word a lay reader skims past. The
+discipline is the same and/but/therefore skeleton with the register
+rewritten rather than compressed: state what the study looked at,
+what the patients and families already believed, what was found,
+and what it means for someone deciding about home-health visits
+today. For HF-HOME it reads as something like: 'We studied whether
+a nurse visiting people at home shortly after a hospital stay for
+heart failure helps them avoid another hospital stay or death. We
+compared people who were randomly assigned to get these visits with
+people who got usual care. We did not find a clear difference
+between the two groups, but the study also could not rule out a
+real benefit, so more research is needed before we can say whether
+home visits help.' No number appears unless it is unavoidable, no
+technical term appears unlabeled, and a reader with no statistical
+training should recognize both the finding and its honest
+uncertainty. Writing this summary after the memo, not before, is
+what keeps it accurate: the memo already states what the interval
+licenses, and the plain-language version translates that sentence
+rather than re-deriving it from the raw numbers.
+
+## Publication and submission tables {#sec-communicating-table1}
+
+A manuscript's Table 1 is read before its abstract by a reviewer
+who wants to know whether randomization worked, and it is read
+instead of the abstract by a reader deciding whether the trial's
+population resembles their own patients. It is also the table most
+often built by hand, column by column, from a spreadsheet pivot,
+which is slower than the alternative and introduces the one error
+a reviewer always catches: a count in the table that does not match
+the flow diagram's denominator.
+
+`gtsummary` [@sjoberg2021gtsummary] builds this table from one call
+on a tidy data frame, the same package used for the case study's
+Table 1 at @sec-penguins. Reusing it here is not a convenience; it
+is the same argument restated for a submission rather than a
+report. The table is reproducible from the compendium, its counts
+are the counts the analysis used, and a data correction regenerates
+it rather than requiring someone to re-type cells.
+
+### Worked example: HF-HOME's baseline table
+
+A journal's Table 1 for a two-arm trial is the baseline
+characteristics, by arm, of the randomized population, not the
+analytic one; every randomized patient belongs in it whether or not
+their outcome was later ascertained (CONSORT item 15,
+[@moher2025consort]). The table below joins the randomization data
+to the baseline covariates used in the SAP's standardized estimator
+(the same files as the cumulative exercise in this chapter), and
+stratifies by arm.
+
+```{r}
+#| label: tbl-comm-table1
+#| tbl-cap: "Baseline characteristics of the HF-HOME randomized
+#|   population by arm. Statistics are mean (SD) or n (%); no
+#|   p-values appear, because a randomized imbalance is chance by
+#|   construction (@tbl-comm-review)."
+#| message: false
+library(gtsummary)
+
+table1_data <- trial |>
+  left_join(read_hf("demographics.csv") |>
+              select(patient_id, age, sex),
+            by = "patient_id", relationship = "one-to-one",
+            unmatched = "error") |>
+  left_join(read_hf("baseline.csv") |>
+              select(patient_id, ef_pct, discharge_med_count),
+            by = "patient_id", relationship = "one-to-one",
+            unmatched = "error")
+stopifnot(nrow(table1_data) == nrow(trial),
+          !anyNA(table1_data[c("age", "sex", "ef_pct")]))
+
+table1_data |>
+  select(arm, age, sex, ef_stratum, ef_pct, discharge_med_count) |>
+  tbl_summary(
+    by = arm,
+    label = list(age ~ "Age (years)", sex ~ "Sex",
+                 ef_stratum ~ "Ejection fraction stratum",
+                 ef_pct ~ "Ejection fraction (%)",
+                 discharge_med_count ~ "Discharge medications (n)"),
+    statistic = list(all_continuous() ~ "{mean} ({sd})",
+                      all_categorical() ~ "{n} ({p}%)"),
+    missing_text = "Missing"
+  ) |>
+  add_overall() |>
+  as_kable()
+```
+
+Three choices in that call are the ones a reviewer checks. First,
+`by = arm` with no test added: a randomized trial's baseline
+p-values test a hypothesis known to be true by design, and the
+check callout later in this chapter (@tbl-comm-review) treats
+including them as the defect. Second, `missing_text = "Missing"`
+keeps a visible row for any covariate with incomplete data, rather
+than silently shrinking the denominator; a Table 1 that drops
+missing rows without saying so understates the enrolled population.
+Third, the `label` argument renames variables once, centrally,
+rather than relabeling the printed table by hand after the fact,
+which is the step most likely to drift from the data when the
+model changes.
+
+### From draft table to submission format
+
+`as_kable()` is the right call while drafting, because it renders
+identically in HTML and PDF output from the same `.qmd` source. At
+submission, most journals want either a Word table (`as_flex_table()`
+from the `flextable` extension) or the exact column order and
+footnote style their template specifies; check the journal's author
+guidelines for footnote conventions (abbreviations spelled out,
+units in the row label rather than a footnote) before the final
+render, because reformatting a `gtsummary` object is faster than
+rebuilding a hand-made one, but it is not free. Whichever output
+format you choose, the input data frame, the join, and the
+assertion above do not change: the table a reviewer receives is
+built from the same one validated in this chapter.
+
+The in-house `zztable1` package is not used in this book's worked
+examples for a specific, documented reason: as of this writing it
+leaves the missing-value row blank instead of reporting a count
+(@sec-lab-software), the exact defect this section's worked example
+avoids by using `gtsummary`. That is a statement about the current
+state of one package, not about formula-interface tables in
+general, and it is worth re-checking before any submission that
+depends on it.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A collaborator asks why Table 1 reports age as mean
+(SD) rather than median (first quartile, third quartile), when
+@sec-penguins used the median for every continuous variable. What
+determines the choice, and where should it be made?
+
+**Answer.** The shape of the variable in this sample, not a house
+style. A roughly symmetric variable like age is well summarized by
+the mean and SD; a skewed one, like the penguins' body mass or a
+trial's length of stay, is better summarized by the median and
+interquartile range, which is not distorted by a long tail. The
+choice belongs in the `statistic` argument, made once and
+explicitly, visible in the code rather than guessed from the
+printed numbers; `tbl_summary()`'s `all_continuous()` default is the
+median unless overridden, which is why the override above is
+explicit.
+:::
+
+### Exercises
+
+4. Extend `table1_data` to include `site`, and produce the table
+   stratified by arm and faceted by site using `tbl_strata()`. Which
+   covariate's balance would you report in the main text if a
+   reviewer asked whether randomization was stratified correctly,
+   and why?
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-25b-table1
+site_data <- table1_data |>
+  left_join(read_hf("randomization.csv") |> select(patient_id, site),
+            by = "patient_id", relationship = "one-to-one",
+            unmatched = "error")
+
+site_data |>
+  select(site, arm, ef_stratum) |>
+  tbl_strata(
+    strata = site,
+    .tbl_fun = ~ .x |> tbl_summary(by = arm, missing_text = "Missing")
+  )
+```
+
+`ef_stratum`, because the SAP named site and ejection-fraction
+stratum as the randomization strata (@sec-analysis-plan); reporting
+its balance by arm within site is the direct check that
+stratification worked, while age or sex balance is a secondary,
+reassuring fact rather than the one the design promised.
+:::
+
+## Choosing a reporting guideline {#sec-communicating-guidelines}
+
+CONSORT governs this chapter's examples because HF-HOME is a
+randomized trial, but a reporting guideline is chosen by study
+design, not by habit, and getting it wrong shows immediately to any
+reviewer who checks. The EQUATOR Network maintains the current list;
+@tbl-comm-guidelines gives the mapping a biostatistician needs most
+often, each row verified against its own statement or the EQUATOR
+Network's listing rather than assumed from a previous project.
+
+| Design | Guideline | What it governs | Citation |
+|---|---|---|---|
+| Randomized trial, results | CONSORT 2025 | Flow diagram, baseline table, primary and harm outcomes, deviations from the SAP | [@moher2025consort] |
+| Randomized trial, protocol | SPIRIT 2025 | What a protocol must specify before enrollment; the companion to the SAP (@sec-analysis-plan) | [@chan2025spirit] |
+| Observational study | STROBE | Design, setting, participants, and the confounding structure of a non-randomized comparison | [@vonelm2007strobe] |
+| Prediction model, including one built with machine learning | TRIPOD+AI | Development and validation of a model that predicts an individual outcome; see the worked checklist at @sec-adni-report | [@collins2024tripodai] |
+| Study that develops, tunes, prompts, or evaluates a large language model (LLM) | TRIPOD-LLM | Task definition, prompting or fine-tuning method, human oversight, and task-specific performance, extending TRIPOD+AI for generative models | [@gallifant2025tripodllm] |
+
+: Matching a study design to its reporting guideline. Verify the
+current version against the EQUATOR Network
+(`equator-network.org`) before a submission; guideline numbers and
+scopes have changed as often as every few years. {#tbl-comm-guidelines}
+
+TRIPOD-LLM is itself recent (January 2025) and modular: a core set
+of items applies to any study involving an LLM, with additional
+items depending on whether the model was fine-tuned, prompted
+without modification, or evaluated as a diagnostic tool. A sixth
+row belongs in this table for guidelines governing an LLM's role in
+a specific analytical task, such as literature screening or chart
+abstraction, rather than in the study's statistical model; at the
+time of this writing a guideline sometimes referred to by the
+acronym CHART is discussed in that space, but its name, scope, and
+publication status could not be confirmed against the EQUATOR
+Network within the time available for this chapter. Treat any
+reference to it as unverified as of this writing and confirm
+against the EQUATOR Network's current listing before citing it in
+a manuscript.
+
+Finding the current version of any of these takes one stop: the
+EQUATOR Network's library (`equator-network.org/reporting-guidelines`)
+lists the live guideline for a design, its extensions (an AI
+extension, a pragmatic-trial extension, an abstract-only extension,
+and so on), and the journal checklists that implement it. A
+guideline's number changes less often than its content; CONSORT has
+been revised twice since its 2010 version, each time adding items
+(harms reporting in 2010, open-science and registration items by
+2025) that a manuscript written against the older checklist omits
+without anyone noticing until a reviewer checks the date. The same
+caution @tbl-federal-asof applies to federal policy dates
+(@sec-federal) applies here: cite the version you actually used, by
+year, not the guideline's name alone, since 'CONSORT' without a
+year could mean any of three checklists published since 2001.
+
+The rule that survives every revision of the list: a design maps to
+exactly one primary guideline, chosen before data are seen, the same
+pre-specification discipline @sec-analysis-plan applies to the
+statistical model. A study with both a prediction model and a
+trial-style comparison, for instance, may owe a reader both a
+TRIPOD+AI checklist for the model and a CONSORT flow diagram for
+the comparison; naming both at the protocol stage prevents a
+reviewer from having to ask which one governs.
+
+::: {.callout-warning title='Pitfall'}
+**A reporting guideline chosen at submission, rather than at
+protocol registration, invites a result-driven choice.** STROBE has
+no requirement to report a primary endpoint's p-value prominently;
+CONSORT does. A team whose primary analysis disappointed can be
+tempted to describe a randomized trial's secondary, descriptive
+comparison using STROBE's looser framing. The guideline follows the
+design, not the result, and the SAP or protocol should name it
+before unblinding.
+:::
+
+### Exercises
+
+5. A team runs a retrospective cohort study using electronic health
+   record data to estimate the association between a medication and
+   a safety outcome, then separately develops a machine-learning
+   risk score from the same cohort to flag future risk. Name the
+   guideline, or guidelines, the manuscript should follow, and
+   justify each.
+
+::: {.callout-note collapse='true' title='Solution'}
+Two, for two different claims in the same paper. The association
+estimate is an observational comparison, so it is reported against
+STROBE: design, setting, eligibility, and the confounders adjusted
+for. The risk score is a prediction model, so its development and
+validation are reported against TRIPOD+AI, including the
+calibration and discrimination items @sec-adni-report works
+through in full. Neither guideline substitutes for the other; a
+paper that reports only STROBE items for the risk score would omit
+calibration entirely, which a STROBE checklist does not ask for.
+:::
+
 ## The response to reviewers {#sec-communicating-reviewers}
 
 The manuscript comes back with three reviewers and eleven
@@ -1102,7 +1404,7 @@ technical rather than rhetorical.
 
 ### Exercises
 
-4. Assign a posture (concede, perform but decline to reframe, or
+6. Assign a posture (concede, perform but decline to reframe, or
    defend) to each comment, with one sentence of reason:
    (a) 'Please report the number of patients screened but not
    randomized.' (b) 'Please add a per-protocol analysis restricted
@@ -1213,7 +1515,7 @@ than by a test.
 
 ## Cumulative practice
 
-5. *Cumulative (uses @sec-analysis-plan and @sec-joins).* The SAP's
+7. *Cumulative (uses @sec-analysis-plan and @sec-joins).* The SAP's
    primary estimator is not the complete-case difference above but
    a standardized one: a logistic regression of the outcome on arm,
    age, sex, ejection fraction, discharge medication count, and
@@ -1223,13 +1525,13 @@ than by a test.
    need with declared relationships, compute the estimate, classify
    its interval with `classify_interval()`, and say whether any
    sentence of the memo would change.
-6. *On your own work (no key).* Take the last analysis you
+8. *On your own work (no key).* Take the last analysis you
    completed. Write its and/but/therefore in three sentences, then
    the five-part memo, and give it to a colleague who does not
    know the project. Ask them, without prompting, what you found
    and what you want them to do; revise until they can say both.
 
-::: {.callout-note collapse='true' title='Solution to exercise 5'}
+::: {.callout-note collapse='true' title='Solution to exercise 7'}
 ```{r}
 #| label: soln-25b-5
 covars <- read_hf("demographics.csv") |>
@@ -1309,6 +1611,9 @@ four-file join safe to trust without inspection.
   peer-review section.
 - [@moher2025consort], the reporting standard that determines
   what a trial's results section is obliged to state.
+- [@gallifant2025tripodllm], the current reporting guideline for
+  studies that develop, prompt, or evaluate a large language
+  model, used in @sec-communicating-guidelines.
 
 ## Prerequisites answers {#sec-quiz-answers-25b}
 

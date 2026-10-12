@@ -88,11 +88,18 @@ and calls `digest::digest()`, `purrr::map_chr()`, and
   set it.
 - Weigh a generalization against the analytic resolution it
   costs.
+- Describe the Five Safes and say which safe a federated analysis
+  or an output check addresses.
+- Generate a naive synthetic release, show where it fails a
+  utility check, and measure how often it still reproduces a real
+  patient's unique combination of quasi-identifiers.
 
 **Outline.**
 
 - [Worked example: two releases of the HF-HOME demographics](#sec-deident-worked)
 - [Quasi-identifiers and residual risk](#sec-deident-risk)
+- [Trusted research environments](#sec-deident-tre)
+- [Synthetic data and differential privacy](#sec-deident-synthetic)
 :::
 
 ::: {.callout-note collapse='true' title='Skip ahead?'}
@@ -575,6 +582,391 @@ cost, and that trade is the kind an Expert Determination
 documents.
 :::
 
+## Trusted research environments {#sec-deident-tre}
+
+An Expert Determination release still leaves the file in
+@sec-deident-worked, and every file that leaves a covered entity is
+a file that can be lost, copied, or matched against another
+dataset by someone the entity never agreed to trust. Some data
+cannot accept that risk at any level of generalization: a rare
+diagnosis, a small catchment area, or a sponsor's contractual
+limits on where the data may sit. The remedy is not a better
+release but no release at all. If HF-HOME's files could never
+leave the hospital's own systems, the statistician still has to
+produce a result, and a trusted research environment (TRE) is
+where that happens: a controlled system that lets approved
+analysts run approved code against the data in place, so that only
+the output, never the rows, crosses the boundary.
+
+### The Five Safes
+
+TREs are usually organized around the **Five Safes**, a framework
+for data access first set out by Desai, Ritchie, and Welpton
+[-@desai2016fivesafes]. Each 'safe' is a separate control, and a
+breach of any one undoes the protection the other four provide.
+
+| Safe | Governs | HF-HOME example |
+|---|---|---|
+| Safe data | How identifiable the data are before anyone touches them | The Safe Harbor and Expert Determination transformations of @sec-deident-worked, applied even inside the TRE |
+| Safe projects | Whether this analysis, by this analyst, is an approved use of the data | An IRB- or sponsor-approved protocol naming the 30-day composite outcome as the question, not an open-ended browse |
+| Safe people | Whether the analyst is trained and accountable | Training on the data use agreement, a signed confidentiality undertaking, a login tied to one person |
+| Safe settings | Whether the technical environment can leak data | No internet access from the analysis session, no USB ports, no copy-paste out of the remote desktop |
+| Safe outputs | Whether what leaves the environment could still identify someone | The suppression check later in this section, applied before a table, a figure, or a coefficient leaves |
+
+: The Five Safes, as a TRE applies them to an analysis of
+HF-HOME. {#tbl-deident-five-safes}
+
+Safe Harbor and Expert Determination are entirely about the first
+row; a TRE adds the other four, which is why data judged too
+sensitive to de-identify for an open release can still be analyzed
+under access controls that de-identification alone does not
+supply. The two are complements, not alternatives: a TRE is safer
+still when the data inside it are also de-identified, because safe
+settings and safe people reduce the chance of a leak, not its
+consequence if one occurs.
+
+### Federated analysis: the model goes to the data
+
+A single TRE solves the problem for one site. A multi-site trial
+raises it again, because combining patient-level data from five
+hospitals into one file recreates exactly the export risk a TRE
+exists to avoid, now five times over. **Federated analysis**
+inverts the usual flow: the analysis code travels to each site,
+runs there against that site's own data, and only a summary, a
+count, a rate, a model's sufficient statistics, travels back to be
+combined. No patient-level row ever crosses a site boundary.
+
+The chunk below plays the part of five sites computing their own
+30-day event rate and sending back only two numbers each, the
+count and the number of events, which is all a fixed-effect
+combination needs:
+
+```{r}
+#| label: deident-tre-federated
+#| message: false
+rand <- read_csv(file.path(hf_dir, "randomization.csv"),
+                 col_types = cols(patient_id = "c", .default = "?"))
+outc <- read_csv(file.path(hf_dir, "outcomes.csv"),
+                 col_types = cols(patient_id = "c", .default = "?"))
+
+site_summary <- rand |>
+  left_join(outc, by = "patient_id", relationship = "one-to-one",
+            unmatched = "error") |>
+  filter(ascertained) |>
+  group_by(site) |>
+  summarise(n = n(), events = sum(event_30d), .groups = "drop")
+
+site_summary
+
+overall_rate <- sum(site_summary$events) / sum(site_summary$n)
+overall_rate
+```
+
+A coordinating analyst who never sees a single patient's record
+can still compute the overall 30-day event rate of
+`r scales::percent(overall_rate, accuracy = 0.1)` from these ten
+numbers, five counts and five event totals. What a federated
+analysis cannot do as easily is anything that needs a joint
+distribution across sites, such as an interaction between site and
+a patient-level covariate; that kind of question either stays
+within one site or is negotiated as a further, specific summary
+each site is willing to release, not as row-level data.
+
+### Output disclosure control
+
+A TRE's safe settings keep row-level data from leaving, but a
+table of counts can disclose almost as much if a cell is small
+enough. The crosstab below, site by race, a real covariate pattern
+in the synthetic HF-HOME file, is exactly the kind of table an
+analyst would ask to take out of a TRE to put in a report:
+
+```{r}
+#| label: deident-tre-crosstab
+#| message: false
+demographics2 <- read_csv(file.path(hf_dir, "demographics.csv"),
+                          col_types = cols(.default = "c"))
+race_tab <- demographics2 |>
+  left_join(rand, by = "patient_id", relationship = "one-to-one",
+            unmatched = "error") |>
+  count(site, race)
+
+race_tab |> filter(race %in% c("American Indian or Alaska Native",
+                               "Native Hawaiian or Other Pacific Islander"))
+```
+
+Several of these cells hold fewer than ten patients. A table this
+small lets anyone who knows that one American Indian or Alaska
+Native patient was treated at Site A, perhaps from a referral
+pattern or a clinic schedule, now also learn whatever else the
+report cross-tabulates by site and race for that row, not because
+any identifier survived but because the cell has only one person
+in it. **Small-cell suppression** removes the count rather than
+the row:
+
+```{r}
+#| label: deident-tre-suppress
+suppress_small_cells <- function(n, threshold = 10) {
+  dplyr::if_else(n < threshold, NA_integer_, n)
+}
+
+race_tab |>
+  mutate(n_released = suppress_small_cells(n)) |>
+  filter(race %in% c("American Indian or Alaska Native",
+                     "Native Hawaiian or Other Pacific Islander"))
+```
+
+Most TREs set their own threshold and their own rule for what
+counts as a disclosive cell (a complementary suppression problem
+arises when every other cell in a row or column is visible, which
+can let a reader back out a suppressed count by subtraction from a
+reported total); ten is a common choice but not a universal one,
+and the output-check team inside the TRE, not the analyst alone,
+signs off on what leaves.
+
+::: {.callout-warning title='Pitfall'}
+**Suppressing the cell and reporting the row and column totals
+defeats the suppression.** If the report also states that Site A
+enrolled 701 patients in total and gives every other race category
+at Site A, a reader recovers the suppressed count by subtraction.
+Output checking in a real TRE looks at the whole table a researcher
+wants to take out, not one cell at a time.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A trial statistician argues that because the
+analysis runs inside a TRE, de-identifying the data first is
+unnecessary. Evaluate the argument against @tbl-deident-five-safes.
+
+**Answer.** The argument conflates safe settings with safe data.
+A TRE's access controls lower the chance that row-level data leak
+out, but they do not lower what a leak, an insider misuse, or an
+output that slips past review would expose if it did. De-identifying
+the data inside the TRE is still worth doing, because it is the
+one safe that protects the data even when one of the other four
+fails.
+:::
+
+### Exercises
+
+4. The federated computation above sends back `n` and `events`
+   per site. A colleague proposes sending `age` and `event_30d`
+   for every patient instead, 'to make the combining easier down
+   the line'. What has changed, and which Safe in
+   @tbl-deident-five-safes does it violate?
+
+::: {.callout-note collapse='true' title='Solution'}
+Sending patient-level `age` and `event_30d` is no longer a
+federated analysis; it is a data export with two columns instead
+of all of them, and a quasi-identifier (`age`) travels with an
+outcome that many studies treat as sensitive. It violates safe
+outputs: the output leaving each site is no longer a checked
+summary but row-level data that was never reviewed for disclosure
+risk, regardless of how few columns it has.
+:::
+
+## Synthetic data and differential privacy {#sec-deident-synthetic}
+
+Every HF-HOME file used so far is itself synthetic, generated by a
+script rather than collected from patients, which is why the
+chapter can show real-looking de-identification code without
+touching anyone's actual record (@sec-deident-worked's opening).
+That is a different use of the word from the one in this section.
+There, syntheticity is a property of the whole dataset, built once
+to stand in for a real trial throughout this book. Here, **synthetic
+data** is a disclosure-control technique applied *to* a real
+dataset: replace the real records with records drawn from a model
+fit to them, so that no released row corresponds to an actual
+patient, while the dataset's statistical structure, as much of it
+as the model captures, survives for analysis.
+
+### Generating synthetic data
+
+The simplest synthesis shuffles each column independently,
+preserving every column's marginal distribution exactly while
+destroying any association between columns:
+
+```{r}
+#| label: deident-synth-naive
+set.seed(20260501)
+synth_naive <- release_sh |>
+  mutate(age = sample(age), sex = sample(sex), zip3 = sample(zip3))
+
+head(synth_naive)
+```
+
+Every age, sex, and ZIP prefix in `synth_naive` is a value that
+appeared in `release_sh`; none of the three-way combinations need
+have appeared together in a real patient. The `synthpop` package
+[@nowok2016synthpop] does the same job properly: instead of
+shuffling columns independently, it synthesizes them one at a time
+in a chosen order, each one modeled on the real values of the
+columns synthesized before it (by default with classification and
+regression trees), so that the associations among columns are
+preserved rather than destroyed (display-only; not installed in
+this environment):
+
+```r
+library(synthpop)  # display-only; not installed here
+synth <- syn(release_sh,
+            visit.sequence = c("sex", "age", "zip3", "race",
+                               "ethnicity", "discharge_year"))
+```
+
+### Judging utility and disclosure risk
+
+A synthetic release is worth nothing if it answers a different
+question than the real data would, and it is worth nothing either
+if it still points back at a real patient. Both have to be
+checked, and neither check is optional.
+
+**Utility** asks whether a model fit on the synthetic data agrees
+with the same model fit on the real data. The independent-column
+shuffle above fails this badly whenever the relationship of
+interest is between two of the shuffled columns, which is usually
+exactly the relationship a trial exists to estimate:
+
+```{r}
+#| label: deident-synth-utility
+#| message: false
+base <- read_csv(file.path(hf_dir, "baseline.csv"),
+                 col_types = cols(patient_id = "c", .default = "?"))
+trial <- rand |>
+  left_join(outc, by = "patient_id", relationship = "one-to-one",
+            unmatched = "error") |>
+  left_join(base, by = "patient_id", relationship = "one-to-one",
+            unmatched = "error") |>
+  filter(ascertained) |>
+  mutate(arm = factor(arm, levels = c("Usual care", "Home health")))
+
+fit_real <- glm(event_30d ~ arm + ef_pct, data = trial, family = binomial)
+or_real <- exp(coef(fit_real)["armHome health"])
+
+set.seed(1)
+trial_naive <- trial |>
+  mutate(arm = sample(arm), ef_pct = sample(ef_pct))
+fit_naive <- glm(event_30d ~ arm + ef_pct, data = trial_naive,
+                 family = binomial)
+or_naive <- exp(coef(fit_naive)["armHome health"])
+
+c(real_odds_ratio = round(or_real, 2),
+  naive_synthetic_odds_ratio = round(or_naive, 2))
+```
+
+The real data show an odds ratio of
+`r round(or_real, 2)` for home-health visits, consistent with the
+protective effect the trial was built to find; the naively
+synthesized data show a ratio of `r round(or_naive, 2)`, because
+shuffling `arm` destroyed its association with the outcome before
+the model ever saw it. `synthpop`'s sequential synthesis exists
+precisely to keep this from happening, and its `compare()`
+function overlays the two models' coefficients and confidence
+intervals so that a utility failure like this one is visible
+without hand-rolling the comparison above.
+
+**Disclosure risk** asks the opposite question: whether a record
+that was identifiable in the real data is still identifiable, or
+nearly so, in the synthetic one. One check is whether a
+combination of quasi-identifiers that was unique in the real data
+reappears in the synthetic release, a **replicated unique**:
+
+```{r}
+#| label: deident-synth-risk
+real_unique <- release_sh |>
+  add_count(age, sex, zip3) |>
+  filter(n == 1) |>
+  distinct(age, sex, zip3)
+
+synth_combos <- synth_naive |> distinct(age, sex, zip3)
+replicated <- real_unique |> semi_join(synth_combos,
+                                       by = c("age", "sex", "zip3"))
+
+c(real_uniques = nrow(real_unique),
+  also_in_synthetic = nrow(replicated))
+```
+
+`r nrow(replicated)` of the `r nrow(real_unique)` combinations that
+singled out one real patient in `release_sh` also appear somewhere
+in `synth_naive`. No synthetic row *is* that patient, but a
+released dataset that reproduces their rare combination still
+tells an attacker who already suspects that patient was in the
+study that the combination was real, which is itself a disclosure.
+`synthpop`'s `disclosure()` function computes this and related
+measures (display-only), including whether a record's full set of
+quasi-identifiers, not just a three-column summary, is replicated.
+
+::: {.callout-important title='Differential privacy'}
+k-anonymity (@sec-deident-risk) and the utility and risk checks
+above are properties of a particular released *dataset*: run them
+again on a different release and the numbers change. **Differential
+privacy** [@dwork2006calibrating] is instead a property of the
+*mechanism* that produced a result, a mathematically provable bound
+on how much that result could possibly have changed had any one
+record been added, removed, or altered. A mechanism satisfying
+that bound guarantees it for every record, in every dataset it
+might ever be run on, before anyone runs it, which is the kind of
+guarantee neither k-anonymity nor a synthetic-data utility check
+can offer; the latter two show that a given release held up,
+without bounding what a different release might do.
+
+The bound is usually met by adding carefully calibrated random
+noise to a statistic, tuned so that one record's presence or
+absence barely moves the noisy answer. This book treats the idea
+conceptually only: calibrating that noise correctly, choosing the
+privacy budget (usually called $\epsilon$) that trades accuracy
+against protection, and composing many queries without exhausting
+that budget are each their own technical literature, well past an
+introductory look. What matters for this book is the contrast: the
+U.S. Census Bureau adopted differential privacy for the 2020
+Census specifically because it could offer that provable bound
+across every table the Bureau might publish, not because it was
+the most accurate option for any single table. The accuracy a
+single table loses is the cost of a guarantee that holds for all
+of them.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** The naive shuffle preserved every column's marginal
+distribution exactly, yet the utility check found it useless.
+Why does preserving marginals not preserve utility?
+
+**Answer.** Most analytic questions, including the trial's own,
+are about associations between columns, not about any one column's
+distribution on its own. Shuffling columns independently guarantees
+that each one's distribution is unchanged while guaranteeing, with
+the same move, that no two columns are related to each other any
+longer. A synthesis has to model the joint distribution, as
+`synthpop`'s sequential approach does, to keep what most questions
+actually need.
+:::
+
+### Exercises
+
+5. Recompute the odds ratio for home-health visits after
+   shuffling only `ef_pct` and leaving `arm` as it was in
+   `trial`. Compare it with `or_real` and `or_naive` above, and
+   explain why shuffling `arm` was the step that mattered.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-02c-synth
+set.seed(1)
+trial_partial <- trial |> mutate(ef_pct = sample(ef_pct))
+fit_partial <- glm(event_30d ~ arm + ef_pct, data = trial_partial,
+                   family = binomial)
+c(real = round(or_real, 2),
+  ef_pct_only_shuffled = round(exp(coef(fit_partial)["armHome health"]), 2),
+  both_shuffled = round(or_naive, 2))
+```
+
+Shuffling only `ef_pct` leaves the odds ratio close to
+`r round(or_real, 2)`, because `arm`, the column the research
+question is actually about, kept its real association with
+`event_30d`. The earlier naive synthesis shuffled `arm` as well,
+which is what erased the finding; a covariate's own distribution
+can be resampled far more freely than the treatment assignment a
+trial exists to evaluate.
+:::
+
 ## Rules of thumb
 
 1. **Habit 2: raw data are evidence; a release is a build
@@ -592,7 +984,7 @@ documents.
 
 ## Cumulative practice
 
-4. *Cumulative (uses @sec-joins and @sec-why).* Turn the worked example into a
+6. *Cumulative (uses @sec-joins and @sec-why).* Turn the worked example into a
    script, `R/make_releases.R`, that reads the raw HF-HOME files
    and writes the Safe Harbor release, the crosswalk, and the
    linkable release to separate files, with the two Verification
@@ -612,7 +1004,7 @@ it is the one output that must never travel with the compendium,
 the reverse of the sharing @sec-why argues for.
 :::
 
-5. *On your own work (no key).* Take a dataset you hold that
+7. *On your own work (no key).* Take a dataset you hold that
    contains people. List its quasi-identifiers, compute $k$ on
    them, and identify the cells that set it. Do this on a secure
    system approved for the data.
@@ -643,6 +1035,10 @@ the reverse of the sharing @sec-why argues for.
 - [@sweeney2002kanonymity], the paper that defines k-anonymity.
 - [@templ2015sdcmicro], the `sdcMicro` package, for k-anonymity
   and statistical disclosure control in R.
+- [@desai2016fivesafes], the paper that names and defines the Five
+  Safes framework used by trusted research environments.
+- [@nowok2016synthpop], the `synthpop` package, for generating and
+  evaluating synthetic microdata in R.
 
 ## Prerequisites answers {#sec-quiz-answers-02c}
 

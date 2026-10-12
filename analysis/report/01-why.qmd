@@ -679,11 +679,76 @@ the destination.
 
 ## Cumulative practice
 
+### A replication exercise
+
+The rest of this chapter has shown you two failures from the
+outside: what Baggerly and Coombes found in the Duke genomics
+case, and what Herndon found in Reinhart and Rogoff's spreadsheet.
+Both took months, because neither original team had made its
+compendium available, and the reconstruction itself was most of
+the cost. The exercise below puts you on the other side of that
+cost, against a paper that at least tried to avoid it, so that the
+obstacles you log are the residue left even when code and data are
+public.
+
+Choose a published paper in your own field that deposits both its
+code and its data openly, as a condition of publication rather
+than an informal courtesy. The surest way to find one is to pick a
+venue that states this as a policy you can check: a Registered
+Report in a journal whose author guidelines require open data and
+code for that article type, a paper in a journal that mandates
+data and code availability statements with working repository
+links (not merely 'data available on request'), or an article
+from a repository that itself requires deposited materials as a
+condition of indexing. Verify the policy on the journal's or
+repository's own page before you commit to a paper; a data
+availability statement that turns out to mean 'contact the
+authors' is common enough that it is worth ruling out early,
+before you have invested an afternoon.
+
+With a paper in hand, reproduce one figure or one table, not the
+whole analysis. Pick one with enough numeric content that
+'matches' and 'does not match' are not matters of eyeballing: a
+table of coefficients, a Kaplan-Meier curve with numbers you can
+read off, a bar chart with labeled values. Work only from what the
+paper's own compendium provides: its code, its deposited data (or
+the access procedure it documents), and its stated software
+versions, in that order. Do not consult the authors, and do not
+patch a failure with a guess about what they must have meant;
+treat a step you cannot complete from the deposited materials as
+an obstacle to log, not a gap to fill in yourself.
+
+Keep a running log as you work, with one entry per obstacle, each
+tagged four ways: which leg of @fig-repro-legs it belongs to
+(code, data, or environment), the specific failure from
+@tbl-why-failures it resembles if any, what you did to get past it
+(or that you could not), and whether the final number you obtained
+matches the paper's reported figure or table, and if not, by how
+much and in which direction. An obstacle log that reads 'the
+script needed `dplyr`, which was not pinned to a version; I
+installed the current one and it ran' is far more useful later
+than one that reads only 'had some package issues'. Finish by
+classifying what you tested against @tbl-why-kinds: an exact
+reproduction from the authors' own data and code is a test of
+methods reproducibility, and nothing in this exercise tests
+whether the finding would replicate in a new sample.
+
+This exercise has no solution key, and that is deliberate. What
+counts as success varies by paper: some published compendia let
+you rebuild a figure to the pixel, and some let you get within
+rounding error after fixing three unpinned versions, and some
+defeat you entirely despite a stated open-data policy, which is
+itself a finding worth reporting. Each of these outcomes is a
+valid result of the exercise, and each should be logged with the
+same care, because the obstacle log is the deliverable, not the
+reproduced figure.
+
 6. *Cumulative (uses the whole chapter).* Find a published paper
    in your field with public code and data, and try to reproduce
    one figure or table. Log every obstacle, classify each against
    @tbl-why-failures and @tbl-why-legs, and state which kind of
-   reproducibility (@tbl-why-kinds) your attempt tested.
+   reproducibility (@tbl-why-kinds) your attempt tested. Use the
+   fuller framing above if you have not already chosen a paper.
 7. *On your own work (no key).* Take the last analysis you wrote.
    List every piece of information that is not in the script but
    would be needed to reproduce its output, and for each say how

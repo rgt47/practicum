@@ -82,6 +82,7 @@ library(ggplot2)
 - [Sample size](#sec-analysis-plan-power)
 - [Pre-specified versus exploratory](#sec-analysis-plan-exploratory)
 - [Version control and tagging](#sec-analysis-plan-tagging)
+- [Preregistration, registered reports, and preprints](#sec-analysis-plan-prereg)
 - [Worked example: the HF-HOME SAP](#sec-analysis-plan-worked)
 - [The data management and sharing plan](#sec-federal-dmsp)
 :::
@@ -414,6 +415,27 @@ Not every section is needed for every study. For an observational
 secondary analysis, sections 3 and 4 are simpler, and sections 8 to
 12 are the same.
 
+@tbl-sap-sections is a template for the statistical content; the
+protocol around it has its own template. The International Council
+for Harmonisation's M11 guideline [@ich2025m11] specifies a
+harmonized structure for the whole clinical trial protocol, not only
+its statistics, as a common table of contents, headers, and
+machine-readable technical specification so that the same sections
+appear in the same order across sponsors and regions. As of this
+writing, M11 was adopted by the ICH regulatory members at Step 4 on
+19 November 2025, with regional adoption (Step 5) following on each
+region's own timeline; readers should check the current ICH and
+regional-authority sites before relying on dates or the technical
+specification's exact version, since the Step 5 transition was still
+in progress when this chapter was written. Where M11 applies, a
+SAP's sections 3 and 4 (design, eligibility) should reference the
+protocol's corresponding M11 sections by number rather than restate
+them, so the two documents cannot drift apart.
+
+Section 13, reporting, is where the SAP commits to a reporting
+guideline before the result is known; @sec-communicating-guidelines
+gives the table matching study design to guideline.
+
 ### Specific enough to constrain
 
 A SAP that says 'we will fit a regression model' has specified
@@ -635,6 +657,10 @@ evidence of what someone believed, not of what the design delivers
 (Habit 10).
 :::
 
+For a design these closed-form formulas do not cover, planning and
+reporting the result as a simulation study is the subject of
+@sec-cloud-sim.
+
 ## Pre-specified versus exploratory {#sec-analysis-plan-exploratory}
 
 The distinction is about *when* an analysis was decided, and it
@@ -840,6 +866,154 @@ external record makes it *credible*. A SAP tagged but never pushed
 provides organization without evidence. This is the same
 distinction @sec-federal draws between hosting an artifact and
 depositing it.
+:::
+
+## Preregistration, registered reports, and preprints {#sec-analysis-plan-prereg}
+
+The SAP this chapter has been teaching you to write already does
+most of what the broader open-science practice of *preregistration*
+asks for: a dated, specific, checkable statement of what you will do
+before you see the data. This section places that practice in its
+wider context and names the parts a SAP alone does not supply.
+
+### Plain preregistration
+
+A preregistration is a frozen, time-stamped research plan lodged
+with a registry before data collection, most commonly the Open
+Science Framework (OSF). It states the hypotheses, the design, the
+sample, and the planned analysis, and it is then locked: the
+registry will show, to anyone who asks, exactly what was written and
+when. No editor or reviewer evaluates it, and registering a plan
+creates no obligation to publish the results. This is the same
+function @sec-analysis-plan-tagging gives a pushed Git tag deposited
+with a trial registry, generalized to any study, including the
+observational and non-clinical work this book's methods apply to
+outside a trial [@nosek2018preregistration]. The difference is
+where the timestamp comes from. A tag pushed to your own remote
+proves order and content to anyone who can read your repository; an
+OSF registration proves the same thing to a reader who has never
+heard of your repository, with no git literacy required. For a
+clinical trial the registry deposit required by law
+(ClinicalTrials.gov and the like) already does this; for other
+designs, OSF is the equivalent, and it costs nothing to use it
+alongside, or instead of, a private tag.
+
+### Registered reports
+
+A *registered report* is a publication format, not a registry
+action: a journal commits to publishing a study based on its
+methods, evaluated by peer review, before the results exist. The
+process runs in two stages. A Stage 1 manuscript contains the
+background, hypotheses, and planned methods, including everything
+this chapter asks a SAP to contain; reviewers assess whether the
+design can answer the question, and a journal that accepts it grants
+*in-principle acceptance*: publication no longer depends on whether
+the results are positive, negative, or null. After the study runs,
+a Stage 2 submission adds the results and discussion, and review at
+that stage checks adherence to the registered plan rather than
+re-litigating the design [@chambers2022registered]. The format
+directly targets publication bias, since a null result accepted at
+Stage 1 is published exactly as reliably as a positive one, and it
+targets the SAP's own concern from the other direction: a reviewer,
+not only your own discipline, checks the plan for researcher degrees
+of freedom before it is locked. Registered reports remain uncommon
+in clinical trials, where a protocol and SAP already undergo
+sponsor, IRB, and regulatory review before data access, but they
+are an increasingly available option in observational and
+secondary-data research that has no equivalent gatekeeper, and a
+growing number of journals across the health and social sciences now
+offer the format; check a target journal's author guidelines for
+current participation.
+
+### Preprints
+
+A preprint is a different thing again, and the three terms are
+easy to conflate because all three involve posting something
+publicly before the usual gatekeeping. A preprint is a completed
+manuscript, posted before (or in parallel with) peer review, to
+disseminate results faster than a journal's review cycle allows.
+Posting one makes no claim about what was decided before the data
+were seen; a paper can be rigorously preregistered and still take
+a year to reach a preprint server, or it can be preprinted with no
+preregistration behind it at all. In the health and life sciences,
+the two servers in common use are bioRxiv, launched in 2013 for
+biology, and medRxiv, launched in 2019 specifically for the medical
+and health sciences as a joint project of Cold Spring Harbor
+Laboratory, Yale University, and BMJ [@rawlinson2019medrxiv].
+Each preprint receives a permanent DOI and a prominent disclaimer
+that it has not been peer reviewed and should not guide clinical
+practice; medRxiv screens submissions for plausible methods and
+absence of immediate public-health risk; it does not evaluate
+whether the analysis is sound the way a journal's reviewers would
+try to. As of this writing, that is the operating scope of both
+servers, but preprint-server policy changes faster than this book
+is revised, so confirm current submission and screening policies on
+each server directly before relying on them.
+
+### Where the SAP fits, and what it does not cover
+
+@tbl-prereg-compare places the four practices beside one another.
+None substitutes for the others: a registered clinical trial still
+needs the SAP's specificity, whether or not it is also deposited on
+OSF, and a preprint of the eventual paper needs the SAP's discipline
+about pre-specified versus exploratory results, whether or not it
+was ever formally registered.
+
+| Practice | What it fixes | When | Who checks it |
+|---|---|---|---|
+| SAP, tagged (this chapter) | The statistical analysis, in detail | Before data access | Whoever reads the tagged document later |
+| OSF preregistration | Hypotheses, design, and analysis plan | Before data access | No one; the registry only timestamps |
+| Registered report | The same, as a journal submission | Before data access, with in-principle acceptance | Peer reviewers, at Stage 1 and again at Stage 2 |
+| Preprint | A finished manuscript | Before or alongside peer review | No one; a DOI and a disclaimer, not a review |
+
+: Four practices that are often confused. A trial's SAP, tagged and
+deposited with its registry, already satisfies the strongest of
+these for its analysis; the others extend the same idea to
+disciplines and designs with no registry requirement, or add peer
+review before the data exist, or address dissemination speed rather
+than pre-specification at all. {#tbl-prereg-compare}
+
+The practical move for the kind of analysis this chapter teaches is
+small: write the SAP exactly as detailed as @tbl-sap-sections asks,
+tag it, push the tag, and, where no trial registry applies, also
+register it on OSF. That one extra step converts a private,
+reconstructible timeline into one a stranger can verify without
+trusting your repository, at a cost of perhaps twenty minutes.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague preprints a paper on medRxiv the week
+before submitting it to a journal and says, 'the analysis is
+preregistered, I posted it early.' What is wrong with the claim?
+
+**Answer.** Posting a preprint is not preregistration. A preprint is
+the finished manuscript, posted for fast dissemination; it says
+nothing about when the analysis was decided relative to when the
+data were seen, and medRxiv does not check that either way. If the
+analysis plan was written and tagged (or registered on OSF) before
+data access, that is what makes it preregistered, and the preprint
+is a separate, later step that disseminates the result. The two
+claims need two different kinds of evidence.
+:::
+
+### Exercises
+
+6. Find a trial's entry on ClinicalTrials.gov that also has a
+   preprint of its primary results paper. Compare the outcomes
+   listed in the registry entry (and its history of changes, if
+   any) against the outcomes reported in the preprint, and classify
+   any difference as an amendment, an addition, or an unexplained
+   switch.
+
+::: {.callout-note collapse='true' title='Solution'}
+There is no single key, because the trial is yours to choose.
+ClinicalTrials.gov keeps a visible version history for registered
+outcomes, so a change made after the trial started is dated and, for
+later changes, often distinguishable from the original entry. A
+sound audit lists each registered outcome, its registration date (or
+amendment date), whether and how it appears in the preprint, and
+flags any outcome in the preprint that has no corresponding
+registry entry at any date, which is the same undisclosed-switch
+pattern @goldacre2019compare documents at scale.
 :::
 
 ## Worked example: the HF-HOME SAP {#sec-analysis-plan-worked}
@@ -1400,6 +1574,9 @@ renegotiating with the program officer.
 - The NIH data management and sharing policy pages at
   `grants.nih.gov`, the authoritative source for the six DMSP
   elements.
+- [@chambers2022registered], a history and current practice of
+  registered reports; [@nosek2018preregistration] makes the
+  parallel case for plain preregistration.
 
 ## Prerequisites answers {#sec-quiz-answers-18}
 

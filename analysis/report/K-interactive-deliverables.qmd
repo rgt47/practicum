@@ -1,0 +1,437 @@
+# Interactive Deliverables {#sec-interactive-deliverables}
+
+Every chapter before this one ends in a document: a rendered
+report, a PDF, a paper. Most analyses should end there, because a
+static report is finished, versioned, and re-runs the same way for
+every reader. Some analyses do not end there, because the question
+a stakeholder actually has is not 'what happened in this dataset'
+but 'what would happen if I changed this filter, this cutoff, this
+subgroup', asked again and again by people who are not going to
+learn R to ask it. This appendix is reference material for that
+second case: when an interactive app is the right deliverable,
+what `teal` buys a clinical-trial team that a hand-built app does
+not, how to ship an R application with no server at all, and a
+sketch of the smallest Shiny app that would serve the running
+HF-HOME example.
+
+## Shiny versus a static report {#sec-interactive-deliverables-when}
+
+A [Shiny](https://shiny.posit.co) application
+[@chang2024shiny] is an R program that pairs a user interface
+(controls: dropdowns, sliders, buttons) with a server function that
+reacts to them and redraws its outputs. It is a different kind of
+artifact from everything else in this book, and the difference is
+not 'more impressive' or 'more modern'; a Shiny app is the right
+choice for a narrower set of problems than its popularity suggests,
+and the wrong choice is expensive in a specific way: it has to be
+hosted, it has to keep working as R and its packages change under
+it, and someone has to be paged when it goes down.
+
+The deciding question is not 'would this be nice to explore
+interactively' (almost everything would) but 'who re-runs this, how
+often, and do they re-run it with different inputs or just read
+the same output again'. Three patterns recur:
+
+- **One-time analysis, many static views.** A trial's primary
+  analysis is run once, written up, and read many times, by readers
+  who all want the same numbers. A rendered report
+  (@sec-quarto, @sec-rrtools) is correct here; an app would let
+  readers change the eligibility criteria or the covariate set and
+  produce a result the SAP (@sec-analysis-plan) never specified,
+  which is a cost, not a feature, for a confirmatory analysis.
+- **Repeated use by a team, with inputs that genuinely vary.** A
+  data safety monitoring board that reviews accruing adverse-event
+  rates at each scheduled look, a clinical operations team that
+  checks site-level enrollment weekly, or a medical monitor who
+  wants to see one patient's full visit history on demand, are
+  asking the same kind of question repeatedly with different
+  arguments. A dashboard that takes a site, a date range, or a
+  patient ID as input and redraws is doing real work a static
+  report cannot: nobody is going to render 200 site-specific PDFs
+  every Monday.
+- **Exploration during development, not for the deliverable.** A
+  statistician exploring a new dataset's missingness patterns,
+  trying covariate specifications, or checking a model's residuals
+  interactively benefits from a UI that need not survive the
+  project: `inspectdf`, `DataExplorer`, or even a throwaway Shiny
+  app written in twenty minutes and deleted afterward. This use
+  never gets handed to a stakeholder, so it does not raise the
+  hosting and maintenance questions below; it is simply a tool, the
+  same as an interactive debugger.
+
+Only the second pattern usually justifies the cost of a Shiny
+deliverable that other people will depend on. Before building one,
+ask who maintains it after the analyst who wrote it moves to
+another project, which package versions it pins (an app is a
+long-lived piece of software, not a one-time script, and inherits
+every renv/Docker concern of @sec-renv and @sec-docker), and whether
+a parameterized report (@sec-quarto-params) that regenerates a
+handful of PDFs on a schedule would answer the same need at a
+fraction of the operational cost. A parameterized report that reruns
+nightly for each of twelve sites is often a better answer than a
+dashboard that twelve people might log into, because the report has
+no uptime to monitor and no session state to reason about.
+
+::: {.callout-warning title='Pitfall'}
+**An interactive app with no maintainer is a liability, not a
+deliverable.** A Shiny app silently breaks when a dependency
+changes behavior, when a data source's schema shifts, or when the
+server it runs on reaches end of life, and unlike a rendered report
+sitting in a shared drive, a broken app actively fails in front of
+a user who expected it to work. Before shipping one, write down who
+owns it, where it runs, and what lockfile or container pins its
+package versions, in the same spirit the DMSP of @sec-federal-dmsp
+asks you to write down for data. An app with no named owner should
+be a report instead.
+:::
+
+### Exercise
+
+1. A clinical operations team asks for 'a dashboard' to track
+   enrollment. List three questions you would ask before deciding
+   whether that means a Shiny app, a parameterized Quarto report
+   rendered on a schedule, or a single static chart updated weekly.
+
+::: {.callout-note collapse='true' title='Solution'}
+At minimum: *Who looks at it, and how often?* (If it is three people
+once a week, a scheduled report email may suffice; if it is thirty
+people checking ad hoc throughout the day, an app has a real
+audience.) *Do they need to change any input* (a site, a date
+range, a cutoff), *or do they always want the same view?* (If the
+view never varies, there is no interactivity to build.) *Who owns
+it after this project ends*, and is there budget and a plan for
+hosting, monitoring, and updating it as packages and data change?
+A team with no name for 'who owns the app in six months' has not
+yet justified building one.
+:::
+
+## `teal`: a standardized framework for clinical-trial apps {#sec-interactive-deliverables-teal}
+
+Building a Shiny app from scratch for every clinical-trial deliverable
+repeats the same work across studies: a filter panel that subsets by
+treatment arm, site, or a baseline covariate; a table of adverse
+events; a Kaplan-Meier curve; a patient profile. `teal`
+[@roche2026teal] is a framework, originated within Roche/Genentech's
+NEST (Nest-of-Exploratory-Statistical-Tools) initiative and now
+maintained as part of the open-source `pharmaverse` (a community
+collection of R packages for clinical reporting that work together
+on a shared data model), for assembling that kind of app from
+reusable modules rather than writing each one by hand. As of this
+writing `teal` and its companion module packages (`teal.modules.clinical`
+for prebuilt clinical outputs, `teal.widgets`, and related packages)
+are active CRAN and GitHub projects under the `insightsengineering`
+organization; verify the current release and maintenance status on
+CRAN or the project's GitHub page before depending on it in a
+production deliverable, since a framework's module coverage and
+API change across versions.
+
+The design is display-only here (it is not installed in this book's
+environment), but the shape is worth knowing because it generalizes
+beyond Roche's own use: a `teal` app is built by calling `init()`
+with a set of ADaM-like datasets (`CDISCFilterableTeal`, mirroring
+the ADaM data structures introduced in @sec-cdisc) and a list of
+*modules*, each a self-contained analysis view (a summary table, a
+Kaplan-Meier plot, an adverse-event listing) that all share a common
+filter panel built once by the framework.
+
+```r
+library(teal)
+library(teal.modules.clinical)
+# display-only: teal and its module packages are not installed
+# here; this sketch shows the shape of the API, not a runnable app
+
+app <- init(
+  data = cdisc_data(
+    ADSL = hf_adsl,   # subject-level analysis dataset
+    ADAE = hf_adae     # adverse-event analysis dataset
+  ),
+  modules = modules(
+    tm_t_summary(label = "Baseline characteristics",
+                 dataname = "ADSL"),
+    tm_g_km(label = "Time to event",
+            dataname = "ADSL"),
+    tm_t_events(label = "Adverse events",
+                dataname = "ADAE")
+  )
+)
+
+shinyApp(app$ui, app$server)
+```
+
+The value `teal` adds over a bespoke app is standardization across
+studies rather than any single feature: every `teal` app built this
+way gives its reviewers the same filter panel, the same navigation,
+and modules whose statistical content (which Kaplan-Meier estimator,
+which adverse-event grading) has been reviewed once and reused
+everywhere, rather than re-implemented, and re-reviewed, per study.
+That is the same argument @sec-communicating-table1 makes for `gtsummary` over a
+hand-rolled table function, one level up: a shared, validated
+building block beats a bespoke one whenever more than one project
+will use it. The cost is the same as any framework dependency: a
+`teal` app inherits the framework's release cycle, and a module that
+does not exist for your analysis still has to be written by hand,
+inside the framework's extension points, which has its own learning
+curve.
+
+::: {.callout-tip title='Verification'}
+Before adopting `teal` for a deliverable, build the smallest
+possible app with one module against synthetic data (HF-HOME
+serves well here), and confirm that a colleague unfamiliar with the
+framework can open it, apply a filter, and correctly describe what
+changed. A framework whose standardized filter panel nobody on the
+review team understands has traded one kind of unfamiliarity for
+another.
+:::
+
+## Running R in the browser: `shinylive` and webR {#sec-interactive-deliverables-shinylive}
+
+A Shiny app ordinarily needs an R process running somewhere: a
+server the team operates, or a hosting service such as Posit
+Connect or shinyapps.io, which runs the R code and streams updates
+to the browser over a persistent connection. `shinylive`
+[@posit2024shinylive] removes that requirement by compiling R itself
+to WebAssembly through the webR project, and shipping the app's
+code and the R runtime together as static files that any web server
+(including GitHub Pages, with no R process anywhere) can host. The
+browser becomes both the client and the server: there is no
+backend to provision, patch, or pay for, and no user ever shares a
+session with another user's data, because each browser tab runs its
+own private R interpreter.
+
+```r
+# display-only: shinylive and webR are not installed in this
+# book's environment; this shows the deployment step, not a chunk
+# meant to execute here
+install.packages("shinylive")
+shinylive::export(appdir = "hf_dashboard", destdir = "docs")
+# docs/ is now a static site: push it to GitHub Pages, or open
+# docs/index.html locally, with no R server anywhere
+```
+
+The tradeoff is real and worth stating plainly rather than treating
+`shinylive` as a strictly better Shiny:
+
+| Consideration | Server-based Shiny | `shinylive` (webR) |
+|---|---|---|
+| Hosting cost | A running server (or a paid hosting tier) | A static file host, often free |
+| First load | Fast; only the app's own assets download | Slower; the browser downloads an R runtime and package binaries first |
+| Data privacy | Data can stay server-side, never sent to the client | Any data the app uses ships to the browser, in the client's memory |
+| Package availability | Any CRAN or GitHub package the server can install | Limited to packages built for the webR WebAssembly repository, and some packages do not build at all (compiled code with system dependencies is the usual blocker) |
+| Concurrency | One server handles many users; load is shared and must be provisioned for | Each user's browser does its own computing; no shared server to overload |
+| Offline use | Needs a live connection to the server | Works fully offline once the page has loaded |
+
+: Shiny hosting tradeoffs: a running server versus `shinylive`'s
+WebAssembly build. {#tbl-shinylive-tradeoffs}
+
+The data-privacy row deserves emphasis for clinical work
+specifically: because a `shinylive` app runs entirely in the
+browser, whatever dataset it loads is present, unencrypted, in that
+browser's memory and in the downloaded app bundle if the data is
+bundled rather than fetched at runtime. A `shinylive` deployment of
+a dashboard over participant-level clinical data defeats the
+access controls @sec-federal and @sec-deident spend two chapters
+establishing, because anyone who can reach the static files can
+extract the data the app ships with. `shinylive` is well suited to
+a public demonstration built on synthetic or already-public data
+(a teaching app built on HF-HOME's synthetic records, for instance,
+or a published paper's de-identified summary results), and poorly
+suited to anything that needs the server-side access control a
+real clinical dashboard requires.
+
+### Exercise
+
+2. A biostatistician wants to share an interactive exploration of a
+   trial's *synthetic* pilot data with collaborators who have no R
+   installed and no access to the production Shiny server. Is
+   `shinylive` a reasonable choice here, and what would make it a
+   bad one?
+
+::: {.callout-note collapse='true' title='Solution'}
+Yes, for synthetic data with no server to host it on: the
+collaborators need only a browser, the data is already not
+sensitive, and the slower first load is a one-time cost worth
+paying for zero hosting burden. It becomes a bad choice the moment
+the underlying data is swapped for real participant data without
+re-examining the privacy row of @tbl-shinylive-tradeoffs, or if any
+package the exploration depends on (a compiled survival-analysis
+package with system dependencies, say) is unavailable in the webR
+package repository, in which case the export silently falls back to
+a missing feature rather than failing loudly, and that gap has to be
+caught by testing the exported app directly, not inferred from the
+server-based version working.
+:::
+
+## A minimal sketch: HF-HOME enrollment and outcomes {#sec-interactive-deliverables-sketch}
+
+The smallest Shiny app worth building for a trial like HF-HOME is
+one that answers the two questions a clinical operations team asks
+repeatedly: how is enrollment tracking against target, and how does
+the primary outcome compare between arms so far. The sketch below
+is a complete, minimal `app.R` in the classic single-file Shiny
+layout. It is display-only: this book's environment does not have
+an interactive Shiny session to render it in, so treat the code as
+a model to adapt, and verify it by running it locally
+(`shiny::runApp()`) against the real HF-HOME CSVs the rest of the
+book reads from `analysis/data/raw_data/hfhome/`.
+
+```r
+# display-only: no interactive Shiny session in this book's
+# rendering environment; run locally with shiny::runApp()
+library(shiny)
+library(dplyr)
+library(ggplot2)
+
+hf_dir <- file.path("..", "data", "raw_data", "hfhome")
+read_hf <- function(file) {
+  readr::read_csv(file.path(hf_dir, file),
+                  col_types = readr::cols(patient_id = "c",
+                                          .default = "?"))
+}
+
+ui <- fluidPage(
+  titlePanel("HF-HOME: enrollment and outcome monitor"),
+  sidebarLayout(
+    sidebarPanel(
+      dateRangeInput("window", "Enrollment window",
+                     start = "2026-01-01", end = Sys.Date()),
+      helpText("Outcome summary uses all randomized patients;",
+               "it does not depend on the date filter.")
+    ),
+    mainPanel(
+      plotOutput("enroll_plot"),
+      tableOutput("outcome_table")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  hf_rand <- read_hf("randomization.csv")
+  hf_outcomes <- read_hf("outcomes.csv")
+
+  enroll_in_window <- reactive({
+    hf_rand |>
+      filter(rand_date >= input$window[1],
+             rand_date <= input$window[2]) |>
+      arrange(rand_date) |>
+      mutate(cumulative_n = row_number())
+  })
+
+  output$enroll_plot <- renderPlot({
+    ggplot(enroll_in_window(), aes(rand_date, cumulative_n)) +
+      geom_step() +
+      labs(x = "Randomization date", y = "Cumulative enrolled",
+           title = "Enrollment over time") +
+      theme_minimal()
+  })
+
+  output$outcome_table <- renderTable({
+    hf_rand |>
+      left_join(hf_outcomes, by = "patient_id") |>
+      group_by(arm) |>
+      summarize(n = n(),
+                events = sum(event_30d == 1, na.rm = TRUE),
+                risk = round(mean(event_30d, na.rm = TRUE), 3),
+                .groups = "drop")
+  })
+}
+
+shinyApp(ui, server)
+```
+
+Three design choices in this sketch generalize beyond HF-HOME.
+First, the app reads data at session start (outside `server()`'s
+reactive code, at the top of the function), not inside a
+`reactive()` or an input handler, because the randomization and
+outcome files do not change while the dashboard is open; re-reading
+them on every filter change would be wasted work and, for a file
+read over a network mount, a visible delay on every interaction.
+Second, the outcome table is deliberately *not* filtered by the
+date-range input: the enrollment chart answers 'are we on pace',
+the outcome table answers 'what does the primary comparison look
+like so far', and conflating them, by applying the same date filter
+to both, would make a partial outcome look like it respects the
+same cutoff as the SAP's windows when it does not. Decide
+deliberately which outputs a given input should touch, and say so
+in the UI (the `helpText()` call above exists for that reason), the
+same discipline @sec-analysis-plan asks of a SAP's own eligibility
+and timing rules. Third, the app never recomputes the primary
+analysis of @sec-analysis-plan-worked: a monitoring dashboard built
+for an active trial reports accruing data, not the locked, adjusted
+primary estimate, and a reviewer who mistakes one for the other
+will draw an unblinded conclusion from a view that was never meant
+to support one. Where a dashboard like this runs during an active
+trial, who may see unblinded arm-level event counts is a governance
+decision (consult a data monitoring committee charter), not a
+Shiny configuration choice.
+
+::: {.callout-important title='LLM prompt'}
+Use a model to draft the UI and server scaffolding for a dashboard
+like this one, not to decide what it is safe to show.
+
+> **Context.** I am building a Shiny app over trial data with
+> columns X, Y, Z (attach a data dictionary, not real data). The
+> dashboard should let a clinical operations team filter by site
+> and date range and see enrollment counts.
+>
+> **Constraints.** Read data once at session start, not inside a
+> reactive expression. Keep any outcome comparison by randomized
+> arm un-filtered by the operational date-range input, and label
+> why in the UI. Do not add any input or output that would reveal
+> unblinded arm-level results to a role this app is not approved
+> for.
+>
+> **Criteria.** The server function contains no inline SQL or raw
+> file paths outside one configuration block; every `reactive()`
+> depends only on inputs that should trigger recomputation.
+
+*Failure mode.* A model asked only for 'a dashboard with filters'
+will happily filter every output by every input, including an
+unblinded event-rate table that a clinical operations team may not
+be approved to see, because it has no notion of your trial's
+governance structure. *Check.* Walk through every output against
+the access list in your data monitoring plan before deploying, not
+after; the model can write the reactive wiring, but only the
+protocol and the charter say who is allowed to see what.
+:::
+
+## Rules of thumb
+
+1. **Match the deliverable to who re-runs it.** A result read many
+   times by many people, with the same inputs, is a report; a
+   result re-run repeatedly with different inputs by a defined
+   team is an app. Most clinical deliverables are the first.
+2. **An app is long-lived software, not a script.** It needs a
+   named owner, a pinned environment (@sec-renv, @sec-docker), and
+   a plan for what happens when a dependency breaks it.
+3. **`shinylive` trades a server for a privacy boundary.** Use it
+   for public or synthetic data; a `shinylive` app ships its data
+   to the browser, so it is the wrong tool for participant-level
+   clinical data under access control.
+4. **A monitoring dashboard is not the locked analysis.** Keep
+   accruing, unlocked views visibly separate from the pre-specified
+   primary estimate of @sec-analysis-plan, and respect blinding in
+   what each role is shown.
+
+## Cheat sheet
+
+| Task | Tool | Notes |
+|---|---|---|
+| Decide app versus report | Who re-runs it, how often, with what varying inputs | A one-time read is a report, not an app |
+| Standardized clinical-trial app | `teal` + `teal.modules.clinical` | Verify current maintenance status before depending on it |
+| No-server deployment | `shinylive::export()` | Data ships to the browser; unsuited to participant-level clinical data |
+| R and Shiny in WebAssembly | webR, via `shinylive` | Package availability is limited to the webR repository |
+| Read data once, not per interaction | Load outside `reactive()`, at the top of `server()` | Avoids redundant reads on every filter change |
+| Separate monitoring from the locked analysis | Distinct outputs, distinct access, clear labeling | Protects blinding and the SAP's pre-specification |
+
+: Interactive deliverables at a glance. {#tbl-interactive-cheat-sheet}
+
+## Further reading
+
+- [@chang2024shiny], the `shiny` package itself, the framework
+  everything in this appendix builds on.
+- The `teal` and `teal.modules.clinical` documentation at the
+  `insightsengineering` GitHub organization, for the current module
+  catalog and `pharmaverse` integration.
+- The `shinylive` documentation at
+  `https://posit-dev.github.io/shinylive/` for current package
+  compatibility with the webR WebAssembly repository.

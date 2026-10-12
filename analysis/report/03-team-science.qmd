@@ -77,6 +77,7 @@ introduces is analyzed in @sec-analysis-plan and reported in
 - [Handling disagreement](#sec-team-science-disagreement)
 - [Authorship and credit](#sec-team-science-authorship)
 - [Managing a portfolio of projects](#sec-team-science-portfolio)
+- [Data-management operations](#sec-team-science-datamgmt)
 :::
 
 ::: {.callout-note collapse='true' title='Skip ahead?'}
@@ -360,6 +361,111 @@ one most readers miss, because the email presents it as
 observation rather than as analysis.
 :::
 
+### Consulting practice by performance
+
+Reading a red-flag list is not the same skill as producing one in
+real time, in a room, while a collaborator is talking. The intake
+conversation is a performance, and like any performance it
+improves with rehearsal against a script you have not seen before.
+The role-play below asks you to supply the client's half from a
+realistic transcript and your own half from scratch; do it against
+a clock (fifteen minutes), and resist the urge to revise the
+client's words into a cleaner version of the problem than the one
+a client actually hands you.
+
+2. **Client-intake role-play.** A program manager at a community
+   health system calls about HF-HOME's home-health arm. There is
+   no script to follow; this is close to verbatim transcripts of
+   real first calls.
+
+   > 'Hi, thanks for taking the call. So we've been doing these
+   > home visits for about a year now as part of the HF-HOME
+   > thing, and leadership wants to know if it's "working." I
+   > guess the real question is whether we should keep funding the
+   > nurses who do the visits, because the budget conversation is
+   > next month and I need something to bring. We have all the
+   > visit data in the system the nurses use to log their stops,
+   > and I think the hospital can pull readmissions for us, though
+   > I'm not 100% sure what they can share. Ideally I'd love
+   > something I can put in a one-pager, like a percentage, "home
+   > visits reduced readmissions by X%," something leadership can
+   > act on. Oh, and some of the patients only got one visit and
+   > some got like six, does that matter? Also I should say, we
+   > changed the visit protocol about four months ago, the nurses
+   > used to just check meds and now they also do a home safety
+   > walkthrough, so I don't know if that's the same program or a
+   > different one at this point. Can you have something for us by
+   > the 15th?'
+
+   Write (a) the clarifying questions you would ask, in the order
+   you would ask them; (b) the program manager's request restated
+   as a single analyzable question, naming the population, the
+   exposure, the outcome, and the time window; (c) every point in
+   the call where a data question is actually a study-design
+   decision in disguise, and what decision each one is.
+
+::: {.callout-note collapse='true' title='Solution'}
+**(a) Clarifying questions, in order.** Start with scope, because
+it determines whether anything else is worth asking: 'When you say
+"working," do you mean whether the visits caused fewer
+readmissions, or whether the program is worth its cost either
+way?' These are different questions with different answers.
+Next, the population and the comparison: 'Is there a group of
+patients from the same period who did not get visits, or did
+everyone discharged with heart failure get offered one?' Without a
+comparison group, no causal claim about the visits is possible at
+all, only a description of what happened to the visited group.
+Then the protocol change: 'The safety walkthrough started four
+months ago; do you want one answer covering the whole year, or do
+you want the two protocol periods kept separate?' Then dose: 'Is
+"at least one visit" the exposure you care about, or does the
+number of visits matter to the budget decision?' Then data access
+and timeline, last because they gate feasibility rather than the
+question itself: 'What exactly can the hospital share, in what
+form, under what agreement, and by when could I have it in hand
+given the 15th?'
+
+**(b) The restated question.** 'Among heart-failure patients
+discharged from this system in [a defined period], is having
+received at least one home-health visit associated with lower
+30-day all-cause readmission, compared with patients discharged in
+the same period who received no visit, after accounting for the
+measured differences between the two groups (and, if the data
+permit, analyzed separately before and after the protocol
+change)?' This is deliberately narrower than 'is it working': it
+names a population, an exposure defined at a fixed time
+(discharge, not some point during follow-up), a comparator, an
+outcome, and a window, and it drops '% reduction leadership can
+act on' because that is a format for the answer, not the question
+itself.
+
+**(c) Design decisions disguised as data questions.** Three stand
+out. First, 'can the hospital pull readmissions for us' sounds
+like a data-access logistics question, but it is actually a
+design decision about outcome ascertainment: if the hospital can
+only see readmissions to its own facilities, the program will look
+better than it is, because readmissions elsewhere are invisible,
+not absent. Second, 'does it matter that some got one visit and
+some got six' sounds like a request for a dose-response analysis,
+but answering it requires deciding, before looking at outcomes,
+whether dose is a study variable at all or a confounder: patients
+healthy enough to attend six visits are not comparable to patients
+who received one, likely for reasons related to their own
+prognosis. Treating 'number of visits' as an exposure to be
+compared invites exactly the same immortal-time and
+confounding-by-indication problems as Dr. X's original request
+elsewhere in this chapter. Third, 'does the protocol change make
+it a different program' is phrased as a labeling question but is a
+design decision about whether one pooled analysis or two
+period-specific analyses is the right unit of inference; pooling
+without checking for an interaction between period and the visit
+effect would silently average over two different programs and
+report neither correctly. A strong answer flags that none of these
+three can be settled with more data alone; each needs a decision,
+made before analysis and recorded, about what the study is
+actually asking.
+:::
+
 ## The scope of work {#sec-team-science-sow}
 
 For any non-trivial collaboration, a written scope of work (SOW)
@@ -406,7 +512,7 @@ already in scope.
 
 ### Exercises
 
-2. Each request below arrives during HF-HOME. Name the SOW row
+3. Each request below arrives during HF-HOME. Name the SOW row
    that governs it and say whether it is in scope.
    (a) A reviewer asks for the primary analysis adjusted for
    site. (b) Dr. X asks you to draft the discussion section.
@@ -518,7 +624,7 @@ computed numbers.
 
 ### Exercises
 
-3. Classify each request as preference, best practice, or
+4. Classify each request as preference, best practice, or
    validity, and give your response in one sentence. (a) Report
    odds ratios rather than risk differences in a secondary table.
    (b) Dichotomize N-terminal pro-B-type natriuretic peptide
@@ -639,7 +745,7 @@ please acknowledge'.
 
 ### Exercises
 
-4. For a secondary HF-HOME paper on medication burden, decide
+5. For a secondary HF-HOME paper on medication burden, decide
    authorship for each contributor and give at least one CRediT
    role: (a) a pharmacist who designed the coding scheme for the
    discharge medication strings and helped draft the methods,
@@ -777,7 +883,7 @@ the inbox.
 
 ### Exercises
 
-5. You have 20 working hours this week for project work. Your
+6. You have 20 working hours this week for project work. Your
    clean-path estimates are: HF-HOME primary results, 8 hours, due
    Friday; a sepsis-registry reviewer response, 4 hours, due in
    three weeks; a new intake meeting with Dr. V, 1 hour,
@@ -803,6 +909,178 @@ nothing unblocked was promised that the doubled estimate could
 not hold.
 :::
 
+## Data-management operations {#sec-team-science-datamgmt}
+
+Everything in this chapter so far governs the statistician's own
+relationship to a collaborator and a dataset that already exists.
+A trial the size of HF-HOME also needs someone to decide, before
+the first patient is enrolled, who is allowed to type data in, who
+is allowed to look at it, and who is allowed to declare it final.
+That is data-management operations, and on most teams the
+biostatistician does not own it but is the person who most needs
+it to be right, because every downstream number depends on it.
+Getting pulled into fixing it after the fact, once a coordinator
+has quietly corrected a value in a locked field or a site has kept
+enrolling after a stopping rule triggered, is a far worse use of
+your time than naming the rules at intake.
+
+### A roles matrix
+
+The operational question is not 'who has access' but 'who can do
+what to which data, and at what stage of the study'
+(@tbl-team-science-roles-matrix). A matrix answers it in one
+place, so that a request ('can I just fix this one value') has a
+documented answer instead of a judgment call made under time
+pressure.
+
+| Role | Enter new data | Query / export | Edit after entry | Lock fields | Unlock a locked record |
+|---|---|---|---|---|---|
+| Site coordinator | Yes, own site only | Own site only | Yes, with an audit trail, before lock | No | No |
+| Data manager | No (unless also a coordinator) | All sites | Via a documented query resolution only | Yes, at scheduled points | With PI or sponsor sign-off |
+| Statistician | No | Yes, read-only extracts | No | No | No |
+| Principal investigator (PI) | No | Yes | No | No | With documented justification |
+| Monitor or auditor | No | Yes, read-only | No | No | No |
+
+: A roles matrix for a multi-site trial's data system. The
+statistician's row is deliberately the most restricted: querying
+and nothing else, so that the analysis can never be accused of
+having shaped the data it analyzes. {#tbl-team-science-roles-matrix}
+
+The statistician's own row is the one worth dwelling on. A
+statistician who can edit source data, even to fix an obvious
+typo, has compromised the separation between the people who
+collect a result and the people who evaluate it; the correct
+channel is a query back to the site, resolved by the coordinator,
+with both the error and the correction on record. This is the same
+principle as Habit 2 (raw data are evidence, derived data are a
+build product) applied to people instead of files: the
+statistician's privileged access is to copies and queries, never
+to the record of what happened.
+
+### Participant tracking
+
+A trial's data system also has to answer a question no single CRF
+form captures: of everyone who was ever considered for the study,
+what happened to them. Two logs do most of this work.
+
+**The enrollment log** records every patient who was approached,
+in the order they were approached, independent of whether they
+enrolled. Patient-level enrollment counts by site and week are
+what a data safety monitoring board asks for first, and they are
+unrecoverable after the fact if the only record of 'approached but
+declined' lived in a coordinator's memory. For HF-HOME, the
+enrollment log is what makes it possible to report, in the
+consolidated standards of reporting trials (CONSORT) flow diagram,
+how many patients were assessed for eligibility before the number
+who were randomized (@sec-communicating covers the diagram itself;
+this chapter is about the log that feeds it).
+
+**Screen-fail tracking** records everyone who was assessed for
+eligibility and excluded, with the specific criterion that
+excluded them. This log is the only way to answer the question a
+reviewer eventually asks: are the patients who were excluded
+systematically different from the patients who were randomized, in
+a way that limits who the trial's result applies to? Without
+screen-fail tracking, that question has no answer at all, not even
+a flawed one; the excluded patients leave no trace. @tbl-team-science-screenfail
+sketches what the log needs to hold.
+
+| Field | Why it is tracked |
+|---|---|
+| Date and site of screening | Detects a site that screens unevenly over time |
+| Eligibility criteria checked, pass or fail on each | Lets you compute how many patients failed on each criterion, not just the total |
+| Primary reason for exclusion, if more than one failed | Avoids double-counting when ranking exclusion reasons |
+| Consent obtained before screening, yes or no | Distinguishes a screen fail from a refusal to be screened at all |
+| Disposition (declined, ineligible, withdrew before randomization) | Separates patient choice from study criteria in the CONSORT diagram |
+
+: What a screen-fail log needs, and what each field answers.
+{#tbl-team-science-screenfail}
+
+### REDCap's role
+
+Most trials of HF-HOME's size run their data collection in REDCap
+(Research Electronic Data Capture) [@harris2009redcap], and
+REDCap's user-role feature
+is the usual mechanism for enforcing the matrix above: each named
+role (data entry, data manager, read-only) is configured with a
+specific combination of form-level access, export rights, and the
+ability to apply or remove a data-entry lock on a completed form.
+The lock is the operational equivalent of the 'Lock fields' column
+in @tbl-team-science-roles-matrix: once a form is locked, a role
+without unlock privilege cannot change it, which is what makes
+'the primary outcome field was locked before any analysis ran' a
+verifiable claim about the system rather than a procedural promise
+about people's intentions. REDCap's Application Programming
+Interface (API), which this book covers as a way to pull data
+programmatically into a reproducible pipeline, is a separate layer
+from this one: @sec-apis and @sec-databases treat REDCap as a data
+source to be queried; this section treats it as the system that
+decides who was allowed to put the data there in the first place
+and when it became unchangeable. A statistician setting up a new
+study's REDCap project should not configure the roles alone;
+decide the matrix with the data manager and the PI first, as part
+of the scope of work (@tbl-team-science-sow), and then configure
+the system to match the decision rather than the reverse.
+
+::: {.callout-warning title='Pitfall'}
+**A locked field unlocked for a convenience edit, and relocked,
+leaves no visible difference from a field that was never
+touched.** The audit trail (REDCap logs every unlock-edit-relock
+cycle with a timestamp and user) is the only record; if nobody
+ever reviews it, the lock is a promise, not a control. Reviewing
+the audit trail at prespecified points (database lock, before
+unblinding) is part of the data-management plan, not an
+afterthought.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A site coordinator emails you, the statistician,
+asking you to correct a transposed digit in a patient's discharge
+date, since 'it will be faster than going through the data
+manager.' What do you do, and which row of
+@tbl-team-science-roles-matrix explains why?
+:::
+
+::: {.callout-note collapse='true' title='Solution'}
+Decline, and route the correction back to the coordinator through
+the documented query process. The statistician's row has no
+'Edit after entry' permission for exactly this reason: an edit made
+by the person who will later analyze the data, however well
+intentioned, erases the separation between data collection and
+data evaluation that gives the analysis its credibility. The
+correct sequence is a query to the site, a source-verified
+correction by the coordinator with an audit trail, and, if the
+field was locked, an unlock authorized under the matrix's rules
+before the edit and a relock after.
+:::
+
+### Exercises
+
+9. For a new two-site trial, draft a roles matrix like
+   @tbl-team-science-roles-matrix for these five roles: site
+   coordinator, remote data-entry temp hired for one month,
+   unblinded statistician who prepares the data safety monitoring
+   board report, blinded statistician who writes the primary
+   analysis, and the sponsor's auditor. Name one access right each
+   role must not have, and say what goes wrong if it does.
+
+::: {.callout-note collapse='true' title='Solution'}
+The remote data-entry temp should have entry rights scoped to a
+named set of forms and no export or query rights at all; a
+temporary role with broad export access is the kind of permission
+that outlives the person holding it if offboarding is not tied to
+study milestones. The unblinded statistician preparing the
+monitoring report needs query access to unblinded data but must
+not have access to the forms the blinded statistician's pipeline
+reads, or the separation that protects the primary analysis from
+knowledge of the interim result collapses. The blinded
+statistician should have no path to treatment assignment at all,
+enforced by the system, not by instruction. The auditor needs
+read-only export with no edit or lock rights, and critically, an
+audit trail of its own showing what was exported and when, since
+an auditor's own access must be auditable.
+:::
+
 ## Rules of thumb
 
 1. **Habit 5: agree in writing before the analysis runs.** The
@@ -817,7 +1095,7 @@ not hold.
 
 ## Cumulative practice
 
-6. *Cumulative (uses @sec-why).* Midway through HF-HOME, Dr. X
+7. *Cumulative (uses @sec-why).* Midway through HF-HOME, Dr. X
    asks you to skip the analysis plan and the version-controlled
    compendium 'just this once' to make an abstract deadline.
    Write the reply, using the cost-benefit case of @sec-why and
@@ -836,7 +1114,7 @@ offers an alternative: the pre-specified baseline table, which
 needs no outcome data, or a submission at the next deadline.
 :::
 
-7. *On your own work (no key).* List every project you currently
+8. *On your own work (no key).* List every project you currently
    have active. For each, write its stage, its single next
    action, and the one thing it is blocked on, together with who
    owns that thing. Any project for which you cannot name a next
@@ -866,6 +1144,8 @@ needs no outcome data, or a submission at the next deadline.
 - [@brand2015beyond], the origin of the CRediT taxonomy, now
   maintained by NISO (the National Information Standards
   Organization) at `credit.niso.org`.
+- [@harris2009redcap], the original description of REDCap and the
+  workflow its roles and locking features are built to support.
 
 ## Prerequisites answers {#sec-quiz-answers-03}
 

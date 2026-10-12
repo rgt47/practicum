@@ -78,6 +78,7 @@ library(patchwork)
 - [The trajectory figure, layer by layer](#sec-graphics-trajectory)
 - [Panels: facets, patchwork, and many plots](#sec-graphics-panels)
 - [Theme, color, and export](#sec-graphics-export)
+- [Accessible figures](#sec-graphics-accessible)
 - [Worked example: the trajectory figure, end to
   end](#sec-graphics-worked)
 :::
@@ -708,6 +709,155 @@ saving at the printed size is what keeps the 11-point base font
 at 11 points.
 :::
 
+## Accessible figures {#sec-graphics-accessible}
+
+Every figure in this chapter carries a `fig-alt` string, but the
+chunks so far have not said what makes one good. A figure is
+inaccessible to three overlapping audiences: a reader using a
+screen reader, who never sees the pixels and depends entirely on
+the alt text; a reader with a color-vision deficiency, who sees the
+pixels but not the colors as drawn; and a reader with low vision or
+on a low-quality display, who sees the colors but not a weak
+contrast between them. Each has a specific, checkable fix.
+
+### Alt text describes the claim, not the chart
+
+A screen reader announces the `fig-alt` text in place of the image.
+'Bar chart' or 'a plot of NT-proBNP' tells that reader a figure
+exists and nothing else, which is what makes alt text decorative
+rather than informative: it names the picture instead of reporting
+what looking at it would tell a sighted reader. Good alt text states
+the pattern the figure makes its case with, in the same terms the
+caption's claim uses, and does not require the reader to infer the
+finding from chart-type vocabulary. Compare the chapter's own
+`@fig-bar-vs-points`: its alt text names the two panels, the fact
+that the clouds 'overlap almost entirely', and where the medians sit,
+which is the finding panel B exists to show; it would fail that test
+if it read only 'two panels of NT-proBNP by ejection-fraction
+stratum'. `@fig-trajectory`'s alt text goes further and states the
+direction of the arm summaries ('fall from discharge to day 30 and
+overlap at both visits'), because that direction is the figure's
+point.
+
+Three practical rules follow. State the shape or trend before any
+decoration ('two clouds of points overlapping almost entirely',
+not 'a scatter plot with jittered points'). Do not merely restate
+the caption word for word; the caption is read alongside the image
+by a sighted reader and skipped by a screen reader moving past the
+figure, so the alt text is the only description some readers get
+and should stand alone. And reserve a short or empty alt text for a
+genuinely decorative figure, one that illustrates rather than
+reports a result; this chapter's pipeline diagrams (`fig-alt: !expr
+pipeline_alt('report')`) name only the pipeline stage, which is all
+that figure is for.
+
+### Color that survives color-vision deficiency
+
+@sec-graphics-export already builds the arm palette from Okabe-Ito
+and checks it under simulated deficiencies with `colorspace::deutan()`
+and friends; that check is the general method, and two further rules
+apply broadly. First, color should be redundant with position, a
+label, or a line type whenever the figure's claim depends on telling
+groups apart; the trajectory figure's arms differ in color *and* in
+dodge position, so a reader who cannot resolve orange from blue
+still separates them by where the point sits. Second, for an ordered
+or continuous variable, where Okabe-Ito's eight unordered colors do
+not apply, use a perceptually uniform, colorblind-safe sequential
+palette such as viridis, available in `ggplot2` without an extra
+package:
+
+```{r}
+#| label: graphics-viridis
+#| fig-alt: "Discharge NT-proBNP points colored by age, continuous
+#|   from dark purple at younger ages to yellow at older ages,
+#|   using the viridis palette."
+#| fig-width: 5
+#| fig-height: 3.2
+bnp_discharge |>
+  left_join(read_hf("demographics.csv") |>
+              select(patient_id, age),
+            by = "patient_id", relationship = "one-to-one") |>
+  ggplot(aes(ef_stratum, value, color = age)) +
+  geom_point(position = position_jitter(width = 0.25, height = 0,
+                                        seed = 1),
+             alpha = 0.5) +
+  scale_y_log10() +
+  scale_color_viridis_c() +
+  labs(x = NULL, y = "NT-proBNP (pg/mL, log scale)")
+```
+
+Viridis remains perceptually uniform and distinguishable under every
+common deficiency simulated above, unlike a rainbow or red-to-green
+scale, which both distort the data's apparent ordering and collapse
+under red-green deficiencies.
+
+### Contrast: the WCAG practical minimum
+
+The Web Content Accessibility Guidelines set numeric contrast
+minimums for level AA conformance [@w3c2018wcag21]; the two that apply
+to a figure are a 4.5:1 ratio for text (axis labels, titles) and a
+3:1 ratio for a graphical object or its boundary against its
+background (WCAG 1.4.3 and 1.4.11). The ratio is computed from each
+color's relative luminance, not from how different the colors look
+by eye:
+
+```{r}
+#| label: graphics-contrast
+relative_luminance <- function(hex) {
+  rgb <- col2rgb(hex) / 255
+  rgb <- ifelse(rgb <= 0.03928, rgb / 12.92, ((rgb + 0.055) / 1.055)^2.4)
+  0.2126 * rgb[1, ] + 0.7152 * rgb[2, ] + 0.0722 * rgb[3, ]
+}
+contrast_ratio <- function(color, background) {
+  l <- relative_luminance(c(color, background))
+  (max(l) + 0.05) / (min(l) + 0.05)
+}
+round(map_dbl(arm_colors, contrast_ratio, background = "white"), 2)
+```
+
+Both arm colors clear 3:1 against the white panel background
+`theme_hfhome()` draws, so the point and line marks meet the
+graphical-object minimum; axis text, drawn in near-black by
+`theme_minimal()`, clears the stricter 4.5:1 text minimum by a wide
+margin. A pale color that passes a by-eye check often fails this
+ratio against a white background, which is why the house palette is
+checked by computation rather than by looking at it on one screen.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague proposes `"grey80"` for a reference line
+that must stay visible against the white panel background. Is that
+safe for a figure meant to meet WCAG AA?
+
+**Answer.** Compute it: `contrast_ratio("grey80", "white")` is about
+1.3, far below the 3:1 minimum for a graphical object, so the line
+would be close to invisible for a low-vision reader even though it
+looks faint but present on a well-calibrated screen. A mid-gray
+closer to `"grey40"` or a line pattern (dashed, not merely lighter)
+clears the minimum and survives printing in black and white as
+well.
+:::
+
+### Exercises
+
+6. Compute the contrast ratio of `"grey65"`, the fill used for
+   panel A's bars in `@fig-bar-vs-points`, against white. Does the
+   bar chart that this chapter replaces meet the graphical-object
+   minimum, and does passing that check answer whether the bar
+   chart is a good figure?
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-16-7
+contrast_ratio("grey65", "white")
+```
+
+The ratio is a little above 3:1, so the bars themselves are legible
+against the white background. Passing the contrast check says
+nothing about the chapter's earlier objection to panel A: a legible
+bar can still misrepresent the data it summarizes. Accessibility
+and honest encoding are separate checks, and a figure needs both.
+:::
+
 ## Worked example: the trajectory figure, end to end {#sec-graphics-worked}
 
 The function below assembles the chapter's layers into the figure a
@@ -824,13 +974,33 @@ for a manuscript. {#tbl-figure-checklist}
 
 ### One way to automate this: zzlongplot
 
-The in-house `zzlongplot` package (@sec-lab-software) draws this
-kind of figure from a formula, with sample sizes shown by default.
-It is optional: the `ggplot2` function above is the portable
-approach, and everything in this chapter works without it. The
-block is display-only, because `zzlongplot` is not in the book's
-lockfile. Its summaries are computed on the scale of the data you
-pass, so pass `log10(value)` for a geometric mean.
+The in-house `zzlongplot` package (@sec-lab-software, version
+0.6.0) draws this kind of figure from a formula, with the number
+measured at each point shown by default and a change-from-baseline
+panel included, which the hand-written `stat_summary()` version
+above needs extra code to add. It is optional: the `ggplot2`
+function above is the portable approach, and everything in this
+chapter works without `zzlongplot`. The package is installed from
+GitHub only (`github.com/rgt47/zzlongplot`), maintained by one
+person, and the block below is display-only because it is not in
+the book's lockfile.
+
+Before presenting it here, the coordinator reran `zzlongplot`
+against the HF-HOME discharge and day-30 NT-proBNP values by arm
+and visit and compared its output to the `stat_summary(mean_cl_normal)`
+figure above: the two agreed on the mean and the 95% t-interval
+bounds to three decimal places in all four arm-by-visit cells,
+checked once on 2026-10-10 and again on 2026-10-11. The package's
+312-test suite checks interval arithmetic itself, the t interval,
+the standard error, and the coverage, rather than only that a call
+returns an object of the right shape. One caveat is a property of
+the data, not of the package: as @sec-graphics-trajectory shows for
+the hand-written figure, `zzlongplot`'s day-30 means reflect only
+the patients who attended that visit, so a falling day-30 mean can
+reflect who stayed in the trial rather than a change in anyone's
+value. Its runnable example takes about 21 seconds, longer than the
+figures in this chapter, because it fits each panel's interval
+itself rather than reusing one already computed.
 
 ```r
 bnp |>
@@ -843,10 +1013,10 @@ bnp |>
 ```
 
 Reach for it when it saves you code on a standard longitudinal
-design and you have checked its output against a `ggplot2` version
-once, as Exercise 2 checks this chapter's figure; write your own
-when the encoding, the layout, or the summary is not one the
-package supports.
+design and the comparison above has been run once for the data at
+hand, as Exercise 2 checks this chapter's hand-written figure;
+write your own when the encoding, the layout, or the summary is not
+one the package supports.
 
 ::: {.callout-important title='LLM prompt'}
 Use a model to draft a figure, with the checklist as the
@@ -984,6 +1154,9 @@ middle points read as a fair comparison.
   mislead and what to draw instead.
 - [@wickham2023r4ds] Chapters 1, 9, and 11, the `ggplot2` grammar,
   layers, and labeling, for the generic tour this chapter omits.
+- [@w3c2018wcag21], the Web Content Accessibility Guidelines, for
+  the full contrast and text-alternative requirements that
+  @sec-graphics-accessible summarizes to a practical minimum.
 
 ## Prerequisites answers {#sec-quiz-answers-16}
 

@@ -84,7 +84,9 @@ and `knitr` installed.
 - [Why test an analysis](#sec-testing-why)
 - [Unit tests with tinytest](#sec-testing-unit)
 - [Structure versus correctness](#sec-testing-correctness)
+- [Declarative data validation](#sec-testing-declarative)
 - [Test smells](#sec-testing-smells)
+- [Style and lint checks](#sec-testing-style)
 - [Worked example: testing the HF-HOME CRF cleaner](#sec-testing-worked)
 - [Running tests in continuous integration](#sec-testing-ci)
 - [What CI proves](#sec-ci)
@@ -495,6 +497,232 @@ the answer a different way rather than comparing the function with
 itself.
 :::
 
+## Declarative data validation {#sec-testing-declarative}
+
+Every assertion so far is a line of code: `stopifnot()`,
+`expect_equal()`, a comparison written against a value you worked
+out by hand or derived independently. That style fits a function
+with a handful of expected outputs. It fits less well a different
+kind of claim, common in a data-cleaning pipeline, that is really
+about an entire column at once: every `arm` value is one of two
+strings, every `visit_day` is non-negative, every `patient_id` is
+unique. Writing each of these as a hand-rolled loop over rows is
+possible and unpleasant to read; the loop obscures the rule inside
+the machinery that checks it, and a failure reports only that
+*something* was wrong, not which rows or how many.
+
+A declarative validation package turns the rule itself into the
+unit you write and read. `pointblank` [@iannone2026pointblank] is
+the package this section uses; `validate` is a close alternative
+with a more compact rule syntax, shown at the end, and either is a
+reasonable choice for a project that does not already use the
+other. Both are NOT installed in this environment, so every chunk
+below is display-only.
+
+### An agent of checks
+
+`pointblank`'s central object is a validation *agent*: you attach a
+table, add one validation step per rule, and `interrogate()` the
+whole set in one call, producing a report of which rows passed each
+rule and which did not. On HF-HOME's randomization table, the
+rule that `arm` holds only the two protocol values, and the rule
+that `patient_id` is unique within it:
+
+```r
+library(pointblank)
+
+rand_agent <- create_agent(tbl = hf_rand, label = "randomization.csv") |>
+  col_vals_in_set(columns = arm,
+                  set = c("Usual care", "Home health")) |>
+  rows_distinct(columns = "patient_id") |>
+  interrogate()
+
+rand_agent
+all_passed(rand_agent)
+```
+
+`col_vals_in_set()` asserts that every value in the column belongs
+to the stated set; it does not by itself assert that both values of
+a two-level factor actually occur, so a column that happened to
+contain only `"Usual care"` would still pass. Where the number of
+distinct values matters, not only their membership, pair the agent
+with a plain count, the same habit @sec-testing-correctness teaches
+for structural versus correctness checks:
+
+```r
+stopifnot(length(unique(hf_rand$arm)) == 2)
+```
+
+A second agent on the visits table asserts that no contact is
+recorded before the index discharge, the rule a negative
+`visit_day` would violate:
+
+```r
+visits_agent <- create_agent(tbl = hf_visits, label = "visits.csv") |>
+  col_vals_gte(columns = visit_day, value = 0) |>
+  col_vals_not_null(columns = c(patient_id, visit_type)) |>
+  interrogate()
+
+visits_agent
+```
+
+Each validation step is readable on its own, independent of the
+others, and independent of how the table was produced; that
+independence is what a hand-written loop checking several rules at
+once loses. `get_agent_report(visits_agent)` returns the per-step
+pass and fail counts as a data frame, which is what you want when a
+step fails and the next question is 'how many rows, and which
+ones', not only 'did it pass'.
+
+### Severity, not just pass or fail
+
+A validation step can be more than a binary gate. `action_levels()`
+sets thresholds, for example warn at any failure but stop the
+pipeline only once failures exceed a fraction of the rows, which
+matches the way a real data-cleaning pipeline tolerates a handful of
+exceptions it will route to manual review while still refusing to
+proceed on wholesale corruption:
+
+```r
+al <- action_levels(warn_at = 1, stop_at = 0.05)
+
+create_agent(tbl = hf_visits, actions = al) |>
+  col_vals_gte(columns = visit_day, value = 0) |>
+  interrogate()
+```
+
+This is the same idea CI applies at the level of a whole test suite
+(@sec-ci): a check that can only ever pass completely or fail
+completely either blocks every minor exception or hides every major
+one, and a graded response lets the two be treated differently
+without turning the check off.
+
+### Where a validation agent belongs in a pipeline
+
+A `pointblank` or `validate` check is not a replacement for the
+`tinytest` suite; it answers a different question at a different
+point in the pipeline. A unit test asserts that a function, given
+known input, returns a known output; it runs once, in CI, against
+fixtures you wrote. A validation agent asserts that *the data in
+hand*, on today's run, satisfies the rules the downstream code
+assumes; it belongs inside the cleaning script itself, run every
+time the script runs, against whatever extract arrived that day.
+Placed right after a raw file is read and before anything
+downstream depends on its shape, it catches the HF-HOME equivalent
+of @sec-testing-why's opening story, a column whose coding changed
+upstream, at the earliest possible point rather than three
+transformations later where the error is harder to trace back.
+
+Failing loudly matters here exactly as it does for a test suite's
+exit status (@sec-testing-ci): an agent that reports failures but
+lets the script continue is a check nobody reads until something
+downstream breaks anyway.
+
+```r
+rand_agent <- create_agent(tbl = hf_rand) |>
+  col_vals_in_set(columns = arm,
+                  set = c("Usual care", "Home health")) |>
+  rows_distinct(columns = "patient_id") |>
+  interrogate()
+
+stopifnot(all_passed(rand_agent))
+```
+
+Wrapped in `stopifnot()`, a failed validation step stops the script
+exactly as a failed `expect_equal()` stops a test file, and the
+same `quit(status = ...)` pattern @sec-testing-ci teaches for a
+test suite turns a failed interrogation into a red CI run rather
+than a silently truncated dataset three steps downstream. The two
+checks are complementary rather than redundant: the unit tests
+prove the cleaning function is correct on the cases you anticipated,
+and the validation agent proves that today's input still matches
+the assumptions those tests were written against.
+
+### `validate`, in brief
+
+`validate`'s rules read like a vector of ordinary R expressions,
+which some readers find more directly portable from existing
+`stopifnot()` code:
+
+```r
+library(validate)
+
+rules <- validator(
+  arm %in% c("Usual care", "Home health"),
+  visit_day >= 0,
+  is_unique(patient_id)
+)
+out <- confront(hf_rand, rules)
+summary(out)
+```
+
+`confront()` returns one logical result per rule per row, and
+`summary()` collapses that into the pass and fail counts
+`pointblank`'s report gives directly. Choose one package for a
+project rather than mixing both, for the same reason @sec-testing-unit
+gives for choosing one test framework: the discipline is identical
+under either, and switching costs more than either tool saves.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A `pointblank` agent reports that `col_vals_gte(columns
+= visit_day, value = 0)` passed on 6,317 rows. A colleague says this
+proves every visit in the file occurred on or after discharge. Is
+that the full claim the check supports?
+
+**Answer.** Close, but the check is about the file as loaded, not
+about the file's provenance. It proves that no `visit_day` value in
+this snapshot of `visits.csv` is negative; it says nothing about
+whether `visit_day` was computed correctly from `visit_date` and
+`discharge_date` in the first place, which a value could get wrong
+in a way that is still non-negative (an off-by-one day, for
+example). A declarative check and a comparison with an
+independently derived value answer different questions, and a
+pipeline typically needs both, the same lesson
+@sec-testing-correctness draws for hand-written assertions.
+:::
+
+### Exercises
+
+1. Write the `pointblank` agent (or the `validate` rule set) that
+   asserts, on HF-HOME's `outcomes.csv`: `event_30d` is `0`, `1`, or
+   missing; `ascertained` is logical with no missing values; and
+   `patient_id` is unique. Say which of the three rules a
+   hand-written `stopifnot()` would express about as concisely, and
+   which one is more naturally a declarative rule.
+
+::: {.callout-note collapse='true' title='Solution'}
+```r
+library(pointblank)
+
+outcomes_agent <- create_agent(tbl = hf_outcomes,
+                               label = "outcomes.csv") |>
+  col_vals_in_set(columns = event_30d, set = c(0, 1),
+                  na_pass = TRUE) |>
+  col_vals_not_null(columns = ascertained) |>
+  rows_distinct(columns = "patient_id") |>
+  interrogate()
+outcomes_agent
+```
+
+The equivalent with `stopifnot()`:
+
+```r
+stopifnot(
+  all(hf_outcomes$event_30d %in% c(0, 1, NA)),
+  !anyNA(hf_outcomes$ascertained),
+  !anyDuplicated(hf_outcomes$patient_id)
+)
+```
+
+For a fixed, small set of rules run once, the two are about equally
+concise; `stopifnot()` wins slightly on `ascertained`, a single
+`anyNA()` call. The uniqueness rule is where the declarative version
+pulls ahead: `rows_distinct()` names the intent directly, and its
+report, unlike `anyDuplicated()`'s single index, lists every
+duplicated value when the check fails, which is what you want on
+the day it does.
+:::
+
 ## Test smells {#sec-testing-smells}
 
 Some tests look like tests and produce only confidence. Two run
@@ -572,6 +800,156 @@ The fix is to assert against a value computed independently of the
 function, here by hand. Any assertion whose expected value comes
 from calling the function is circular, and no number of added cases
 repairs that.
+:::
+
+## Style and lint checks {#sec-testing-style}
+
+A test suite checks what code does. Style and lint checks catch a
+different kind of problem: code that runs correctly but is hard
+enough to read that the next check, a person's own review of the
+diff, is weaker than it should be. @sec-ai-coding makes the point
+that a diff you cannot read is a diff you cannot audit, which
+matters more now that a coding agent can produce a diff faster than
+anyone reads one; this section is the mechanics behind that point.
+Both tools below are NOT installed in this environment, so the
+chunks are display-only.
+
+### `styler` and `lintr`
+
+The `tidyverse` style guide [@wickham2023style] is the de facto
+standard in applied R, and two tools apply it:
+
+```r
+styler::style_file("R/clean.R")
+styler::style_dir("R")
+
+lintr::lint("R/clean.R")
+lintr::lint_dir("R")
+```
+
+`styler` rewrites whitespace, indentation, and assignment to a
+canonical form, so that the diff a reviewer reads shows what
+changed rather than whose keyboard it came from. `lintr` is a
+static analyzer that flags what `styler` cannot fix, including some
+genuine bugs:
+
+```r
+lintr::lint(text = "m <- mean(x, na.rm = T)\n",
+            linters = lintr::T_and_F_symbol_linter())
+```
+
+Run over generated code, `lintr` catches a useful fraction of the
+mechanical mistakes in @tbl-ai-failures before you spend attention
+on the substantive ones; `T` for `TRUE` is exactly the kind of
+planted bug a linter is built to flag.
+
+### `Air`, a faster formatter
+
+`Air` [@vaughan2026air] is a newer, Rust-based formatter and
+language server for R from Posit, built for speed: it formats a
+file in milliseconds rather than the fraction of a second `styler`
+needs, which matters most as a save-on-type action in an editor
+rather than as a batch job. As of this writing `Air` is in beta,
+and its formatting choices and command-line interface can still
+change between releases; check the project's own documentation
+before adopting it on a project you cannot easily re-format later.
+`usethis::use_air()` wires a project to format with `Air` on save in
+supporting editors (RStudio, Positron, VS Code) and from the command
+line (display-only):
+
+```r
+usethis::use_air()
+```
+
+```bash
+air format R/
+```
+
+`Air` and `styler` are not required to agree on every formatting
+choice, so pick one as the project's formatter rather than running
+both and reconciling the diffs; `lintr`'s checks are independent of
+either and are worth keeping regardless of which formatter you use.
+
+### Automating the check with pre-commit
+
+A style or lint check that someone has to remember to run is a
+check that eventually does not run, the same argument
+@sec-testing-ci makes for tests. The `precommit` package wires
+`styler`, `lintr`, and other R checks into
+[pre-commit](https://pre-commit.com), a language-agnostic framework
+that runs configured hooks on every `git commit` and refuses the
+commit if a hook fails or rewrites a file. A minimal configuration
+for an R project (display-only; `precommit` and `pre-commit` are
+not installed here):
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/lorenzwalthert/precommit
+    rev: v0.4.3
+    hooks:
+      - id: style-files
+      - id: lintr
+```
+
+```r
+precommit::use_precommit()
+```
+
+`use_precommit()` writes the configuration above and installs the
+git hook that runs it. Check the `precommit` package's current hook
+list for whether it has added an `Air` hook by the time you read
+this; if not, a hook that simply shells out to `air format` belongs
+in the same file. Either way, the effect is the same one CI gives
+the test suite: the check happens on every commit, not only on the
+commits where someone remembered to run it by hand, and a commit
+that fails the hook never reaches the history for a reviewer to
+read in its unformatted form.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A pull request shows a 400-line diff, and the author
+says most of it is `styler` reformatting unrelated to the actual
+change. How does a reviewer verify that, and why does it matter?
+
+**Answer.** Run `styler::style_file()` (or `air format`) on the
+pre-change version of the file and diff that against the
+post-change version; what remains is the substantive change.
+Without a pre-commit hook, exactly this situation recurs on every
+pull request that touches a file nobody has run the formatter on
+yet, and a reviewer who skips the check because the diff 'looks
+like formatting' is trusting the author's unverified claim about
+their own diff, the same shortcut @sec-ai-governance warns against
+for a model's unverified claim about its own code.
+:::
+
+### Exercises
+
+4. A teammate's project has `styler` and `lintr` configured but no
+   pre-commit hook, and a recurring complaint is that pull requests
+   mix substantive changes with reformatting because contributors
+   forget to run `styler` before committing. Write the
+   `.pre-commit-config.yaml` entries that would prevent this, and
+   explain what changes about the pull-request diffs once the hook
+   is active.
+
+::: {.callout-note collapse='true' title='Solution'}
+```yaml
+repos:
+  - repo: https://github.com/lorenzwalthert/precommit
+    rev: v0.4.3
+    hooks:
+      - id: style-files
+      - id: lintr
+```
+
+Once active, every commit is formatted before it is recorded: a
+hook that rewrites a file on a failed check (as `style-files` does)
+aborts the commit and leaves the reformatted file staged for the
+author to commit again, so a reformatted-and-changed file can never
+reach the branch in a single, mixed commit. Pull-request diffs then
+show only the lines a contributor meant to change, because every
+commit already in the history was formatted at the moment it was
+made rather than reformatted wholesale later.
 :::
 
 ## Worked example: testing the HF-HOME CRF cleaner {#sec-testing-worked}

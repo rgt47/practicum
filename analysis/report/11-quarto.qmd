@@ -73,6 +73,7 @@ check in the worked example. The executed code uses base R and the
 - [Worked example: a report that survives a new extract](#sec-quarto-worked)
 - [Parameterized reports](#sec-quarto-params)
 - [Reference: front matter and websites](#sec-quarto-reference)
+- [Accessible documents](#sec-quarto-accessible)
 - [Float placement in PDF](#sec-rmd-workflow-floats)
 - [Troubleshooting a render](#sec-rmd-workflow-troubleshoot)
 :::
@@ -757,6 +758,119 @@ team, a site is the natural form of an internal analysis portal:
 it carries every guarantee of this chapter and is rebuilt on every
 push by the CI workflow of @sec-ci, instead of being a PDF that is
 emailed and goes stale.
+
+## Accessible documents {#sec-quarto-accessible}
+
+A document that renders without a warning can still be unusable to
+a reader on a screen reader or a magnifier. Quarto does not check
+this for you; it only gives you the markup that, used correctly,
+lets assistive technology navigate the document the way a sighted
+reader scans it.
+
+### Headings form the document's outline, not its font sizes
+
+A screen reader user commonly jumps between headings rather than
+reading linearly, the way a sighted reader skims a table of
+contents. That only works if the heading levels nest without
+skipping: a `##` section's subsections are `###`, never `####`
+chosen because it looked like the right size. Quarto numbers `#`
+through `######` the same way regardless of level skipped, so a
+rendered page can look fine while its outline is unusable; the only
+way to catch a skipped level is to read the headings as a list, for
+example with the browser's accessibility tree or `pandoc -t native`
+on the rendered source. Use heading level for structure, and
+`.smallcaps`, bold, or a `callout` for visual emphasis that is not
+a new section.
+
+### Caption every table, and keep its text with it
+
+A `{#tbl-...}` caption (@tbl-quarto-xref) does more than let you
+write `@tbl-outcomes`: a screen reader announces the caption text
+together with the table, which is the only description some readers
+get of what the columns contain. A pipe table or `gt`/`gtsummary`
+output with no caption reaches a screen-reader user as an
+unlabeled grid of numbers. Write the caption so it states what the
+table shows, the same discipline @sec-graphics-accessible asks of a
+figure's `fig-alt`; a caption that merely repeats 'Table 1' states
+nothing a screen reader did not already announce.
+
+### Alt text for figures: covered in the graphics chapter
+
+Every figure needs a `fig-alt` string, and what distinguishes a
+useful one from a decorative one is a figure-specific judgment
+about what a visualization does and does not need to say, which
+@sec-graphics-accessible teaches with this book's own figures as
+examples. The Quarto-specific part is only the chunk option itself:
+set `fig-alt` on every chunk that produces output a reader cannot
+otherwise decode, including a table rendered as an image by some
+PDF pipelines (@sec-rmd-workflow-floats touches a related PDF
+quirk).
+
+### HTML, PDF, and Word are not equally accessible
+
+@tbl-quarto-formats already lists what each format cannot carry;
+accessibility is a further difference worth stating plainly rather
+than leaving to discovery. HTML is the most accessible target: a
+modern screen reader reads its heading structure, table markup, and
+`alt` attributes directly, and the reader controls font size and
+contrast in the browser. PDF is the least accessible by default.
+Figures and non-tagged tables in a PDF can read as unlabeled images
+to assistive technology, and keyboard-only navigation by heading is
+unreliable even in a well-structured PDF unless it was exported with
+tagging enabled, which LaTeX-based PDF (the engine `quarto render
+--to pdf` uses by default) does not do without extra configuration.
+Word sits between the two: `fig-alt` text and table captions both
+carry into the `.docx`'s accessibility metadata, and a sighted
+reader with low vision benefits from Word's own zoom and
+high-contrast modes, but heading navigation depends on the reader
+using Word's built-in heading styles rather than visual formatting,
+which Quarto's conversion does by default.
+
+When a document's primary audience may include a screen-reader user
+and the choice of format is yours to make, prefer HTML, and offer
+PDF as a secondary, print-oriented format rather than the only one.
+A report that must ship as PDF for a journal or a regulatory
+submission is not thereby exempt from headings, captions, and alt
+text: those three practices are what a tagged, accessible PDF is
+built from, even though Quarto's default LaTeX pipeline does not
+produce that tagging automatically.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A report renders to both HTML and PDF from one
+source, with every figure's `fig-alt` set and every table captioned.
+Is the PDF now as accessible to a screen-reader user as the HTML?
+
+**Answer.** Not necessarily. `fig-alt` and table captions are
+markup Quarto writes into both outputs, but the default LaTeX PDF
+pipeline does not tag the PDF's reading order, headings, or table
+structure the way HTML's DOM (Document Object Model) does
+natively, so a screen reader can still read a LaTeX PDF's content
+in the wrong order or miss its structure even when every caption
+and alt text is present. The HTML output from the same source is
+more reliably accessible without further work.
+:::
+
+### Exercises
+
+10. Render a short document with one `##` and one `####` heading
+    (no `###` between them) to HTML, then inspect the heading
+    outline (in a browser, the accessibility or document-outline
+    panel; from the shell, `pandoc -t native report.qmd | grep
+    Header`). What does the skipped level look like from each
+    view, and why is the second check necessary even though the
+    page looks fine?
+
+::: {.callout-note collapse='true' title='Solution'}
+Visually, a `####` heading typically renders smaller than the `##`
+before it, so a sighted reader sees two headings of decreasing size
+and nothing wrong. The outline view shows the skip directly: a
+level-2 heading followed immediately by a level-4 heading, with no
+level 3 in between. A sighted reader has no reason to notice a
+level is missing, because font size, not level, is what they see;
+checking the outline (or the Pandoc AST) is what catches a defect
+that is invisible on the page but breaks navigation for a
+screen-reader user who jumps by heading level.
+:::
 
 ## Float placement in PDF {#sec-rmd-workflow-floats}
 

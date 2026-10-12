@@ -89,6 +89,9 @@ namespace (`purrr::walk()`, `renv::lockfile_read()`,
   verify it by rebuilding it from a fresh clone.
 - Choose between assembling by hand and automating with `rrtools`,
   `workflowr`, or `zzcollab`, for a given project.
+- Turn an analysis function into a documented, checked package
+  function with `roxygen2` and `R CMD check`, without any
+  scaffolding tool.
 
 **Outline.**
 
@@ -101,6 +104,7 @@ namespace (`purrr::walk()`, `renv::lockfile_read()`,
 - [Auditing the pillars](#sec-zzcollab-audit)
 - [Choosing how much to automate](#sec-zzcollab-choosing)
 - [Optional: automating the assembly with zzcollab](#sec-zzcollab-optional)
+- [Analysis code as a package, without zzcollab](#sec-zzcollab-diy-package)
 :::
 
 ::: {.callout-note collapse='true' title='Skip ahead?'}
@@ -1410,6 +1414,262 @@ edit the tag by hand. Run `make check-renv-no-fix` as well; unlike
 `make check-renv`, it changes nothing.
 :::
 
+## Analysis code as a package, without zzcollab {#sec-zzcollab-diy-package}
+
+`zzc tidyverse` writes a `DESCRIPTION`, an `R/` directory, and a
+Dockerfile in one command, but none of what makes that backbone
+*useful* is specific to `zzcollab`, or to `rrtools`, or to any
+framework. A function documented with `roxygen2`, checked with
+`R CMD check`, and loadable by name instead of by `source()` is
+ordinary R package development, available to a repository that
+uses no framework at all. This section does that development by
+hand on one function from this chapter's own examples, so that the
+choice to adopt a scaffolding tool is a choice about convenience,
+not about whether the pillar it writes for you is reachable
+without it.
+
+The function is the composite-outcome derivation the rest of this
+book writes inline wherever it needs HF-HOME's primary endpoint:
+30-day readmission or death, with the outcome set to missing when
+the patient was never ascertained.
+
+```{r}
+#| label: zzcollab-diy-function
+derive_composite_outcome <- function(outcomes) {
+  outcomes |>
+    dplyr::mutate(
+      composite_30d = dplyr::if_else(ascertained,
+                                     as.integer(event_30d),
+                                     NA_integer_)
+    )
+}
+
+outcomes <- readr::read_csv(
+  file.path(hf_dir, "outcomes.csv"),
+  col_types = readr::cols(patient_id = "c", .default = "?")
+)
+composite <- derive_composite_outcome(outcomes)
+c(events = sum(composite$composite_30d, na.rm = TRUE),
+  unascertained = sum(is.na(composite$composite_30d)))
+```
+
+Written this way, in a script, the function is reused by copying
+it (and silently diverging) into every script that needs it, it is
+documented only by whatever comment sits above it, and nothing
+checks that its argument or return value still match what a caller
+assumes six months later. Turning it into a package function fixes
+all three, and every step below is ordinary R, not a `zzcollab`
+feature.
+
+### A minimal `DESCRIPTION` by hand
+
+A package needs a `DESCRIPTION` file at its root; `usethis` and
+`rrtools` write one for you, but the file itself is nine lines of
+plain text, no different from one you type:
+
+```
+Package: hfhome
+Title: Analysis Functions for the HF-HOME Trial
+Version: 0.1.0
+Authors@R: person("A", "Author", email = "a@example.org",
+    role = c("aut", "cre"))
+Description: Derivation and summary functions for the HF-HOME
+    home-health trial analysis.
+License: MIT + file LICENSE
+Imports: dplyr
+Encoding: UTF-8
+```
+
+`Imports:` is the field that matters most and is easiest to let
+drift: every package a function in `R/` calls with `::` belongs
+here, and `R CMD check` (below) is what notices when it does not.
+Nothing about this file depends on a scaffolding tool; a text
+editor and the fields `devtools::create()` would have written are
+enough.
+
+### Documenting with `roxygen2`
+
+`roxygen2` [@wickham2024roxygen2] turns a comment block directly
+above a function into its help page, keeping the documentation and
+the code in the file a reader already has open instead of in a
+separate `.Rd` file that drifts out of sync. The block below would
+sit above `derive_composite_outcome()` in `R/derive.R` (display-only;
+it edits a package source tree that does not exist on this
+machine):
+
+```r
+#' Derive the HF-HOME composite outcome
+#'
+#' Sets the 30-day composite outcome (readmission or death) to
+#' missing for patients whose outcome was never ascertained.
+#'
+#' @param outcomes A data frame with logical column `ascertained`
+#'   and integer column `event_30d`.
+#' @return `outcomes` with an added integer column `composite_30d`.
+#' @examples
+#' derive_composite_outcome(
+#'   data.frame(ascertained = c(TRUE, FALSE), event_30d = c(1, 0))
+#' )
+#' @export
+derive_composite_outcome <- function(outcomes) {
+  outcomes |>
+    dplyr::mutate(
+      composite_30d = dplyr::if_else(ascertained,
+                                     as.integer(event_30d),
+                                     NA_integer_)
+    )
+}
+```
+
+Running `devtools::document()` reads every such block in `R/` and
+writes `man/derive_composite_outcome.Rd` and the `export()` lines
+in `NAMESPACE`; nobody edits either file directly (display-only):
+
+```r
+devtools::document()
+#> Writing NAMESPACE
+#> Writing derive_composite_outcome.Rd
+```
+
+The payoff is not cosmetic. `?derive_composite_outcome` now works
+from any script that loads the package, the `@examples` block is
+code that can be run (and, in `R CMD check`, is run), and a
+function whose documented `@param` no longer matches its signature
+is something the next step catches rather than something a reader
+discovers by trial and error.
+
+### Checking the package
+
+`R CMD check`, run through `devtools::check()`, is what `roxygen2`
+comments alone cannot give you: a battery of structural tests
+against the whole package, not just the one function you are
+looking at (display-only; it requires the package tree and is not
+installed in this environment):
+
+```r
+devtools::check()
+#> ── R CMD check results ──────────────────────── hfhome 0.1.0 ────
+#> Duration: 4.1s
+#>
+#> ❯ checking Rd \usage sections ... WARNING
+#>   Argument items with no description in Rd object
+#>   'derive_composite_outcome':
+#>     'outcomes'
+#>
+#> 0 errors ✔ | 1 warning ✖ | 0 notes ✔
+```
+
+The warning above is deliberately left in to show what the check
+is for: it would have caught a `@param` line typed for the wrong
+argument name, which no amount of careful reading of the function
+body would. `R CMD check` also verifies that every package named
+after `::` in `R/` is declared in `Imports:`, that the examples run
+without error, that the `NAMESPACE` matches what `roxygen2` wrote,
+and that the package installs cleanly in a fresh session; none of
+this is a `zzcollab` or `rrtools` feature, because it is the same
+check CRAN runs on every submission, available to any package
+whether or not it is ever submitted.
+
+### Optional: a browsable site with `pkgdown`
+
+`pkgdown` [@wickham2024pkgdown] renders every `man/*.Rd` page,
+along with the `README`, into a static website, which is worth the
+one extra command when more than one person reads the functions
+(display-only):
+
+```r
+pkgdown::build_site()
+# or, to publish it automatically on every push:
+usethis::use_pkgdown_github_pages()
+```
+
+For a one-author analysis this is usually not worth the setup; for
+a package that a team imports across several studies, a site that
+`?derive_composite_outcome` cannot show in a chat message is often
+what gets it actually read.
+
+@tbl-zzcollab-diy-vs-framework lines up what each layer costs
+against what it buys, continuing the comparison of
+@tbl-zzcollab-approaches.
+
+| Step | By hand | Automated by `rrtools` / `zzcollab` |
+|---|---|---|
+| `DESCRIPTION` fields | Typed once, about five minutes | Scaffolded with placeholders you still edit |
+| `roxygen2` comment content | Always yours to write | Never automated; no tool knows what a function does |
+| `NAMESPACE` and `man/*.Rd` | `devtools::document()`, one command either way | Same command; not framework-specific |
+| `R CMD check` | `devtools::check()`, one command either way | Same command; not framework-specific |
+| `pkgdown` site | `pkgdown::build_site()`, one command either way | Same command; not framework-specific |
+| Deciding *to* package the code at all | Your judgment | Your judgment; no framework makes this call |
+
+: What turning analysis code into a package costs, with or without
+a scaffolding tool. The commands in the last four rows are
+identical either way; what a framework actually saves is the first
+row and the file layout around it. {#tbl-zzcollab-diy-vs-framework}
+
+The practical reading of the table is that `rrtools` and
+`zzcollab` save you the `DESCRIPTION` boilerplate and the decision
+about where files go, and nothing more. The work that makes a
+package worth having, writing the documentation and reading what
+the check reports, is the same work with or without them, and it
+is the work most worth learning by hand once, as @sec-zzcollab-assemble
+argued for the pillars generally.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague says there is no point documenting
+`derive_composite_outcome()` with `roxygen2` unless the package is
+going on CRAN. Is that right?
+
+**Answer.** No. `roxygen2` and `R CMD check` are useful to any
+package, submitted anywhere or nowhere; CRAN runs the same check
+because it is a good check, not because CRAN invented it. An
+in-house package that only two analysts ever install still benefits
+from `?derive_composite_outcome` working, from the check catching a
+`@param` that drifted from the signature, and from the examples
+block running as a test every time `devtools::check()` runs. CRAN
+submission adds a few more checks (URLs, spelling, package size);
+it does not add the value of documenting and checking in the first
+place.
+:::
+
+### Exercises
+
+8. Add a second function to the toy package above,
+   `readmission_rate(composite)`, that returns the proportion of
+   non-missing `composite_30d` values equal to 1. Write its
+   `roxygen2` block, including an `@examples` line that would run
+   under `R CMD check`, and say which `Imports:` entry, if any, it
+   adds to `DESCRIPTION`.
+
+::: {.callout-note collapse='true' title='Solution'}
+```{r}
+#| label: soln-10-8
+readmission_rate <- function(composite) {
+  mean(composite == 1, na.rm = TRUE)
+}
+readmission_rate(composite$composite_30d)
+```
+
+```r
+#' Readmission or death rate among ascertained patients
+#'
+#' @param composite An integer vector of composite-outcome values,
+#'   as returned by [derive_composite_outcome()].
+#' @return A single proportion between 0 and 1.
+#' @examples
+#' readmission_rate(c(1, 0, 0, NA))
+#' @export
+readmission_rate <- function(composite) {
+  mean(composite == 1, na.rm = TRUE)
+}
+```
+
+It adds nothing to `Imports:`: `mean()` and the comparison
+operator are base R, and the function never calls another package
+with `::`. The example line uses a vector with a missing value on
+purpose, so the check exercises the same `na.rm = TRUE` branch the
+real data uses.
+:::
+
 ## Rules of thumb
 
 1. **Habit 1: the compendium is the unit.** Code, data,
@@ -1427,7 +1687,7 @@ edit the tag by hand. Run `make check-renv-no-fix` as well; unlike
 
 ## Cumulative practice
 
-8. *Cumulative (uses @sec-git-solo, @sec-quarto, @sec-renv, and
+9. *Cumulative (uses @sec-git-solo, @sec-quarto, @sec-renv, and
    @sec-docker).* Assemble by hand a compendium for a small
    HF-HOME analysis: the `rrtools` layout, with
    `randomization.csv` and `outcomes.csv` in
@@ -1438,7 +1698,7 @@ edit the tag by hand. Run `make check-renv-no-fix` as well; unlike
    `v0.1`. Run `audit_pillars()` until every row passes, then
    build the image and render the paper inside it from a fresh
    clone.
-9. *On your own work (no key).* Convert a 'scripts and data'
+10. *On your own work (no key).* Convert a 'scripts and data'
    project of your own into a compendium, documenting the location
    of every file and the reason for it. Audit it with
    `audit_pillars()`, record for each failing pillar what it would
@@ -1447,11 +1707,11 @@ edit the tag by hand. Run `make check-renv-no-fix` as well; unlike
    it.
 
 ::: {.callout-note collapse='true' title='Solution'}
-8. The paper's numbers come from the raw files, never typed. A
+9. The paper's numbers come from the raw files, never typed. A
    minimal computing chunk:
 
 ```{r}
-#| label: soln-10-8
+#| label: soln-10-9
 rand <- read.csv(file.path(raw_dir, "randomization.csv"),
                  colClasses = c(patient_id = "character"))
 outc <- read.csv(file.path(hf_dir, "outcomes.csv"),
@@ -1497,6 +1757,9 @@ still a structural check; the fresh-clone render is the test.
   documentation.
 - [@harrell2025rworkflow], the closest peer treatment of what goes
   in the compendium's `analysis/` directory once it exists.
+- [@wickham2023rpkgs], the `R Packages` book, for `roxygen2`
+  documentation, `R CMD check`, and publishing a `pkgdown` site in
+  full.
 
 ## Prerequisites answers {#sec-quiz-answers-10}
 

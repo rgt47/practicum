@@ -78,6 +78,7 @@ library(purrr)
 
 - [Which resource ran out](#sec-cloud-shortage)
 - [Batch jobs on a cluster](#sec-cloud-hpc)
+- [Planning and reporting a simulation study](#sec-cloud-sim)
 - [Working on a remote machine](#sec-cloud-remote)
 - [The public cloud, minimally](#sec-cloud-aws)
 - [Cost and failure handling](#sec-cloud-cost)
@@ -170,6 +171,37 @@ Shiny app under active debugging above all, is worse for the same
 reason. And a *short analysis* is not worth provisioning at any
 speed, because thirty seconds of computation is dwarfed by the
 minutes of setup, transfer, and teardown around it.
+
+### Profile before you parallelize
+
+Moving a slow job to a bigger machine is tempting because it
+needs no code changes, and it is often the wrong first move: a
+cloud instance with sixteen cores multiplies a slow step by
+sixteen rather than fixing it, and the bill arrives either way.
+The bottleneck is frequently not where intuition places it; a
+single `data.frame` operation inside a loop, or a function called
+once per row instead of once per vector, can dominate a run that
+looks, from the outside, like 'the model fit is slow'. Two tools
+answer the question before you provision anything.
+`profvis::profvis()` records where a script spends its time at the
+line level and renders an interactive flame graph; `bench::mark()`
+microbenchmarks a small number of candidate expressions against
+each other, with memory allocation alongside timing, which a plain
+`system.time()` comparison omits.
+
+```r
+library(profvis)
+library(bench)
+# profvis(sim_task(1, reps = 500))         # line-level profile
+# bench::mark(loop_version(), vector_version())
+```
+
+Both packages are not installed in this book's environment, so the
+block above is display-only; install them with `pak::pak()` to run
+it yourself. The habit, not the specific tool, is what matters:
+profile on a small, fast case on the laptop, fix what the profile
+names, and only then decide whether the fixed version still needs
+more cores, more memory, or more machines than the laptop has.
 
 ### Exercises
 
@@ -498,6 +530,212 @@ replicates repeated 40 times, and the Monte Carlo standard error
 computed from 1,000 rows is far too small. The L'Ecuyer streams are
 distinct by construction and depend only on the seed and the task
 index, so the study is both correct and reproducible task by task.
+:::
+
+## Planning and reporting a simulation study {#sec-cloud-sim}
+
+The job array of @sec-cloud-hpc ran a simulation already; this
+section asks what the simulation should have been before any task
+was submitted. A large simulation study is the textbook case for a
+job array, because it is many independent, identical replicates,
+but running thousands of replicates efficiently does not make the
+study well designed. A simulation study answers a question about
+the properties of a statistical method, and like any study it
+needs a plan written before the data, here the pseudo-random
+numbers, are generated.
+
+### The ADEMP framework
+
+Morris, White, and Crowther propose organizing a simulation
+study's plan around five elements, memorably ordered as ADEMP
+[@morris2019using]: **A**ims, the specific question the study
+answers; **D**ata-generating mechanisms, the models used to
+simulate data, with the scenarios (sample sizes, effect sizes,
+correlation structures) varied across; **E**stimands, the
+quantities the methods under study are trying to estimate;
+**M**ethods, the estimators or procedures being compared; and
+**P**erformance measures, the statistics that summarize how well
+each method recovered the estimand across the simulated replicates
+(bias, coverage, power, and so on). Writing the plan in this order,
+before any code runs, catches a common failure mode: a simulation
+coded first and described later tends to acquire scenarios and
+measures that happened to be convenient to program, rather than the
+ones the aims required.
+
+For the job array of @sec-cloud-hpc, an ADEMP sketch might read:
+the aim is to estimate the power of the two-proportion test at the
+HF-HOME design's planned sample size; the data-generating mechanism
+is independent binomial outcomes at the usual-care and home-health
+risks under the alternative; the estimand is the test's rejection
+probability; the method is `prop.test()`; and the performance
+measure is the empirical rejection rate, which @sec-cloud-hpc
+reported alongside its Monte Carlo standard error. The rest of this
+section is about that last word: Monte Carlo standard error, the
+piece of a simulation report that is easy to omit and that tells
+the reader whether the simulation ran long enough to trust.
+
+### Monte Carlo error on a performance measure
+
+A simulation study estimates a performance measure, such as bias or
+coverage, from a finite number of replicates, `r`'`nsim`'`, and like
+any estimate from a finite sample, it has its own standard error:
+the *Monte Carlo standard error* (MCSE). Reporting a performance
+measure without its MCSE is like reporting a trial's risk
+difference without a confidence interval; the reader cannot tell
+whether 94 percent coverage, from 50 replicates, differs
+meaningfully from the nominal 95 percent. Three measures and their
+MCSEs appear in almost every simulation report, and each MCSE is a
+function of a quantity the simulation already computed:
+
+$$
+\widehat{\text{bias}} = \bar{\hat\theta} - \theta, \qquad
+\text{MCSE}(\widehat{\text{bias}}) = \frac{\widehat{SE}}{\sqrt{n_{\text{sim}}}}
+$$
+
+$$
+\widehat{SE} = \text{sd}(\hat\theta), \qquad
+\text{MCSE}(\widehat{SE}) = \frac{\widehat{SE}}{\sqrt{2(n_{\text{sim}} - 1)}}
+$$
+
+$$
+\widehat{\text{coverage}} = \frac{1}{n_{\text{sim}}}
+  \sum_i \mathbb{1}(\text{CI}_i \ni \theta), \qquad
+\text{MCSE}(\widehat{\text{coverage}}) =
+  \sqrt{\frac{\widehat{\text{coverage}}(1 - \widehat{\text{coverage}})}
+             {n_{\text{sim}}}}
+$$
+
+where $\theta$ is the true value of the estimand (known, because
+the data were simulated) and $\hat\theta_i$ and $\text{CI}_i$ are
+the estimate and confidence interval from replicate $i$. Each MCSE
+shrinks with $\sqrt{n_{\text{sim}}}$, the same arithmetic as the
+Monte Carlo standard error of a power estimate in @sec-cloud-hpc,
+which is why a simulation study, like a job array, wants many
+replicates: not for the point estimate alone, but to make its own
+uncertainty small enough to be worth reporting.
+
+### A worked example, by hand
+
+The loop below is deliberately plain: base R, no package beyond
+what every R installation ships, so that the mechanics of bias,
+empirical SE, and coverage, and of their MCSEs, are visible rather
+than hidden inside a function call. The scenario is a smaller-N
+version of the HF-HOME design, usual care at a 25 percent 30-day
+event risk against home health at 20 percent, so that it runs in a
+fraction of a second rather than needing the job array:
+
+```{r}
+#| label: cloud-ademp-sim
+n_per_arm_small <- 30
+true_rd <- 0.25 - 0.20
+
+sim_one_trial <- function(n = n_per_arm_small, p1 = 0.25, p2 = 0.20) {
+  y1 <- rbinom(1, n, p1)
+  y2 <- rbinom(1, n, p2)
+  p1_hat <- y1 / n
+  p2_hat <- y2 / n
+  est <- p1_hat - p2_hat
+  se <- sqrt(p1_hat * (1 - p1_hat) / n + p2_hat * (1 - p2_hat) / n)
+  ci <- est + c(-1, 1) * qnorm(0.975) * se
+  c(est = est, lower = ci[1], upper = ci[2])
+}
+
+set.seed(20261011)
+n_sim <- 2000
+draws <- vapply(seq_len(n_sim), function(i) sim_one_trial(), double(3))
+ests <- draws["est", ]
+covered <- draws["lower", ] <= true_rd & draws["upper", ] >= true_rd
+
+bias_hat <- mean(ests) - true_rd
+emp_se <- sd(ests)
+coverage_hat <- mean(covered)
+
+mcse_bias <- emp_se / sqrt(n_sim)
+mcse_se <- emp_se / sqrt(2 * (n_sim - 1))
+mcse_coverage <- sqrt(coverage_hat * (1 - coverage_hat) / n_sim)
+
+round(c(bias = bias_hat, mcse_bias = mcse_bias,
+       emp_se = emp_se, mcse_emp_se = mcse_se,
+       coverage = coverage_hat, mcse_coverage = mcse_coverage), 4)
+```
+
+From `r n_sim` replicates, the estimated bias is
+`r sprintf('%.4f', bias_hat)` (Monte Carlo standard error
+`r sprintf('%.4f', mcse_bias)`), consistent with an unbiased
+estimator at this precision. Coverage is
+`r sprintf('%.3f', coverage_hat)` (Monte Carlo standard error
+`r sprintf('%.3f', mcse_coverage)`), which should sit close to the
+nominal 0.95 for a confidence interval built from the normal
+approximation at this sample size; a value several MCSEs away from
+0.95 would be evidence of a real problem with the method, not
+simulation noise. Each line of the loop is one simulated trial, in
+the Data-generating mechanism's terms; the vector of estimates and
+coverage indicators across replicates is what the Performance
+measures are computed from.
+
+A real methods paper runs this scenario, and several others
+varying the sample size and the event risks, at thousands of
+replicates rather than a few hundred, which is exactly where
+@sec-cloud-hpc's job array becomes the right tool: each scenario,
+or each block of replicates within a scenario, is an independent
+task, submitted the same way `sim_task()` was, and `combine_tasks()`
+guards the combination step the same way. The MCSE formulas above
+do not change when the replicates come from forty cluster tasks
+instead of one `for` loop; what changes is how fast `n_sim` can grow
+large enough to make the MCSEs small.
+
+::: {.callout-tip title='Verification'}
+Before trusting a simulation's MCSEs, confirm that the replicates
+behind them are actually independent, the assumption every formula
+above relies on. If the simulation runs on a job array, that means
+the same check as @sec-cloud-hpc: one random-number stream per
+task, derived from the seed and the task index, never the same
+seed repeated across tasks. A simulation whose scenarios share a
+random-number stream understates its own MCSEs, exactly as a
+coverage estimate from repeated replicates would, and the formulas
+give a false sense of precision.
+:::
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague reports '94.6 percent coverage' for a new
+method from 100 simulated trials, with no Monte Carlo standard
+error. Is 94.6 percent meaningfully below the nominal 95 percent?
+
+**Answer.** Not necessarily, and the report cannot say either way
+without the MCSE. With `coverage_hat = 0.946` and `n_sim = 100`,
+$\text{MCSE} = \sqrt{0.946 \times 0.054 / 100} \approx 0.023$, so the
+observed coverage is well within one MCSE of 0.95. The gap looks
+meaningful only because the report omitted the number that would
+have shown it was not. More replicates, not a different method,
+would be the first thing to ask for.
+:::
+
+### Exercises
+
+1. Using `sim_one_trial()` above, increase `n_sim` to 10,000 and
+   recompute the three MCSEs. By roughly what factor should each
+   shrink relative to the `n_sim = 2000` run, and does the result
+   match the $\sqrt{n_{\text{sim}}}$ arithmetic?
+
+::: {.callout-note collapse='true' title='Solution'}
+Each MCSE is proportional to $1/\sqrt{n_{\text{sim}}}$, so
+increasing `n_sim` by a factor of 5 should shrink each MCSE by a
+factor of about $\sqrt{5} \approx 2.24$:
+
+```{r}
+#| label: soln-06-ademp-1
+set.seed(20261011)
+n_sim_big <- 10000
+draws_big <- vapply(seq_len(n_sim_big), function(i) sim_one_trial(),
+                    double(3))
+emp_se_big <- sd(draws_big["est", ])
+c(ratio_expected = sqrt(n_sim_big / n_sim),
+  ratio_observed = (emp_se_big / sqrt(n_sim_big)) / mcse_bias)
+```
+
+The observed ratio is close to the expected $\sqrt{5}$, with the
+small discrepancy coming from Monte Carlo noise in `emp_se_big`
+itself, which has its own MCSE.
 :::
 
 ## Working on a remote machine {#sec-cloud-remote}
@@ -1018,6 +1256,31 @@ aws s3 ls s3://my-bucket/project/analysis.log
 The first should print `stopped` within a few minutes; the second
 should list the log, whose last lines show the R error.
 :::
+
+### The environmental cost of compute
+
+A rented instance has a cost beyond the invoice: the electricity
+it draws, and the carbon associated with generating that
+electricity, which varies by region and by the data center's
+energy mix. This book will not quote a figure for grams of
+carbon dioxide per core-hour, because the honest number depends on
+which grid supplies the data center, how the provider's published
+efficiency claims are audited, and how quickly both change; any
+specific emissions factor stated here would be stale, and possibly
+wrong, before the ink dried. What does not need a number to be
+true is the direction of the effect: a job that runs sixteen times
+longer than it needs to, because nobody profiled it first
+(@sec-cloud-shortage), or an idle instance billing over a weekend
+(@sec-cloud-cost), draws power for no analytical benefit, and that
+is a cost in more than money. Treat job efficiency, the same habit
+that keeps a budget under control, as an environmental
+consideration as well as a financial one: profile before you
+scale, choose the smallest instance that finishes the job, and
+shut the machine down the moment it is done. A researcher who
+wants a defensible number for a specific provider and region
+should consult that provider's own published sustainability
+reporting rather than a general estimate, and should expect the
+reporting itself to be contested.
 
 ### Exercises
 

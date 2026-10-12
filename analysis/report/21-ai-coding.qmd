@@ -83,6 +83,7 @@ for setting up a coding agent are dated, and live in an appendix,
 - [Failure modes, made loud](#sec-ai-failures)
 - [Data governance and agent safety](#sec-ai-governance)
 - [Instruction files, documentation, and provenance](#sec-ai-practice)
+- [Evaluating an LLM step before you trust it](#sec-ai-eval)
 - [When not to reach for an LLM](#sec-ai-when-not)
 :::
 
@@ -292,36 +293,10 @@ The first step of the check, reading the code end to end, is only
 possible if the code is readable, and this is where consistent
 style stops being a matter of taste and becomes a matter of
 correctness. A diff you cannot read is a diff you cannot audit, and
-generated code has raised the volume of diff to audit. Impose one
-style mechanically: the `tidyverse` style guide
-[@wickham2023style] is the de facto standard in applied R, and two
-tools apply it (display-only, because they act on your files):
-
-```r
-styler::style_file("R/clean.R")
-styler::style_dir("R")
-
-lintr::lint("R/clean.R")
-lintr::lint_dir("R")
-```
-
-`styler` rewrites whitespace, indentation, and assignment to a
-canonical form, so that the diff a reviewer reads shows what
-changed rather than whose keyboard it came from. `lintr` is a
-static analyzer that flags what `styler` cannot fix, including some
-genuine bugs. Run over generated code, it catches a useful fraction
-of the mechanical mistakes before you spend attention on the
-substantive ones; here it flags one of the planted bugs below.
-
-```{r}
-#| label: ai-lintr
-lintr::lint(text = "m <- mean(x, na.rm = T)\n",
-            linters = lintr::T_and_F_symbol_linter())
-```
-
-Wire both into the continuous-integration workflow you will meet
-in @sec-ci, and the guarantee holds for every contributor, human
-or not.
+generated code has raised the volume of diff to audit. Style and
+lint checking are covered in @sec-testing; wire both into the
+continuous-integration workflow you will meet in @sec-ci, and the
+guarantee holds for every contributor, human or not.
 
 ### The catalog
 
@@ -891,6 +866,248 @@ prompt and says how the output was checked, which is what a reader
 of the history needs.
 :::
 
+## Evaluating an LLM step before you trust it {#sec-ai-eval}
+
+Every example so far treats an LLM call the way @sec-ai-four-cs
+frames it: a one-off request, checked by a person, before a piece
+of code or text reaches a deliverable. A different use case is
+becoming common, and it needs a different kind of check. Instead of
+asking a model once to write a function, you ask it, in a loop,
+to turn one messy field into a structured one for every row of a
+dataset: an LLM step inside the pipeline, run on data it has never
+seen, with nobody reading each answer. That step is a component
+like any other in @fig-ai-pipeline's Analyze stage, a function with
+inputs and outputs, and it earns the same thing every other
+component in this book earns before it is trusted: a test suite,
+evaluated once and then run again whenever anything about the step
+changes.
+
+### The difference between a prompt and a pipeline step
+
+The four Cs assume a human reads the answer before it is used.
+Context, constraints, and criteria are written once; a person runs
+the check once; the model is used once more for the next task. An
+LLM step inside a pipeline is used differently: the same prompt, or
+a function wrapping it, is applied to every row of a column, and no
+person reads most of the answers. The failure mode changes to
+match. A one-off answer that is wrong gets caught because you were
+looking at it. A pipeline step that is wrong 8% of the time runs
+quietly on thousands of rows, and the 8% is wrong in whatever way
+the model is biased to be wrong, not at random: a field left blank
+more often for one phrasing than another, a code assigned
+systematically to the more common class when the text is
+ambiguous. Nothing in that error pattern looks like a crash. It
+looks exactly like the other 92%.
+
+The fix is the same one you would reach for with any classifier,
+rule-based or statistical, that will run unsupervised on new data:
+build a small, labeled validation set where you already know the
+right answer, run the step on it, and compute how often it agrees.
+Only once you have a number, and have decided the number is good
+enough for the decision the field feeds, do you let the step run on
+data nobody will check row by row. This is Habit 8, write the
+assertion that makes the quiet failure loud, applied to a model
+step instead of a hand-written function; the harness is the
+assertion.
+
+### A worked example: extracting a dosing frequency from free text
+
+HF-HOME's `medications.csv` has one row per discharge medication
+and a single free-text field, `med_text`, entered differently at
+each site: `Furosemide 40 mg BID`, `carvedilol 6.25mg BID`,
+`Entresto 24-26 mg twice daily`, `digoxin 125 mcg QD`, and the
+codebook lists more variants than any one site uses (mixed case,
+missing spaces, combination doses, and frequency written as a code
+or spelled out). Suppose the analysis plan calls for a dosing
+frequency category, `once daily`, `twice daily`, `as needed`, or
+`other`, for a medication-burden summary. A brittle regex is one
+way to get there and is exactly the failure mode of
+@tbl-ai-failures; an LLM call per row is another, and it inherits
+the same obligation to be checked that the regex does, not a
+different, looser one because the method sounds more capable.
+
+Build the validation set first, before writing the extraction
+prompt. Twenty to fifty rows, sampled to cover the variants the
+codebook describes rather than drawn at random (a random sample of
+thousands of `BID` entries teaches you nothing about `b.i.d.` or
+`twice daily`), hand-labeled by reading each string once and
+writing down the category a person would assign:
+
+```{r}
+#| label: ai-eval-label-set
+hf <- function(f) file.path("..", "data", "raw_data", "hfhome", f)
+meds <- read.csv(hf("medications.csv"), colClasses = "character")
+
+# a stand-in for a validation set an analyst builds by hand,
+# covering the frequency variants the codebook lists
+val_set <- data.frame(
+  med_text = c("Furosemide 40 mg BID", "carvedilol 6.25mg b.i.d.",
+              "Entresto 24-26 mg twice daily", "digoxin 125 mcg QD",
+              "lisinopril 10 mg qd", "metoprolol 25mg QAM",
+              "spironolactone 25 mg daily", "furosemide 20mg PRN",
+              "hydralazine 25 mg PRN for BP", "atorvastatin 40mg QHS"),
+  label = c("twice daily", "twice daily", "twice daily",
+           "once daily", "once daily", "once daily",
+           "once daily", "as needed", "as needed", "once daily")
+)
+nrow(val_set)
+```
+
+A real validation set is 20 to 50 rows, sampled by a person who
+reads the codebook's list of variants and picks rows that exercise
+each one, including the ones nobody has seen go wrong yet; ten
+appear here only so that the chunk below has something to run.
+
+Run the extraction step on the labeled rows and score it against
+the hand labels, exactly as you would score any other classifier
+(display-only: `ellmer` is not installed in this environment, and
+the call needs an API key; @sec-ai-tooling has the setup):
+
+```r
+library(ellmer)
+
+classify_frequency <- function(med_text, model_id) {
+  chat <- chat_anthropic(model = model_id)
+  chat$extract_data(
+    paste("Dosing instruction:", med_text),
+    type = type_enum(c("once daily", "twice daily",
+                       "as needed", "other"))
+  )
+}
+
+val_set$predicted <- vapply(val_set$med_text, classify_frequency,
+                            character(1),
+                            model_id = "claude-opus-5-5")
+
+accuracy <- mean(val_set$predicted == val_set$label)
+accuracy
+table(predicted = val_set$predicted, true = val_set$label)
+```
+
+The confusion matrix matters more than the single accuracy number.
+An extraction step that is 90% accurate overall but confuses `as
+needed` with `other` every time is unusable for a PRN-use analysis
+and perfectly fine for a count of scheduled medications; the
+validation set has to be read for which errors it contains, not
+only how many. Decide the threshold before you see the result, the
+same discipline @sec-ai-four-cs asks of the written criteria: a
+field that feeds a sensitivity analysis can tolerate more error than
+one that feeds the primary outcome's covariate adjustment, and
+writing the threshold down first keeps you from lowering the bar
+once you see a disappointing number.
+
+### What the validation set does and does not establish
+
+An accuracy of 95% on fifty labeled rows is evidence about those
+fifty rows, extended to the rest of the column only by the
+assumption that the fifty are representative of the variation the
+column contains. That assumption is exactly the one a stratified
+sample is built to satisfy and a random sample of mostly-identical
+rows is built to violate. Three further limits are worth stating
+out loud rather than discovering later.
+
+**The validation set is a snapshot of one model, one prompt, and
+one date.** A retried call, a changed prompt, or a retired model
+identifier is a new system, and the validation accuracy from before
+the change tells you nothing about after it; @sec-ai-tooling's point
+about model identifiers being retired on a schedule of months
+applies here with more force, because a silent change to a pipeline
+step is harder to notice than a silent change to a chat session. Re-run
+the validation set whenever the model, prompt, or extraction schema
+changes, and record which version of each produced which accuracy.
+
+**Agreement with a human is not agreement with the truth.** The
+labels came from one person reading each string once; two
+different people may disagree with each other as often as the
+model disagrees with either. For a field where this risk is real,
+have a second person label a subset independently and report their
+agreement alongside the model's, so that the model's score has
+something to be compared with besides itself.
+
+**A validation set this size bounds confidence, it does not
+eliminate the need to look.** Fifty rows cannot rule out a failure
+mode that occurs in one case in a thousand; the HF-HOME medications
+table has nearly 17,000 rows, enough for a rare but systematic
+error to affect a count that still looks reasonable. Spot-check a
+further sample of the model's output after deployment, the way you
+would audit a rule-based pipeline's output on data you have not
+seen, and keep the harness so that a sharper validation set can be
+built later if the field turns out to matter more than it seemed to
+at first.
+
+This pattern, a labeled validation set, a solver that runs the step,
+and a scorer that compares the two, is general enough that an
+evaluation harness for it looks the same whether the step is an
+LLM call, a rule-based parser, or a statistical classifier: a
+dataset, a function that produces an answer, and a function that
+grades it. Posit's `vitals` package [@couch2026vitals] builds
+exactly this structure around `ellmer` models (display-only; not
+installed in this environment), with a `Task` holding a labeled
+dataset, a solver that calls the model, and a scorer such as exact
+match or a second, model-graded judgment; the dated appendix,
+@sec-ai-tooling, has the specific code. Whether you reach for a
+package or write the three pieces yourself, as the chunk above did,
+the obligation is the same: a step that will run on data nobody
+reads deserves a number before it earns your trust, not after.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A colleague extracts a visit's discharge reason from
+free text with an LLM call, checks ten outputs by eye, finds them
+all correct, and ships the field. What is missing, and what number
+should exist before the field is used in an analysis?
+
+**Answer.** Ten rows chosen by looking, rather than by sampling the
+codebook's known variants, measure only that the ten rows the
+colleague happened to read were easy. What is missing is a labeled
+validation set built to cover the variants (abbreviations, site
+differences, ambiguous phrasing) and an accuracy or agreement
+number computed against it, with a threshold decided before the
+number is seen. 'I checked a few and they looked right' is the
+LLM-pipeline version of a structural test that never compares with
+an independently computed value (@sec-testing-correctness): it
+establishes that the output looks plausible, which is exactly what
+an LLM step is least informative about.
+:::
+
+### Exercises
+
+5. HF-HOME's `medications.csv` field `med_text` also mixes drug
+   names, some generic and some brand (`Entresto` for
+   sacubitril/valsartan, `Coreg` for carvedilol). Design a
+   validation set of 20 rows for an LLM step that maps each string
+   to a drug class (`loop diuretic`, `beta blocker`,
+   `ARNI` (angiotensin receptor-neblisin inhibitor), `MRA`
+   (mineralocorticoid receptor antagonist), `other`), stating what
+   kinds of rows you would deliberately include and what accuracy
+   you would require before trusting the field for a
+   medication-class summary versus for a primary covariate.
+
+::: {.callout-note collapse='true' title='Solution'}
+Deliberately include: at least two strings per drug class, at least
+one brand and one generic name per class where both exist, one
+combination product (`sacubitril/valsartan` written out instead of
+`Entresto`), one dose-only string with an ambiguous or truncated
+drug name, and one string using an abbreviation not in the common
+list (for example a compounded or rarely prescribed agent that
+should map to `other`). The rows should be chosen to cover the
+codebook's description of the mess, not sampled at random, because
+a random sample of 17,000 mostly-ordinary rows under-represents
+exactly the strings most likely to be misclassified.
+
+For a medication-class summary used descriptively, a lower bar is
+defensible, for example 90% exact-match accuracy with no class
+confused with another class more than once, because an occasional
+misclassified row shifts a percentage by a fraction of a point. For
+a primary covariate (for example, 'on an MRA at discharge' used in
+an adjusted model), the bar is higher and the confusion matrix
+matters more than the overall number: a systematic confusion
+between two classes biases every patient's covariate in the same
+direction, which a random error would not. In that case, require
+near-perfect agreement on the classes the covariate uses and treat
+any other confusion as a reason to fall back to a short, explicit
+lookup table that a person reviews, rather than a model call.
+:::
+
 ## When not to reach for an LLM {#sec-ai-when-not}
 
 Reach for a model when evaluating its output costs less than
@@ -947,7 +1164,7 @@ examples and wrong on the rest.
 
 ## Cumulative practice
 
-5. *Looking ahead (uses @sec-testing; return to it after that
+6. *Looking ahead (uses @sec-testing; return to it after that
    chapter).* Write a `tinytest` file for the risk-difference
    function of Exercise 2, with a four-patient fixture whose
    answer you compute by hand, that fails for the
@@ -957,7 +1174,7 @@ examples and wrong on the rest.
 
 ::: {.callout-note collapse='true' title='Solution'}
 ```{r}
-#| label: soln-21-5
+#| label: soln-21-6
 test_lines <- c(
   "fixture <- data.frame(",
   "  arm = factor(c('Usual care', 'Usual care', 'Home health',",
@@ -988,7 +1205,7 @@ is computed by hand rather than by either function. In a project,
 into the test file so that the same test runs against both.
 :::
 
-6. *On your own work (no key).* Use a coding agent to refactor a
+7. *On your own work (no key).* Use a coding agent to refactor a
    small project of yours under an instruction file and the four
    Cs. Record one bug it introduced, how you caught it, and one
    improvement it made, with the provenance line for the commit.

@@ -73,6 +73,7 @@ renders.
 - [Sharing and archiving an image](#sec-docker-sharing)
 - [Diagnosing build failures](#sec-docker-failures)
 - [Worked example: a dockerized compendium](#sec-docker-worked)
+- [An aside: Nix and rix](#sec-docker-nix)
 :::
 
 ::: {.callout-note collapse='true' title='Skip ahead?'}
@@ -810,6 +811,101 @@ The R version, platform, and BLAS (Basic Linear Algebra
 Subprograms) library lines should match the ones recorded at
 submission. If the estimates differ and the environments match,
 the cause is in the code or the data, not the machine.
+:::
+
+## An aside: Nix and rix {#sec-docker-nix}
+
+Everything above pins reproducibility with a lockfile and a
+container image, which is the mainstream path for an R research
+compendium and the one this book teaches. A smaller but active
+community takes a different route to the same goal, worth knowing
+about even if this chapter does not walk through it: **Nix**, a
+package manager and build system built around the idea that a
+build should be a pure function of its declared inputs. Where
+`apt-get install` or a base image's own history can change what
+`FROM rocker/r-ver:4.4.0` resolves to over time (@sec-docker-rocker),
+a Nix build specifies every dependency, down to the compiler
+toolchain, as an explicit input, and stores each built package in a
+content-addressed store keyed by the hash of its own inputs. Two
+builds from the same Nix expression on two machines produce
+bit-identical results, in principle without needing a container at
+all, because the isolation Nix relies on is the content-addressed
+store rather than a container runtime.
+
+The R package [**rix**](https://cran.r-project.org/package=rix)
+[@rodrigues2024rix], maintained by Bruno Rodrigues and, as of this
+writing, on CRAN and under active development (incubated through
+rOpenSci), exists to make that approach reachable from R without
+writing Nix's own expression language by hand. Its central function,
+`rix()`, takes an R version, a vector of packages, and optionally
+system dependencies, and writes a `default.nix` file describing the
+environment; the Nix tool then builds exactly that environment from
+the file. The pattern (display-only, since it needs Nix installed,
+which this book's environment does not have):
+
+```r
+library(rix)
+rix(
+  r_ver = "4.4.0",
+  r_pkgs = c("dplyr", "ggplot2"),
+  system_pkgs = NULL,
+  project_path = ".",
+  overwrite = TRUE
+)
+# writes default.nix; then, in a shell with Nix installed:
+# nix-build  # or: nix-shell, for an interactive session
+```
+
+A Nix-built environment can run inside a Docker container as well
+as outside one; the two technologies answer slightly different
+questions (Nix: 'exactly which inputs built this package', Docker:
+'what filesystem and process isolation does this run under') and
+some reproducibility-focused teams layer them, using `rix` to
+generate the environment description and a thin Dockerfile only to
+package it for a system that expects a container image. That
+combination is outside the scope of this aside; the point here is
+narrower, that `rix` and Nix exist as a documented, maintained
+alternative to the `renv`-plus-Docker path this book teaches, not
+a recommendation to adopt either on their own.
+
+Weighed against `renv` plus Docker, Nix's case is a stronger
+reproducibility guarantee in principle (the whole dependency
+closure, not just the OS and R packages, is pinned and content-
+addressed) and no dependency on a container daemon, which matters
+on systems where Docker itself is unavailable or unwanted
+(@sec-cloud-hpc's clusters are exactly such a system, though they
+typically lack Nix as well). The cost is a steep learning curve: the
+Nix expression language, the distinction between channels and
+flakes, and the unfamiliar error messages when a build fails are a
+larger investment than learning Docker, and the R community's
+documentation and troubleshooting resources for Nix are thinner than
+for `renv` and Docker, both of which this book assumes you will use
+day to day. Some reproducibility-focused groups, particularly where
+Nix is already part of the organization's infrastructure, use `rix`
+and Nix instead of `renv` plus Docker for exactly this reason; for
+most research compendia starting from nothing, the mainstream path
+of this book remains the one to learn first. If a future
+collaborator hands you a `default.nix` instead of a Dockerfile, the
+diagnostic instinct to bring is the same one this chapter teaches
+for Docker: ask what each declared input pins, read the build log
+for the dependency that failed to resolve, and distrust a cached
+result that was built from a different declared input than the one
+in front of you.
+
+::: {.callout-note collapse='true' title='Check'}
+**Question.** A collaborator who already knows Nix suggests
+replacing this project's Dockerfile with a `default.nix` generated
+by `rix`. What would the team gain, and what would it need to learn
+that it does not already know from this chapter?
+
+**Answer.** It would gain a stronger, content-addressed pin on every
+dependency, including the compiler toolchain, and the ability to
+reproduce the environment without a container runtime at all. It
+would need to learn the Nix expression language well enough to
+debug a failed build, since the diagnostic habits of
+@sec-docker-failures (reading an `apt-get` error, matching a missing
+library to a Ubuntu package) do not transfer directly to Nix's own
+error messages and build logs.
 :::
 
 ## Rules of thumb
