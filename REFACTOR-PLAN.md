@@ -3242,7 +3242,80 @@ private repository and simrun-demo has no remote; neither should be
 cited until public. Public status of the others was confirmed only
 for group B's packages.
 
-## Appendix. Reproducing the measurements
+### 13.7 Volume split, implemented (2026-10-13)
+
+Decision 23 (three volumes) is implemented. The single-book HTML
+site at practicum.rgtlab.org is unchanged and remains the complete,
+continuously numbered book; only the PDF is split, through
+`tools/build-volumes.py`, which regenerates three sibling build
+directories (`analysis/report-vol1/` to `-vol3/`, gitignored,
+regenerated on demand, never hand-edited) from the shared chapter
+files. Each volume's own chapter numbering restarts at the
+Introduction, as in any multi-volume print book. Every `@sec-`,
+`@fig-`, or `@tbl-` reference to a chapter outside the current
+volume is rewritten, at build time, to plain prose naming the
+chapter and its volume (for example 'Chapter 9 (\`Federal
+Requirements and Deposition\`) in Volume 2'), computed from that
+target volume's own numbering, not the single book's 1 to 35; a
+printed volume cannot hyperlink into a book it is not bound with.
+693 such rewrites exist across the three volumes as of this
+writing.
+
+**Final boundaries, as built**, after two author-directed
+reorderings beyond the original Part-based split: Volume 1 opens
+with the two case studies and the capstone as an unworked preview
+(explicitly not an exercise yet), then Parts I to III minus
+de-identification; Volume 3's industry material gained a new
+'Compliance and Ethics' part, moved from early in Volume 1 and from
+late in Volume 2, ahead of the SAP and CDISC chapters. Three new
+part files were authored for this (`vol1-preview.qmd`,
+`vol3-compliance.qmd`, plus volume-specific overrides of three
+existing part blurbs, `vol1-part-1.qmd`, `vol1-part-3.qmd`, and
+`vol2-part-7.qmd`, needed because the single book's own `part-1.qmd`,
+`part-3.qmd`, and `part-7.qmd` describe chapters this reorder moved
+to a different volume).
+
+| Volume | Title | Content | Pages |
+|---|---|---|---|
+| 1 | Data, Toolkit, and a First Look | Preview (Penguins, ADNI, capstone); Why and With Whom (minus de-identification); Toolkit; Data in Hand (minus de-identification in practice) | 648 |
+| 2 | Documents, Environments, and Communication | Documents and Environments; Analysis to Audience (minus the case studies and ethics); full appendices, references, credits, colophon | 448 |
+| 3 | Industry Practice | Compliance and Ethics (new: both de-identification chapters, ethics); Analysis Practice; Industry (CDISC, SAS) | 336 |
+
+All three are comfortably under the roughly 800-page print-on-demand
+ceiling (house rule, to be confirmed against the actual service used).
+
+**A correctness bug found and fixed during this work:** the
+cross-volume rewriter initially labeled the target chapter with its
+single-book number (1 to 35) rather than its number within the
+target volume's own, restarted numbering, so Volume 1 at one point
+said 'Chapter 33' for a chapter that renders as Chapter 9 in Volume
+2. Fixed by computing chapter numbers per volume from
+`VOLUME_STRUCTURE` before any text is rewritten.
+
+**A second issue, found only because the reorder exposed it:**
+`00-intro.qmd` (shared by the HTML site and all three volumes)
+contained a table and a mermaid diagram hardcoding the single
+book's Roman-numeral part labels ('I. Why and with whom', and so
+on), which collide with a volume's own, differently numbered local
+parts; and a sentence specifically argued that ethics is placed
+late 'deliberately', which the reorder made false for Volume 3.
+Fixed in the shared file: the table and diagram now name parts
+without a numeral, the table's caption says a volume's own table of
+contents is the authority for numbering, and the ethics sentence is
+hedged ('in this ordering...'; 'a print volume may place the ethics
+chapter earlier... either order teaches the same argument'). The
+master `part-3.qmd` was also found missing a bullet for the
+functions chapter added in Phase K Tier 2; fixed there too,
+benefiting the single book as well as Volume 1.
+
+Verified by a clean, uncontended render of all three volumes and of
+the main single book (exit 0 each; no warnings; no unresolved
+crossrefs or missing citations; no literal entities in any PDF).
+
+**Not done:** the cover image is identical across all three volumes
+(no 'Volume N' marking on the art itself); print-on-demand upload
+and proofing; a decision on whether `tools/build-volumes.py` should
+run in CI to catch drift between the single book and the volumes.
 
 The two scan scripts used for the first draft are in the session
 scratchpad: `measure.sh` (per-chapter words, exercises, figures,

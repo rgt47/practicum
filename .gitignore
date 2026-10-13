@@ -5,6 +5,12 @@ _book/
 _site/
 site_libs/
 **/*.quarto_ipynb
+
+# Generated print-volume build directories (regenerate with
+# tools/build-volumes.py; never edit directly, never commit).
+analysis/report-vol1/
+analysis/report-vol2/
+analysis/report-vol3/
 # Stray single-chapter render output written beside the source, not in
 # _book/. nav-toggle.html is a real source file and is exempted.
 *_files/

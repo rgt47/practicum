@@ -11,6 +11,8 @@ de-identified dataset, is the input to everything in the second.
 - @sec-wrangling recodes per-site conventions and reports how many
   rows each step removes.
 - @sec-types handles factors, free-text strings, and dates.
+- @sec-functions turns a repeated cleaning step into a tested
+  function, and shows how to find the cause when one misbehaves.
 - @sec-joins predicts and checks the row count of every join.
 - @sec-databases queries a database with SQL and `dbplyr`.
 - @sec-graphics builds figures with `ggplot2` and many figures at

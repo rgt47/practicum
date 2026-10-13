@@ -1,0 +1,25 @@
+# Data in Hand
+
+This part asks how raw files become an analysis dataset you can
+trust. It closes the first quarter. De-identifying the output
+before release is covered separately, in the Compliance and Ethics
+part of Volume 3; what this part produces is a checked dataset
+ready for that step.
+
+- @sec-acquisition reads a clinical export with a full column
+  specification and asserts against its usual pathologies.
+- @sec-apis queries web interfaces with `httr2` and freezes what
+  was received.
+- @sec-wrangling recodes per-site conventions and reports how many
+  rows each step removes.
+- @sec-types handles factors, free-text strings, and dates.
+- @sec-functions turns a repeated cleaning step into a tested
+  function, and shows how to find the cause when one misbehaves.
+- @sec-joins predicts and checks the row count of every join.
+- @sec-databases queries a database with SQL and `dbplyr`.
+- @sec-graphics builds figures with `ggplot2` and many figures at
+  once with `purrr`.
+- @sec-missing diagnoses missing data, imputes it with `mice`, and
+  runs a sensitivity analysis.
+
+If the quiz at the start of a chapter is easy, skip to the next.

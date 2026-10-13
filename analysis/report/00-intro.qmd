@@ -55,30 +55,35 @@ that does all of it on one study.
 
 | Part | The question it answers | Chapters | Key tools |
 |---|---|---|---|
-| I. Why and with whom | Why work reproducibly, and what do you owe your collaborators and the people in the data? | @sec-why, @sec-team-science, @sec-deident | The three kinds of reproducibility, the intake conversation, the HIPAA pathways |
-| II. Your toolkit | What do you work with every day, and how do you keep a history of it? | @sec-shell, @sec-workstation, @sec-git-solo, @sec-git-teams, @sec-ai-coding | The shell, R and an IDE, Git and GitHub, language models and coding agents |
-| III. Data in hand | How do raw files become an analysis dataset you can trust? | @sec-acquisition, @sec-apis, @sec-wrangling, @sec-types, @sec-joins, @sec-databases, @sec-graphics, @sec-missing, @sec-deident-practice | `readr`, `dplyr`, `tidyr`, `forcats`, `stringr`, `lubridate`, SQL and `dbplyr`, `ggplot2`, `naniar`, `mice` |
-| IV. Documents and environments | How does the analysis rebuild, as a document, on someone else's machine? | @sec-quarto, @sec-renv, @sec-docker, @sec-zzcollab, @sec-targets, @sec-cloud | Quarto, `renv`, Docker, the research compendium, `targets`, remote compute |
-| V. Analysis practice | How do you show that the analysis was planned in advance and computes what it claims? | @sec-analysis-plan, @sec-testing | The SAP and DMSP, Git tags, `tinytest`, GitHub Actions |
-| VI. Industry | How does the work meet the conventions of regulated drug development? | @sec-cdisc, @sec-sas | SDTM, ADaM, SAS |
-| VII. Analysis to audience | How does a finished analysis reach its readers honestly, and in a form they can check? | @sec-penguins, @sec-adni, @sec-ethics, @sec-communicating, @sec-federal | Computed reports, the memo, the response to reviewers, repositories and DOIs |
-| VIII. Capstone | Can you take one study from raw export to deposit? | @sec-synthesis | All of the above |
+| Why and with whom | Why work reproducibly, and what do you owe your collaborators and the people in the data? | @sec-why, @sec-team-science, @sec-deident | The three kinds of reproducibility, the intake conversation, the HIPAA pathways |
+| Your toolkit | What do you work with every day, and how do you keep a history of it? | @sec-shell, @sec-workstation, @sec-git-solo, @sec-git-teams, @sec-ai-coding | The shell, R and an IDE, Git and GitHub, language models and coding agents |
+| Data in hand | How do raw files become an analysis dataset you can trust? | @sec-acquisition, @sec-apis, @sec-wrangling, @sec-types, @sec-joins, @sec-databases, @sec-graphics, @sec-missing, @sec-deident-practice | `readr`, `dplyr`, `tidyr`, `forcats`, `stringr`, `lubridate`, SQL and `dbplyr`, `ggplot2`, `naniar`, `mice` |
+| Documents and environments | How does the analysis rebuild, as a document, on someone else's machine? | @sec-quarto, @sec-renv, @sec-docker, @sec-zzcollab, @sec-targets, @sec-cloud | Quarto, `renv`, Docker, the research compendium, `targets`, remote compute |
+| Analysis practice | How do you show that the analysis was planned in advance and computes what it claims? | @sec-analysis-plan, @sec-testing | The SAP and DMSP, Git tags, `tinytest`, GitHub Actions |
+| Industry | How does the work meet the conventions of regulated drug development? | @sec-cdisc, @sec-sas | SDTM, ADaM, SAS |
+| Analysis to audience | How does a finished analysis reach its readers honestly, and in a form they can check? | @sec-penguins, @sec-adni, @sec-ethics, @sec-communicating, @sec-federal | Computed reports, the memo, the response to reviewers, repositories and DOIs |
+| Capstone | Can you take one study from raw export to deposit? | @sec-synthesis | All of the above |
 
-: The eight parts of the book. Parts I to III are the first
-quarter; Parts IV to VIII are the second. {#tbl-intro-parts}
+: The book's eight parts, in the single-volume site's order. A
+printed volume may group or order these parts differently for its
+own binding; its own table of contents is the authority for what
+number a part or chapter carries in your hands. {#tbl-intro-parts}
 
 The order is a dependency order. The first quarter ends
 with data in hand because everything in the second
 quarter acts on a dataset: a Quarto document reports on
 it, a container pins the environment that built it, a
 plan constrains what may be done with it, and a deposit
-archives it. Ethics and deposition come late in Part VII
-deliberately. Deposition is instruction about handing
-over something you have not built until then. The ethics
-chapter argues that the entire infrastructural apparatus
-of this book is orthogonal to whether an analysis
-misleads, and that argument can only land once the
-apparatus has been built.
+archives it. In this ordering, ethics and deposition come
+late, deliberately. Deposition is instruction about
+handing over something you have not built until then.
+The ethics chapter argues that the entire infrastructural
+apparatus of this book is orthogonal to whether an
+analysis misleads, and that argument can only land once
+the apparatus has been built. (A print volume may place
+the ethics chapter earlier, beside de-identification, as a
+prerequisite rather than a conclusion; either order
+teaches the same argument.)
 
 Eight appendices follow: alternative wrangling
 paradigms for reading code that is not tidyverse
@@ -117,16 +122,16 @@ assuming the earlier ones.
 %%|   does not require; everything else feeds the capstone directly."
 flowchart TD
   subgraph Q1["First quarter"]
-    P1["<b>I. Why and with whom</b><br/><i>reproducibility,<br/>teams, privacy</i>"]
-    P2["<b>II. Your toolkit</b><br/><i>shell, R, Git, AI</i>"]
-    P3["<b>III. Data in hand</b><br/><i>acquire, tidy, join,<br/>query, plot, impute,<br/>de-identify</i>"]
+    P1["<b>Why and with whom</b><br/><i>reproducibility,<br/>teams, privacy</i>"]
+    P2["<b>Your toolkit</b><br/><i>shell, R, Git, AI</i>"]
+    P3["<b>Data in hand</b><br/><i>acquire, tidy, join,<br/>query, plot, impute,<br/>de-identify</i>"]
   end
   subgraph Q2["Second quarter"]
-    P4["<b>IV. Documents and<br/>environments</b><br/><i>Quarto, renv, Docker,<br/>compendium, targets</i>"]
-    P5["<b>V. Analysis practice</b><br/><i>SAP, DMSP, tests, CI</i>"]
-    P6["<b>VI. Industry</b><br/><i>CDISC, SAS</i>"]
-    P7["<b>VII. Analysis to audience</b><br/><i>case studies, ethics,<br/>communication, deposit</i>"]
-    P8["<b>VIII. Capstone</b><br/><i>HF-HOME, export<br/>to deposit</i>"]
+    P4["<b>Documents and<br/>environments</b><br/><i>Quarto, renv, Docker,<br/>compendium, targets</i>"]
+    P5["<b>Analysis practice</b><br/><i>SAP, DMSP, tests, CI</i>"]
+    P6["<b>Industry</b><br/><i>CDISC, SAS</i>"]
+    P7["<b>Analysis to audience</b><br/><i>case studies, ethics,<br/>communication, deposit</i>"]
+    P8["<b>Capstone</b><br/><i>HF-HOME, export<br/>to deposit</i>"]
   end
   P1 --> P2 --> P3 --> P4 --> P5
   P5 --> P6

@@ -1,0 +1,32 @@
+# About This Volume {.unnumbered .unlisted}
+
+This is **Volume 2 of 3** of *Biostatistics Practicum*. The book is
+also published whole, as a single continuously numbered site, at
+<https://practicum.rgtlab.org>; the print edition is split into
+three volumes only because one bound book would exceed a comfortable
+page count.
+
+**This volume** covers Parts IV, VII, and VIII: documents and
+environments (Quarto, renv, Docker, compendium assembly, targets,
+cloud compute), the two worked case studies (Palmer Penguins and
+ADNI), ethics, communicating a finished analysis, federal
+requirements, and the capstone. It also carries the book's full
+reference apparatus: the glossary, cheat sheets, the instructor
+guide, the rgtlab software appendix, the tooling-as-of appendix, the
+R Markdown migration guide, interactive deliverables, credits, and
+the colophon. These appendices are kept here, in one place, rather
+than duplicated in all three volumes.
+
+**Volume 1**, *Why, Toolkit, and Data*, covers why reproducible
+research matters, team science, de-identification, the toolkit, and
+working with data. It comes before this volume.
+
+**Volume 3**, *Industry Practice*, covers statistical analysis
+plans, testing and continuous integration, and the pharmaceutical
+industry chapters (CDISC and SAS); the one-quarter supplement for
+pharmaceutical-track students.
+
+Cross-references within this volume work as usual. A reference to
+material in another volume is written as plain text, for example
+'Chapter 1 (Why Reproducible Research) in Volume 1', since a printed
+volume cannot link into a book it is not bound with.
