@@ -2,7 +2,7 @@ Package: practicum
 Title: practicum Data Analysis
 Version: 0.0.0.9000
 Authors@R:
-    person(given = "Ronald G.", family = "Thomas", email = "rgthomas@ucsd.edu", role = c("aut", "cre"))
+    person(family = "rgtlab curriculum team", email = "rgthomas@ucsd.edu", role = c("aut", "cre"))
 Description: Data analysis workspace and build machinery for
     Biostatistics Practicum. The License field below governs this
     package code only. The book's prose, figures, and exercises in

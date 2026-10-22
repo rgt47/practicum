@@ -55,5 +55,5 @@ redistributed with this book.
 
 ## How to cite
 
-Thomas, R. G. (2026). *Biostatistics Practicum*.
+rgtlab curriculum team (2026). *Biostatistics Practicum*.
 <https://rgtlab.org/practicum>
