@@ -126,9 +126,9 @@ answers are in @sec-quiz-answers-10.
 ## What a research compendium is {#sec-rrtools}
 
 A paper without its compendium is a description of an analysis;
-a compendium without a paper is code. Together they are a study
-artifact that survives the loss of any individual file, and of any
-individual person. Gentleman and Temple Lang
+a compendium without a paper is code. Together they make a study
+artifact that does not depend on any one file or any one person.
+Gentleman and Temple Lang
 [-@gentleman2007statistical] introduced the term, and Marwick,
 Boettiger, and Mullen [-@marwick2018packaging] gave the working
 definition this book uses, which has three criteria:
@@ -374,8 +374,8 @@ behind the opening's stale dataset.
 
 The judgment calls are `notes.txt`, which fits no category and
 should not be forced into one, and `clean.R`, which some
-conventions put in `analysis/scripts/`. What matters is that a
-stranger can predict the location.
+conventions put in `analysis/scripts/`. Either location works if a
+stranger can predict it.
 :::
 
 ## The Five Pillars {#sec-zzcollab-pillars}
@@ -407,7 +407,7 @@ none is sufficient, and a compendium missing any one is
 incomplete. {#tbl-five-pillars}
 
 The opening's three causes map onto pillars 2, 4, and 5. The
-remedy for each is not care but a file: a lockfile, a script for
+remedy for each is a file: a lockfile, a script for
 every step, and raw data that the code reads and never writes.
 Some frameworks automate the pillars; `zzcollab`
 (@sec-zzcollab-optional) is one, and it scaffolds and audits all
@@ -593,8 +593,8 @@ depends on the project's shape and the team's habits:
 
 : Compendium conventions. {#tbl-rrtools-conventions}
 
-Defaulting to `rrtools` is reasonable; defaulting to it without
-thought is not.
+`rrtools` is a reasonable default once you have checked that no
+other row of the table fits the project better.
 
 ::: {.callout-important title='LLM prompt'}
 Use a model to propose a layout for an existing project, and apply
@@ -1165,9 +1165,9 @@ they decide for you.
 : Ways to assemble a compendium. None removes the audit.
 {#tbl-zzcollab-approaches}
 
-The right level of infrastructure is itself a judgment. Excessive
-infrastructure on a small project is busywork; insufficient
-infrastructure on a large one is technical debt. A compendium is
+How much infrastructure a project needs is a judgment: too much
+on a small project is busywork, and too little on a large one is
+technical debt. A compendium is
 overkill for interactive exploration, for a one-off script, for a
 teaching example whose point is the code, and for a quick
 reproduction of someone else's analysis, whose structure should
@@ -1175,9 +1175,8 @@ control. It is the right weight for a collaborative analysis
 passed between team members, for one that must survive months or
 years after its lead analyst has moved on, and for any analysis
 subject to the federal requirements of @sec-federal. A tool that
-makes the heavy path cheap moves the right answer toward more
-infrastructure on the margin, but never removes the need to
-decide.
+makes the heavy path cheap shifts the answer toward more
+infrastructure at the margin, and the decision is still yours.
 
 Whichever path you take, the group's conventions (a preferred
 database client, a set of in-house packages, a journal's Quarto
@@ -1423,10 +1422,9 @@ framework. A function documented with `roxygen2`, checked with
 `R CMD check`, and loadable by name instead of by `source()` is
 ordinary R package development, available to a repository that
 uses no framework at all. This section does that development by
-hand on one function from this chapter's own examples, so that the
-choice to adopt a scaffolding tool is a choice about convenience,
-not about whether the pillar it writes for you is reachable
-without it.
+hand on one function from this chapter's own examples, so that
+adopting a scaffolding tool becomes a question of convenience
+alone.
 
 The function is the composite-outcome derivation the rest of this
 book writes inline wherever it needs HF-HOME's primary endpoint:
@@ -1458,8 +1456,7 @@ it (and silently diverging) into every script that needs it, it is
 documented only by whatever comment sits above it, and nothing
 checks that its argument or return value still match what a caller
 assumes six months later. Turning it into a package function fixes
-all three, and every step below is ordinary R, not a `zzcollab`
-feature.
+all three problems.
 
 ### A minimal `DESCRIPTION` by hand
 
@@ -1483,9 +1480,6 @@ Encoding: UTF-8
 `Imports:` is the field that matters most and is easiest to let
 drift: every package a function in `R/` calls with `::` belongs
 here, and `R CMD check` (below) is what notices when it does not.
-Nothing about this file depends on a scaffolding tool; a text
-editor and the fields `devtools::create()` would have written are
-enough.
 
 ### Documenting with `roxygen2`
 
@@ -1531,7 +1525,7 @@ devtools::document()
 #> Writing derive_composite_outcome.Rd
 ```
 
-The payoff is not cosmetic. `?derive_composite_outcome` now works
+`?derive_composite_outcome` now works
 from any script that loads the package, the `@examples` block is
 code that can be run (and, in `R CMD check`, is run), and a
 function whose documented `@param` no longer matches its signature
@@ -1565,10 +1559,9 @@ argument name, which no amount of careful reading of the function
 body would. `R CMD check` also verifies that every package named
 after `::` in `R/` is declared in `Imports:`, that the examples run
 without error, that the `NAMESPACE` matches what `roxygen2` wrote,
-and that the package installs cleanly in a fresh session; none of
-this is a `zzcollab` or `rrtools` feature, because it is the same
-check CRAN runs on every submission, available to any package
-whether or not it is ever submitted.
+and that the package installs cleanly in a fresh session. It is
+the same check CRAN runs on every submission, available to any
+package whether or not it is ever submitted.
 
 ### Optional: a browsable site with `pkgdown`
 
@@ -1620,8 +1613,8 @@ argued for the pillars generally.
 going on CRAN. Is that right?
 
 **Answer.** No. `roxygen2` and `R CMD check` are useful to any
-package, submitted anywhere or nowhere; CRAN runs the same check
-because it is a good check, not because CRAN invented it. An
+package, submitted anywhere or nowhere; CRAN simply runs the same
+check on what it receives. An
 in-house package that only two analysts ever install still benefits
 from `?derive_composite_outcome` working, from the check catching a
 `@param` that drifted from the signature, and from the examples
@@ -1777,11 +1770,11 @@ still a structural check; the fresh-clone render is the test.
    reuse by others and has no data or narrative; the compendium
    repurposes the package structure as infrastructure, not for
    distribution on CRAN.
-2. The Five Pillars are: (1) a **Dockerfile** (captures the
-   operating system and system libraries), (2) an **renv.lock**
-   (captures R package versions), (3) an **.Rprofile** (activates
-   renv and sets project-local R options), (4) **source code** (the
-   actual analysis), and (5) **data** (raw and processed, or a
+2. The Five Pillars are: (1) a Dockerfile (captures the
+   operating system and system libraries), (2) an `renv.lock`
+   (captures R package versions), (3) an `.Rprofile` (activates
+   renv and sets project-local R options), (4) source code (the
+   actual analysis), and (5) data (raw and processed, or a
    documented access path when data cannot be shared). Each pillar
    captures a layer that the others do not, and removing any one
    leaves the analysis unreproducible. A project with only a

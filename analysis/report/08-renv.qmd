@@ -10,8 +10,8 @@ re-runs the old analysis and gets a slightly different table has
 no way, without a record of what was installed the first time, to
 tell a genuine correction from a silent regression. `renv`
 supplies that record: it pins the exact package versions a project
-uses in a lockfile, so that any discrepancy becomes attributable
-rather than mysterious.
+uses in a lockfile, so that any discrepancy can be traced to a
+specific change.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -607,7 +607,7 @@ decide whether the new number is a correction or a regression. If
 it is a correction, snapshot, commit, and say in the commit
 message what changed and why; if it is a regression, `restore()`
 returns the library to the recorded version. Either way the
-decision is recorded, which is the point of the lockfile.
+lockfile and its history record the decision.
 :::
 
 ## renv inside a container {#sec-renv-docker}
@@ -626,12 +626,11 @@ RUN R -q -e "renv::restore(prompt = FALSE)"
 COPY . .
 ```
 
-The order matters. Docker caches each layer, so copying the
-lockfile and its two small bootstrap files *before* the project
-means that edits to the project do not invalidate the slow
-package-installation layer. Only a change to `renv.lock` (or to the
-bootstrap files) rebuilds it, which is correct: when dependencies
-change, the layer should rebuild.
+Docker caches each layer, so copying the lockfile and its two
+small bootstrap files *before* the project means that edits to the
+project do not invalidate the slow package-installation layer.
+Only a change to `renv.lock` (or to the bootstrap files) rebuilds
+it, which is when it should rebuild.
 
 ::: {.callout-important title='LLM prompt'}
 > **Context.** My project's `renv.lock` records R
@@ -685,8 +684,7 @@ same computational environment. That is the division of labor
 between the Five Pillars (Dockerfile, `renv.lock`, `.Rprofile`,
 source code, and data, defined in @sec-zzcollab): `renv.lock`
 handles the R layer and the Dockerfile handles everything beneath
-it. Either alone leaves a gap, which is why the pillars are a
-stack rather than a menu.
+it. Either alone leaves a gap, so a project needs both.
 :::
 
 ### Exercises

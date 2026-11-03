@@ -103,9 +103,9 @@ answers are in @sec-quiz-answers-24.
 
 The case study predicts conversion from MCI to Alzheimer's disease
 (AD) dementia within three years, from baseline sociodemographic,
-clinical, and neuropsychological measures. The aim is not to solve
-the prediction problem, which would be a book-length exercise, but
-to demonstrate the workflow around it: scaffolding, planning,
+clinical, and neuropsychological measures. Solving the prediction
+problem would be a book-length exercise; the aim here is to
+demonstrate the workflow around it: scaffolding, planning,
 wrangling, describing, modeling, reporting, and depositing. The
 modeling itself is deliberately light; the companion book,
 *Statistical Computing in the Age of AI*, covers it.
@@ -278,8 +278,8 @@ each discloses DUA-restricted data, and nothing in R, Git, or the
 chat interface stops it. The ADNI DUA limits the data to the uses
 in your approved application and forbids passing them on, and a
 language-model service is a third party like any other. Send
-structure: column names, types, the
-schema of the synthetic stand-in, and aggregate summaries. Add the
+structure: column names, types, the schema of the synthetic
+stand-in, and aggregate summaries. Add the
 data directories to `.gitignore` before the first commit, not after
 the first push.
 :::
@@ -426,7 +426,7 @@ raw <- adnimerge
 
 Everything after that line runs unchanged against the synthetic
 `adnimerge`. The cohort logic is wrapped in a function so that it
-can be tested (exercise 6).
+can be tested (exercise 5).
 
 ```{r}
 #| label: adni-build-cohort
@@ -943,8 +943,8 @@ exploratory.
 and NPV are the positive and negative predictive values.
 {#tbl-adni-prespecified}
 
-The distinction is what makes the primary finding valid: it was
-not selected on the basis of having looked at the data. Tag the SAP
+The primary finding is valid because it was not selected after
+looking at the data. Tag the SAP
 commit before the cohort is built (@sec-analysis-plan-tagging), so
 that the order is provable.
 

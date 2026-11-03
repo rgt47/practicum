@@ -406,7 +406,7 @@ the next, as R's `|>` connects functions. Redirection sends output
 to a file with `>` (overwrite) or `>>` (append), and reads input
 from a file with `<`. @fig-shell-pipe traces the HF-HOME laboratory
 file through a five-stage pipeline. Each stage does one thing, and
-the data narrow at every step, which is the whole design.
+the data narrow at every step.
 
 ```{mermaid}
 %%| echo: false

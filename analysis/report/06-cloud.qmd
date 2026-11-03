@@ -103,9 +103,8 @@ answers are in @sec-quiz-answers-06.
 
 Some analyses outgrow a laptop: multi-core simulations,
 genome-scale pipelines, multi-hour model fits. Whether to 'move to
-the cloud' is a procurement question, and it is never the useful
-one. The useful question is which specific resource has run out.
-Wall-clock time, memory, and the availability of your own machine
+the cloud' is a procurement question; the question that decides
+the remedy is which specific resource has run out. Wall-clock time, memory, and the availability of your own machine
 are three different shortages with three different remedies, and
 an analyst who has named the shortage correctly usually finds
 that the cheapest adequate remedy is not the public cloud.
@@ -141,8 +140,7 @@ flowchart TD
 The flowchart's abbreviations: HPC is high-performance computing,
 a university's shared cluster; SLURM is its most common job
 scheduler; RAM is random-access memory; and a GPU is a graphics
-processing unit. The three shortages differ in kind, not only in
-degree:
+processing unit. The three shortages differ in kind:
 
 | Shortage | Typical job | What relieves it | What you are buying |
 |---|---|---|---|
@@ -157,10 +155,10 @@ version oversells the result. Doubling the cores does not halve
 the time: the serial part of the job does not speed up at all, and
 the coordination overhead grows with the core count. A simulation
 that uses 4 cores does not benefit from a 32-core machine. The
-second row differs from the first in kind. On a large-memory
-machine the wall-clock time may be no better than the laptop's
-would have been had the laptop been able to run the job at all,
-and the distinction matters when you justify the cost.
+second row is a different purchase. On a large-memory machine the
+wall-clock time may be no better than the laptop's would have
+been had the laptop been able to run the job at all, so the cost
+has to be justified by feasibility alone.
 
 Remote compute is the wrong answer in three cases, and they share
 a cause: the round trip to a machine that is not in front of you.
@@ -198,7 +196,7 @@ library(bench)
 
 Both packages are not installed in this book's environment, so the
 block above is display-only; install them with `pak::pak()` to run
-it yourself. The habit, not the specific tool, is what matters:
+it yourself. Whichever tool you use, the habit is the same:
 profile on a small, fast case on the laptop, fix what the profile
 names, and only then decide whether the fixed version still needs
 more cores, more memory, or more machines than the laptop has.
@@ -570,9 +568,9 @@ risks under the alternative; the estimand is the test's rejection
 probability; the method is `prop.test()`; and the performance
 measure is the empirical rejection rate, which @sec-cloud-hpc
 reported alongside its Monte Carlo standard error. The rest of this
-section is about that last word: Monte Carlo standard error, the
-piece of a simulation report that is easy to omit and that tells
-the reader whether the simulation ran long enough to trust.
+section concerns that standard error, the piece of a simulation
+report that is easy to omit and that tells the reader whether the
+simulation ran long enough to trust.
 
 ### Monte Carlo error on a performance measure
 
@@ -611,8 +609,8 @@ the estimate and confidence interval from replicate $i$. Each MCSE
 shrinks with $\sqrt{n_{\text{sim}}}$, the same arithmetic as the
 Monte Carlo standard error of a power estimate in @sec-cloud-hpc,
 which is why a simulation study, like a job array, wants many
-replicates: not for the point estimate alone, but to make its own
-uncertainty small enough to be worth reporting.
+replicates: they sharpen the point estimate and also make the
+study's own uncertainty small enough to be worth reporting.
 
 ### A worked example, by hand
 
@@ -1043,8 +1041,8 @@ forget to stop.
 
 ### Where the data may go
 
-Provisioning is a form to fill in. Deciding what data may sit on
-the machine is where the compliance exposure lives. Protected
+Provisioning is routine; the compliance exposure comes from
+deciding what data may sit on the machine. Protected
 health information (PHI) on a personal AWS account is a violation
 in most institutions. Use the institutional account, keep data
 inside the institutional network where the account provides for
@@ -1267,14 +1265,13 @@ carbon dioxide per core-hour, because the honest number depends on
 which grid supplies the data center, how the provider's published
 efficiency claims are audited, and how quickly both change; any
 specific emissions factor stated here would be stale, and possibly
-wrong, before the ink dried. What does not need a number to be
-true is the direction of the effect: a job that runs sixteen times
-longer than it needs to, because nobody profiled it first
-(@sec-cloud-shortage), or an idle instance billing over a weekend
-(@sec-cloud-cost), draws power for no analytical benefit, and that
-is a cost in more than money. Treat job efficiency, the same habit
-that keeps a budget under control, as an environmental
-consideration as well as a financial one: profile before you
+wrong, by the time you read it. The direction of the effect needs
+no number: a job that runs sixteen times longer than it needs to,
+because nobody profiled it first (@sec-cloud-shortage), or an idle
+instance billing over a weekend (@sec-cloud-cost), draws power for
+no analytical benefit. Job efficiency, the same habit that keeps a
+budget under control, is therefore an environmental consideration
+as well as a financial one: profile before you
 scale, choose the smallest instance that finishes the job, and
 shut the machine down the moment it is done. A researcher who
 wants a defensible number for a specific provider and region

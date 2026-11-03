@@ -767,7 +767,7 @@ this for you; it only gives you the markup that, used correctly,
 lets assistive technology navigate the document the way a sighted
 reader scans it.
 
-### Headings form the document's outline, not its font sizes
+### Heading levels and the document outline
 
 A screen reader user commonly jumps between headings rather than
 reading linearly, the way a sighted reader skims a table of
@@ -784,17 +784,17 @@ a new section.
 
 ### Caption every table, and keep its text with it
 
-A `{#tbl-...}` caption (@tbl-quarto-xref) does more than let you
-write `@tbl-outcomes`: a screen reader announces the caption text
-together with the table, which is the only description some readers
-get of what the columns contain. A pipe table or `gt`/`gtsummary`
+A `{#tbl-...}` caption (@tbl-quarto-xref) lets you write
+`@tbl-outcomes`, and a screen reader also announces the caption
+text together with the table, which is the only description some
+readers get of what the columns contain. A pipe table or `gt`/`gtsummary`
 output with no caption reaches a screen-reader user as an
 unlabeled grid of numbers. Write the caption so it states what the
 table shows, the same discipline @sec-graphics-accessible asks of a
 figure's `fig-alt`; a caption that merely repeats 'Table 1' states
 nothing a screen reader did not already announce.
 
-### Alt text for figures: covered in the graphics chapter
+### Alt text for figures
 
 Every figure needs a `fig-alt` string, and what distinguishes a
 useful one from a decorative one is a figure-specific judgment
@@ -806,11 +806,11 @@ otherwise decode, including a table rendered as an image by some
 PDF pipelines (@sec-rmd-workflow-floats touches a related PDF
 quirk).
 
-### HTML, PDF, and Word are not equally accessible
+### Accessibility of HTML, PDF, and Word
 
-@tbl-quarto-formats already lists what each format cannot carry;
-accessibility is a further difference worth stating plainly rather
-than leaving to discovery. HTML is the most accessible target: a
+@tbl-quarto-formats lists what each format cannot carry; the
+formats also differ in accessibility. HTML is the most accessible
+target: a
 modern screen reader reads its heading structure, table markup, and
 `alt` attributes directly, and the reader controls font size and
 contrast in the browser. PDF is the least accessible by default.
@@ -822,9 +822,9 @@ tagging enabled, which LaTeX-based PDF (the engine `quarto render
 Word sits between the two: `fig-alt` text and table captions both
 carry into the `.docx`'s accessibility metadata, and a sighted
 reader with low vision benefits from Word's own zoom and
-high-contrast modes, but heading navigation depends on the reader
-using Word's built-in heading styles rather than visual formatting,
-which Quarto's conversion does by default.
+high-contrast modes, but heading navigation depends on the
+document using Word's built-in heading styles rather than visual
+formatting, which Quarto's conversion does by default.
 
 When a document's primary audience may include a screen-reader user
 and the choice of format is yours to make, prefer HTML, and offer
@@ -874,12 +874,12 @@ screen-reader user who jumps by heading level.
 
 ## Float placement in PDF {#sec-rmd-workflow-floats}
 
-The frustration: you cite a figure in your prose and it appears
-two pages later. LaTeX treats figures and tables as [**floats**](F-glossary.qmd#gloss-float)
+A figure you cite in the prose can appear two pages later. LaTeX
+treats figures and tables as [**floats**](F-glossary.qmd#gloss-float)
 and moves them to avoid awkward white space and bad page breaks.
 For a paper, let it; readers expect floating figures. For a report
 meant to be read top to bottom, force placement where the figure
-is declared. The right default depends on the audience.
+is declared.
 
 The fix in knitr Rmd:
 

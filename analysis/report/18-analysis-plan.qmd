@@ -8,9 +8,10 @@ six weeks in five high-impact medical journals against its protocol
 or registry entry, 58 of 67 had discrepancies, and the papers added
 a mean of 5.4 outcomes per trial that had never been declared
 [@goldacre2019compare]. Most of the correction letters the team
-sent went unpublished. What caught the switches was not peer review
-but a dated plan to compare against; this chapter is about writing
-that plan so that it binds, and so that a reader can check it did.
+sent went unpublished. The switches had passed peer review; a dated
+plan to compare against is what caught them. This chapter is about
+writing that plan so that it binds, and so that a reader can check
+it did.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -129,9 +130,9 @@ if the analyst made only one.
 The inflation is easy to see. The simulation below generates trials
 with no treatment effect at all, and lets the analyst make up to four
 yes-or-no choices: which of two correlated outcomes, whether to
-adjust for age, whether to drop values more than two standard deviations from the
-mean,
-and whether to report the older half as a subgroup. Each choice
+adjust for age, whether to drop values more than two standard
+deviations from the mean, and whether to report the older half as
+a subgroup. Each choice
 doubles the number of analyses, and the analyst reports the smallest
 p-value.
 
@@ -492,8 +493,9 @@ section 11 of the HF-HOME SAP below.
 
 Base R's `stats` package covers the two designs most clinical SAPs
 start from, a parallel-group randomized controlled trial (RCT) with
-a continuous or a binary outcome: `power.t.test()` for a continuous outcome and
-`power.prop.test()` for a binary one. Supplying `power` solves for
+a continuous or a binary outcome: `power.t.test()` for a continuous
+outcome and `power.prop.test()` for a binary one. Supplying `power`
+solves for
 the sample size per arm; supplying `n` solves for power:
 
 ```{r}
@@ -582,8 +584,9 @@ With `sd = 1`, `delta` is the standardized effect. The same
 calculation in `zzpower` reads its result from `sample_sizes` rather
 than `sample_size`: the element is a list, because a two-arm
 calculation returns per-arm and total figures separately, along with
-an intention-to-treat (ITT) inflated version. Its `$n` is the analytic requirement per
-arm, and it agrees with base R once rounded up:
+an intention-to-treat (ITT) inflated version. Its `$n` is the
+analytic requirement per arm, and it agrees with base R once
+rounded up:
 
 ```{r}
 #| label: soln-18-1-zzpower
@@ -859,8 +862,8 @@ control. Pushing the tag to a remote creates a record on a server
 with its own timestamps and log. The registry deposit is stronger
 still, since ClinicalTrials.gov records a submission date you cannot
 edit, and stronger again is anything that timestamps content
-cryptographically, such as a Zenodo digital object identifier (DOI) or a registration
-on the Open Science Framework (OSF). The
+cryptographically, such as a Zenodo digital object identifier
+(DOI) or a registration on the Open Science Framework (OSF). The
 tag makes the pre-specification *findable and unambiguous*; an
 external record makes it *credible*. A SAP tagged but never pushed
 provides organization without evidence. This is the same
@@ -991,8 +994,7 @@ nothing about when the analysis was decided relative to when the
 data were seen, and medRxiv does not check that either way. If the
 analysis plan was written and tagged (or registered on OSF) before
 data access, that is what makes it preregistered, and the preprint
-is a separate, later step that disseminates the result. The two
-claims need two different kinds of evidence.
+is a separate, later step that disseminates the result.
 :::
 
 ### Exercises
@@ -1244,8 +1246,8 @@ ggplot(power_curve, aes(n, power)) +
 > two families each spend 0.05, and the familywise
 > rate can approach 0.10.
 
-This level of specificity is what 'pre-specified' means. Vagueness
-invites researcher degrees of freedom.
+This level of specificity is what 'pre-specified' means; any
+vaguer sentence leaves a researcher degree of freedom open.
 
 ::: {.callout-tip title='Verification'}
 The running study's randomization file was generated from this
@@ -1447,10 +1449,9 @@ manifest
 `r sum(manifest$identifier_columns != "")` of the
 `r nrow(manifest)` files carry an identifier as received, because
 every file that records a date does, so they cannot be deposited
-as they are. The plan's
-first element has to promise de-identified data, and the
-deposit has to be built from a release such as the one in
-@sec-deident-worked.
+as they are. The plan's first element has to promise
+de-identified data, and the deposit has to be built from a
+release such as the one in @sec-deident-worked.
 :::
 
 ::: {.callout-important title='LLM prompt'}

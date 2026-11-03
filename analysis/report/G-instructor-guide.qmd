@@ -202,9 +202,9 @@ or WSL there.
 *Sources.* Adapted from the author's lecture notes and supporting
 materials for a graduate practicum in biostatistics.
 
-*Rationale.* A poorly configured machine does not announce itself;
-it appears as friction that accumulates over years, and its
-defects are the hardest in the book to attribute. The chapter keeps
+*Rationale.* A poorly configured machine shows up as friction that
+accumulates over years, and its defects are the hardest in the
+book to attribute. The chapter keeps
 its original hook and is cut to an essentials path (R, an IDE,
 Quarto, Git, and `renv`), with per-operating-system installation in
 tabs that include Windows under WSL, and it ends the path with the
@@ -486,8 +486,8 @@ study, several checked against its clean tables as answer keys.
 *Sources.* Stat 545, Chapters 14 to 16 (Jenny Bryan, University of
 British Columbia); the `dplyr` two-table verbs reference.
 
-*Rationale.* The join call is trivial; the errors are not. The
-chapter is organized around the two silent failure modes (dropped
+*Rationale.* The join call itself is trivial, so the chapter is
+organized around the two silent failure modes (dropped
 rows and multiplied rows) and the arithmetic that catches them:
 predicted row counts, declared relationships, and anti-join
 audits. The generic verb tour is left to R for Data Science
@@ -1172,7 +1172,7 @@ documents that constitute the job. The chapter is built around
 HF-HOME's real result, which is inconclusive: the
 memo, the narrative arc, the talk, and the reviewer responses all
 read the running study's files, and the null-results section is the
-center rather than an aside. The sensitivity analysis is the
+chapter's center. The sensitivity analysis is the
 two-dimensional tipping point that SAP section 11 now specifies,
 with the same code and seed as @sec-missing-trials,
 so the two chapters report the same grid. A hidden assertion stops

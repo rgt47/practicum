@@ -724,9 +724,8 @@ contrast between them. Each has a specific, checkable fix.
 
 A screen reader announces the `fig-alt` text in place of the image.
 'Bar chart' or 'a plot of NT-proBNP' tells that reader a figure
-exists and nothing else, which is what makes alt text decorative
-rather than informative: it names the picture instead of reporting
-what looking at it would tell a sighted reader. Good alt text states
+exists and nothing else: it names the picture and omits what
+looking at it would tell a sighted reader. Good alt text states
 the pattern the figure makes its case with, in the same terms the
 caption's claim uses, and does not require the reader to infer the
 finding from chart-type vocabulary. Compare the chapter's own
@@ -854,8 +853,7 @@ contrast_ratio("grey65", "white")
 The ratio is a little above 3:1, so the bars themselves are legible
 against the white background. Passing the contrast check says
 nothing about the chapter's earlier objection to panel A: a legible
-bar can still misrepresent the data it summarizes. Accessibility
-and honest encoding are separate checks, and a figure needs both.
+bar can still misrepresent the data it summarizes.
 :::
 
 ## Worked example: the trajectory figure, end to end {#sec-graphics-worked}
@@ -991,9 +989,8 @@ and visit and compared its output to the `stat_summary(mean_cl_normal)`
 figure above: the two agreed on the mean and the 95% t-interval
 bounds to three decimal places in all four arm-by-visit cells,
 checked once on 2026-10-10 and again on 2026-10-11. The package's
-312-test suite checks interval arithmetic itself, the t interval,
-the standard error, and the coverage, rather than only that a call
-returns an object of the right shape. One caveat is a property of
+312-test suite checks the interval arithmetic itself: the t
+interval, the standard error, and the coverage. One caveat is a property of
 the data, not of the package: as @sec-graphics-trajectory shows for
 the hand-written figure, `zzlongplot`'s day-30 means reflect only
 the patients who attended that visit, so a falling day-30 mean can

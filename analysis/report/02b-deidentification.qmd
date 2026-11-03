@@ -115,10 +115,10 @@ estimated from 1990 census data that 87% of the United States
 population was likely unique on five-digit ZIP code, sex, and
 full date of birth [@sweeney2002kanonymity]; a later analysis of
 2000 census data put the figure at about 63% [@golle2006revisiting].
-The exact share matters less than the mechanism: each added field
-multiplies the number of possible combinations while the
-population stays fixed, so a handful of ordinary fields is
-enough to make most people unique. Re-identification risk is a
+The two estimates share a mechanism: each added field multiplies
+the number of possible combinations while the population stays
+fixed, so a handful of ordinary fields is enough to make most
+people unique. Re-identification risk is a
 property of the joint distribution, and you reason about it the
 way you reason about any joint distribution, not one field at a
 time.
@@ -128,9 +128,9 @@ time.
 If the analysis does not need date of birth, collect age; if it
 does not need the full ZIP code, collect the first three digits.
 Minimizing identifiers at collection is cheaper and safer than
-removing them afterward. It is the disclosure-control analog of
-the raw-data rule (Habit 2): what you never received, you never
-have to protect.
+removing them afterward, because a field you never received is
+one you never have to protect. It is the disclosure-control
+analog of the raw-data rule (Habit 2).
 
 ### Promises must match reality
 

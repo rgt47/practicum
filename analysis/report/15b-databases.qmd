@@ -371,8 +371,8 @@ stopifnot(all.equal(sql_first, as.data.frame(r_first),
 
 The `WHERE` clause runs before `GROUP BY`, so the unascertained
 patients (whose `first_event` is missing) and the patients with no
-event never reach the count. A key that is computed twice, once in
-each language, is the check.
+event never reach the count. Computing the same counts once in
+each language is the check.
 :::
 
 2. Express the query from exercise 1 with `dbplyr`, print the SQL
@@ -901,8 +901,8 @@ analysis reproducible?
 an instruction whose result depends on when it ran, unlike a file
 in `data/raw/`. The dated extract with its query, row count, and
 checksum is what makes the analysis reproducible, and it is the
-file that gets archived. This is the role @sec-apis gives
-an acquisition script: same pattern, different source.
+file that gets archived. @sec-apis gives an acquisition script
+the same role for a different source.
 :::
 
 ```{r}

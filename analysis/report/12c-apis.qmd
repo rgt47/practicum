@@ -107,10 +107,10 @@ warehouses, ClinicalTrials.gov, the Food and Drug Administration's
 openFDA endpoints, and PubMed. The pattern is the same in every
 case: you send an authenticated HTTP (Hypertext Transfer Protocol)
 request describing what you
-want, and you receive JSON (JavaScript Object Notation). The
-reproducibility problem differs in kind from a file's, because
-the warehouse is alive, as the opening of this chapter describes.
-The only defense is to freeze what you received.
+want, and you receive JSON (JavaScript Object Notation). Because
+the warehouse keeps changing, the reproducibility problem differs
+in kind from a file's, and the only defense is to freeze what you
+received.
 
 ### Querying an interface
 
@@ -142,9 +142,9 @@ raw_json <- resp_body_string(resp)          # <4>
    burden a shared institutional server.
 4. Keep the response as a string; it is about to become a file.
 
-The most important line is the first. **A credential in a
-repository is a credential that has been disclosed**, and a REDCap
-token is authenticated access to protected health information. It
+The most important line is the first. **A credential committed to
+a repository has been disclosed**, and a REDCap token is
+authenticated access to protected health information. It
 belongs in `.Renviron`, which is listed in `.gitignore`, and the
 repository ships a `.Renviron.example` that names the variable
 without its value:
@@ -369,9 +369,9 @@ its output is a guess about someone else's HTML (HyperText Markup
 Language). Before writing a
 scraper, ask whether an API exists, whether the data are published
 as a file somewhere, and whether you could ask the person who has
-them; the answer is often yes. **Can you?** is a technical question
-and the answer is usually yes. **Should you?** has three parts.
-Does the site's `robots.txt` permit it? Do the terms of service?
+them; the answer is often yes. Whether you can scrape is a
+technical question, and the answer is usually yes. Whether you
+should has three parts. Does the site's `robots.txt` permit it? Do the terms of service?
 And would the volume and rate of your requests impose a cost on a
 server whose owners did not agree to bear it? A scraper that sends
 a small registry fifty requests a second is a denial-of-service
@@ -478,8 +478,8 @@ the aggregation argument.
 
 ## Freezing what you receive {#sec-apis-freezing}
 
-An acquisition that runs at render time is a reproducibility bug
-dressed as a convenience. If your Quarto document queries the
+An acquisition that runs at render time is convenient and breaks
+reproducibility. If your Quarto document queries the
 warehouse when it renders, the document produces different numbers
 on different days, your collaborator cannot render it at all
 without a token, and the continuous-integration run of @sec-ci

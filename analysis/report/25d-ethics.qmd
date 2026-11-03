@@ -130,10 +130,9 @@ so each is caught at a different point.
 None is caught by a test suite, a lockfile, or a container.
 {#tbl-ethics-caught}
 
-The last line of the caption is the point of the chapter. The
-infrastructure of this book is orthogonal to whether an analysis
-misleads: reproducibility guarantees that a wrong conclusion can be
-regenerated exactly.
+The infrastructure of this book is orthogonal to whether an
+analysis misleads: reproducibility guarantees only that a wrong
+conclusion can be regenerated exactly.
 
 ### You are the last person who can catch it
 
@@ -142,14 +141,14 @@ interval supports the sentence in the abstract; that is why they
 have you. The reviewer may or may not look, and the reader
 certainly will not. When the press release says 'exercise prevents
 cancer' and your analysis found an association in an observational
-cohort of volunteers, you are not a bystander to that sentence. You
-are its last opportunity.
+cohort of volunteers, you are the last chance to correct that
+sentence.
 
 Distortion is usually accidental, which does not make it harmless.
 Almost nobody sets out to deceive with a truncated axis; they set
 out to make the effect visible, and a truncated axis makes it
-visible. Intent is not the standard. The standard is what a
-competent reader would conclude.
+visible. The standard is what a competent reader would conclude,
+whatever the intent.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A paper reports an observational study. The IRB
@@ -162,7 +161,7 @@ correctly computed. The abstract concludes that the intervention
 **Answer.** Yes, and nothing in the compliance apparatus was built
 to catch it. What is wrong is a verb: an observational design
 licenses 'was associated with lower readmission', not 'reduces'.
-The distinction is not pedantry. A guideline committee or a health
+A guideline committee or a health
 system deciding where to spend money will act on 'reduces', and the
 evidence does not support the action. Reproducibility, compliance,
 and correct computation are each necessary and jointly
@@ -276,8 +275,8 @@ result'?
 it destroys is the ability to say how often the procedure would
 produce a false one: a p-value from the fifth analysis tried is not
 a 5% test, and nobody, including the analyst, can say what test it
-is. The harm is to the evidence, which is why the remedy is a dated
-plan rather than a better model.
+is. The harm is to the evidence, which is why the remedy is a plan
+dated before the data.
 :::
 
 ## Aggregation harm {#sec-ethics-aggregation}
@@ -286,11 +285,12 @@ The OkCupid release is [**aggregation harm**](F-glossary.qmd#gloss-aggregation-h
 that @sec-deident treats formally as quasi-identifiers, arriving
 from the other direction. There, no single ordinary variable
 identifies anyone but their conjunction can. Here, no single
-disclosure harms anyone but their conjunction can. The mathematics
-is the mathematics of joint distributions; the ethics is the ethics
-of context. Information carries an implicit expectation about where
-it will travel, and moving it somewhere else is an act with
-consequences even when every datum was freely given. Public is not
+disclosure harms anyone but their conjunction can. Both are
+questions about joint distributions; what makes the second an
+ethical question is context. Information carries an implicit
+expectation about where it will travel, and moving it somewhere
+else is an act with consequences even when every datum was freely
+given. Public is not
 the same as consented, and available is not the same as ethical:
 the question 'may I' has a legal answer and an ethical one. Ask
 what happens to a person in your data if the analysis is right,
@@ -806,8 +806,8 @@ The two per-group intervals overlap, the test rejects, and the
 interval for the difference excludes zero. Nothing here is
 contradictory; the three statements answer different questions.
 
-The arithmetic is the whole explanation, and it sets the window the
-delta above was chosen from. The standard error of one mean is
+The arithmetic explains the result and sets the window the delta
+above was chosen from. The standard error of one mean is
 $s/\sqrt{n}$. The standard error of the *difference* of two
 independent means is $\sqrt{s_1^2/n_1 + s_2^2/n_2}$, which for equal
 groups is $\sqrt{2}$ times one group's standard error, not twice it.
@@ -884,8 +884,9 @@ sample and the target are not the same population and no one has
 said so. This book's own source material shows the mechanism: the
 survey behind the team-science reading drew respondents who were
 82.8% White, and its authors state plainly that their conclusions
-may not transport to a more diverse workforce [@slade2023team]. The
-honesty is the model; the skew is the hazard.
+may not transport to a more diverse workforce [@slade2023team].
+Their disclosure is the practice to copy, and the skew is the
+hazard it warns of.
 
 **A sample is evidence about the population it was drawn from, and
 no other.** A drug trial that enrolls at academic medical centers,
@@ -897,7 +898,7 @@ whom the drug will be prescribed, its estimate is an extrapolation
 the reason it did not repair the volunteer cohort: the groups differ
 along dimensions no covariate list enumerates.
 
-**Under-representation is a bias-and-variance problem with a face.**
+**Under-representation costs a subgroup both precision and bias.**
 When a subgroup is a small fraction of the sample, its estimate is
 imprecise, so an effect specific to them is the effect you are least
 able to detect; and if the effect genuinely differs there, the pooled

@@ -49,9 +49,9 @@ unascertained, against `r pct_area[["San Diego area"]]`% of the rest.
 R's modeling functions drop those patients without a word, and the
 estimate that results is unbiased only if moving away is unrelated
 to the outcome, given what the model adjusts for. Nothing in the
-data can confirm that, so the real question is not whether the
-analysis handles missing values but which assumption it makes about
-them, and how far the conclusion moves when that assumption is
+data can confirm that. Any analysis of these outcomes rests on an
+assumption about why they are missing, and the questions to ask are
+which assumption, and how far the conclusion moves when it is
 wrong.
 
 ::: {.bookepigraph}
@@ -317,10 +317,10 @@ observed covariates; that every variable predicting missingness is
 in the imputation model, which makes MAR plausible rather than
 proven; and that the conclusion survives a departure from MAR,
 through a delta adjustment or a tipping-point analysis
-(@sec-missing-trials). That last one is the real answer to the
-reviewer. You do not defend MAR; you show how far from MAR the truth
-would have to be before your conclusion changed, and let the reader
-judge whether that distance is credible.
+(@sec-missing-trials). The last of these answers the reviewer most
+directly. It shows how far from MAR the truth would have to be
+before your conclusion changed, and lets the reader judge whether
+that distance is credible.
 :::
 
 ## Diagnosing missingness {#sec-missing-diagnosis}
@@ -405,8 +405,8 @@ Three patterns recur, and each suggests a strategy:
 
 ### Missingness in the running study
 
-In HF-HOME the question is not where the holes are, since only the
-outcome has many, but what predicts them. The setup chunk at the top
+In HF-HOME only the outcome has many missing values, so the
+question is what predicts them. The setup chunk at the top
 of this chapter joins randomization, outcomes, and ZIP codes:
 
 ```{r}
@@ -593,8 +593,7 @@ knitr::kable(sim, digits = 2, row.names = FALSE,
                            "Bias", "SE", "Coverage"))
 ```
 
-Read the rows before the columns, because the rows are the lesson.
-When missingness depends on `z`, a covariate in the model, all three
+Read the table one mechanism at a time. When missingness depends on `z`, a covariate in the model, all three
 methods are close to unbiased and cover near 95%. When it depends on
 `y`, which is MAR because `y` is fully observed, complete case and
 mean imputation are biased and their intervals miss the truth far
@@ -604,8 +603,7 @@ because of its own value, which is MNAR, complete case is close to
 unbiased, because once `x` and `z` are held fixed the deletion does
 not depend on `y`, and multiple imputation is the method that is
 biased, because it fills the missing values as though they resembled
-the observed ones [@white2010bias]. The label did not predict which
-method would fail; what the missingness depends on did.
+the observed ones [@white2010bias].
 
 ::: {.callout-tip title='Verification'}
 Confirm the three sign changes the table teaches, so that a change
@@ -758,9 +756,8 @@ applies most sharply when the outcome itself is filled in.
 
 Multiple imputation proceeds in three steps, shown in @fig-mi-steps:
 impute several completed datasets, analyze each one separately, then
-pool the results. The fan-out and recombination are the whole point:
-the variation between the $M$ analyses carries the uncertainty due
-to missingness that single imputation discards.
+pool the results. The variation between the $M$ analyses carries
+the uncertainty due to missingness that single imputation discards.
 
 ```{mermaid}
 %%| echo: false
@@ -912,10 +909,9 @@ data.frame(term = names(truth),
 ```
 
 MI recovers the full-data coefficients approximately, which is the
-claim being checked. 'Approximately' is doing real work: a single run
-can miss by more than you expect, and one replicate is a
-demonstration rather than evidence. The simulation in
-@sec-missing-complete-case is the evidence.
+claim being checked. A single run can miss by more than you expect,
+so one replicate is only a demonstration; the evidence is the
+simulation in @sec-missing-complete-case.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}

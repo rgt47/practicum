@@ -10,9 +10,9 @@ software will report: a patient readmitted on day 3 never had
 the chance of a day-5 visit, so the sickest patients are counted
 as unvisited, and home health looks protective whether or not it
 does anything. The analysis would run, the estimate would be
-precise, and the paper would be wrong. What prevents it is not a
-better model but a conversation, held before any code, that this
-chapter follows from that email to the HF-HOME trial whose plan,
+precise, and the paper would be wrong. A conversation held before
+any code is written prevents it, and this chapter follows that
+conversation from the email to the HF-HOME trial whose plan,
 data, and report the rest of the book uses.
 
 ::: {.bookepigraph}
@@ -97,15 +97,13 @@ answers are in @sec-quiz-answers-03.
 Most biostatisticians spend the greater part of their careers on
 teams alongside people who cannot read their code and do not
 share their vocabulary. Working across that gap is a learned
-skill, not a personality trait, and the distinction matters
-because skills can be taught. A statistician described as
+skill, so it can be taught. A statistician described as
 'difficult to work with' has usually not been rude to anyone.
 They have failed to establish, in writing and early, what was
 being asked and what would be delivered, and every later
 disagreement has been argued without a shared record of what was
-agreed. That is the shape of nearly every collaboration failure
-in this chapter: not a clash of personalities but an absent
-document.
+agreed. Nearly every collaboration failure in this chapter
+traces to that missing document.
 
 The first thing to establish is the role. An investigator who
 says 'we need a statistician' may be asking for a methodological
@@ -257,12 +255,11 @@ the red flags that remain.
 > if EHR data quality is worse than expected at first
 > exploration.
 
-The document did its job twice.
-It removed the immortal time from the question, and its second
-red flag told Dr. X what the cohort could not deliver: if the
-question is whether home health *causes* fewer readmissions, the
-answer needs randomization. That is the decision that turned this
-project into HF-HOME, the randomized trial whose statistical
+The document removed the immortal time from the question, and
+its second red flag told Dr. X what the cohort could not
+deliver: if the question is whether home health *causes* fewer
+readmissions, the answer needs randomization. That decision
+turned the project into HF-HOME, the randomized trial whose statistical
 analysis plan (SAP) is the worked example of @sec-analysis-plan.
 
 ::: {.callout-tip title='Verification'}
@@ -469,8 +466,8 @@ actually asking.
 ## The scope of work {#sec-team-science-sow}
 
 For any non-trivial collaboration, a written scope of work (SOW)
-turns the intake into commitments. It is not a legal contract; it
-is a shared understanding. When the project drifts, as projects
+turns the intake into commitments. It records a shared
+understanding and has no legal force. When the project drifts, as projects
 do, the SOW is the document everyone returns to, and the document
 is what you defend when expectations diverge. Verbal agreements
 about scope, deadlines, authorship, and analytic decisions
@@ -537,9 +534,9 @@ its own authorship agreement, even though the data are the same.
 
 ## Handling disagreement {#sec-team-science-disagreement}
 
-Not every methodological choice is worth a confrontation, and
-distinguishing preference from principle is what makes you a
-useful collaborator rather than a pedantic one. When you and a
+Not every methodological choice is worth a confrontation, and a
+statistician who cannot tell preference from principle comes
+across as pedantic. When you and a
 collaborator disagree, the response depends on what is at stake
 (@tbl-team-science-tiers).
 
@@ -775,8 +772,8 @@ each person in every case; the decision column comes from ICMJE.
 ## Managing a portfolio of projects {#sec-team-science-portfolio}
 
 The intake conversation and the scope of work govern a single
-collaboration. The defining structural fact of a collaborative
-biostatistician's work is that there is never only one. You will
+collaboration, and a collaborative biostatistician never has
+only one. You will
 carry five to fifteen active projects at once, at different
 stages, for different investigators, each of whom is convinced
 theirs is the one you are working on today. Survey evidence ranks
@@ -784,14 +781,14 @@ managing multiple simultaneous projects among the most essential
 skills in the work, second only to coding for those in their
 first five years [@slade2023team]. No software installs it.
 
-**The unit of work is the portfolio, not the project.** A junior
+**The unit of work is the portfolio.** A junior
 statistician experiences the job as a queue: finish project A,
 then start project B. Projects instead arrive on the
 investigators' schedules, block on data and approvals you do not
 control, and then unblock several at once. The competence asked
 of you is to hold many partly finished projects in a legible
 state and move each when it is movable, not to drive one to
-completion while the rest quietly decay. @tbl-team-science-portfolio
+completion while the rest decay. @tbl-team-science-portfolio
 is what a legible portfolio looks like.
 
 | Project | Investigator | Stage | Next deliverable | Blocked on (owner) | Hours this week |
@@ -825,16 +822,16 @@ why their analysis has not moved, 'I am waiting on the corrected
 data file I requested on the 3rd' is an answer; silence is not.
 
 **Protect the cost of re-entry.** The expensive part of juggling
-projects is not the analysis but the reconstruction paid each
-time you return to a project set down three weeks ago. A project
+projects is the reconstruction paid each time you return to a
+project set down three weeks ago. A project
 that rebuilds with one command (@sec-rrtools, @sec-zzcollab),
 whose analytic decisions are fixed in an analysis plan
 (@sec-analysis-plan), and whose history is legible in Git
 (@sec-git-solo) can be put down and picked up in minutes; one
 held together in your head and an untracked script cannot.
 Reproducible infrastructure is usually justified as a courtesy to
-reviewers and future replicators. Its quieter and more immediate
-payoff is that it lets you carry fifteen projects without
+reviewers and future replicators. Its more immediate payoff is
+that it lets you carry fifteen projects without
 dropping any (Habit 1).
 
 **Batch the switches you can; price the ones you cannot.**
@@ -855,9 +852,7 @@ on time. Deferring is not a failure of collaboration; committing
 to a deadline you cannot meet is.
 
 None of this requires a particular tool. A single list like
-@tbl-team-science-portfolio, reviewed once a week, is enough. The
-tool is not the skill; the habit of keeping the portfolio legible
-is.
+@tbl-team-science-portfolio, reviewed once a week, is enough.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** It is Monday, and four projects are active. A has a
@@ -926,8 +921,8 @@ your time than naming the rules at intake.
 
 ### A roles matrix
 
-The operational question is not 'who has access' but 'who can do
-what to which data, and at what stage of the study'
+The operational question is 'who can do what to which data, and
+at what stage of the study'
 (@tbl-team-science-roles-matrix). A matrix answers it in one
 place, so that a request ('can I just fix this one value') has a
 documented answer instead of a judgment call made under time
@@ -946,8 +941,7 @@ statistician's row is deliberately the most restricted: querying
 and nothing else, so that the analysis can never be accused of
 having shaped the data it analyzes. {#tbl-team-science-roles-matrix}
 
-The statistician's own row is the one worth dwelling on. A
-statistician who can edit source data, even to fix an obvious
+A statistician who can edit source data, even to fix an obvious
 typo, has compromised the separation between the people who
 collect a result and the people who evaluate it; the correct
 channel is a query back to the site, resolved by the coordinator,
@@ -981,8 +975,8 @@ excluded them. This log is the only way to answer the question a
 reviewer eventually asks: are the patients who were excluded
 systematically different from the patients who were randomized, in
 a way that limits who the trial's result applies to? Without
-screen-fail tracking, that question has no answer at all, not even
-a flawed one; the excluded patients leave no trace. @tbl-team-science-screenfail
+screen-fail tracking the question cannot be answered, because
+the excluded patients leave no trace. @tbl-team-science-screenfail
 sketches what the log needs to hold.
 
 | Field | Why it is tracked |
@@ -1027,10 +1021,9 @@ the system to match the decision rather than the reverse.
 leaves no visible difference from a field that was never
 touched.** The audit trail (REDCap logs every unlock-edit-relock
 cycle with a timestamp and user) is the only record; if nobody
-ever reviews it, the lock is a promise, not a control. Reviewing
-the audit trail at prespecified points (database lock, before
-unblinding) is part of the data-management plan, not an
-afterthought.
+ever reviews it, the lock controls nothing. Reviewing the audit
+trail at prespecified points (database lock, before unblinding)
+belongs in the data-management plan.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -1076,8 +1069,7 @@ reads, or the separation that protects the primary analysis from
 knowledge of the interim result collapses. The blinded
 statistician should have no path to treatment assignment at all,
 enforced by the system, not by instruction. The auditor needs
-read-only export with no edit or lock rights, and critically, an
-audit trail of its own showing what was exported and when, since
+read-only export with no edit or lock rights, and an audit trail of its own showing what was exported and when, since
 an auditor's own access must be auditable.
 :::
 
@@ -1168,6 +1160,4 @@ needs no outcome data, or a submission at the next deadline.
    credit allocates grants, promotions, and prestige. Unresolved
    authorship disputes sour collaborations and sometimes
    terminate them. ICMJE-style agreement at the outset (and
-   written down) avoids the confrontation at the end. The
-   conversation is uncomfortable up front and far more
-   uncomfortable later; have it early.
+   written down) avoids the confrontation at the end.

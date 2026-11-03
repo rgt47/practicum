@@ -11,8 +11,7 @@ them. This appendix is the inventory.
 It exists partly as a disclosure. A textbook that teaches
 its author's own software has an obvious conflict. The
 honest response, in our view, is to make the extent of it
-visible rather than to distribute the mentions thinly enough
-that nobody notices.
+visible in one place.
 :::
 
 ## What the book depends on, and what it does not
@@ -24,7 +23,7 @@ technique the book teaches has a portable expression:
 substance, and the tools below are conveniences layered on
 them.
 
-Two exceptions are worth naming plainly. @sec-zzcollab is
+There are two exceptions. @sec-zzcollab is
 about `zzcollab` and cannot be separated from it, though its
 Five Pillars framing applies to any compendium. The two case
 studies (@sec-penguins, @sec-adni) use `zztable1` and
@@ -37,9 +36,8 @@ Everything else is optional. The aim is that wherever a
 chapter mentions one of these tools, it names the portable
 alternative in the same breath, so that a reader who
 ignores the tool loses convenience rather than capability.
-Not every chapter meets that standard yet, and bringing
-the rest into line is planned work rather than a claim
-about the present text.
+Not every chapter meets that standard yet; bringing the
+rest into line is planned.
 
 ## Research infrastructure
 
@@ -156,9 +154,8 @@ Do not cite it as an example of 21 CFR Part 11 compliance.
 **`zzworld`** ([github.com/rgt47/zzworld](https://github.com/rgt47/zzworld)).
 Scoring for the WORLD item in cognitive assessment,
 computing edit distance between a response and the target
-word and integrating with MMSE totals. Narrow by design, and
-included here for completeness rather than because any
-chapter uses it.
+word and integrating with MMSE totals. Narrow by design. No
+chapter uses it; it is listed for completeness.
 
 ## A caution about depending on any of it
 
@@ -167,7 +164,7 @@ GitHub, they carry version numbers that reflect active
 development rather than stability, and several are below
 version 1.0. The reproducibility argument of @sec-renv
 applies to them with more force than it does to CRAN
-packages, not less: pin them by commit in `renv.lock`, and
+packages: pin them by commit in `renv.lock`, and
 expect that an analysis depending on an unpinned in-house
 package will not reproduce in two years.
 

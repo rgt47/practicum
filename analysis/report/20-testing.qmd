@@ -268,7 +268,7 @@ argument, so `age_group(NA)` stops with `'x' must be numeric`. The
 same input arises in production: a column that is empty in every
 row is read by `read.csv()` as logical, and the function then fails
 on it. The test has found a real input the function does not
-handle, which is what a test is for.
+handle.
 :::
 
 ### Exercises
@@ -318,9 +318,8 @@ expect_equal(as.character(age_group_strict(30)), "18-39",
              info = "a valid age still bins correctly")
 ```
 
-Either is defensible. Leaving the behavior untested is not,
-because then it is not a decision at all, only whatever `cut()`
-happened to do.
+Either is defensible. Left untested, the behavior is whatever
+`cut()` happened to do, and nobody decided it.
 :::
 
 ## Structure versus correctness {#sec-testing-correctness}
@@ -633,7 +632,7 @@ exactly as a failed `expect_equal()` stops a test file, and the
 same `quit(status = ...)` pattern @sec-testing-ci teaches for a
 test suite turns a failed interrogation into a red CI run rather
 than a silently truncated dataset three steps downstream. The two
-checks are complementary rather than redundant: the unit tests
+checks do different work: the unit tests
 prove the cleaning function is correct on the cases you anticipated,
 and the validation agent proves that today's input still matches
 the assumptions those tests were written against.
@@ -1206,12 +1205,12 @@ clean_crf <- clean_crf_correct
 ```
 
 The fixture's date test and the comparison with the baseline table
-both kill the mutant. The counts show why the comparison matters
-more than it seems: dates whose day is above 12 become `NA`, which
-is loud, but every date whose day is 12 or below, and differs from
-its month, parses to a valid date in the wrong month. The third
-count is the one that matters: those dates pass every check except
-a comparison with something independent.
+both kill the mutant. The counts show why the comparison is
+needed: dates whose day is above 12 become `NA`, which is loud, but
+every date whose day is 12 or below, and differs from its month,
+parses to a valid date in the wrong month. Those dates, the third
+count, pass every check except a comparison with something
+independent.
 :::
 
 5. The CRF's `sbp_discharge` column marks a missing value three
@@ -1372,12 +1371,11 @@ maintains ready-made steps for it. Triggers, jobs, and steps on a
 clean machine transfer unchanged to GitLab CI and the other
 systems.
 
-For a statistician the value is specific. A passing test suite
-says the code does what its tests check. A passing CI run says
-more: that the analysis reconstructs from `renv.lock` on a machine
-that is not yours and produces the report. That second guarantee
-is the one that matters when a reviewer, or you in a year, must
-rerun the work. The workflow file is boilerplate and can be
+A passing test suite says the code does what its tests check. A
+passing CI run says more: that the analysis reconstructs from
+`renv.lock` on a machine that is not yours and produces the
+report. That second guarantee is what a reviewer, or you in a
+year, relies on to rerun the work. The workflow file is boilerplate and can be
 copied; what it checks, and therefore what a green check entitles
 you to claim, is a decision.
 
@@ -1401,7 +1399,7 @@ compiles, not that it is correct. {#tbl-ci-checklist}
 The first row has a gap that the `janitor` story falls into. A
 restore installs what the lockfile lists, so a package the
 lockfile omits does not fail the restore; it fails the first later
-step that loads it. That is why the rows are a stack, not a menu:
+step that loads it. That is why a workflow needs all four rows:
 the test and render steps are what discover that the restore was
 incomplete.
 
@@ -1551,7 +1549,7 @@ showed.
 
 **Restore the lockfile, not the latest versions.** The
 `r-lib/actions` collection supplies two ways to provide packages,
-and they are alternatives, not companions:
+and a workflow uses one or the other:
 
 | Step | Installs | CI then tests |
 |---|---|---|
@@ -2039,8 +2037,8 @@ mechanical (@tbl-testing-testthat).
 
 : The same tests in both frameworks. {#tbl-testing-testthat}
 
-`tinytest`'s missing functions are a choice rather than a gap: each
-is a plain comparison whose failure prints the two values. Visual
+`tinytest` omits these functions by design: each is a plain
+comparison whose failure prints the two values. Visual
 regression testing of `ggplot2` output is the one place the two
 ecosystems differ in maturity. `vdiffr`, which stores an SVG
 (Scalable Vector Graphics) file of the plot and compares later

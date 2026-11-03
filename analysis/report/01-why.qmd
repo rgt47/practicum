@@ -150,8 +150,7 @@ a colleague's is a real disagreement or a bug.
 (b) Results, which NASEM calls replicability: new data from a new
 sample. (c) Inferential: the same evidence, analyzed under
 different choices and judged by a different standard. Scenario
-(c) can happen with a perfectly reproducible analysis, which is
-why the distinction matters.
+(c) can happen with a perfectly reproducible analysis.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -208,11 +207,10 @@ and computational environment behind a published result clearly
 enough for others to repeat the analysis, which is the compendium
 of @sec-why-anatomy.
 
-Both cases have the same shape. The code ran, the output looked
-like a result, and the error surfaced only when an outsider
-rebuilt the analysis at great cost. Neither error was caught by
-care, and both could have been caught by a check that runs every
-time. The book calls this idea **make silent failures loud**,
+In both cases the code ran, the output looked like a result, and
+the error surfaced only when an outsider rebuilt the analysis at
+great cost. Care caught neither error; a check that runs every
+time could have caught both. The book calls this idea **make silent failures loud**,
 and every tool in the chapters that follow is a way of doing it.
 The numbered habits that put the idea into practice are listed
 in @sec-habits; later chapters cite them by number.
@@ -321,10 +319,9 @@ environment, structured as an R package or similar artifact
 ### Where judgment enters
 
 Tools such as `renv`, Docker, and Quarto make the software part
-of reproducibility easy. Reproducibility is a workflow problem
-disguised as a software problem, and the workflow part (which
-steps to script, what counts as a data file, when to commit) is
-where your judgment matters.
+of reproducibility easy. The workflow part (which steps to
+script, what counts as a data file, when to commit) is harder,
+and it is where your judgment matters.
 
 - **What goes in the script, and what goes in the README.**
   `library(dplyr)` belongs in the script. 'Download the file from
@@ -340,9 +337,6 @@ where your judgment matters.
   hand, a table transcribed from a paper. Document them in the
   README and treat their output as raw input to the reproducible
   chain. Do not pretend they were automated.
-
-These judgments are what distinguish a research compendium from a
-directory of scripts.
 
 ### Exercises
 
@@ -381,16 +375,15 @@ access procedure distinguishes the two.
 
 The failures that make an analysis irreproducible are almost
 never fraud, and rarely even carelessness in any sense the analyst
-would recognize at the time. They are entropy. A package was
-updated between the analysis and the revision. A file was
-renamed. A step was done by hand on a Thursday afternoon and
-never written down, because on that Thursday it was obvious. Each
-is individually trivial and individually invisible; their
-accumulation is what makes an analysis irreproducible six months
-later, usually to the surprise of the person who wrote it. The
-remedy is not vigilance, which does not scale and cannot be
-audited, but a small number of structural habits that make the
-entropy impossible rather than merely discouraged.
+would recognize at the time. A package was updated between the
+analysis and the revision. A file was renamed. A step was done by
+hand on a Thursday afternoon and never written down, because on
+that Thursday it was obvious. Each is trivial and invisible on its
+own; together they make an analysis irreproducible six months
+later, usually to the surprise of the person who wrote it.
+Vigilance does not scale and cannot be audited. The remedy is a
+small number of structural habits that make these failures
+impossible.
 
 @tbl-why-failures lists the common failures, each with the check
 that makes it loud and the chapter that teaches the tool.
@@ -448,8 +441,7 @@ identical(run_1, run_2)
 
 Nothing failed. Both intervals are plausible, and they differ only
 in a late decimal place (the values change each time this page is
-built), which is exactly why the omission
-survives: the analyst who reruns the script before a revision sees
+built), which is why the omission survives: the analyst who reruns the script before a revision sees
 a slightly different number and has no way to tell drift from a
 change in the data. The fix is one line, and the check that
 proves it is another.
@@ -580,11 +572,10 @@ recur at every event.
 The argument now has a second, external form. Since 2023 the
 National Institutes of Health (NIH) has made a Data Management and
 Sharing Plan a term of its awards for research that generates
-scientific data, and federal
-public-access policy now reaches from publications to the data
-beneath them, which moves the work of producing a reusable
-dataset, runnable code, and a declared environment from
-administrators to the analyst. @sec-federal takes up the specific
+scientific data, and federal public-access policy now reaches
+from publications to the data beneath them, which moves the work
+of producing a reusable dataset, runnable code, and a declared
+environment from administrators to the analyst. @sec-federal takes up the specific
 policies and the practices that satisfy them.
 
 ### Exercises
@@ -648,8 +639,8 @@ not?
 **Answer.** It has bought the ability to find out. It has not made
 the analysis right, and nothing about the infrastructure will.
 
-What reproducibility supplies is *legibility*. The dichotomization
-is in the code, at a specific line, in a form a reviewer can point
+Reproducibility supplies *legibility*. The dichotomization is in
+the code, at a specific line, in a form a reviewer can point
 at. In an irreproducible analysis the same decision is invisible,
 described in the methods as 'patients were classified as high or
 low' with no way to see the cut point or how it was chosen. The
@@ -657,9 +648,8 @@ error exists either way; only one version is auditable. It also
 makes the fix cheap: changing one line and rebuilding gives the
 corrected result in minutes.
 
-The failure mode to keep in view is that a fully reproducible
-pipeline produces a *reliably* wrong answer, and its polish can
-read as authority. A reviewer impressed by the Docker image and
+A fully reproducible pipeline can produce a *reliably* wrong
+answer, and its polish can read as authority. A reviewer impressed by the Docker image and
 the lockfile may look less hard at the model. That is why the book
 puts @sec-ethics last rather than treating the infrastructure as
 the destination.
@@ -714,9 +704,9 @@ read off, a bar chart with labeled values. Work only from what the
 paper's own compendium provides: its code, its deposited data (or
 the access procedure it documents), and its stated software
 versions, in that order. Do not consult the authors, and do not
-patch a failure with a guess about what they must have meant;
-treat a step you cannot complete from the deposited materials as
-an obstacle to log, not a gap to fill in yourself.
+patch a failure with a guess about what they must have meant; log
+a step you cannot complete from the deposited materials as an
+obstacle.
 
 Keep a running log as you work, with one entry per obstacle, each
 tagged four ways: which leg of @fig-repro-legs it belongs to
@@ -733,15 +723,14 @@ reproduction from the authors' own data and code is a test of
 methods reproducibility, and nothing in this exercise tests
 whether the finding would replicate in a new sample.
 
-This exercise has no solution key, and that is deliberate. What
-counts as success varies by paper: some published compendia let
-you rebuild a figure to the pixel, and some let you get within
-rounding error after fixing three unpinned versions, and some
-defeat you entirely despite a stated open-data policy, which is
-itself a finding worth reporting. Each of these outcomes is a
-valid result of the exercise, and each should be logged with the
-same care, because the obstacle log is the deliverable, not the
-reproduced figure.
+There is no single correct result to check against, and the
+solution below describes a good log, not a target number. What
+counts as success varies by paper: some published compendia let you rebuild a figure to
+the pixel, some let you get within rounding error after fixing
+three unpinned versions, and some defeat you entirely despite a
+stated open-data policy, which is itself a finding worth
+reporting. Log each outcome with the same care; the obstacle log
+is the deliverable.
 
 6. *Cumulative (uses the whole chapter).* Find a published paper
    in your field with public code and data, and try to reproduce

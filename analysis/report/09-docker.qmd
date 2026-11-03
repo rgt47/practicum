@@ -216,9 +216,9 @@ run a container from the same image?
 live only in its writable layer, which is discarded when the
 container is removed (at exit, with `--rm`). To add the package
 permanently, install it in the project, snapshot `renv.lock`, and
-rebuild the image. This is the discipline that makes Docker a
-reproducibility tool: changes happen in the Dockerfile and the
-lockfile, in version control, never in running containers. 'Works
+rebuild the image. Docker reproduces an analysis only if changes
+happen in the Dockerfile and the lockfile, in version control,
+never in running containers. 'Works
 on my machine' becomes 'works on this image, which everyone has'.
 :::
 
@@ -313,7 +313,7 @@ to whatever the tag points at today. The digest cannot change: if
 it resolves at all, it resolves to exactly the bytes you built
 against.
 
-The trade-off is real. A pinned digest never picks up a security
+A pinned digest has its own cost: it never picks up a security
 patch, so it ages into a liability, and the hash is unreadable in
 a diff. The usual compromise is a version tag during development
 and a digest recorded at the moment of submission, alongside the
@@ -818,10 +818,9 @@ the cause is in the code or the data, not the machine.
 Everything above pins reproducibility with a lockfile and a
 container image, which is the mainstream path for an R research
 compendium and the one this book teaches. A smaller but active
-community takes a different route to the same goal, worth knowing
-about even if this chapter does not walk through it: **Nix**, a
-package manager and build system built around the idea that a
-build should be a pure function of its declared inputs. Where
+community takes a different route to the same goal: Nix, a package
+manager and build system built around the idea that a build should
+be a pure function of its declared inputs. Where
 `apt-get install` or a base image's own history can change what
 `FROM rocker/r-ver:4.4.0` resolves to over time (@sec-docker-rocker),
 a Nix build specifies every dependency, down to the compiler
@@ -863,10 +862,10 @@ questions (Nix: 'exactly which inputs built this package', Docker:
 some reproducibility-focused teams layer them, using `rix` to
 generate the environment description and a thin Dockerfile only to
 package it for a system that expects a container image. That
-combination is outside the scope of this aside; the point here is
-narrower, that `rix` and Nix exist as a documented, maintained
-alternative to the `renv`-plus-Docker path this book teaches, not
-a recommendation to adopt either on their own.
+combination is outside the scope of this aside, which presents
+`rix` and Nix as a documented, maintained alternative to the
+`renv`-plus-Docker path this book teaches without recommending
+either one on its own.
 
 Weighed against `renv` plus Docker, Nix's case is a stronger
 reproducibility guarantee in principle (the whole dependency
@@ -882,7 +881,7 @@ documentation and troubleshooting resources for Nix are thinner than
 for `renv` and Docker, both of which this book assumes you will use
 day to day. Some reproducibility-focused groups, particularly where
 Nix is already part of the organization's infrastructure, use `rix`
-and Nix instead of `renv` plus Docker for exactly this reason; for
+and Nix instead of `renv` plus Docker for these reasons; for
 most research compendia starting from nothing, the mainstream path
 of this book remains the one to learn first. If a future
 collaborator hands you a `default.nix` instead of a Dockerfile, the

@@ -3,8 +3,8 @@
 A workstation is the one piece of infrastructure in this book that
 nobody will ever ask you about. No reviewer inspects it, no funder
 requires it, and no collaborator sees it, so it tends to stay in
-whatever state it arrived in. Its defects do not announce
-themselves. They appear as friction: a path that works here and
+whatever state it arrived in. Its defects appear as friction: a
+path that works here and
 not there, a package that is a different version than you thought,
 a script that runs in your session only because yesterday's
 objects were quietly restored into it. This chapter installs the
@@ -90,12 +90,12 @@ answers are in @sec-quiz-answers-04.
 
 ## The essentials {#sec-workstation-essentials}
 
-The goal is not a comfortable machine; comfort is a matter of
-taste this book has no standing to legislate. The goal is a
-legible one: a configuration that is written down, restorable, and
-separable from the projects that run on it, so that the analysis
-you run on Tuesday gives the same result on Wednesday, and the one
-you run at home gives the same result as in the office.
+The goal is a legible machine: a configuration that is written
+down, restorable, and separable from the projects that run on it,
+so that the analysis you run on Tuesday gives the same result on
+Wednesday, and the one you run at home gives the same result as
+in the office. Comfort is a matter of taste this book has no
+standing to legislate.
 @tbl-workstation-essentials is the whole of what the rest of the
 book assumes.
 
@@ -122,8 +122,7 @@ then depends on the order of your `PATH`.
 
 ### Choosing an IDE
 
-Take the conclusion first: the choice matters much less than the
-fluency. The productivity you gain by knowing one editor thoroughly
+The choice of IDE matters much less than fluency in it. The productivity you gain by knowing one editor thoroughly
 exceeds anything available by switching to a better one, and a
 year spent shallowly in three of them is worse than a year spent
 deeply in any one. What the choice does turn on is fit, along two
@@ -382,9 +381,9 @@ into WSL.
 
 Almost every 'it works on my machine' report about a missing or
 wrong-version package resolves to one question: which library did
-R look in? @fig-libpaths is the search order, and the thing to
-notice is that `renv` works by replacing the user and site
-libraries rather than by adding to them.
+R look in? @fig-libpaths is the search order. Note that `renv`
+works by replacing the user and site libraries rather than by
+adding to them.
 
 ```{mermaid}
 %%| echo: false

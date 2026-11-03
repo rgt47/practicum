@@ -165,7 +165,7 @@ flowchart TD
 ```
 
 The graph is only as clear as the decomposition it encodes, and
-the decomposition is yours to make, not the tool's. Make each
+you make the decomposition; the tool only records it. Make each
 target a meaningful unit (read, derive, summarize, model, report),
 each computed by a function with explicit inputs and one output,
 rather than one thousand-line script that a single target wraps.
@@ -183,9 +183,8 @@ which are skipped?
 **Answer.** `table_2` is rebuilt because its function changed, and
 `report` because it depends on `table_2`. The two file targets,
 `randomization`, `outcomes`, and `analysis_set` are skipped,
-because none of them lies downstream of the change. That is the
-tool's whole value: it rebuilds the two stale targets and leaves
-everything upstream, which may be expensive, alone.
+because none of them lies downstream of the change. Everything
+upstream, which may be expensive to compute, is left alone.
 :::
 
 ### Exercises
@@ -490,9 +489,9 @@ table_2_v2
 ```
 
 The two reads are skipped and the two stale targets are rebuilt.
-Table 2 cannot be left behind: the fix to the derivation reached
-it without your remembering it, which is the failure in the
-opening made impossible. On a pipeline whose model fit takes an
+The fix to the derivation reached Table 2 without your
+remembering it, so the failure in the opening cannot recur. On a
+pipeline whose model fit takes an
 hour, the same mechanism is the difference between an iteration
 that costs minutes and one that costs the hour.
 
@@ -741,10 +740,10 @@ the container, or every run starts from nothing.
 
 : Where a pipeline's pieces live in a compendium. {#tbl-targets-pieces}
 
-The compendium holds the ingredients; `targets` is the recipe that
-assembles them in the right order, and re-assembles only what has
-changed. Together they deliver the end-to-end re-runnability that
-a compendium alone only promises.
+The compendium holds the code, data, and environment; `targets`
+runs the steps in dependency order and reruns only what has
+changed. With both in place, the analysis can be re-run end to
+end, which the compendium alone does not guarantee.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A colleague builds the image, runs the container
@@ -792,10 +791,10 @@ withr::with_dir(proj, targets::tar_meta(fields = c(
 `tar_meta()` returns one row per target with its build time, any
 warning or error it raised, and (with other fields) the hash of
 its code and data, which is what `tar_outdated()` reads to decide
-staleness. This is a record of the pipeline's own bookkeeping, not
-a human-readable account of a run meant to stand on its own in an
-audit file, and the difference matters once a pipeline's output
-feeds a regulatory submission.
+staleness. It is the pipeline's own bookkeeping, and it was not
+written to be read on its own as an account of a run in an audit
+file, which becomes a gap once a pipeline's output feeds a
+regulatory submission.
 
 Two of the gaps in `tar_meta()` as an audit record are worth
 naming before reaching for another tool. First, it describes the
@@ -896,8 +895,7 @@ record the R version, the attached package versions, or the exact
 code that executed, in one human-readable document. `whirl` or
 `logrx` wrap the run and produce exactly that: a log, readable
 without re-running anything, of what ran, under what environment,
-with what result. The two are complementary, not substitutes for
-each other.
+with what result. A submission needs both records.
 :::
 
 ### Exercises
@@ -957,9 +955,9 @@ stays in R.
 
 ### Python interoperability from an R-primary compendium
 
-Two projects that are R-primary but need one Python step (an
+A project that is R-primary but needs one Python step (an
 off-the-shelf machine learning library, say, with no R equivalent)
-have two ways to call it without leaving the `targets` pipeline.
+has two ways to call it without leaving the `targets` pipeline.
 `reticulate` embeds a Python session inside the R session, so a
 `tar_target()` can call a Python function and receive its result
 back as an R object directly, at the cost of keeping both
@@ -975,10 +973,10 @@ management fully separate, and it is often the simpler choice for
 a single well-defined step rather than a continuously interleaved
 R-and-Python analysis.
 
-Whichever a project adopts, the choice is about which ecosystem's
-tool organizes the whole pipeline, not whether R and Python can be
-mixed at all; both Make and Snakemake can call out to R exactly as
-easily as a `targets` pipeline can call out to Python.
+R and Python can be mixed under any of these tools; the choice is
+which ecosystem's tool organizes the whole pipeline. Both Make and
+Snakemake can call out to R exactly as easily as a `targets`
+pipeline can call out to Python.
 
 The practical rule of thumb for a mostly-R biostatistics project is
 to let the language that does most of the analytical work own the

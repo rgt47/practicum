@@ -148,8 +148,8 @@ model (@sec-ai-governance), and never appears in the deposit.
 beside the data reports the observed event rates in each arm,
 because it documents the generator. In a real trial the outcome
 file would not exist on your machine until the SAP was signed;
-here the seal is a discipline you keep, not a mask the data
-impose. Do not read the README's Design section until your SAP
+here the file is present from the start, and keeping it sealed
+is up to you. Do not read the README's Design section until your SAP
 is tagged. The tag is evidence only of the order of commits, and
 a plan written by someone who knows the result is a plan in name
 only.
@@ -167,8 +167,7 @@ skip the steps (@sec-acquisition-files, @sec-wrangling-worked,
 @sec-types-worked) in which the analysis's denominator is
 decided. Starting from `crf_export.csv` makes every one of those
 decisions a line of code a reviewer can read; you may use the
-clean tables afterward as an oracle in your tests, which is what
-they are best for.
+clean tables afterward as an oracle in your tests.
 :::
 
 ## Milestones {#sec-synthesis-milestones}
@@ -227,7 +226,7 @@ make docker-render REPORT=analysis/paper/paper.qmd
 Then compare the rendered estimates with the ones in your memo.
 If the build fails, a dependency is not pinned; if it succeeds
 with different numbers, something in your working copy was not
-committed. Either is a finding for milestone 2, not a nuisance.
+committed. Treat either as a milestone 2 finding and fix it.
 :::
 
 ::: {.callout-important title='LLM prompt'}
@@ -304,9 +303,8 @@ their README does not say.
 The capstone is graded on the habits, not on the estimate. Two
 students who reach different conclusions from the same data can
 both earn full marks, and a student whose estimate matches the
-generator's can fail, because the estimate is not the evidence of
-competence: the trail that produced it is.
-@tbl-synthesis-rubric gives, for each habit, what the grader
+generator's can fail, because the evidence of competence is the
+trail that produced the estimate. @tbl-synthesis-rubric gives, for each habit, what the grader
 inspects and three levels.
 
 | Habit | What the grader inspects | Not yet | Meets | Exemplary |
@@ -382,10 +380,10 @@ Site E, an assertion says so by name; if the plan changed after
 the outcome was seen, `git log` says so by date. The Duke errors
 were of exactly these kinds, and in a compendium like yours they
 are found in an afternoon, often by the analyst, before any
-patient is affected. That is what reproducibility buys: not
-correctness, which @sec-why-correctness and @sec-ethics show it
-cannot guarantee, but the ability of anyone, including you in five
-years, to find out quickly whether the analysis is correct.
+patient is affected. Reproducibility cannot guarantee
+correctness, as @sec-why-correctness and @sec-ethics show; what it
+buys is the ability of anyone, including you in five years, to
+find out quickly whether the analysis is correct.
 
 ## Rules of thumb
 

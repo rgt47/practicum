@@ -12,12 +12,11 @@ performance-critical code, several CRAN packages internally),
 `arrow` (Parquet and Python interop), and, more recently,
 `polars` for R.
 
-The goal here is **reading-level fluency**, not conversion. A
-finishing biostatistics student should be able to open an R
-script written by someone else and recognize whatever
-paradigm the author chose. Writing idiomatic `data.table` is
-a separate investment. This appendix does not claim to make
-you fluent, only literate.
+The goal here is reading-level fluency. A finishing
+biostatistics student should be able to open an R script
+written by someone else and recognize whatever paradigm the
+author chose. Writing idiomatic `data.table` is a separate
+investment that this appendix does not attempt.
 :::
 
 ## Five paradigms
@@ -37,7 +36,7 @@ data manipulation was base R. It is still the lingua franca
 of package development, and a student who cannot read it is
 cut off from most of CRAN.
 
-The four idioms that matter:
+Four idioms cover most of it:
 
 ```{r}
 #| label: alt-base-r
@@ -235,7 +234,8 @@ For now, prefer `data.table` if you need speed or
 
 **On your own machine, data, or collaborations.** These exercises time
 code on your own hardware or read package source, so no answer key is
-possible. The comparison, not the number, is the point.
+possible. Compare the paradigms with one another; the absolute
+times depend on the machine.
 
 1. Take a wrangling pipeline from @sec-wrangling and
    rewrite it three ways: in `data.table`, in base R, and

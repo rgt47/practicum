@@ -204,9 +204,7 @@ is whether to do it at all.
 
 The reflex is to say yes, on the grounds that Quarto is
 the successor and current tools are better than superseded
-ones. That reflex is wrong often enough to be worth
-resisting, because it mistakes currency for value. A
-finished analysis that renders correctly under a pinned
+ones. That reflex is often wrong. A finished analysis that renders correctly under a pinned
 environment already does everything this book asks of it.
 Migrating it produces the same output from newer
 machinery, and in exchange you accept a window in which
@@ -294,9 +292,9 @@ syntax you updated but whose target label you did not. Change
 `_book` to your project's output directory.
 :::
 
-**Package assumptions are the quiet cost.** Code that
-reached around `knitr` rather than through it does not
-convert, because there is nothing to convert: it simply
+Package assumptions are the cost least likely to announce
+itself. Code that reached around `knitr` rather than
+through it has nothing to convert; under Quarto it simply
 behaves differently. The recurring cases are
 `kableExtra`'s LaTeX-specific options, any output format
 in the `bookdown::` namespace, and custom `knit_hooks`.
@@ -322,9 +320,8 @@ figure numbered by hand will all move, and they will move
 silently for the same reason described above. The
 discipline that makes this tractable is to convert one
 chapter at a time and keep the `bookdown` build working
-until the Quarto build matches it. Render both, and
-compare the outputs rather than trusting that a clean
-render means a correct one. A clean render means the
+until the Quarto build matches it. Render both and
+compare the outputs: a clean render means only that the
 document compiled.
 
 ### The boundary you may not control

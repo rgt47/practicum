@@ -412,8 +412,9 @@ then points at nothing. A repository also has no fixed identity;
 which version produced the results. A Zenodo release mints a DOI
 that resolves permanently and snapshots the repository at that
 commit, which is why the pattern pairs them. The same distinction
-applies to the SAP tag of @sec-analysis-plan: a tag organizes; an
-external, timestamped, immutable record is what makes it evidence.
+applies to the SAP tag of @sec-analysis-plan: the tag marks the
+version, and an external, timestamped, immutable record is what
+makes it evidence.
 :::
 
 ## Licensing and citation of code and data {#sec-federal-licensing}
@@ -458,8 +459,8 @@ synthetic surrogate dataset, having no participant to protect, can
 carry CC0 (public domain dedication) or CC-BY like any other open
 artifact.
 
-Mixing licenses within one compendium is normal and should be
-explicit, not implied: an MIT `LICENSE` at the root for the code,
+Mixing licenses within one compendium is normal, and each should
+be stated explicitly: an MIT `LICENSE` at the root for the code,
 a `LICENSE-data` or a statement in the data README for the
 controlled-access terms, and a line in the main README pointing to
 each.
@@ -529,7 +530,7 @@ as patch releases without updating `CITATION.cff`'s `version` and
 `identifiers`, the file can point a citer at an outdated DOI while
 the newest one is the one a reader finds on Zenodo. Update
 `CITATION.cff` as part of the release checklist, in the same commit
-that bumps the version tag, not as an afterthought.
+that bumps the version tag.
 :::
 
 ### Exercises

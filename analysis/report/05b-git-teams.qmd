@@ -127,9 +127,8 @@ The mechanics of Git are largely indifferent to the number of
 people using them: the commit is still a snapshot, the branch is
 still a movable pointer, and the tag is still fixed. What changes
 when a second person joins is the object Git maintains. The
-repository is no longer the record of what you did; it is the
-record of what the team did, and the team must be able to
-reconstruct the analysis from it. Three consequences organize this
+repository becomes the record of what the team did, and the team
+must be able to reconstruct the analysis from it. Three consequences organize this
 chapter: two people editing one file will eventually collide
 (@sec-git-teams-conflicts); the history becomes something a
 colleague reads, so a careless commit message becomes a shared
@@ -296,16 +295,15 @@ change. Reserve a true merge for branches whose internal commits
 are each meaningful.
 
 Three properties of the workflow are the reasons to adopt it
-rather than pushing to `main` and hoping. **Nothing unreviewed
-becomes the analysis**: the pull request is a gate that a human
-must open. **CI checks the proposal, not the aftermath**: the
-workflow of @sec-ci, which restores `renv`, runs the tests, and
-renders the report, answers 'does this change break the analysis'
-before the change lands. **The branch is a unit of thought**: six
-months later, the pull request that merged `sensitivity-mnar` is a
+rather than pushing to `main` and hoping. Nothing unreviewed
+becomes the analysis, because the pull request is a gate that a
+human must open. CI checks the proposal: the workflow of
+@sec-ci, which restores `renv`, runs the tests, and renders the
+report, answers 'does this change break the analysis' before the
+change lands. And the branch is a unit of thought: six months
+later, the pull request that merged `sensitivity-mnar` is a
 small, self-contained record of what was added, why, and what the
-reviewer asked, the best record of an analytic decision the
-tooling will ever give you for free.
+reviewer asked.
 
 ### Protecting `main`
 
@@ -354,8 +352,8 @@ check.
 trust, are the only contributors. Why not simply agree to be
 careful and push to `main`?
 
-**Answer.** Because the protection is not against carelessness, it
-is against the absence of a second reader. Pushing to `main` means
+**Answer.** Because the protection is against the absence of a
+second reader. Pushing to `main` means
 the analysis of record changed and nobody looked. The pull request
 costs about ninety seconds and buys three things you cannot get
 otherwise: a second pair of eyes on a statistical change, a CI run
@@ -364,8 +362,7 @@ durable written record of why the change was made, attached to the
 change itself. The 'we are careful' argument also fails for a
 structural reason: what you are guarding against is not your
 colleague's carelessness, nor your own, but the interaction of two
-correct changes that are wrong together. No individual can catch
-that by being careful alone.
+correct changes that are wrong together.
 :::
 
 ## Merge conflicts {#sec-git-teams-conflicts}
@@ -394,9 +391,8 @@ what arrived. The marker `>>>>>>>` names its source. Your job is to
 edit the file so that it says what the analysis should say, and to
 delete all three marker lines.
 
-**A merge conflict is a disagreement about the analysis, not about
-the text.** The tooling invites you to pick a winner; read the
-conflict instead as two statements about the analysis. Yours drops
+**Read a merge conflict as two statements about the analysis.**
+The tooling invites you to pick a winner. Yours drops
 implausibly high systolic and diastolic pressures; theirs adds a
 lower bound on systolic pressure and tightens its upper bound from
 250 to 220. Two of these three changes are not alternatives at
@@ -421,8 +417,7 @@ rather than chosen. Send a message to your colleague asking why
 220, because one of you has a reason and the other should hear it.
 The conflict surfaced a substantive disagreement about an
 exclusion criterion that would otherwise have been settled
-silently by whoever pushed last. That is the conflict doing its
-job.
+silently by whoever pushed last.
 
 ### What the resolution does to the cohort
 
@@ -573,8 +568,8 @@ lockfile and discards your collaborator's on every merge, with
 no conflict to prompt the regeneration described above. That is
 picking a side wholesale, without the decision.
 
-The line-ending declaration matters more than it looks: a team
-that mixes Windows and macOS machines without it will eventually
+Without the line-ending declaration, a team that mixes Windows
+and macOS machines will eventually
 produce a diff in which every line of a file has changed, and no
 review is possible through that noise (@sec-shell shows what a
 carriage return looks like at the byte level).
@@ -769,8 +764,7 @@ statistics would never ask?
 on the list a careful engineer might stumble on (a changed row
 count, a new join, a moved seed), but whether a new covariate or
 subgroup appears in the analysis plan can be answered only by
-someone who has read the plan and knows why it matters. That is
-the question a statistician reviewer exists to ask.
+someone who has read the plan and knows why it matters.
 :::
 
 ## Attribution: blame and bisect {#sec-git-teams-bisect}
@@ -932,7 +926,7 @@ git push
 CI re-runs against the updated branch. It fails: the combined
 cohort now has `r fmt(n_resolved)` rows, and a test in
 `inst/tinytest/test-cohort.R`, written on your branch, asserted
-`r fmt(n_yours)`. The test is doing its job. You account for the
+`r fmt(n_yours)`. You account for the
 difference (@tbl-git-teams-conflict-counts), update the assertion,
 note the new denominator in the manuscript, and push again. The
 check goes green, your colleague reviews the diff, asks whether the
@@ -1089,9 +1083,8 @@ fetch-and-look step is the habit of @sec-git-teams-remotes.
    have buried. The exception is a conflict in a generated
    file (`renv.lock`, a rendered document, a cache), which is
    resolved by regenerating the file rather than editing it.
-3. Because the protection a pull request provides is not
-   against untrustworthiness, it is against the absence of a
-   second reader. It buys three things that trust does not: a
+3. Because a pull request supplies a second reader, which trust
+   between colleagues does not. It buys three things: a
    second pair of eyes on a statistical change before it
    becomes the analysis of record, a CI run against the
    proposed state rather than after the fact, and a durable

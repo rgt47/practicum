@@ -444,7 +444,7 @@ The cross-tabulation says why they are small. Each species was
 sampled in every year in roughly stable proportions, so year is
 close to a nuisance variable and species is the design. A Table 1
 that stratifies by the wrong variable looks reassuringly balanced
-and tells you nothing, which is the point of the exercise.
+and tells you nothing.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -526,9 +526,8 @@ penguins_clean |>
 The $R^2$ of `r round(summary(fit)$r.squared, 2)` is respectable,
 and on a clean morphometric dataset a respectable $R^2$ is not
 evidence that the model is well specified. It says the predictors
-and the outcome are related, and nothing about whether the
-functional form is right or a variable is missing. That is what
-the diagnostics are for.
+and the outcome are related; whether the functional form is right
+or a variable is missing is a question for the diagnostics.
 
 ### Diagnostic plots
 
@@ -625,9 +624,8 @@ sex_gap <- round(diff(tapply(penguins_resid$resid,
 Males sit on average `r sex_gap` g above females at the same
 flipper length and species. The gap is large in Adelies and
 Gentoos and small in Chinstraps, which is itself a finding a
-report should mention. The four standard plots gave no
-hint
-of it, because the residuals' overall distribution is a symmetric
+report should mention. The four standard plots gave no hint of
+it, because the residuals' overall distribution is a symmetric
 mixture of two shifted groups and passes for normal. Whether to
 add `sex` depends on the question. To describe mass as a function
 of flipper length within species, the model stands, and the sex
@@ -985,7 +983,7 @@ claims from the data it was given; it re-derives the estimate
 independently, which catches a wrong formula or a wrong model.
 It cannot catch wrong data, because both routes see the same rows.
 The denominator test catches wrong data. Each test covers a
-failure the other cannot, which is why a suite needs both.
+failure the other cannot.
 :::
 
 ## Deposit {#sec-penguins-deposit}
@@ -1095,9 +1093,9 @@ version, which is what a paper's citation needs.
    plausibly does not depend on the outcome given the covariates,
    as the chapter argues it does not here; that, not MCAR
    (missing completely at random) or a percentage threshold, is
-   the condition. Multiple imputation is
-   preferable when missingness may depend on the outcome or when
-   the dropped rows carry precision worth recovering.
+   the condition. Multiple imputation is preferable when
+   missingness may depend on the outcome or when the dropped rows
+   carry precision worth recovering.
 2. A research compendium (@sec-zzcollab): the Five Pillars,
    assembled by hand from the `rrtools` layout, `renv`, and the
    canonical Dockerfile, or automated, for example with

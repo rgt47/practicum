@@ -20,12 +20,11 @@ A [Shiny](https://shiny.posit.co) application
 [@chang2024shiny] is an R program that pairs a user interface
 (controls: dropdowns, sliders, buttons) with a server function that
 reacts to them and redraws its outputs. It is a different kind of
-artifact from everything else in this book, and the difference is
-not 'more impressive' or 'more modern'; a Shiny app is the right
-choice for a narrower set of problems than its popularity suggests,
-and the wrong choice is expensive in a specific way: it has to be
-hosted, it has to keep working as R and its packages change under
-it, and someone has to be paged when it goes down.
+artifact from everything else in this book. A Shiny app is the
+right choice for a narrower set of problems than its popularity
+suggests, and the wrong choice is expensive: it has to be hosted,
+it has to keep working as R and its packages change under it, and
+someone has to be paged when it goes down.
 
 The deciding question is not 'would this be nice to explore
 interactively' (almost everything would) but 'who re-runs this, how
@@ -38,7 +37,7 @@ the same output again'. Three patterns recur:
   (@sec-quarto, @sec-rrtools) is correct here; an app would let
   readers change the eligibility criteria or the covariate set and
   produce a result the SAP (@sec-analysis-plan) never specified,
-  which is a cost, not a feature, for a confirmatory analysis.
+  which in a confirmatory analysis is a cost.
 - **Repeated use by a team, with inputs that genuinely vary.** A
   data safety monitoring board that reviews accruing adverse-event
   rates at each scheduled look, a clinical operations team that
@@ -73,8 +72,8 @@ dashboard that twelve people might log into, because the report has
 no uptime to monitor and no session state to reason about.
 
 ::: {.callout-warning title='Pitfall'}
-**An interactive app with no maintainer is a liability, not a
-deliverable.** A Shiny app silently breaks when a dependency
+**An interactive app with no maintainer is a liability.** A Shiny
+app silently breaks when a dependency
 changes behavior, when a data source's schema shifts, or when the
 server it runs on reaches end of life, and unlike a rendered report
 sitting in a shared drive, a broken app actively fails in front of
@@ -158,8 +157,8 @@ app <- init(
 shinyApp(app$ui, app$server)
 ```
 
-The value `teal` adds over a bespoke app is standardization across
-studies rather than any single feature: every `teal` app built this
+What `teal` adds over a bespoke app is standardization across
+studies: every `teal` app built this
 way gives its reviewers the same filter panel, the same navigation,
 and modules whose statistical content (which Kaplan-Meier estimator,
 which adverse-event grading) has been reviewed once and reused
@@ -208,8 +207,7 @@ shinylive::export(appdir = "hf_dashboard", destdir = "docs")
 # docs/index.html locally, with no R server anywhere
 ```
 
-The tradeoff is real and worth stating plainly rather than treating
-`shinylive` as a strictly better Shiny:
+`shinylive` trades one set of costs for another:
 
 | Consideration | Server-based Shiny | `shinylive` (webR) |
 |---|---|---|
@@ -223,8 +221,8 @@ The tradeoff is real and worth stating plainly rather than treating
 : Shiny hosting tradeoffs: a running server versus `shinylive`'s
 WebAssembly build. {#tbl-shinylive-tradeoffs}
 
-The data-privacy row deserves emphasis for clinical work
-specifically: because a `shinylive` app runs entirely in the
+For clinical work the data-privacy row usually decides the
+question. Because a `shinylive` app runs entirely in the
 browser, whatever dataset it loads is present, unencrypted, in that
 browser's memory and in the downloaded app bundle if the data is
 bundled rather than fetched at runtime. A `shinylive` deployment of
@@ -389,8 +387,8 @@ will happily filter every output by every input, including an
 unblinded event-rate table that a clinical operations team may not
 be approved to see, because it has no notion of your trial's
 governance structure. *Check.* Walk through every output against
-the access list in your data monitoring plan before deploying, not
-after; the model can write the reactive wiring, but only the
+the access list in your data monitoring plan before deploying; the
+model can write the reactive wiring, but only the
 protocol and the charter say who is allowed to see what.
 :::
 

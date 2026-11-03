@@ -8,9 +8,9 @@ it can multiply rows, when a key that should be unique is not,
 and a patient then contributes several times to an estimate that
 assumed one contribution. The first shrinks the denominator; the
 second corrupts the standard errors; both produce a data frame
-that looks exactly like the one you wanted. What catches them is
-not care but arithmetic: a stated expectation about how many rows
-the result should have, checked against how many it does.
+that looks exactly like the one you wanted. Arithmetic catches
+them: a stated expectation about how many rows the result should
+have, checked against how many it does.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -95,9 +95,9 @@ answers are in @sec-quiz-answers-15.
 
 Almost every biostatistical project joins tables: demographics to
 outcomes, labs to medications, clinical data to imaging indices.
-The operation is one function call, which is why the difficulty
-never lives in the call. It lives in the question the join is
-meant to answer, and in what the keys actually contain. The
+The operation is one function call. The difficulty lies in the
+question the join is meant to answer, and in what the keys
+actually contain. The
 generic tour of the two-table verbs is in R for Data Science
 [@wickham2023r4ds, ch. 19]; this chapter keeps to the judgments a
 clinical dataset forces on you.
@@ -845,9 +845,10 @@ intermediate would silently count some visits twice.
 2. `anti_join(x, y)` returns rows of `x` whose key is *not*
    present in `y`. In a biomedical cleanup workflow it answers:
    'Which patients appear in my outcome file but not in the lab
-   data?' (or the reverse). It thereby exposes missing data,
-   duplicate IDs, or mismatched cohorts. Run it before the
-   analytic join, so that problems surface early.
+   data?' (or the reverse). It thereby exposes missing records,
+   miscoded IDs, or mismatched cohorts; it does not detect
+   duplicate IDs, which need a `count()` on the key. Run it
+   before the analytic join, so that problems surface early.
 3. `table_a |> left_join(table_b, by = 'patient_id', relationship = 'many-to-one')`.
    A many-to-one join attaches the single table-B row to every
    table-A row sharing the key. The `relationship` argument errors

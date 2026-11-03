@@ -120,9 +120,8 @@ order, and a first level that a model treats as the reference. For
 analysis the constraints are correct, because the model needs the
 level set and the reference. For cleaning and joining they are a
 hazard, because a new or misspelled value has nowhere to go. The
-decision is therefore not whether to use factors but *when* to
-convert, and @fig-factor-timing gives the answer this chapter
-argues for (Habit 7).
+decision is therefore *when* to convert, and @fig-factor-timing
+gives the answer this chapter argues for (Habit 7).
 
 ```{mermaid}
 %%| echo: false
@@ -389,9 +388,9 @@ character. Joining becomes harder to reason about: two independently
 built factors rarely share a level set, the joined key acquires the
 union of both, and the codes behind the labels differ between
 tables, which bites as soon as anyone calls `as.integer()` on a key.
-A factor encodes a fixed set of categories and a reference level,
-which is exactly what a model needs and exactly what makes it
-brittle while the data are still moving.
+The fixed set of categories and the reference level that a model
+needs are also what make a factor brittle while the data are still
+changing.
 :::
 
 ## Strings: structure from free text {#sec-types-strings}
@@ -568,8 +567,9 @@ meds <- meds |>
 meds |> count(per_day, freq_code)
 ```
 
-Two details carry the weight. `str_extract()` returns the leftmost
-match, so `twice daily` is found before the `daily` inside it; a
+Two details make the mapping work. `str_extract()` returns the
+leftmost match, so `twice daily` is found before the `daily`
+inside it; a
 `case_when()` that tested `str_detect(x, "daily")` first would call
 every twice-daily prescription once daily. And the word boundaries
 in `\\bqd\\b` and `\\bbid\\b` keep the codes from matching inside

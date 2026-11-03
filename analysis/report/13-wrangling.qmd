@@ -479,8 +479,8 @@ HF-HOME files break each of them somewhere
 : Wickham's tidy-data rules and where the running study breaks
 them. {#tbl-tidy-rules}
 
-Tidy is not the goal; a correct analysis is. The long form is
-usually the path to it, and the operation decides the shape.
+Tidiness serves the analysis. The long form usually suits it, but
+the operation decides the shape.
 
 ### Long to wide, and the duplicate that stops it
 
@@ -556,9 +556,9 @@ labs_distinct |>
 A condition that combines tests within a patient (low sodium *and*
 abnormal potassium) wants the wide form, where both values sit in
 one row. A trajectory plot wants long again, with visit as a
-column to map to the x-axis (@sec-graphics). Pivot when the
-operation requires it, not as a ritual; on a large file, a long
-table is many times the size of the wide one.
+column to map to the x-axis (@sec-graphics). Pivot only when the
+operation requires it; on a large file, a long table is many times
+the size of the wide one.
 
 ### Writing your own verbs
 
@@ -742,8 +742,8 @@ stopifnot(
 ```
 
 An `.rds` file keeps types, dates, and factor levels that a
-derived CSV would lose. The checksum is Habit 2 made executable:
-the script read the evidence and did not touch it.
+derived CSV would lose. The checksum turns Habit 2 into a check:
+it confirms that the script read the evidence without changing it.
 :::
 
 ::: {.callout-important title='LLM prompt'}

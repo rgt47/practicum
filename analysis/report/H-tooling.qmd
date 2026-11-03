@@ -18,9 +18,8 @@ documentation; nothing in the chapter should need to change.
 
 ## Models and agents from R {#sec-ai-tooling}
 
-Everything in this section is perishable: package interfaces,
-product names, and model identifiers change on a schedule of
-months. @sec-ai-coding does not depend on it, and every rule of
+Everything in this section is perishable. @sec-ai-coding does
+not depend on it, and every rule of
 @sec-ai-governance applies to each tool below.
 
 ### Calling a model from R with `ellmer`
@@ -161,9 +160,9 @@ sends code only; pass it nothing that contains data.
 @sec-ai-eval describes the durable idea: before an LLM step runs
 unsupervised on a column of data, build a labeled validation set,
 score the step against it, and decide a threshold before you see
-the number. The code that implements that idea is exactly the kind
-of detail this appendix exists to hold, because the function names
-on an LLM client change faster than the practice does. The script
+the number. The code that implements that idea belongs in this
+appendix, because the function names on an LLM client change
+faster than the practice does. The script
 below is complete enough to run as written, given an API key and
 the packages installed; the HF-HOME `med_text` example is the one
 @sec-ai-eval walks through by hand.
@@ -218,19 +217,21 @@ result$confusion
 stopifnot(result$accuracy >= 0.90)
 ```
 
-Three choices in this script are worth calling out, because each
-one is a place a reasonable-looking first draft goes wrong.
+Three choices in this script are each a place where a
+reasonable-looking first draft goes wrong.
 
-**The model identifier is a parameter, never a literal buried in the
-classifier function.** `run_eval()` takes `model_id` and writes it
-into the log line alongside the date and the accuracy. When the
+First, the model identifier is a parameter instead of a literal
+buried in the classifier function. `run_eval()` takes `model_id`
+and writes it into the log line alongside the date and the
+accuracy. When the
 identifier is retired, as @sec-ai-tooling's warning about
 `ellmer`'s model lifecycle describes, the log shows exactly which
 accuracy number belongs to which model, and re-running the harness
 against the replacement is a one-line change at the call site, not
 a search through the codebase for a hard-coded string.
 
-**The threshold is a `stopifnot()`, not a comment.** `accuracy >=
+Second, the threshold is enforced by a `stopifnot()` instead of
+stated in a comment. `accuracy >=
 0.90` is written here as a number chosen for illustration; in a
 real project it is the number decided in advance, per
 @sec-ai-eval's point about deciding the bar before seeing the
@@ -239,8 +240,9 @@ result, and failing loudly, the same discipline
 keeps a disappointing validation run from being quietly waved
 through.
 
-**The log is appended, not overwritten.** `eval-log.txt` accumulates
-one line per run, so that a later reader (including the harness's
+Third, the log is appended to, never overwritten.
+`eval-log.txt` accumulates one line per run, so that a later
+reader (including the harness's
 own author) can see the accuracy trend across model and prompt
 changes rather than only the most recent number. Commit this log
 alongside the code, the same provenance habit @sec-ai-practice

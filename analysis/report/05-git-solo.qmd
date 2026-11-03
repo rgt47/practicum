@@ -10,9 +10,9 @@ reconstruction from memory and from files named
 `clean_final2.R`. With Git it is one command,
 `git log -p R/clean.R`, which shows when the exclusion rule
 changed, what it changed from, and, if the March analyst wrote a
-good commit message, why. You are not one person over the life of
-a project, and the collaboration Git supports is real: it is
-asynchronous, and it is with yourself.
+good commit message, why. Over the life of a project you
+collaborate, asynchronously, with your own earlier self, and Git
+supports that collaboration.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -181,8 +181,7 @@ the old commit still contains it.
     commit a secret in a file like `.Renviron` without warning, and
     the protected-branch confirmation guards a push, not a commit.
     Install `gitleaks` as a pre-commit hook, with or without
-    `zzgit`, for the content scan itself. `zzgit` is optional; the
-    habit it enforces is not.
+    `zzgit`, for the content scan itself. `zzgit` is optional.
 
 ### Commits as units of reasoning
 
@@ -278,8 +277,9 @@ wrong means reverting the README fix too. The three model fits
 depend on intent: if they are alternatives you are choosing
 between, commit each, so that you can point at the one you kept;
 if they are one specification search you always meant to run
-together, they are one commit. This matters more in solo work than
-it seems, because you are the only reviewer you will ever get.
+together, they are one commit. Solo work needs this discipline
+more than it seems to, because you are the only reviewer you will
+ever get.
 :::
 
 ## Branches and merges {#sec-git-solo-branches}
@@ -376,7 +376,7 @@ merge with Git's default message. For analysis code, both sides
 usually represent deliberate decisions: here one is the SAP's
 threshold and the other a sensitivity analysis, and the right
 resolution keeps the SAP value in the primary script and moves the
-alternative to its own script, not a coin toss between them.
+alternative to its own script.
 
 ::: {.callout-tip title='Verification'}
 Before committing a resolution, confirm that no markers remain
@@ -862,8 +862,7 @@ project.
    A branch is a movable pointer to a commit, used to develop
    features or experiments in isolation. A tag is an immovable
    pointer to a commit, used to mark release points (submissions,
-   deployments). Commits are the units of history; branches are
-   the units of parallel work; tags are the units of milestones.
+   deployments).
 3. You are in the middle of editing files but need to pull changes
    from the remote or switch to another branch urgently.
    `git stash` puts your uncommitted work temporarily aside;

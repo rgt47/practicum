@@ -238,9 +238,7 @@ have changed your mind. For HF-HOME it is concrete. 'If the
 interval had excluded the `r mcid`-point reduction, I would be
 telling you that home health does not work at the size we planned
 for; if the missing outcomes could plausibly tip the result, I
-would be telling you the conclusion rests on them.' A speaker who
-volunteers the conditions under which they would have concluded
-otherwise is a speaker worth believing.
+would be telling you the conclusion rests on them.'
 
 ### Lead with the answer
 
@@ -269,8 +267,8 @@ anyone asks how the denominator was built.
 ## Null and inconclusive results {#sec-communicating-null}
 
 HF-HOME found nothing it can call a finding. This happens
-constantly, and the handling of it separates careful statisticians
-from the rest. The first distinction is the one in this chapter's
+constantly, and such results are easy to report badly. The first
+distinction is the one in this chapter's
 quiz: **absence of evidence is not evidence of absence**
 [@altman1995absence]. An interval that includes zero means the
 study could not distinguish the effect from nothing; it does not
@@ -560,8 +558,8 @@ That is the paragraph the memo and the paper need, followed by one
 sentence of clinical judgment that no grid supplies: loss to the
 exchange was driven by out-of-state addresses, and there is no
 known reason why patients who moved would fare worse on usual care
-than on home health. Note what the analysis does not do. It does
-not say which cell is true, and a conclusion of 'benefit' in a
+than on home health. The analysis does not say which cell is
+true, and a conclusion of 'benefit' in a
 corner of the grid is not a finding; it is the description of an
 assumption under which there would be one.
 
@@ -683,8 +681,8 @@ out: most methods detail, the model specification, the
 diagnostics. They live in the compendium, and the memo says where.
 Every communication has an implicit request (fund this, publish
 this, stop this, collect more data, believe nothing yet); if you
-cannot state it, you are not ready to write, and a memo that ends
-without one is a memo the PI files and forgets.
+cannot state it, you are not ready to write, and the PI will file
+and forget a memo that ends without one.
 
 ### Before and after
 
@@ -812,8 +810,8 @@ changes the pattern the words describe. {#tbl-comm-memo-anatomy}
 Notice what the memo leaves out: the model formula, the covariate
 list, the diagnostics, Table 1, the software versions. It points to
 the compendium, where all of that lives, and it contains every fact
-on which the PI's decision turns. It is also honest in a way that
-matters: it says what the interval cannot rule out. A PI who learns
+on which the PI's decision turns. It also says what the interval
+cannot rule out. A PI who learns
 that from a reviewer instead of from you will not trust the next
 memo.
 
@@ -874,8 +872,8 @@ ratio of 0.71. Rerunning after a data correction gives 0.78, which
 does not change the conclusion. Do you tell the PI, and what do
 you send?
 
-**Answer.** Yes, promptly, and the reasoning is not about the
-number. The figure is already in circulation, in a slide deck or
+**Answer.** Yes, promptly, even though the conclusion holds. The
+figure is already in circulation, in a slide deck or
 a draft, and every downstream use of 0.71 is now wrong. Someone
 else will find it, and a discrepancy found by a reviewer costs far
 more than one you reported. Most consequential, you are
@@ -980,9 +978,9 @@ the flow diagram's denominator.
 
 `gtsummary` [@sjoberg2021gtsummary] builds this table from one call
 on a tidy data frame, the same package used for the case study's
-Table 1 at @sec-penguins. Reusing it here is not a convenience; it
-is the same argument restated for a submission rather than a
-report. The table is reproducible from the compendium, its counts
+Table 1 at @sec-penguins, and the reasons to use it carry over
+from a report to a submission. The table is reproducible from the
+compendium, its counts
 are the counts the analysis used, and a data correction regenerates
 it rather than requiring someone to re-type cells.
 
@@ -1124,11 +1122,11 @@ reassuring fact rather than the one the design promised.
 
 CONSORT governs this chapter's examples because HF-HOME is a
 randomized trial, but a reporting guideline is chosen by study
-design, not by habit, and getting it wrong shows immediately to any
-reviewer who checks. The EQUATOR Network maintains the current list;
-@tbl-comm-guidelines gives the mapping a biostatistician needs most
-often, each row verified against its own statement or the EQUATOR
-Network's listing rather than assumed from a previous project.
+design, and a mismatch is apparent to any reviewer who checks. The
+EQUATOR Network maintains the current list; @tbl-comm-guidelines
+gives the mapping a biostatistician needs most often, each row
+checked against its own statement or the EQUATOR Network's
+listing.
 
 | Design | Guideline | What it governs | Citation |
 |---|---|---|---|
@@ -1152,11 +1150,10 @@ a specific analytical task, such as literature screening or chart
 abstraction, rather than in the study's statistical model; at the
 time of this writing a guideline sometimes referred to by the
 acronym CHART is discussed in that space, but its name, scope, and
-publication status could not be confirmed against the EQUATOR
-Network within the time available for this chapter. Treat any
-reference to it as unverified as of this writing and confirm
-against the EQUATOR Network's current listing before citing it in
-a manuscript.
+publication status were not confirmed against the EQUATOR Network
+for this chapter. Treat any reference to it as unverified and
+check the EQUATOR Network's current listing before citing it in a
+manuscript.
 
 Finding the current version of any of these takes one stop: the
 EQUATOR Network's library (`equator-network.org/reporting-guidelines`)
@@ -1164,17 +1161,18 @@ lists the live guideline for a design, its extensions (an AI
 extension, a pragmatic-trial extension, an abstract-only extension,
 and so on), and the journal checklists that implement it. A
 guideline's number changes less often than its content; CONSORT has
-been revised twice since its 2010 version, each time adding items
-(harms reporting in 2010, open-science and registration items by
-2025) that a manuscript written against the older checklist omits
+been revised twice since its 2001 version, in 2010 and 2025, and
+each revision added items (the 2025 checklist, for example, adds
+an open-science section covering registration and data sharing)
+that a manuscript written against the older checklist omits
 without anyone noticing until a reviewer checks the date. The same
 caution @tbl-federal-asof applies to federal policy dates
 (@sec-federal) applies here: cite the version you actually used, by
 year, not the guideline's name alone, since 'CONSORT' without a
 year could mean any of three checklists published since 2001.
 
-The rule that survives every revision of the list: a design maps to
-exactly one primary guideline, chosen before data are seen, the same
+Whatever the current list, a design maps to exactly one primary
+guideline, chosen before data are seen, the same
 pre-specification discipline @sec-analysis-plan applies to the
 statistical model. A study with both a prediction model and a
 trial-style comparison, for instance, may owe a reader both a
@@ -1367,8 +1365,9 @@ defensive, and each tells the editor where to look.
 : Four reviewer comments and the posture each called for.
 {#tbl-comm-responses}
 
-What made the first response cheap to write was infrastructure.
-The sensitivity analysis existed because the SAP pre-specified it;
+The first response was cheap to write because of infrastructure
+built earlier. The sensitivity analysis existed because the SAP
+pre-specified it;
 promoting its figure took a day because the compendium rebuilds
 with one command; and the claim that the plan predates unblinding
 is verifiable because the SAP was tagged in Git
@@ -1443,8 +1442,8 @@ prospective testing.
 
 ## Peer review as a practice {#sec-communicating-review}
 
-The skills above are trained by performing review, not by receiving
-it. A reviewer who has had to articulate why an analysis is
+You learn the skills above by reviewing other people's work more
+than by being reviewed. A reviewer who has had to articulate why an analysis is
 unconvincing writes more convincing analyses. When reviewing a
 colleague's analysis, ask the questions in
 @tbl-comm-review, roughly in the order that catches the most.

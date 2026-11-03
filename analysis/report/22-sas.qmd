@@ -849,8 +849,9 @@ alphabetically).
 ::: {.callout-warning title='Pitfall'}
 **`time aval*cnsr(1)` on a dataset with `CNSR = 2` counts the
 lost-to-follow-up subjects as events.** SAS treats every value not
-in the list as an event, so the 163 censored HF-HOME subjects
-would become early events, at their last contact, with no message.
+in the list as an event, so the 163 HF-HOME subjects lost to
+follow-up would become early events, at their last contact, with
+no message.
 List every censoring code the dataset contains, and check the
 event count in the `PROC LIFETEST` summary against
 `sum(CNSR == 0)`.
@@ -926,8 +927,8 @@ NOTE: The data set WORK.ANALYTIC has 6330 observations and 12  (4)
    times. Line 5 compared the same missing values with 140 and
    produced no message at all: a missing value is smaller than any
    number, so `sbp_high` is 0, not missing, and those visits are
-   counted as not high. The NOTE you can see points at the one you
-   cannot.
+   counted as not high. The NOTE on line 4 is the only sign of the
+   silent comparison on line 5.
 4. More rows than either input. Without `IN=` flags, `MERGE` is a
    full outer join, keeping unmatched rows from both datasets, so
    the count can rise from unmatched keys as well as from repeats.
@@ -1048,8 +1049,8 @@ of @sec-joins, without the warning `dplyr` gives.
 
 ## Moving data between SAS and R {#sec-sas-transport}
 
-A mixed-language project has one place where things go wrong, and
-it is the boundary. @fig-sas-boundary marks it, with the
+A mixed-language project goes wrong at the boundary between the
+languages. @fig-sas-boundary marks it, with the
 properties to check every time something crosses.
 
 ```{mermaid}

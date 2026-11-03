@@ -468,9 +468,9 @@ stopifnot(nrow(adsl) == nrow(dm), !anyDuplicated(adsl$USUBJID))
 count(adsl, TRT01P, PPROTFL)
 ```
 
-The per-protocol flag is included to show what it does, not to be
-used: restricting HF-HOME to subjects who received their assigned
-care compares two subsets selected after randomization, and
+The per-protocol flag is included only to show what it does.
+Restricting HF-HOME to subjects who received their assigned care
+compares two subsets selected after randomization, and
 @sec-analysis-plan-estimands explains why that targets none of
 the estimands the SAP could state.
 
@@ -574,8 +574,8 @@ that agrees and days that do not would point at the date logic.
 
 The analysis filters on the ITT flag and converts the censoring
 code once, at the boundary, with `CNSR == 0`. HF-HOME's `ADTTE`
-contains `CNSR = 2`, so this is not a matter of style: `1 - CNSR`
-would drop the subjects lost to follow-up.
+contains `CNSR = 2`, so `1 - CNSR` would drop the subjects lost to
+follow-up.
 
 ```{r}
 #| label: cdisc-survival
@@ -633,8 +633,8 @@ ggsurvplot(fit, data = analysis,
            ggtheme      = theme_minimal())
 ```
 
-The row granularity changed at every step, and tracking it is the
-skill: `dm` has one row per subject, `ex` one per home-health
+The row granularity changed at every step, and you have to track
+it: `dm` has one row per subject, `ex` one per home-health
 visit, `ds` two per subject, `ho` one per readmission; `adsl`
 returns to one per subject and `adtte` has one per subject per
 parameter. The declared `relationship =` on every join and the
@@ -820,9 +820,9 @@ tplyr_table(adsl, TRT01P) |>
 The `gtsummary` demographics table above was built in one `tbl_summary()`
 call against whichever columns of `ADSL` seemed useful to look at. That
 is appropriate for exploration, and for the many tables a biostatistician
-builds while checking a dataset or drafting a manuscript. It is not how
-the tables of a clinical study report are built, and the difference is
-not the software; it is what exists before anyone writes code.
+builds while checking a dataset or drafting a manuscript. The tables of a
+clinical study report are built differently. The software can be the
+same; what differs is what exists before anyone writes code.
 
 A CSR table, listing, or figure (collectively, a TLF) is built against a
 **shell**: a specification of the table's title, its population, every
@@ -834,11 +834,10 @@ accompanies the SAP, numbered so that every reviewer, from the sponsor's
 own QC programmer to an FDA statistical reviewer reading the final CSR,
 can find 'Table 14.2.1' and know in advance what it will contain and
 what it will not. Nothing about the shell depends on what the data turn
-out to show. That is the point: a reviewer who sees the primary efficacy
-table laid out one way in the SAP and a different way in the CSR has
-reason to ask whether the second table was shaped by a look at the
-results, which is exactly the appearance a pre-specified shell exists to
-avoid.
+out to show. A reviewer who sees the primary efficacy table laid out one
+way in the SAP and a different way in the CSR therefore has reason to
+ask whether the second table was shaped by a look at the results, the
+appearance a pre-specified shell exists to avoid.
 
 A **mock** is the shell filled with placeholder values, typeset and
 reviewed before the data exist or before they are unblinded, to confirm
@@ -917,18 +916,17 @@ fixed before results exist cannot be reshaped by what the results turn
 out to be (@sec-analysis-plan-estimands).
 
 The same shell discipline governs listings and figures, the other two
-letters of 'TLF', not only tables. A listing is a shell too, specifying
+letters of 'TLF'. A listing is a shell too, specifying
 exactly which SDTM or ADaM variables appear, in what order, sorted by
 what key, with what footnotes about truncation or suppression of
 confidential fields; a figure's shell specifies the plot type, axes,
 legend, and any reference lines, the way `ggsurvplot()`'s arguments
 above fix the axis labels and the arm legend before any data are
-plotted. A Kaplan-Meier figure built once as part of exploratory
-analysis and a CSR figure built from the same `fit` object can differ
-only in presentation discipline, not in the statistics, if the shell
-that specifies the CSR figure's axes and legend was agreed in advance
-and the code that builds it, display-only or not, implements that shell
-exactly.
+plotted. A Kaplan-Meier figure built during exploratory analysis and a
+CSR figure built from the same `fit` object then share their statistics
+and differ only in presentation, provided the shell that specifies the
+CSR figure's axes and legend was agreed in advance and the code that
+builds it, display-only or not, implements that shell exactly.
 
 TLFs are QC'd the same way ADaM datasets are: a second programmer, often
 using a different package or a simpler ad hoc script, independently
@@ -997,7 +995,7 @@ from the day-30 and change rows; the denominator for each row is
 stated as n, not N, to make this explicit.
 ```
 
-The key decision is the footnote: `ADLB` as built in the worked
+The main decision is the footnote: `ADLB` as built in the worked
 example has one row per subject per visit actually measured, so a
 subject missing the day-30 draw contributes no day-30 row and no
 `CHG` value, rather than an explicit missing-data code. A shell that
@@ -1149,7 +1147,7 @@ primary program on a second machine and comparing outputs. They
 agree exactly. What has been shown?
 
 **Answer.** That the program is deterministic, not that it is
-correct. Double programming is valuable because the second
+correct. Double programming works because the second
 derivation is independent: different code, written from the
 specification by someone who has not seen the first, so that a
 shared misreading is unlikely. A misread censoring rule survives
@@ -1226,8 +1224,8 @@ not a general statement of what good computing practice looks like. The
 broader question, of how much validation and control a given
 computerized system needs, is addressed by ICH guidance.
 
-These obligations are not abstractions for a biostatistician who never
-touches a validated system directly. An FDA inspection of a study site
+These obligations reach a biostatistician who never touches a
+validated system directly. An FDA inspection of a study site
 or sponsor, conducted under the agency's Bioresearch Monitoring (BIMO)
 program, can and does ask to see the audit trail behind a reported
 result: who changed a value in the clinical database, when, and under
@@ -1235,9 +1233,8 @@ whose approval a locked dataset was released for analysis. A derivation
 that exists only as an interactive session typed at a console, with no
 record of who ran it or when, is not what Part 11 or a sponsor's SOPs
 describing it will accept as the basis for a submitted result, however
-correct the derivation's numbers turn out to be; the record of how a
-result was produced is treated as part of the evidence for the result,
-not an afterthought to it.
+correct the derivation's numbers turn out to be, because the record of
+how a result was produced is treated as part of the evidence for it.
 
 ### ICH E6(R3): data governance and computerized systems
 
@@ -1251,8 +1248,8 @@ writing, Annex 2 of E6(R3) is on a later timetable; check the ICH
 database for the current status before citing a date for it.
 
 E6(R3)'s most consequential change for a statistician or programmer is
-not a new form to fill out; it is a shift to **risk-based quality
-management**, applied explicitly to computerized systems. Rather than
+a shift to **risk-based quality management**, applied explicitly to
+computerized systems. Rather than
 prescribing a fixed checklist for every system regardless of what it
 does, the guideline asks the sponsor to identify what could go wrong
 with a given system's data (a wrong randomization code, a corrupted
@@ -1288,27 +1285,25 @@ multinational trial needs to show both.
 
 Under a risk-based framework, R itself, and every package an analysis
 depends on, is a computerized system whose risk to the trial's data
-must be assessed and, where warranted, mitigated. Re-deriving that
-assessment from first principles for every study would be wasteful, and
-it is not what sponsors that use R actually do. The R Validation Hub,
-the R Consortium working group already introduced in
-@sec-cdisc-industry for `riskmetric` and its successor `val.meter`, is
-the industry's shared answer to this question for R: assess a package
+must be assessed and, where warranted, mitigated. Sponsors that use R
+do not re-derive that assessment from first principles for every
+study. The R Validation Hub, the R Consortium working group already
+introduced in @sec-cdisc-industry for `riskmetric` and its successor
+`val.meter`, offers the industry a shared approach for R: assess a package
 once per environment (its test coverage, its maintenance activity, the
 stability of its exported interface, the size of its user base) and
 reuse that assessment, documented, across the studies that run in the
 same validated environment, rather than re-justifying the choice of
 `survival::coxph()` in every SAP.
 
-This is the connection worth making explicit. Double programming
-(@sec-cdisc-industry) is per-analysis evidence: it shows that this
+Double programming (@sec-cdisc-industry) is per-analysis evidence: it shows that this
 dataset's derivation, run against this study's source data, reproduces
 independently. Package risk assessment is per-environment evidence: it
 shows that the software both derivations relied on behaves as its
 documentation claims, before either derivation is attempted. Neither
 substitutes for the other. A correctly validated copy of `survival`
 run with a transposed censoring code still produces the wrong curve
-(@sec-cdisc-adam); and a brilliant, independently double-programmed
+(@sec-cdisc-adam); and a careful, independently double-programmed
 derivation built on a package that silently drops `NA` rows from a
 join is still wrong for a reason double programming alone will not
 surface, because both programmers may make the same assumption about
@@ -1333,8 +1328,8 @@ prevent.
 ### eSubmission mechanics: eCTD and pkglite
 
 The datasets, programs, and Define-XML discussed earlier in this
-chapter (@sec-cdisc-pipeline) are not emailed to FDA as a folder of
-files; they are assembled into the electronic Common Technical Document
+chapter (@sec-cdisc-pipeline) reach FDA assembled into the electronic
+Common Technical Document
 (eCTD), the standardized, XML-backboned folder structure that ICH
 regions require for a regulatory submission. At a high level, an eCTD
 submission is organized into five numbered modules: Module 1 holds
@@ -1416,8 +1411,8 @@ A plausible argument, not a settled fact: `survival` has shipped with
 base R's recommended package set for decades, has an exceptionally
 large user base, and changes its exported interface rarely, all of
 which argue for lower risk under the Hub's framework. That argument is
-only as good as its evidence, though; the right next step is not to
-assert it but to check, for the two packages' versions actually pinned
+only as good as its evidence, though; the right next step is to check,
+for the two packages' versions actually pinned
 in the study's `renv.lock`, their CRAN check status, their last
 release date, and their test coverage (for instance with `covr`), which
 is what a `riskmetric` or `val.meter` run (@sec-cdisc-industry) is

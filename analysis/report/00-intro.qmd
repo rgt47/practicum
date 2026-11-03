@@ -27,21 +27,14 @@ analysis report.
 
 The book is the companion to *Statistical Computing
 in the Age of AI*, the methods-focused volume. The
-two books cover complementary territory. The methods
-volume teaches what to compute and why; this volume
-teaches how to compute it reproducibly. That is,
-where the methods volume is concerned with the
-substance of an analysis, the present volume is
-concerned with the practice by which that analysis
-is made to survive scrutiny.
+methods volume teaches what to compute and why; this
+volume teaches how to compute it reproducibly, so
+that the analysis survives scrutiny.
 
 ## What this book covers
 
-We begin with an account of the territory the book
-covers, which is the practical work of
-biostatistical data analysis. The book is organized
-into eight parts, and every chapter belongs to one of
-them. @tbl-intro-parts names, for each part, the
+The book is organized into eight parts, and every
+chapter belongs to one of them. @tbl-intro-parts names, for each part, the
 question it answers, its chapters, and the tools it
 teaches. Parts I to III are the first quarter of the
 two-quarter sequence: why the work is done this way,
@@ -99,11 +92,9 @@ a guide to migrating R Markdown projects
 (@sec-rmd-migration), and an index to every chapter's
 cheat sheet (@sec-cheat-sheets).
 
-@fig-book-map is the shape of the whole, and it is
-worth a moment before starting: the parts are not
-independent modules but a dependency chain, and a
-reader who skips ahead will find the later parts
-assuming the earlier ones.
+@fig-book-map shows the shape of the whole. A reader
+who skips ahead will find the later parts assuming
+the earlier ones.
 
 ```{mermaid}
 %%| echo: false
@@ -158,8 +149,7 @@ flowchart TD
   design, the bootstrap, and Bayesian computation.
   These dominate many peer statistical-computing
   courses; here they are the territory of the
-  companion volume, and we treat their absence as
-  deliberate rather than accidental.
+  companion volume.
 - Statistical theory in any depth.
 
 The trade-off is deliberate. On the one hand, a
@@ -223,9 +213,8 @@ chapters per week is a sustainable pace, which makes
 the whole book a two-quarter sequence, Parts I to
 III in the first quarter and Parts IV to VIII in the
 second; a one-quarter core path of twenty chapters is
-laid out in the preface. We would
-emphasize that the exercises are the work. The
-chapters are merely the scaffolding.
+laid out in the preface. Most of the learning happens
+in the exercises; the chapters support them.
 
 ## The habits this book teaches {#sec-habits}
 
@@ -324,9 +313,8 @@ its visual elements. In order:
   table, each with the check that confirms it worked.
 - **Further reading** and **Prerequisites answers.**
 
-The pattern is repeated deliberately. By the third
-chapter, the reader will know where to find each
-component.
+Because the pattern repeats, by the third chapter the
+reader will know where to find each component.
 
 ## On the Age-of-AI framing
 
@@ -347,9 +335,8 @@ and when each is the right tool.
 The position the books take is consistent: large
 language models, and the coding agents built on them,
 amplify analyst productivity rather than replace
-analyst judgment. We argue this position by
-demonstration rather than by assertion. We encourage
-the reader to use the AI assistance the book
+analyst judgment. The chapters argue this by
+demonstration. We encourage the reader to use the AI assistance the book
 describes, to verify it the way the book describes,
 and to form his or her own view.
 
@@ -360,9 +347,9 @@ biostatistical data analysis. It comprises eight
 parts: why and with whom the work is done, the
 toolkit, data in hand, documents and environments,
 analysis practice, industry, analysis to audience,
-and a capstone. The
-test of the book, in our view, is whether, after
-working through it, the reader can produce a
+and a capstone. The test of the book, in our view, is
+whether, after working through it, the reader can
+produce a
 reproducible, defensible analysis on a real
 biomedical question with an interdisciplinary team,
 using AI assistance without being misled by it.

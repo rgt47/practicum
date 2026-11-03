@@ -43,11 +43,11 @@ canonical site labels are exactly `"Site A"` through `"Site E"`.
 The bug is in four characters of casing and whitespace copied from
 a source that writes them differently, inside a function that
 returns nothing at all when a site matches zero rows, and inside a
-loop that quietly discards whatever that function returns. Finding
-it does not require rereading the function more carefully; it
-requires tools built for exactly this, and this chapter is about
-using them before the slide ships, not after someone asks why
-Site D has no number.
+loop that discards whatever that function returns. Rereading the
+function more carefully is unlikely to find it. This chapter covers
+the tools built for exactly this kind of bug, and the time to use
+them is before the slide ships, ahead of anyone asking why Site D
+has no number.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -147,16 +147,15 @@ The case for a function in a general-purpose program is reuse: a
 function called from ten places saves nine copies of the logic. A
 one-off data analysis calls almost nothing from ten places, so
 that argument understates the case and, read uncharitably, seems
-not to apply at all. The sharper argument is not about reuse; it is
-about correction and verification. A computation written out
+not to apply at all. The sharper argument is about correction and
+verification. A computation written out
 five times, once per site, is five places a bug can hide and five
 places you must remember to fix it when the computation changes. A
 computation written once as a function, called five times, is one
 place to fix a bug and one place to write a test. The acronym for
-this is DRY (don't repeat yourself), and the reason it survives as
-advice is not elegance; it is that the alternative multiplies the
-cost of being wrong by however many times you copied the code
-before you noticed.
+this is DRY (don't repeat yourself), and it survives as advice
+because the alternative multiplies the cost of being wrong by
+however many times you copied the code before you noticed.
 
 `site_event_rate()` below computes the 30-day event rate for one
 HF-HOME site, joining the randomization table to the outcomes
@@ -189,10 +188,9 @@ site_event_rate(hf_events, "Site A")
 ```
 
 Later in this chapter the function above turns out to have a bug.
-That is deliberate: the point of writing it as a function is not
-that this version is correct, but that when it is found to be
-wrong, the fix is one edit in one place, and the five call sites
-that use it are automatically fixed along with it. Five copies of
+That is deliberate. Because the logic lives in a function, the fix
+is one edit in one place, and the five call sites that use it are
+fixed along with it. Five copies of
 the `filter()`-then-`summarize()` logic, one per site, would need
 five edits, made correctly, in the same afternoon, with no
 mechanical way to confirm that all five were actually changed.
@@ -276,9 +274,9 @@ site_event_rate(site_name = "Site B")
 
 A default is evaluated lazily: R does not compute `hf_events` when
 the function is defined, only when the function is called and
-`data` is needed and no value was supplied for it. This matters
-when a default refers to another argument, as `...` (dots) does in
-the next example. `...` collects any number of additional,
+`data` is needed and no value was supplied for it. Lazy evaluation
+shows up when a default refers to another argument, as `...`
+(dots) does in the next example. `...` collects any number of additional,
 unnamed-in-the-signature arguments and forwards them, which is how
 a wrapper function can pass extra options through to the function
 it calls without naming every one of them in its own signature:
@@ -383,9 +381,9 @@ R looks up a name a function uses, but does not define as an
 argument or a local variable, in the environment where the function
 was *created*, not the environment where it is *called*. This is
 lexical scoping, and the environment a function remembers at
-creation, together with the function itself, is a **closure**. The
-distinction matters the moment a function returns another
-function, which is exactly how a *function factory* works:
+creation, together with the function itself, is a **closure**.
+Lexical scoping has visible consequences once a function returns
+another function, which is how a *function factory* works:
 `make_rate_fn()` below takes a data frame and returns a function
 that computes a site's event rate against that specific data frame,
 without `data` appearing in the returned function's own argument
@@ -528,17 +526,16 @@ map_result
 `map()` always returns a list the same length as its input, one
 element per call, and a `NULL` result is stored as a `NULL`
 *element*, visible at its own position with the label that produced
-it still attached. The length-5 list with four visible `NULL`s is
-not a nicer-looking version of the same information; it is the only
-one of the two that shows you there is a problem, and where. `sapply()`
+it still attached. Of the two results, only the length-5 list with
+four visible `NULL`s shows you that there is a problem, and where.
+`sapply()`
 sits between the two, and its behavior depends on what it is given
 back: when the results are not all the same type and length, as
-here, `simplify = TRUE` fails silently and `sapply()` quietly
-returns a list, exactly like `map()`; when the results would
-simplify, `sapply()` returns a vector or matrix instead of a list,
-and the type of what you get back changes depending on data you
-have not seen yet. `map()` never does this: its return type is
-part of its contract, not a function of the input.
+here, `simplify = TRUE` fails silently and `sapply()` returns a
+list, exactly like `map()`; when the results would simplify,
+`sapply()` returns a vector or matrix instead of a list, and the
+type of what you get back changes depending on data you have not
+seen yet. `map()` always returns a list, whatever the input.
 
 @tbl-functions-iteration-compare summarizes the three.
 
@@ -995,8 +992,7 @@ most-recent-first list carries the same information but requires
 you to reconstruct the nesting yourself from indentation that is not
 there.
 
-This is Habit 8 in code, not only in prose: a stratum value quietly
-miscoded would not stop the pipeline if nothing asserts what the
+This is Habit 8 applied in code: a stratum value quietly miscoded would not stop the pipeline if nothing asserts what the
 valid values are, and the pipeline would continue to a plausible,
 wrong summary. `check_stratum()` is the assertion that turns that
 quiet failure into a loud one, with enough structure in the error
@@ -1062,9 +1058,8 @@ caught_base$bad_values
 The base version does the same job in roughly the same number of
 lines, but every piece, the three-element class vector, the
 `message` and `call` fields a condition object must have, is a
-detail `abort()` supplies by default. The cost is not length; it is
-that each of those details is a place to get the base version
-subtly wrong (forgetting `"condition"` from the class vector breaks
+detail `abort()` supplies by default, and each of those details is
+a place to get the base version subtly wrong (forgetting `"condition"` from the class vector breaks
 `tryCatch()` entirely, silently, until someone tries to catch it).
 :::
 
@@ -1075,9 +1070,8 @@ data frame built for the purpose, rather than only inside the
 pipeline that would normally call it: `site_event_rate_strict()`
 has been exercised with the full `hf_events` table, with a vector
 of mismatched labels, and, below, with a four-row fixture built by
-hand. That is the point @sec-testing-unit makes at length and this
-section only connects to, rather than repeats: a function is far
-easier to get right, and far easier to debug when it is wrong, when
+hand. @sec-testing-unit makes the argument at length; in brief, a
+function is far easier to get right, and far easier to debug when it is wrong, when
 its tests call it directly, with inputs you chose, than when the
 only evidence of its behavior is whatever the full pipeline happens
 to produce from this week's data.
@@ -1104,11 +1098,10 @@ have: a test that an unmatched site raises an error, run against
 the *strict* version, would have failed the moment someone wrote it
 against the original `site_event_rate()`, which returns `NULL`
 instead, long before that function ever reached a loop over five
-site labels copied from the wrong table. Writing that test does not
-require the pipeline, the join, or any file on disk; it requires
+site labels copied from the wrong table. Writing that test needs
 only the function and a few rows built to exercise exactly the
-branch in question, which is the broader argument of this section:
-isolate the function from everything around it before you decide
+branch in question, with no pipeline, join, or file on disk. Isolate
+the function from everything around it before you decide
 whether it is correct, then let the integration layer of
 @sec-testing-correctness confirm that the isolated pieces still
 compose correctly once wired together.
@@ -1124,9 +1117,8 @@ complete ones?
 non-missing rows, so the assertion passes only if `na.rm = TRUE`
 is actually in effect inside the function. Deleting `na.rm = TRUE`
 from `site_event_rate_strict()` would make this same fixture return
-`NA` for `event_rate`, and the test would fail, which is exactly
-what distinguishes a test with a deliberately missing value in its
-fixture from one built only from complete rows.
+`NA` for `event_rate`, and the test would fail; a fixture built
+only from complete rows would pass either way.
 :::
 
 ### Exercises

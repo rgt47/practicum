@@ -509,8 +509,8 @@ unique patients may no longer meet that condition for a public
 release. Compute $k$ before you describe any release.
 :::
 
-The practical lesson is that de-identification reduces risk; it
-is not a binary state. Your contribution as the statistician is
+De-identification reduces risk by degrees, and a release is
+never simply safe or unsafe. Your contribution as the statistician is
 to quantify the residual risk and to match the transformation to
 the sensitivity of the data and the openness of the release.
 
@@ -590,8 +590,8 @@ a file that can be lost, copied, or matched against another
 dataset by someone the entity never agreed to trust. Some data
 cannot accept that risk at any level of generalization: a rare
 diagnosis, a small catchment area, or a sponsor's contractual
-limits on where the data may sit. The remedy is not a better
-release but no release at all. If HF-HOME's files could never
+limits on where the data may sit. For such data the remedy is to
+release nothing. If HF-HOME's files could never
 leave the hospital's own systems, the statistician still has to
 produce a result, and a trusted research environment (TRE) is
 where that happens: a controlled system that lets approved
@@ -634,7 +634,7 @@ exists to avoid, now five times over. **Federated analysis**
 inverts the usual flow: the analysis code travels to each site,
 runs there against that site's own data, and only a summary, a
 count, a rate, a model's sufficient statistics, travels back to be
-combined. No patient-level row ever crosses a site boundary.
+combined.
 
 The chunk below plays the part of five sites computing their own
 30-day event rate and sending back only two numbers each, the
@@ -814,10 +814,9 @@ synth <- syn(release_sh,
 
 ### Judging utility and disclosure risk
 
-A synthetic release is worth nothing if it answers a different
-question than the real data would, and it is worth nothing either
-if it still points back at a real patient. Both have to be
-checked, and neither check is optional.
+A synthetic release has to pass two checks: it must answer the
+question the real data would answer, and it must not point back
+at a real patient.
 
 **Utility** asks whether a model fit on the synthetic data agrees
 with the same model fit on the real data. The independent-column
@@ -915,13 +914,10 @@ conceptually only: calibrating that noise correctly, choosing the
 privacy budget (usually called $\epsilon$) that trades accuracy
 against protection, and composing many queries without exhausting
 that budget are each their own technical literature, well past an
-introductory look. What matters for this book is the contrast: the
-U.S. Census Bureau adopted differential privacy for the 2020
-Census specifically because it could offer that provable bound
-across every table the Bureau might publish, not because it was
-the most accurate option for any single table. The accuracy a
-single table loses is the cost of a guarantee that holds for all
-of them.
+introductory look. The U.S. Census Bureau adopted differential
+privacy for the 2020 Census because it could offer that provable
+bound across every table the Bureau might publish, and it
+accepted some loss of accuracy in any single table to get it.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
