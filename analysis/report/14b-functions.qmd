@@ -36,12 +36,12 @@ write a short function that filters to a site and summarizes the
 outcome, loop it over a vector of site names copied from last
 week's report, and build the slide from whatever comes back. The
 slide shows `r opening_n_kept` number where there should be
-`r opening_n_sites`: two sites print nothing, one prints the wrong
-one twice, and nothing in the console says an error occurred,
-because nothing errored. The bug is not in the data; HF-HOME's
-canonical site labels are exactly `"Site A"` through `"Site E"`.
-The bug is in four characters of casing and whitespace copied from
-a source that writes them differently, inside a function that
+`r opening_n_sites`: four sites print nothing, and nothing in the
+console says an error occurred, because nothing errored. The bug
+is not in the data; HF-HOME's canonical site labels are exactly
+`"Site A"` through `"Site E"`. The bug is in the casing and
+whitespace of four labels copied from a source that writes them
+differently, inside a function that
 returns nothing at all when a site matches zero rows, and inside a
 loop that discards whatever that function returns. Rereading the
 function more carefully is unlikely to find it. This chapter covers
@@ -275,8 +275,10 @@ site_event_rate(site_name = "Site B")
 A default is evaluated lazily: R does not compute `hf_events` when
 the function is defined, only when the function is called and
 `data` is needed and no value was supplied for it. Lazy evaluation
-shows up when a default refers to another argument, as `...`
-(dots) does in the next example. `...` collects any number of additional,
+is also what lets a default refer to another argument, as in
+`function(data, n = nrow(data))`, where `n` is computed from
+whatever `data` is at call time. A different mechanism, `...`
+(dots), collects any number of additional,
 unnamed-in-the-signature arguments and forwards them, which is how
 a wrapper function can pass extra options through to the function
 it calls without naming every one of them in its own signature:
@@ -714,10 +716,10 @@ Error in site_event_rate_strict(hf_events, "site b") :
 ```
 
 For a one-level call like this one, `traceback()` adds little; its
-value grows with the depth of the call stack. Reusing the
-wrapper from @sec-functions-iteration, where `possibly()` wraps
-`site_event_rate_strict()` and `map()` calls the wrapper, a failure
-three frames down produces:
+value grows with the depth of the call stack. When `map()` calls
+`site_event_rate_strict()` directly over the labels from
+@sec-functions-iteration, without the `possibly()` wrapper, the
+failure is raised several frames down and produces:
 
 ```r
 > map(site_labels, site_event_rate_strict, data = hf_events)

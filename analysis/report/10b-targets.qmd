@@ -1096,6 +1096,8 @@ section's `reticulate` and shell-out options do.
 3. The symptom means you cannot attribute a change in
    results to a specific step, which is exactly the
    bookkeeping a pipeline tool maintains. `targets` records
-   what each target depended on, so a change is always
-   traceable to the step that caused it, and stale results
-   never silently survive.
+   what each target depended on, so a change to a tracked
+   input is traceable to the step it affects and marks that
+   step stale. The guarantee covers only what `targets` can
+   see: a file read inside a function (the Pitfall in
+   @sec-targets-change) escapes it.

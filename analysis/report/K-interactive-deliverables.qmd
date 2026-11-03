@@ -253,10 +253,10 @@ the underlying data is swapped for real participant data without
 re-examining the privacy row of @tbl-shinylive-tradeoffs, or if any
 package the exploration depends on (a compiled survival-analysis
 package with system dependencies, say) is unavailable in the webR
-package repository, in which case the export silently falls back to
-a missing feature rather than failing loudly, and that gap has to be
-caught by testing the exported app directly, not inferred from the
-server-based version working.
+package repository, in which case the exported app can fail in the
+browser even though the server-based version runs. That gap has to
+be caught by testing the exported app directly, not inferred from
+the server-based version working.
 :::
 
 ## A minimal sketch: HF-HOME enrollment and outcomes {#sec-interactive-deliverables-sketch}

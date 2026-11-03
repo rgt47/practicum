@@ -672,8 +672,8 @@ coverage indicators across replicates is what the Performance
 measures are computed from.
 
 A real methods paper runs this scenario, and several others
-varying the sample size and the event risks, at thousands of
-replicates rather than a few hundred, which is exactly where
+varying the sample size and the event risks, at many more
+replicates per scenario than the 2,000 used here, which is where
 @sec-cloud-hpc's job array becomes the right tool: each scenario,
 or each block of replicates within a scenario, is an independent
 task, submitted the same way `sim_task()` was, and `combine_tasks()`

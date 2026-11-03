@@ -1144,15 +1144,14 @@ scopes have changed as often as every few years. {#tbl-comm-guidelines}
 TRIPOD-LLM is itself recent (January 2025) and modular: a core set
 of items applies to any study involving an LLM, with additional
 items depending on whether the model was fine-tuned, prompted
-without modification, or evaluated as a diagnostic tool. A sixth
-row belongs in this table for guidelines governing an LLM's role in
-a specific analytical task, such as literature screening or chart
-abstraction, rather than in the study's statistical model; at the
-time of this writing a guideline sometimes referred to by the
-acronym CHART is discussed in that space, but its name, scope, and
-publication status were not confirmed against the EQUATOR Network
-for this chapter. Treat any reference to it as unverified and
-check the EQUATOR Network's current listing before citing it in a
+without modification, or evaluated as a diagnostic tool. A related
+2025 guideline, CHART (the Chatbot Assessment Reporting Tool,
+published in *BMJ Medicine* and listed by the EQUATOR Network),
+covers a narrower design: studies that evaluate the health advice
+a chatbot gives. Neither guideline is written for an LLM used in a
+specific analytical task inside a study, such as literature
+screening or chart abstraction; for that role, check the EQUATOR
+Network's current listing before citing a guideline in a
 manuscript.
 
 Finding the current version of any of these takes one stop: the

@@ -524,7 +524,8 @@ produced the published numbers, which is the same guarantee
 instead.
 
 ::: {.callout-warning title='Pitfall'}
-**A DOI minted once and never updated stops being a snapshot.** If
+**A `CITATION.cff` not updated at each release cites an outdated
+DOI.** If
 the Zenodo integration is left enabled and later commits are tagged
 as patch releases without updating `CITATION.cff`'s `version` and
 `identifiers`, the file can point a citer at an outdated DOI while

@@ -880,8 +880,8 @@ changed.
 
 1. The pipe `|` sends the standard output of the command on
    its left to the standard input of the command on its
-   right, so small tools compose into a pipeline. It is the
-   direct ancestor of R's `|>`, which sends the value on its
+   right, so small tools compose into a pipeline. R's `|>` is
+   the same idea: it sends the value on its
    left as the first argument of the function on its right;
    both let you read a transformation left to right as a
    sequence of steps.

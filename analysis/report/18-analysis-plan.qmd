@@ -861,9 +861,10 @@ What supplies the timing is publication to somewhere you do not
 control. Pushing the tag to a remote creates a record on a server
 with its own timestamps and log. The registry deposit is stronger
 still, since ClinicalTrials.gov records a submission date you cannot
-edit, and stronger again is anything that timestamps content
-cryptographically, such as a Zenodo digital object identifier
-(DOI) or a registration on the Open Science Framework (OSF). The
+edit, and stronger again is an archive that freezes a copy of the
+content under its own dated record, such as a Zenodo deposit with
+its digital object identifier (DOI) or a registration on the Open
+Science Framework (OSF). The
 tag makes the pre-specification *findable and unambiguous*; an
 external record makes it *credible*. A SAP tagged but never pushed
 provides organization without evidence. This is the same
@@ -1585,9 +1586,11 @@ renegotiating with the program officer.
    the eventual published results reflect hypotheses formed in
    advance rather than post-hoc choices made in the light of the
    data. It limits the 'garden of forking paths' that would
-   otherwise inflate Type I error and enable p-hacking. Federally
-   funded trials require it; confirmatory analyses in any setting
-   benefit from it.
+   otherwise inflate Type I error and enable p-hacking. Some
+   trials must post it: applicable clinical trials and
+   NIH-funded clinical trials submit the SAP to
+   ClinicalTrials.gov with their results. Confirmatory analyses
+   in any setting benefit from it.
 2. (Any five of:) background and rationale; research questions,
    hypotheses, and estimands; study design and sample size;
    inclusion/exclusion criteria; primary outcome definition;

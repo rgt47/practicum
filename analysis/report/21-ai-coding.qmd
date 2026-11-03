@@ -1130,7 +1130,8 @@ it only once you can judge the refinement.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** You need a regular expression to extract dose units
-from the 16,000 free-text medication strings in `medications.csv`.
+from the nearly 17,000 free-text medication strings in
+`medications.csv`.
 Is this a task to delegate?
 
 **Answer.** Delegate the draft, not the verification. The codebook

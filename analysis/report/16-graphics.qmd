@@ -983,12 +983,15 @@ GitHub only (`github.com/rgt47/zzlongplot`), maintained by one
 person, and the block below is display-only because it is not in
 the book's lockfile.
 
-Before presenting it here, the coordinator reran `zzlongplot`
-against the HF-HOME discharge and day-30 NT-proBNP values by arm
-and visit and compared its output to the `stat_summary(mean_cl_normal)`
-figure above: the two agreed on the mean and the 95% t-interval
-bounds to three decimal places in all four arm-by-visit cells,
-checked once on 2026-10-10 and again on 2026-10-11. The package's
+Before it was presented here, `zzlongplot` was rerun against the
+HF-HOME discharge and day-30 NT-proBNP values (log10 scale) by arm
+and visit, and its output was compared with the `stat_summary()`
+figure above, which uses `mean_se` with `mult = 1.96`. The two
+agreed on the mean and the 95% interval bounds to three decimal
+places in all four arm-by-visit cells, checked once on 2026-10-10
+and again on 2026-10-11; with over a thousand patients per arm, the
+package's t interval and the figure's normal-approximation interval
+differ by far less than that. The package's
 312-test suite checks the interval arithmetic itself: the t
 interval, the standard error, and the coverage. One caveat is a property of
 the data, not of the package: as @sec-graphics-trajectory shows for

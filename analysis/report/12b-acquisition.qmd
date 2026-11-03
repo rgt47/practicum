@@ -290,10 +290,10 @@ read_diffs <- tibble(
 read_diffs
 ```
 
-The specification repairs what a read can repair: the identifier
-stays text and the missing-value code becomes `NA`. The last four
-rows are facts about the file, which no reader can fix and a
-cleaning script must. The `r read_diffs$rows[2]` short identifiers
+The specification repairs what a read can repair (rows 1, 3, and
+4): the identifier stays text and the missing-value code becomes
+`NA`. Rows 2, 5, and 6 are facts about the file, which no reader
+can fix and a cleaning script must. The `r read_diffs$rows[2]` short identifiers
 are the ones Site E's system stripped before export; restoring them
 with `str_pad()` is safe only because the codebook says every
 identifier has four digits (@sec-wrangling).
