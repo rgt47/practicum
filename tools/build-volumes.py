@@ -216,6 +216,7 @@ def write_quarto_yml(vol_dir, vol, chapters_list, appendices_list):
         'book': {
             'title': f'Biostatistics Practicum, Volume {vol}',
             'subtitle': VOLUME_TITLE[vol],
+            'output-file': f'Biostatistics-Practicum-Volume-{vol}',
             'author': 'The rgtlab Curriculum Project',
             'date': 'today',
             'date-format': 'YYYY-MM-DD',
