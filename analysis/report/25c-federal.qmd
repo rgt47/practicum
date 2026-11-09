@@ -358,6 +358,23 @@ repository when one exists. Institutional repositories vary in
 quality. They are an acceptable backup but not always sufficient
 as the primary deposit.
 
+Zenodo, OSF, and Dryad are not the only general-purpose
+repositories. Figshare and Harvard Dataverse serve the same role,
+and many universities run their own instance of one or the
+other. Software Heritage archives source code rather than data,
+and identifies each version with a permanent hash rather than a
+DOI. NIH accepts a generalist repository of this kind when no
+domain repository fits the data. It also lists the
+characteristics it expects of any repository: a persistent
+identifier, a commitment to long-term preservation, metadata
+that make the data findable, and clear terms of access and reuse
+[@nih2020repository]. Among repositories that meet that list,
+the choice matters less than the habit. Pick one, deposit each
+tagged release, and cite the DOI. Check your institution's
+memberships first. The University of California, for example, is
+a Dryad member, so its researchers can usually deposit without
+the fee.
+
 ::: {.callout-important title='LLM prompt'}
 > **Context.** A two-arm clinical trial funded by NIH. Artifacts:
 > de-identified participant-level CRF and outcome data, a
