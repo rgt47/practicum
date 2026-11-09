@@ -65,6 +65,19 @@ jobs:
         with:
           use-public-rspm: true
 
+      # System libraries that renv's restore reports for this lockfile.
+      # igraph (via targets) fails to load without libglpk; the rest
+      # cover ragg, systemfonts, textshaping, fs, and clipr. Quarto
+      # ships its own pandoc, so it is not listed.
+      - name: Install system libraries (host)
+        if: steps.mode.outputs.backend == 'host' && steps.mode.outputs.r == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends \
+            libglpk-dev libfontconfig1-dev libfreetype6-dev \
+            libfribidi-dev libharfbuzz-dev libjpeg-dev libpng-dev \
+            libtiff-dev libuv1-dev libwebp-dev libx11-dev
+
       - name: Provide R packages (host)
         if: steps.mode.outputs.backend == 'host' && steps.mode.outputs.r == 'true'
         run: |
