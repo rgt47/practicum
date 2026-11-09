@@ -64,6 +64,9 @@ book:
         - 04-workstation.qmd
         - 05-git-solo.qmd
         - 05b-git-teams.qmd
+        - 08-renv.qmd
+        - 09-docker.qmd
+        - 10-zzcollab.qmd
         - 21-ai-coding.qmd
 
     - part: part-3.qmd
@@ -82,9 +85,6 @@ book:
     - part: part-4.qmd
       chapters:
         - 11-quarto.qmd
-        - 08-renv.qmd
-        - 09-docker.qmd
-        - 10-zzcollab.qmd
         - 10b-targets.qmd
         - 06-cloud.qmd
 

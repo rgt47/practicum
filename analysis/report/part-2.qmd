@@ -1,24 +1,34 @@
 # Your Toolkit
 
-This part asks what you work with every day and how you keep a
-history of that work. It belongs to the first quarter, and every
-later chapter assumes it. That is, the commands, the editor, and
-the version history introduced here are used without further
-explanation from Part III onward.
+This part asks what you work with every day, how you keep a
+history of that work, and how you make it run on another machine.
+It belongs to the first quarter, and every later chapter assumes
+it. That is, the editor, the version history, and the project
+environment set up here are used without further explanation from
+Part III onward.
 
 - @sec-shell teaches the Unix shell: moving around the filesystem,
   inspecting a raw file before R reads it, and composing pipelines.
+  It is optional. Later chapters give the few commands they need
+  in full, and a reader who has used a terminal can skip it.
 - @sec-workstation installs R, an IDE, Quarto, and Git, and verifies
   the machine with a checklist.
 - @sec-git-solo introduces Git and GitHub for a single analyst who
   wants a recoverable history.
 - @sec-git-teams extends that history to a team: branches, pull
   requests, review, and conflicts.
+- @sec-renv records the package versions an analysis uses in a
+  lockfile and restores them elsewhere.
+- @sec-docker pins the R version, operating system, and system
+  libraries in a container.
+- @sec-zzcollab assembles Git, `renv`, and Docker into a research
+  compendium and audits it against the Five Pillars.
 - @sec-ai-coding sets out how to prompt language models and coding
   agents, how to check what they produce, and what may be sent to
   them. It comes before the chapters in which you rely on them.
 
-If the quiz at the start of a chapter is easy, skip to the next. A
-reader who already uses Git daily may move quickly through
-@sec-git-solo, but should still read @sec-ai-governance before
-sending any project file to a model.
+If the quiz at the start of a chapter is easy, skip to the next.
+The three environment chapters each add one layer and are best
+read in order. A reader who already uses Git daily may move
+quickly through @sec-git-solo, but should still read
+@sec-ai-governance before sending any project file to a model.

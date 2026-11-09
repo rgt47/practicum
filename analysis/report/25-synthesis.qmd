@@ -270,16 +270,18 @@ outcome, compared with `git show sap-v1.0`.
 The second quarter reads Parts IV to VIII at about two chapters a
 week, and the capstone runs alongside the reading. Each milestone
 falls in the week its chapter is taught or soon after. There are
-two exceptions. The intake and the cleaning use first-quarter
-chapters, so they start at once. @tbl-synthesis-schedule is a
+three exceptions. The intake, the pinned environment
+(@sec-renv, @sec-docker, @sec-zzcollab), and the cleaning use
+first-quarter chapters, so they start at once. The reading is
+lighter in the first three weeks to leave room for them. @tbl-synthesis-schedule is a
 suggestion. An instructor with a shorter term can drop milestone
 11 and have students respond to the instructor's review instead.
 
 | Week | Read | Capstone work | Due at the end of the week |
 |---|---|---|---|
-| 1 | @sec-quarto, @sec-renv | Read the codebook; intake conversation; create the repository | Milestone 1 |
-| 2 | @sec-docker, @sec-zzcollab | Pin the environment; commit raw files and checksums | Milestone 2 |
-| 3 | @sec-targets, @sec-cloud | Read and recode the export as a pipeline, outcome sealed | Milestone 3 |
+| 1 | @sec-quarto | Read the codebook; intake conversation; create the repository | Milestone 1 |
+| 2 | @sec-targets | Pin the environment; commit raw files and checksums | Milestone 2 |
+| 3 | @sec-cloud | Read and recode the export as a pipeline, outcome sealed | Milestone 3 |
 | 4 | @sec-analysis-plan, @sec-testing | Write and tag the SAP and DMSP; tests on the cleaner; CI | Milestones 4 and 5 |
 | 5 | @sec-cdisc, @sec-sas | Join the seven tables; de-identify; optionally derive an ADSL | Milestone 6 |
 | 6 | @sec-penguins, @sec-adni | Primary and sensitivity analyses; figures | Milestone 7 |

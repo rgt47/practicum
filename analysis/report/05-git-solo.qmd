@@ -47,9 +47,9 @@ pipeline_diagram('git')
 ::: {.callout-note title='In this chapter'}
 **Reading time.** About 30 minutes.
 
-**You'll need.** @sec-shell for the command line, and
-@sec-workstation for Git installed and configured with your name
-and email. Every command in this chapter runs in a shell, not in
+**You'll need.** A terminal, and @sec-workstation for Git
+installed and configured with your name and email. @sec-shell is
+an optional introduction to the command line. Every command in this chapter runs in a shell, not in
 R, so the examples are display-only; the exercises build a
 throwaway practice repository, and each solution gives the output
 to expect.

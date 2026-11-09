@@ -39,11 +39,14 @@ for each part, the question it answers, its chapters,
 and the tools it teaches. Parts I to III are the first
 quarter of the two-quarter sequence. They cover why the
 work is done this way, the tools it is done with, and
-the path from raw files to a dataset you can trust.
+the path from raw files to a dataset you can trust. The
+tools include the project environment: the lockfile,
+the container, and the research compendium, so that
+the work rebuilds on another machine from the start.
 Parts IV to VIII are the second quarter. They cover the
-document and environment that make the analysis
-rebuildable and the plan and tests that make it
-defensible. They also cover the industrial conventions
+document that reports the analysis, the pipeline and
+remote compute that scale it, and the plan and tests
+that make it defensible. They also cover the industrial conventions
 the analysis may have to meet, its delivery to an
 audience, and a capstone that does all of it on one
 study.
@@ -51,9 +54,9 @@ study.
 | Part | The question it answers | Chapters | Key tools |
 |---|---|---|---|
 | Why and with whom | Why work reproducibly, and what do you owe your collaborators and the people in the data? | @sec-why, @sec-team-science, @sec-deident | The three kinds of reproducibility, the intake conversation, the HIPAA pathways |
-| Your toolkit | What do you work with every day, and how do you keep a history of it? | @sec-shell, @sec-workstation, @sec-git-solo, @sec-git-teams, @sec-ai-coding | The shell, R and an IDE, Git and GitHub, language models and coding agents |
-| Data in hand | How do raw files become an analysis dataset you can trust? | @sec-acquisition, @sec-apis, @sec-wrangling, @sec-types, @sec-joins, @sec-databases, @sec-graphics, @sec-missing, @sec-deident-practice | `readr`, `dplyr`, `tidyr`, `forcats`, `stringr`, `lubridate`, SQL and `dbplyr`, `ggplot2`, `naniar`, `mice` |
-| Documents and environments | How does the analysis rebuild, as a document, on someone else's machine? | @sec-quarto, @sec-renv, @sec-docker, @sec-zzcollab, @sec-targets, @sec-cloud | Quarto, `renv`, Docker, the research compendium, `targets`, remote compute |
+| Your toolkit | What do you work with every day, how do you keep a history of it, and how does it run on another machine? | @sec-shell (optional), @sec-workstation, @sec-git-solo, @sec-git-teams, @sec-renv, @sec-docker, @sec-zzcollab, @sec-ai-coding | R and an IDE, Git and GitHub, `renv`, Docker, the research compendium, language models and coding agents |
+| Data in hand | How do raw files become an analysis dataset you can trust? | @sec-acquisition, @sec-apis, @sec-wrangling, @sec-types, @sec-joins, @sec-databases (optional), @sec-graphics, @sec-missing, @sec-deident-practice | `readr`, `dplyr`, `tidyr`, `forcats`, `stringr`, `lubridate`, `ggplot2`, `naniar`, `mice`; optionally SQL and `dbplyr` |
+| Documents and environments | How does the analysis become a document that rebuilds itself, and how does it scale beyond one laptop? | @sec-quarto, @sec-targets, @sec-cloud | Quarto, `targets`, remote compute |
 | Analysis practice | How do you show that the analysis was planned in advance and computes what it claims? | @sec-analysis-plan, @sec-testing | The statistical analysis plan (SAP) and data management and sharing plan (DMSP), Git tags, `tinytest`, GitHub Actions |
 | Industry | How does the work meet the conventions of regulated drug development? | @sec-cdisc, @sec-sas | SDTM, ADaM, SAS |
 | Analysis to audience | How does a finished analysis reach its readers honestly, and in a form they can check? | @sec-penguins, @sec-adni, @sec-ethics, @sec-communicating, @sec-federal | Computed reports, the memo, the response to reviewers, repositories and DOIs |
@@ -64,12 +67,13 @@ printed volume may group or order these parts differently for its
 own binding; its own table of contents is the authority for what
 number a part or chapter carries in your hands. {#tbl-intro-parts}
 
-The order is a dependency order. The first quarter ends
-with data in hand because everything in the second
-quarter acts on a dataset. A Quarto document reports on
-it, a container pins the environment that built it, a
-plan constrains what may be done with it, and a deposit
-archives it. In this ordering, ethics and deposition
+The order is a dependency order. The environment comes
+before the data, so that every dataset is built in a
+project that already rebuilds on another machine. The
+first quarter ends with data in hand because everything
+in the second quarter acts on a dataset. A Quarto
+document reports on it, a plan constrains what may be
+done with it, and a deposit archives it. In this ordering, ethics and deposition
 come late, and deliberately so. Deposition is
 instruction about handing over something you have not
 built until then. The ethics chapter argues that the
@@ -110,18 +114,19 @@ the earlier ones.
 %%|   to Industry and to Analysis to audience, and both converge on
 %%|   the Capstone."
 %%| fig-cap: "The eight parts of the book and what each depends on.
-%%|   The first quarter ends with a dataset you can trust; the
-%%|   second makes the analysis of it rebuildable, defensible, and
+%%|   The first quarter sets up a project that rebuilds on another
+%%|   machine and ends with a dataset you can trust; the second
+%%|   makes the analysis of it a document, defensible, and
 %%|   readable. Industry is a branch that the capstone draws on but
 %%|   does not require; everything else feeds the capstone directly."
 flowchart TD
   subgraph Q1["First quarter"]
     P1["<b>Why and with whom</b><br/><i>reproducibility,<br/>teams, privacy</i>"]
-    P2["<b>Your toolkit</b><br/><i>shell, R, Git, AI</i>"]
-    P3["<b>Data in hand</b><br/><i>acquire, tidy, join,<br/>query, plot, impute,<br/>de-identify</i>"]
+    P2["<b>Your toolkit</b><br/><i>R, Git, renv, Docker,<br/>compendium, AI</i>"]
+    P3["<b>Data in hand</b><br/><i>acquire, tidy, join,<br/>plot, impute,<br/>de-identify</i>"]
   end
   subgraph Q2["Second quarter"]
-    P4["<b>Documents and<br/>environments</b><br/><i>Quarto, renv, Docker,<br/>compendium, targets</i>"]
+    P4["<b>Documents and<br/>environments</b><br/><i>Quarto, targets,<br/>remote compute</i>"]
     P5["<b>Analysis practice</b><br/><i>SAP, DMSP, tests, CI</i>"]
     P6["<b>Industry</b><br/><i>CDISC, SAS</i>"]
     P7["<b>Analysis to audience</b><br/><i>case studies, ethics,<br/>communication, deposit</i>"]

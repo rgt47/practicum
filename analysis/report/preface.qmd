@@ -217,9 +217,11 @@ capstone in Part VIII assume everything above them.
 The book is written for a two-quarter sequence at about two
 chapters a week. The first quarter covers why reproducibility
 matters, the working toolkit, and getting data in and into
-shape. The second covers documents and environments, analysis
-practice, industry standards, and the case studies, and ends in
-a capstone. A semester course can cover most of the book at the
+shape. The toolkit includes `renv`, Docker, and the research
+compendium, so a project rebuilds on another machine from the
+first weeks. The second quarter covers Quarto documents and
+pipelines, analysis practice, industry standards, and the case
+studies, and ends in a capstone. A semester course can cover most of the book at the
 same pace.
 
 A one-quarter course should use the core path below: twenty
@@ -231,21 +233,23 @@ to be picked up later, alone or in a second course.
 | Week | Core chapters |
 |---|---|
 | 1 | [Why Reproducible Research](#sec-why); [De-identification and Data Ethics](#sec-deident) |
-| 2 | [The Unix Shell](#sec-shell); [Setting Up Your Workstation](#sec-workstation) |
-| 3 | [Git and GitHub for Solo Developers](#sec-git-solo); [Git for Teams](#sec-git-teams) |
-| 4 | [AI-Assisted Coding](#sec-ai-coding); [Getting Data In](#sec-acquisition) |
-| 5 | [Data Wrangling Essentials](#sec-wrangling); [Joining and Reshaping](#sec-joins) |
-| 6 | [Plotting with ggplot2 and purrr](#sec-graphics); [Missing Data](#sec-missing) |
-| 7 | [Reproducible Reports with Quarto](#sec-quarto); [renv for Package Management](#sec-renv) |
-| 8 | [Docker for Reproducibility](#sec-docker); [Statistical Analysis Plans](#sec-analysis-plan) |
+| 2 | [Setting Up Your Workstation](#sec-workstation); [Git and GitHub for Solo Developers](#sec-git-solo) |
+| 3 | [Git for Teams](#sec-git-teams); [renv for Package Management](#sec-renv) |
+| 4 | [Docker for Reproducibility](#sec-docker); [Assembling the Compendium](#sec-zzcollab) |
+| 5 | [AI-Assisted Coding](#sec-ai-coding); [Getting Data In](#sec-acquisition) |
+| 6 | [Data Wrangling Essentials](#sec-wrangling); [Joining and Reshaping](#sec-joins) |
+| 7 | [Plotting with ggplot2 and purrr](#sec-graphics); [Missing Data](#sec-missing) |
+| 8 | [Reproducible Reports with Quarto](#sec-quarto); [Statistical Analysis Plans](#sec-analysis-plan) |
 | 9 | [Testing and Continuous Integration](#sec-testing); [Ethics Beyond Compliance](#sec-ethics) |
 | 10 | [Case Study: Palmer Penguins](#sec-penguins); [Communicating a Finished Analysis](#sec-communicating) |
 
 Outside the core, and suited to the second quarter or to
 independent reading: @sec-team-science, @sec-apis, @sec-types,
-@sec-databases, @sec-deident-practice, @sec-zzcollab,
-@sec-targets, @sec-cloud, @sec-cdisc, @sec-sas, @sec-adni,
-@sec-federal, and the capstone in @sec-synthesis. Students heading
+@sec-deident-practice, @sec-targets, @sec-cloud, @sec-cdisc,
+@sec-sas, @sec-adni, @sec-federal, and the capstone in
+@sec-synthesis. Two chapters are optional for everyone:
+@sec-shell, for readers new to the terminal, and
+@sec-databases, for readers whose data live in a database. Students heading
 to the pharmaceutical industry should add @sec-cdisc and
 @sec-sas to the core.
 

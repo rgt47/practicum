@@ -63,8 +63,9 @@ pipeline_diagram('acquire')
 ::: {.callout-note title='In this chapter'}
 **Reading time.** About 25 minutes.
 
-**You'll need.** @sec-shell for looking at a file's bytes before
-you read it. The code uses:
+**You'll need.** Nothing beyond R. The chapter looks at a file's
+bytes with `readBin()`; the optional @sec-shell shows the same
+check at the terminal. The code uses:
 
 ```r
 library(tidyverse)

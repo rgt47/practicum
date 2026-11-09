@@ -15,7 +15,9 @@ in the second quarter.
 - @sec-functions turns a repeated cleaning step into a tested
   function, and shows how to find the cause when one misbehaves.
 - @sec-joins predicts and checks the row count of every join.
-- @sec-databases queries a database with SQL and `dbplyr`.
+- @sec-databases queries a database with SQL and `dbplyr`. It is
+  optional. Read it when your data live in a database rather than
+  in exported files.
 - @sec-graphics builds figures with `ggplot2` and many figures at
   once with `purrr`.
 - @sec-missing diagnoses missing data, imputes it with `mice`, and

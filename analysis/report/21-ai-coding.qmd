@@ -48,8 +48,8 @@ pipeline_diagram('analyze')
 **Reading time.** About 30 minutes.
 
 **You'll need.** @sec-git-solo for commits, branches, and
-`git diff`, and @sec-shell for running commands in the project
-directory. The chapter comes before the data chapters on purpose,
+`git diff`, and a terminal for running commands in the project
+directory (@sec-shell, optional). The chapter comes before the data chapters on purpose,
 so that you use a model with these habits from the start. Its
 planted-bug examples touch column types, joins, and tests, which
 you will meet in @sec-types, @sec-joins, and @sec-testing. On

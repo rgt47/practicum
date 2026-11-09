@@ -29,7 +29,9 @@ chapter with a one-line summary.
 
 - [5 The Unix Shell](04b-shell.qmd)\
   Teaches the Unix shell: moving around the filesystem, inspecting a raw
-  file before R reads it, and composing pipelines.
+  file before R reads it, and composing pipelines. It is optional. Later
+  chapters give the few commands they need in full, and a reader who has
+  used a terminal can skip it.
 - [6 Setting Up Your Workstation](04-workstation.qmd)\
   Installs R, an IDE, Quarto, and Git, and verifies the machine with a
   checklist.
@@ -39,53 +41,54 @@ chapter with a one-line summary.
 - [8 Git for Teams](05b-git-teams.qmd)\
   Extends that history to a team: branches, pull requests, review, and
   conflicts.
-- [9 AI-Assisted Coding](21-ai-coding.qmd)\
+- [9 renv for Package Management](08-renv.qmd)\
+  Records the package versions an analysis uses in a lockfile and
+  restores them elsewhere.
+- [10 Docker for Reproducibility](09-docker.qmd)\
+  Pins the R version, operating system, and system libraries in a
+  container.
+- [11 Assembling the Compendium](10-zzcollab.qmd)\
+  Assembles Git, `renv`, and Docker into a research compendium and
+  audits it against the Five Pillars.
+- [12 AI-Assisted Coding](21-ai-coding.qmd)\
   Sets out how to prompt language models and coding agents, how to check
   what they produce, and what may be sent to them. It comes before the
   chapters in which you rely on them.
 
 ## Part III. [Data in Hand](part-3.qmd) {.unnumbered}
 
-- [10 Getting Data In: Files](12b-acquisition.qmd)\
+- [13 Getting Data In: Files](12b-acquisition.qmd)\
   Reads a clinical export with a full column specification and asserts
   against its usual pathologies.
-- [11 APIs, Scraping, and Freezing What You Receive](12c-apis.qmd)\
+- [14 APIs, Scraping, and Freezing What You Receive](12c-apis.qmd)\
   Queries web interfaces with `httr2` and freezes what was received.
-- [12 Data Wrangling Essentials](13-wrangling.qmd)\
+- [15 Data Wrangling Essentials](13-wrangling.qmd)\
   Recodes per-site conventions and reports how many rows each step
   removes.
-- [13 Factors, Strings, and Dates](14-types.qmd)\
+- [16 Factors, Strings, and Dates](14-types.qmd)\
   Handles factors, free-text strings, and dates.
-- [14 Writing and Debugging Functions](14b-functions.qmd)\
+- [17 Writing and Debugging Functions](14b-functions.qmd)\
   Turns a repeated cleaning step into a tested function, and shows how
   to find the cause when one misbehaves.
-- [15 Joining and Reshaping](15-joins.qmd)\
+- [18 Joining and Reshaping](15-joins.qmd)\
   Predicts and checks the row count of every join.
-- [16 Databases and SQL for Biostatisticians](15b-databases.qmd)\
-  Queries a database with SQL and `dbplyr`.
-- [17 Plotting with ggplot2 and purrr](16-graphics.qmd)\
+- [19 Databases and SQL for Biostatisticians](15b-databases.qmd)\
+  Queries a database with SQL and `dbplyr`. It is optional. Read it when
+  your data live in a database rather than in exported files.
+- [20 Plotting with ggplot2 and purrr](16-graphics.qmd)\
   Builds figures with `ggplot2` and many figures at once with `purrr`.
-- [18 Missing Data: Diagnosis, Imputation, Reporting](17-missing.qmd)\
+- [21 Missing Data: Diagnosis, Imputation, Reporting](17-missing.qmd)\
   Diagnoses missing data, imputes it with `mice`, and runs a sensitivity
   analysis.
-- [19 De-identification in Practice](02c-deident-practice.qmd)\
+- [22 De-identification in Practice](02c-deident-practice.qmd)\
   Applies the rules of @sec-deident to a release, with assertions that
   fail if an identifier survives.
 
 ## Part IV. [Documents and Environments](part-4.qmd) {.unnumbered}
 
-- [20 Reproducible Reports with Quarto](11-quarto.qmd)\
+- [23 Reproducible Reports with Quarto](11-quarto.qmd)\
   Writes the analysis as a Quarto document whose numbers are computed
   rather than typed.
-- [21 renv for Package Management](08-renv.qmd)\
-  Records the package versions the analysis used in a lockfile and
-  restores them elsewhere.
-- [22 Docker for Reproducibility](09-docker.qmd)\
-  Pins the R version, operating system, and system libraries in a
-  container.
-- [23 Assembling the Compendium](10-zzcollab.qmd)\
-  Assembles the pieces into a research compendium and audits it against
-  the Five Pillars.
 - [24 Reproducible Pipelines with targets](10b-targets.qmd)\
   Turns the analysis into a pipeline that rebuilds only what an edit has
   invalidated.

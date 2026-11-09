@@ -70,10 +70,12 @@ pipeline_diagram(c('share', 'environment'))
 ::: {.callout-note title='In this chapter'}
 **Reading time.** About 35 minutes.
 
-**You'll need.** @sec-git-solo for commits and tags, @sec-quarto
-for the paper, @sec-renv for the lockfile, and @sec-docker for
-the container, in particular the canonical Dockerfile of
-@sec-docker-canonical. The code calls every function with its
+**You'll need.** @sec-git-solo for commits and tags, @sec-renv
+for the lockfile, and @sec-docker for the container, in
+particular the canonical Dockerfile of @sec-docker-canonical. The
+paper inside the compendium is a Quarto file. This chapter shows
+only what a compendium needs from it; @sec-quarto, in the second
+quarter, covers Quarto in full. The code calls every function with its
 namespace (`purrr::walk()`, `renv::lockfile_read()`,
 `cli::hash_file_sha256()`), so it needs no `library()` call.
 
@@ -634,9 +636,10 @@ produce the same numbers. The prompt sends file names, not data
 
 ### The paper inside the compendium {#sec-rrtools-paper}
 
-`analysis/paper/paper.qmd` is the manuscript, written in Quarto
-(@sec-quarto): code chunks for the analyses, inline numbers,
-figure cross-references, and citations from `references.bib`.
+`analysis/paper/paper.qmd` is the manuscript, written in Quarto:
+code chunks for the analyses, inline numbers, figure
+cross-references, and citations from `references.bib`. The file
+below is all a compendium needs; @sec-quarto explains each part.
 
 ````qmd
 ---
@@ -1698,8 +1701,9 @@ that the real data uses.
 
 ## Cumulative practice
 
-9. *Cumulative (uses @sec-git-solo, @sec-quarto, @sec-renv, and
-   @sec-docker).* Assemble by hand a compendium for a small
+9. *Cumulative (uses @sec-git-solo, @sec-renv, and @sec-docker;
+   the paper needs only the Quarto shown in @sec-rrtools-paper).*
+   Assemble by hand a compendium for a small
    HF-HOME analysis: the `rrtools` layout, with
    `randomization.csv` and `outcomes.csv` in
    `analysis/data/raw_data/` and a checksum manifest; a

@@ -10,12 +10,21 @@ can skip it.
 The book is written for a two-quarter sequence at about two
 chapters a week. The first quarter covers Parts I to III: why
 reproducibility matters and with whom, the working toolkit, and
-getting data in and into shape. The second quarter covers Parts
-IV to VIII: documents and environments, analysis practice,
-industry standards, and the case studies, ending in the capstone
-(@sec-synthesis). For a one-quarter course, the preface gives a
-core path of twenty chapters, two a week for ten weeks, and lists
-the chapters suited to a second course or independent reading.
+getting data in and into shape. The toolkit includes `renv`,
+Docker, and the research compendium (@sec-renv, @sec-docker,
+@sec-zzcollab), so that students build every later dataset
+inside a project that rebuilds on another machine. The second
+quarter covers Parts IV to VIII: Quarto documents, pipelines and
+remote compute, analysis practice, industry standards, and the
+case studies, ending in the capstone (@sec-synthesis). For a
+one-quarter course, the preface gives a core path of twenty
+chapters, two a week for ten weeks, and lists the chapters suited
+to a second course or independent reading.
+
+Two chapters are optional in either plan. @sec-shell is for
+students new to the terminal; every later chapter gives the
+commands it needs in full. @sec-databases is for students whose
+data live in a database rather than in exported files.
 
 ## Why the book covers what it covers
 
@@ -322,6 +331,132 @@ The references to @sec-ci, @sec-testing, @sec-analysis-plan,
 @sec-quarto, @sec-renv, and @sec-joins point forward in the
 current part order. *R Packages* was dropped from Further reading
 to meet the limit of three.
+
+### renv for Package Management
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics.
+
+*Rationale.* Package drift is the most common cause of an analysis
+that re-runs without error and returns a different number. `renv`
+is the community-standard remedy. The chapter teaches the three
+verbs through the judgments they require (when to snapshot, which
+direction to resolve a `status()` report, which packages the
+static scan misses). It defers everything beneath the R layer to
+@sec-docker. The full Dockerfile that previously appeared here now
+lives only in @sec-docker-canonical. The chapter keeps the four
+lines that belong to `renv`. `zzrenvcheck` is presented as one way
+to automate an audit that `renv::status()` and
+`renv::dependencies()` perform first. Its exercises modify a
+project library, so their keys describe what a correct result
+looks like rather than giving output.
+
+### Docker for Reproducibility
+
+*Sources.* The author's blog posts `32-sharermdcodeviadocker` and
+`33-shareshinycodeviadocker`; the `rocker` project (Boettiger and
+Eddelbuettel 2017); the author's Docker and `renv` demonstration
+materials; Boettiger (2015) for the case for containers in research.
+
+*Rationale.* The chapter opens with 'same code, different number'.
+It makes this concrete with an executed example on the HF-HOME
+data. The same bootstrap with the same seed gives different
+interval bounds under the integer sampler of R before and after
+3.6.0. `renv` cannot see that change, because no package changed.
+Apple Silicon guidance stays at the first command. The canonical
+Dockerfile (@sec-docker-canonical), the digest pin, the
+`.dockerignore`, the localhost binding for RStudio Server, and the
+other earlier corrections are unchanged. The Dockerfile is
+byte-identical to the copy in @sec-rrtools-build. Each recipe now
+ends with a Verification. The Docker ones were run against the
+author's test image on 2026-10-09: `R --version` and the OS check,
+`docker inspect` for the digest, the `CACHED` restore step after
+editing a `.qmd`, `docker port` for a `127.0.0.1` binding, and a
+`docker save` and `docker load` round trip with matching image
+IDs. Running `renv::status()` inside that test image also showed
+the Pitfall's failure in practice. That image's lockfile records R
+4.6.1 while the base is 4.4.0, yet the image builds and renders,
+noting the mismatch in one log line. Docker Compose is cut to a
+pointer paragraph that keeps the corrected secret handling (a
+`.env` file excluded from Git and the build context; `docker
+compose`, not `docker-compose`). The Compose exercise was dropped.
+The former 'Orientation' and 'statistician's contribution'
+material is folded into the sections where each judgment arises
+(base-image choice and pinning into the base-image section, layer
+order and data placement into the Dockerfile section). Of the
+three LLM prompts, the Dockerfile prompt is kept with digest
+pinning and the `.dockerignore` in its criteria. The
+error-diagnosis prompt is rewritten around the build log, and the
+base-image prompt was cut. The base-image sizes in the `rocker`
+table were observed for local images (r-ver 4.4.0, tidyverse and
+verse 4.6.0) and are approximate.
+
+### Assembling the Compendium
+
+*Sources.* Adapted from the author's lecture notes and supporting
+materials for a graduate practicum in biostatistics. The concept
+is Gentleman and Temple Lang (2007); the working definition, the
+Five Pillars framing, the compendium layout, and the `rrtools`
+package are Marwick, Boettiger, and Mullen (2018). The optional
+section draws on the author's `zzcollab` framework
+(`github.com/rgt47/zzcollab`; version 0.2.0 when the chapter was
+first written, checked against the repository as of October 2026)
+and the blog posts `14-penguins1zzcollab` and
+`42-zzedcindependence`. Harrell's *R Workflow* and *Biostatistics
+for Biomedical Research* (Chapter 21, 'Reproducible Research'),
+and the Vanderbilt Biostatistics department's public page on
+reproducible reporting, are the peer treatments. The last two left
+Further reading when it was cut to three items. They remain good
+instructor reading for how these practices look as a unit's
+standing policy.
+
+*Rationale.* This edition merged the former 'Research Compendia
+with rrtools' chapter into this one. The merged chapter keeps the
+section id `sec-zzcollab` because other chapters reference it. The
+`rrtools` section ids (@sec-rrtools and its subsections) were kept
+for the same reason. The merged chapter is an anatomy of a
+compendium rather than a tour of one package. It opens with a
+collaborator whose rerun gives a different p-value. It then traces
+each cause (newer packages, a stale derived file, a hand
+exclusion, and an outcomes file copied from a shared drive that
+now holds a later extract) to a missing pillar. Each of the
+preceding chapters (lockfile, container) pins one layer and leaves
+the wiring to the reader, and the failure that results is silent.
+The definition and the layout come first. The layout section
+builds a toy compendium in a temporary directory from two HF-HOME
+raw files and records a checksum manifest for the raw data. The
+Pitfall then trips that manifest by saving an edit over the raw
+export. The Five Pillars follow as a tool-neutral checklist. It is
+a table of what each pillar pins, the failure without it, and the
+check, with the R tool and its equivalents in other languages.
+`zzcollab` is thus one way to automate the pillars rather than
+their definition. 'Assembling the compendium by hand'
+(@sec-zzcollab-assemble) wires the pillars from the `rrtools`
+scaffold, `renv`, the canonical Dockerfile, and the manifest. The
+paper inside the compendium, the build, and the worked example
+follow. The audit section turns the checklist into an executable
+function run on a temporary HF-HOME compendium (labeled as a
+structural check). The fresh-clone rebuild is presented as the
+real test. The former 'Orientation' and
+'statistician's contribution' material is folded into the
+sections where each judgment arises (convention into the
+definition, file placement and the README into the layout
+section, scaffolding choice into the conventions table and the
+section on how much to automate). The canonical Dockerfile is
+byte-identical to @sec-docker-canonical. The sample `paper.qmd`
+and the 'rticles' correction are unchanged from the earlier
+revision. The community tools come first, and `zzcollab` is
+optional. It appears in one clearly marked section beside
+`rrtools` and `workflowr`. Its walkthrough, `make` targets, and
+profiles were retained as corrected earlier. The bundle and
+extension mechanics were condensed to a short subsection at the
+end. Of the LLM prompts, the directory-restructuring prompt is
+kept as the single callout. It requires a clean commit first and
+forbids any change to raw data, with a rename-only diff and the
+checksum manifest as its check. One exercise audits the book's own
+repository, so its computed key shows which pillars the book
+itself lacks. The exercise that needs Docker and the `zzc` command
+has a key that describes a correct result.
 
 ### AI-Assisted Coding
 
@@ -679,132 +814,6 @@ Exercises are renumbered: 6 (floats) and 7 (reading a render log)
 are new, and the cumulative exercises are now 8 and 9. Exercises 2,
 6, and 9 render on the student's own machine, so their keys
 describe a correct result rather than giving output.
-
-### renv for Package Management
-
-*Sources.* Adapted from the author's lecture notes and supporting
-materials for a graduate practicum in biostatistics.
-
-*Rationale.* Package drift is the most common cause of an analysis
-that re-runs without error and returns a different number. `renv`
-is the community-standard remedy. The chapter teaches the three
-verbs through the judgments they require (when to snapshot, which
-direction to resolve a `status()` report, which packages the
-static scan misses). It defers everything beneath the R layer to
-@sec-docker. The full Dockerfile that previously appeared here now
-lives only in @sec-docker-canonical. The chapter keeps the four
-lines that belong to `renv`. `zzrenvcheck` is presented as one way
-to automate an audit that `renv::status()` and
-`renv::dependencies()` perform first. Its exercises modify a
-project library, so their keys describe what a correct result
-looks like rather than giving output.
-
-### Docker for Reproducibility
-
-*Sources.* The author's blog posts `32-sharermdcodeviadocker` and
-`33-shareshinycodeviadocker`; the `rocker` project (Boettiger and
-Eddelbuettel 2017); the author's Docker and `renv` demonstration
-materials; Boettiger (2015) for the case for containers in research.
-
-*Rationale.* The chapter opens with 'same code, different number'.
-It makes this concrete with an executed example on the HF-HOME
-data. The same bootstrap with the same seed gives different
-interval bounds under the integer sampler of R before and after
-3.6.0. `renv` cannot see that change, because no package changed.
-Apple Silicon guidance stays at the first command. The canonical
-Dockerfile (@sec-docker-canonical), the digest pin, the
-`.dockerignore`, the localhost binding for RStudio Server, and the
-other earlier corrections are unchanged. The Dockerfile is
-byte-identical to the copy in @sec-rrtools-build. Each recipe now
-ends with a Verification. The Docker ones were run against the
-author's test image on 2026-10-09: `R --version` and the OS check,
-`docker inspect` for the digest, the `CACHED` restore step after
-editing a `.qmd`, `docker port` for a `127.0.0.1` binding, and a
-`docker save` and `docker load` round trip with matching image
-IDs. Running `renv::status()` inside that test image also showed
-the Pitfall's failure in practice. That image's lockfile records R
-4.6.1 while the base is 4.4.0, yet the image builds and renders,
-noting the mismatch in one log line. Docker Compose is cut to a
-pointer paragraph that keeps the corrected secret handling (a
-`.env` file excluded from Git and the build context; `docker
-compose`, not `docker-compose`). The Compose exercise was dropped.
-The former 'Orientation' and 'statistician's contribution'
-material is folded into the sections where each judgment arises
-(base-image choice and pinning into the base-image section, layer
-order and data placement into the Dockerfile section). Of the
-three LLM prompts, the Dockerfile prompt is kept with digest
-pinning and the `.dockerignore` in its criteria. The
-error-diagnosis prompt is rewritten around the build log, and the
-base-image prompt was cut. The base-image sizes in the `rocker`
-table were observed for local images (r-ver 4.4.0, tidyverse and
-verse 4.6.0) and are approximate.
-
-### Assembling the Compendium
-
-*Sources.* Adapted from the author's lecture notes and supporting
-materials for a graduate practicum in biostatistics. The concept
-is Gentleman and Temple Lang (2007); the working definition, the
-Five Pillars framing, the compendium layout, and the `rrtools`
-package are Marwick, Boettiger, and Mullen (2018). The optional
-section draws on the author's `zzcollab` framework
-(`github.com/rgt47/zzcollab`; version 0.2.0 when the chapter was
-first written, checked against the repository as of October 2026)
-and the blog posts `14-penguins1zzcollab` and
-`42-zzedcindependence`. Harrell's *R Workflow* and *Biostatistics
-for Biomedical Research* (Chapter 21, 'Reproducible Research'),
-and the Vanderbilt Biostatistics department's public page on
-reproducible reporting, are the peer treatments. The last two left
-Further reading when it was cut to three items. They remain good
-instructor reading for how these practices look as a unit's
-standing policy.
-
-*Rationale.* This edition merged the former 'Research Compendia
-with rrtools' chapter into this one. The merged chapter keeps the
-section id `sec-zzcollab` because other chapters reference it. The
-`rrtools` section ids (@sec-rrtools and its subsections) were kept
-for the same reason. The merged chapter is an anatomy of a
-compendium rather than a tour of one package. It opens with a
-collaborator whose rerun gives a different p-value. It then traces
-each cause (newer packages, a stale derived file, a hand
-exclusion, and an outcomes file copied from a shared drive that
-now holds a later extract) to a missing pillar. Each of the
-preceding chapters (lockfile, container) pins one layer and leaves
-the wiring to the reader, and the failure that results is silent.
-The definition and the layout come first. The layout section
-builds a toy compendium in a temporary directory from two HF-HOME
-raw files and records a checksum manifest for the raw data. The
-Pitfall then trips that manifest by saving an edit over the raw
-export. The Five Pillars follow as a tool-neutral checklist. It is
-a table of what each pillar pins, the failure without it, and the
-check, with the R tool and its equivalents in other languages.
-`zzcollab` is thus one way to automate the pillars rather than
-their definition. 'Assembling the compendium by hand'
-(@sec-zzcollab-assemble) wires the pillars from the `rrtools`
-scaffold, `renv`, the canonical Dockerfile, and the manifest. The
-paper inside the compendium, the build, and the worked example
-follow. The audit section turns the checklist into an executable
-function run on a temporary HF-HOME compendium (labeled as a
-structural check). The fresh-clone rebuild is presented as the
-real test. The former 'Orientation' and
-'statistician's contribution' material is folded into the
-sections where each judgment arises (convention into the
-definition, file placement and the README into the layout
-section, scaffolding choice into the conventions table and the
-section on how much to automate). The canonical Dockerfile is
-byte-identical to @sec-docker-canonical. The sample `paper.qmd`
-and the 'rticles' correction are unchanged from the earlier
-revision. The community tools come first, and `zzcollab` is
-optional. It appears in one clearly marked section beside
-`rrtools` and `workflowr`. Its walkthrough, `make` targets, and
-profiles were retained as corrected earlier. The bundle and
-extension mechanics were condensed to a short subsection at the
-end. Of the LLM prompts, the directory-restructuring prompt is
-kept as the single callout. It requires a clean commit first and
-forbids any change to raw data, with a rename-only diff and the
-checksum manifest as its check. One exercise audits the book's own
-repository, so its computed key shows which pillars the book
-itself lacks. The exercise that needs Docker and the `zzc` command
-has a key that describes a correct result.
 
 ### Reproducible Pipelines with targets
 

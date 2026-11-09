@@ -48,8 +48,9 @@ pipeline_diagram('environment')
 **Reading time.** About 20 minutes, plus an hour or so of
 installing.
 
-**You'll need.** @sec-shell for the terminal, and permission to
-install software on your machine. The chapter loads no packages;
+**You'll need.** A terminal, and permission to install software on
+your machine. @sec-shell is an optional introduction to the
+terminal; this chapter gives every command it uses in full. The chapter loads no packages;
 the checklist at its end installs `renv` with
 `install.packages("renv")`.
 
@@ -893,7 +894,7 @@ machine, and end it with the checklist in @tbl-workstation-ready.
 
 ## Cumulative practice
 
-5. *Cumulative (uses @sec-shell).* Write `check-machine.sh`, a
+5. *Cumulative, optional (uses @sec-shell).* Write `check-machine.sh`, a
    script that runs the four checks in @tbl-workstation-ready and
    exits with a non-zero status if any fails. Run it on your
    machine, then make one check fail on purpose (for example by
