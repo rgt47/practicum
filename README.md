@@ -10,7 +10,7 @@ that most graduate statistical training leaves open; Jenny
 Bryan's STAT 545 (Bryan 2019) at UBC is the pedagogical model.
 
 - **Live site:** <https://rgtlab.org/practicum>
-- **License:** CC BY-NC-ND 4.0 (see `LICENSE.md`)
+- **License:** CC BY 4.0 (see `LICENSE.md`)
 - **Format:** Quarto book (HTML + PDF)
 - **Template:** Follows Posit/Hadley book conventions (Advanced R,
   R for Data Science, R Packages).

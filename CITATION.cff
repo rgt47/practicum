@@ -6,7 +6,8 @@ version: 0.1.0
 date-released: "2026-08-01"
 license:
   - CC-BY-4.0
-  - GPL-3.0
+  - MIT
+  - GPL-3.0-only
 license-url: "https://github.com/rgt47/practicum/blob/main/LICENSE.md"
 authors:
   - name: "rgtlab curriculum team"
@@ -17,6 +18,9 @@ abstract: >
   Reproducible research compendium created with zzcollab v0.3.0.
   Contains all data, code, and computational environment needed to reproduce
   the analyses.
+  The prose, figures, and exercises are licensed CC BY 4.0; code
+  printed in the book is MIT; the repository code is GPL-3. See
+  LICENSE.md.
 keywords:
   - reproducible-research
   - research-compendium
