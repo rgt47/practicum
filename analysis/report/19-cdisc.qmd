@@ -6,13 +6,14 @@ week: data structures, variable names, and regulatory conventions
 that their statistics courses never mentioned. One of those
 conventions produces a wrong answer without an error. The
 time-to-event datasets they are handed code an event as `CNSR = 0`
-and censoring as a positive number, the reverse of what
-`survival::Surv()` expects, so `Surv(AVAL, CNSR)` runs, draws a
-plausible curve, and estimates the curve of censoring instead of
-the curve of events. This chapter builds the standard datasets for
-the running HF-HOME trial, from the tabulation layer a sponsor
-submits to the analysis datasets you will specify and check, and
-shows where each convention can go silently wrong.
+and censoring as a positive number. This is the reverse of what
+`survival::Surv()` expects. As a result `Surv(AVAL, CNSR)` runs,
+draws a plausible curve, and estimates the curve of censoring
+instead of the curve of events. This chapter builds the standard
+datasets for the running HF-HOME trial. We begin with the
+tabulation layer a sponsor submits and end with the analysis
+datasets you will specify and check. Along the way we show where
+each convention can go wrong without warning.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -109,10 +110,11 @@ non-profit that publishes data standards for clinical research.
 Since December 2016, the United States Food and Drug
 Administration (FDA) has required study data in CDISC formats for
 new drug applications (NDAs) and biologics license applications
-(BLAs) [@fda2024conformance]. Of the CDISC standards, two are the
-statistician's daily material: the Study Data Tabulation Model
-(SDTM), the submitted record of what was collected, and the
-Analysis Data Model (ADaM), the datasets the analyses run on.[^cdash]
+(BLAs) [@fda2024conformance]. Two of the CDISC standards are the
+statistician's daily material. The Study Data Tabulation Model
+(SDTM) is the submitted record of what was collected. The
+Analysis Data Model (ADaM) holds the datasets the analyses run
+on.[^cdash]
 
 [^cdash]: Two other CDISC standards sit on either side of these.
     CDASH (Clinical Data Acquisition Standards Harmonization)
@@ -149,13 +151,13 @@ flowchart TD
 ```
 
 The protocol and statistical analysis plan (SAP) define the
-trial; sites record observations on case report forms (CRFs); data
-management builds the SDTM domains from the collected data; ADaM
-datasets are derived from SDTM; and the tables, listings, and
-figures (TLFs) of the clinical study report (CSR) are produced
-from ADaM. In most sponsors and CROs the work on ADaM is divided.
-The biostatistician writes the SAP and, often, the ADaM
-specifications; statistical programmers implement the datasets
+trial. Sites record observations on case report forms (CRFs), and
+data management builds the SDTM domains from the collected data.
+ADaM datasets are derived from SDTM. The tables, listings, and
+figures (TLFs) of the clinical study report (CSR) are then
+produced from ADaM. In most sponsors and CROs the work on ADaM is
+divided. The biostatistician writes the SAP and, often, the ADaM
+specifications. Statistical programmers implement the datasets
 and the TLFs against those specifications, usually with
 independent double programming as validation
 (@sec-cdisc-industry). Whichever role you take, your deliverables
@@ -163,20 +165,20 @@ will be ADaM specifications, ADaM datasets, or the tables built
 from them.
 
 Two rules organize the pipeline. **Immutability**: once SDTM is
-locked it is not edited to suit a new analysis; a new analytic
-need produces a new ADaM variable. **Traceability**: every ADaM
-variable points back to its SDTM source and its derivation,
-recorded in the ADaM specification and in Define-XML. The order of
-work follows from the second rule: write the specification,
-review it, then implement it. Building the dataset first and
-writing the specification from the result is a common
-antipattern, because the specification is the contract that gets
-reviewed.
+locked it is not edited to suit a new analysis. A new analytic
+need produces a new ADaM variable instead. **Traceability**: every
+ADaM variable points back to its SDTM source and its derivation.
+Both are recorded in the ADaM specification and in Define-XML.
+The order of work follows from the second rule. We write the
+specification, review it, and then implement it. Building the
+dataset first and writing the specification from the result is a
+common antipattern. The specification is the contract that gets
+reviewed, so it has to come first.
 
 ### The submission package
 
 A submission carries more than datasets. @tbl-cdisc-package lists
-the supporting documents a statistician meets; you will rarely
+the supporting documents a statistician meets. You will rarely
 write Define-XML by hand, because tools generate it from the
 specification.
 
@@ -195,12 +197,13 @@ specification.
 one-row-per-observation layout, and ADaM adds no new data. Why
 build a second layer rather than fit the model on SDTM?
 
-**Answer.** Because ADaM is where the analysis decisions become
-explicit, traceable, and reviewable one at a time: which subjects
-are in each analysis set, which date starts the clock, how
-censoring was assigned, which visit is baseline. Fit the model on
-SDTM and those decisions are still made, but inside the modeling
-script, mixed together, visible only to whoever reads the code.
+**Answer.** ADaM is where the analysis decisions become explicit,
+traceable, and reviewable one at a time. These include which
+subjects are in each analysis set, which date starts the clock,
+how censoring was assigned, and which visit is baseline. If we fit
+the model on SDTM, those decisions are still made. However, they
+are made inside the modeling script, mixed together, and visible
+only to whoever reads the code.
 The separation is the book's raw and derived data rule
 (@sec-acquisition): SDTM is `data/raw/`, ADaM is `data/derived/`.
 :::
@@ -216,17 +219,17 @@ results), and `VS` (vital signs). Within a domain each row is a
 single observation, and the same variable names (`USUBJID`,
 `VISIT`, `--TESTCD`, `--ORRES`, `--STRESN`) recur across domains.
 Dates are ISO 8601 character strings such as `'2024-03-15'` or
-`'2024-03-15T08:30'`, not `Date` values, because a collected date
-can be partial (`'2024-03'`) and a character field holds it as
-collected.
+`'2024-03-15T08:30'`, not `Date` values. The reason is that a
+collected date can be partial (`'2024-03'`), and a character field
+holds it as collected.
 
 ### The HF-HOME domains
 
 The HF-HOME generator includes `hfhome_sdtm()`, which builds
-minimal `DM`, `EX`, and `DS` domains from the trial: `EX` has one
-row per home-health visit, the intervention in this trial, and
-`DS` has a `RANDOMIZED` protocol milestone for every subject and
-one disposition event (`COMPLETED` at day 30, `DEATH`, or
+minimal `DM`, `EX`, and `DS` domains from the trial. `EX` has one
+row per home-health visit, the intervention in this trial. `DS`
+has a `RANDOMIZED` protocol milestone for every subject and one
+disposition event (`COMPLETED` at day 30, `DEATH`, or
 `LOST TO FOLLOW-UP` for an unascertained outcome). Readmissions
 belong in the healthcare-encounters domain, `HO`, which the chunk
 builds from the outcome file. Real SDTM has many more variables
@@ -264,9 +267,9 @@ head(select(ds, USUBJID, DSDECOD, DSCAT, DSSTDTC), 4)
 ```
 
 `ARM` is the planned arm, as randomized. `ACTARM` is the arm the
-subject actually received, here home health if a visit occurred
-within 7 days of discharge; the two differ for the nonadherent
-patients in both arms.
+subject actually received. Here that means home health if a visit
+occurred within 7 days of discharge. The two differ for the
+nonadherent patients in both arms.
 
 ::: {.callout-tip title='Verification'}
 Confirm the structural promises of each domain before deriving
@@ -321,7 +324,7 @@ Every off-diagonal cell of the first table is a subject whose
 received care differs from the assignment. Grouping disposition by
 `ACTARM` would move those subjects between arms, so every count in
 the second table would change. Analyses as randomized use `ARM`
-(in ADaM, `TRT01P`); the treatment actually received belongs to
+(in ADaM, `TRT01P`). The treatment actually received belongs to
 `ACTARM` (`TRT01A`), which has its own, different uses.
 :::
 
@@ -331,20 +334,20 @@ as soon as SDTM is read, 'to save time later'. What is lost?
 
 **Answer.** Partial dates. In a column whose first value is a
 complete date, `as.Date()` turns `'2024-03'` into `NA` without an
-error, so a collected month and year becomes missing, and the
-imputation rule the SAP states for partial dates can no longer be
-applied. Keep `--DTC` as character in SDTM and convert in ADaM,
-where the conversion and any imputation are part of a documented
-derivation (@sec-types).
+error. A collected month and year therefore becomes missing. The
+imputation rule the SAP states for partial dates can then no
+longer be applied. Keep `--DTC` as character in SDTM and convert
+in ADaM, where the conversion and any imputation are part of a
+documented derivation (@sec-types).
 :::
 
 ## ADaM: the data as analyzed {#sec-cdisc-adam}
 
 ADaM datasets take SDTM as input and produce rows and columns
 shaped for direct use by statistical procedures. There are three
-principal structures, in @tbl-adam-structures; the variables they
-share are collected in the ADaM variable card at the end of the
-chapter (@tbl-adam-card).
+principal structures, listed in @tbl-adam-structures. The
+variables they share are collected in the ADaM variable card at
+the end of the chapter (@tbl-adam-card).
 
 | Structure | Rows | Examples | Key variables |
 |---|---|---|---|
@@ -369,14 +372,14 @@ usually `1`, though a sponsor may use `2`, `3`, and so on for
 different censoring reasons. `survival::Surv()` expects the
 opposite: its second argument is `1` (or `TRUE`) for an event.
 Passed unconverted, every censored subject is treated as an event
-and every event as censored, so the fitted curve describes
-censoring, and the arm with longer follow-up looks worse. The arithmetic
-shortcut `Surv(AVAL, 1 - CNSR)` is right only while every censored
-row has `CNSR = 1`: a `CNSR = 2` becomes `-1`, which `Surv()`
-turns into `NA` with only a warning, and those subjects silently
-leave the analysis. Convert once, at the boundary, with
-`Surv(AVAL, CNSR == 0)`, which is true for the event whatever the
-censoring codes are.
+and every event as censored. The fitted curve then describes
+censoring, and the arm with longer follow-up looks worse. The
+arithmetic shortcut `Surv(AVAL, 1 - CNSR)` is right only while
+every censored row has `CNSR = 1`. A `CNSR = 2` becomes `-1`,
+which `Surv()` turns into `NA` with only a warning, and those
+subjects leave the analysis without notice. Convert once, at the
+boundary, with `Surv(AVAL, CNSR == 0)`. This is true for the event
+whatever the censoring codes are.
 :::
 
 ### Analysis sets and the estimand
@@ -386,7 +389,7 @@ and ADSL implements the choice as flags. The intention-to-treat
 (ITT) set, or full analysis set (FAS), includes every randomized
 subject, analyzed as randomized (`ITTFL`, `FASFL`). A modified ITT
 set excludes a few randomized subjects by a rule the protocol
-states in advance (for example, no post-baseline assessment); its
+states in advance (for example, no post-baseline assessment). Its
 definition varies by sponsor and must be read, not assumed. The
 safety set includes every subject who received at least one dose,
 analyzed as treated (`SAFFL`). A per-protocol set excludes
@@ -394,13 +397,14 @@ subjects with important protocol deviations (`PPROTFL`).
 
 An analysis set is not the estimand's population. ICH E9(R1)
 [@ich2019e9r1] defines the population at the level of the
-scientific question, and the analysis set is chosen so that the
+scientific question. The analysis set is then chosen so that the
 analysis estimates that estimand. For HF-HOME the SAP's estimand
 uses a treatment-policy strategy for nonadherence
-(@sec-analysis-plan-estimands): analyze every randomized subject
-as randomized, from randomization. Filtering on the wrong flag
-analyzes a different group of patients than the SAP promised, and
-may no longer target the stated estimand.
+(@sec-analysis-plan-estimands). That is, we analyze every
+randomized subject as randomized, from randomization. Filtering
+on the wrong flag analyzes a different group of patients than the
+SAP promised. The analysis may then no longer target the stated
+estimand.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** The HF-HOME SAP's primary analysis is 'all
@@ -410,11 +414,11 @@ implement that, and what changes if a programmer groups by
 
 **Answer.** Filter on `ITTFL == 'Y'` and group by `TRT01P`, the
 planned (randomized) arm. Grouping by `TRT01A` moves every
-nonadherent subject into the arm of the care they received, so the
-groups are no longer the randomized groups and the comparison is
-no longer protected by randomization; the treatment-policy
-estimand is not what it estimates. The code runs either way, which
-is why the specification names the variable.
+nonadherent subject into the arm of the care they received. The
+groups are then no longer the randomized groups, and the
+comparison is no longer protected by randomization. The
+treatment-policy estimand is not what it estimates. The code runs
+either way, which is why the specification names the variable.
 :::
 
 ## Worked example: ADSL and ADTTE for HF-HOME {#sec-cdisc-worked}
@@ -422,19 +426,19 @@ is why the specification names the variable.
 The derivation below builds `ADSL` and an `ADTTE` for time to
 readmission or death within 30 days of randomization, then
 analyzes it on the ITT set. The SAP's primary analysis is the
-30-day risk difference (@sec-analysis-plan-worked); the
-time-to-event analysis here is supportive, describing when the
+30-day risk difference (@sec-analysis-plan-worked). The
+time-to-event analysis here is supportive. It describes when the
 same composite events occurred.
 
 ### Derive ADSL
 
 `ADSL` has exactly one row per subject and carries everything a
 downstream analysis stratifies or filters on. Each date comes from
-its proper source: `RANDDT` from the `RANDOMIZED` milestone in
-`DS`; `TRTSDT` and `TRTEDT` from the first start and last end of
-exposure in `EX`, never from the disposition date. Usual-care
-subjects who received no home-health visit have no `EX` rows, so
-their treatment dates are missing, which is correct.
+its proper source. `RANDDT` comes from the `RANDOMIZED` milestone
+in `DS`. `TRTSDT` and `TRTEDT` come from the first start and last
+end of exposure in `EX`, never from the disposition date.
+Usual-care subjects who received no home-health visit have no `EX`
+rows, so their treatment dates are missing, which is correct.
 
 ```{r}
 #| label: cdisc-adsl
@@ -470,7 +474,7 @@ count(adsl, TRT01P, PPROTFL)
 
 The per-protocol flag is included only to show what it does.
 Restricting HF-HOME to subjects who received their assigned care
-compares two subsets selected after randomization, and
+compares two subsets selected after randomization.
 @sec-analysis-plan-estimands explains why that targets none of
 the estimands the SAP could state.
 
@@ -478,8 +482,8 @@ the estimands the SAP could state.
 
 `ADTTE` is a BDS dataset: one row per subject per time-to-event
 parameter. The clock starts at `RANDDT`, because the estimand is
-defined from randomization, and the home-health visit happens
-after it or not at all. The event is the first of a readmission
+defined from randomization. The home-health visit happens after
+randomization or not at all. The event is the first of a readmission
 (from `HO`) or a death (from `DS`) within 30 days. A subject
 without an event is censored at day 30 (`CNSR = 1`), or, if lost
 to follow-up, at the last contact (`CNSR = 2`).
@@ -533,7 +537,7 @@ stopifnot(nrow(adtte) == nrow(adsl),
 count(adtte, CNSR, EVNTDESC)
 ```
 
-`AVAL` here is `ADT - STARTDT`; many sponsors add one day so that
+`AVAL` here is `ADT - STARTDT`. Many sponsors add one day so that
 an event on the start date has `AVAL = 1`. Either is defensible,
 and the specification states which.[^aval]
 
@@ -566,8 +570,8 @@ nrow(adtte_events)
 ```
 
 Two derivations from different sources that agree subject by
-subject are evidence that the censoring logic is right; a count
-that agrees and days that do not would point at the date logic.
+subject are evidence that the censoring logic is right. A count
+that agrees with days that do not would point at the date logic.
 :::
 
 ### Analyze from ADTTE
@@ -596,11 +600,11 @@ The hazard ratio for home health against usual care is
 `r sprintf('%.2f', hr[1, 'lower .95'])` to
 `r sprintf('%.2f', hr[1, 'upper .95'])`). The interval includes 1,
 so this supportive analysis, like the primary one, is
-inconclusive: it neither shows that home health reduces early
-readmission or death nor rules out a reduction of the size the
-trial was designed to detect. The `stopifnot()` confirms that no
-subject was dropped on the way into the model. @fig-cdisc-km shows
-the cumulative incidence by arm, with the risk table that
+inconclusive. It does not show that home health reduces early
+readmission or death. Nor does it rule out a reduction of the size
+the trial was designed to detect. The `stopifnot()` confirms that
+no subject was dropped on the way into the model. @fig-cdisc-km
+shows the cumulative incidence by arm, with the risk table that
 regulatory reviewers expect beneath the curve.
 
 ```{r}
@@ -634,11 +638,11 @@ ggsurvplot(fit, data = analysis,
 ```
 
 The row granularity changed at every step, and you have to track
-it: `dm` has one row per subject, `ex` one per home-health
-visit, `ds` two per subject, `ho` one per readmission; `adsl`
-returns to one per subject and `adtte` has one per subject per
-parameter. The declared `relationship =` on every join and the
-`stopifnot()` after each derivation are the minimum.
+it. `dm` has one row per subject, `ex` one per home-health visit,
+`ds` two per subject, and `ho` one per readmission. `adsl` returns
+to one per subject, and `adtte` has one per subject per parameter.
+The declared `relationship =` on every join and the `stopifnot()`
+after each derivation are the minimum.
 
 ### Exercises
 
@@ -686,14 +690,14 @@ stopifnot(
 count(adtte2, PARAMCD, CNSR)
 ```
 
-BDS datasets grow downward: a second endpoint is more rows with a
+BDS datasets grow downward. A second endpoint is more rows with a
 different `PARAMCD`, never a second `AVAL` column.
-`select(all_of(names(adtte)))` keeps the two blocks stackable;
+`select(all_of(names(adtte)))` keeps the two blocks stackable.
 `bind_rows()` of frames with different columns succeeds and fills
-the gaps with `NA`, which is how a BDS dataset quietly acquires
+the gaps with `NA`. That is how a BDS dataset quietly acquires
 columns that apply to one parameter only. Deaths are a subset of
 the composite events, so the `DTH30` event count must be smaller
-than the `RDTH30` count; deaths after a readmission are events
+than the `RDTH30` count. Deaths after a readmission are events
 here and not there.
 :::
 
@@ -737,25 +741,25 @@ count(adlb, AVISIT)
 
 Two planted defects meet this derivation. The exact duplicate of
 one discharge NT-proBNP row is removed by `distinct()` on all
-columns, which is safe only because the rows are identical; the
-assertion after it would catch a conflicting pair. The orphan
+columns. This is safe only because the rows are identical, and
+the assertion after it would catch a conflicting pair. The orphan
 patient `2433` has labs but no visit record, so the inner join to
-`visits` already drops it; the `semi_join()` to `ADSL` states the
+`visits` already drops it. The `semi_join()` to `ADSL` states the
 rule that guarantees it, because ADaM contains randomized subjects
-only. `ABLFL` is `'Y'` or missing,
-never `'N'`, as for every ADaM flag of this kind.
+only. `ABLFL` is `'Y'` or missing, never `'N'`, as for every ADaM
+flag of this kind.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** Why does the HF-HOME `ADTTE` start the clock at
 `RANDDT` rather than `TRTSDT`?
 
-**Answer.** Because the estimand is defined for every randomized
-subject from randomization, and `TRTSDT` (the first home-health
-visit) is missing for most usual-care subjects and comes after
+**Answer.** The estimand is defined for every randomized subject
+from randomization. `TRTSDT` (the first home-health visit) is
+missing for most usual-care subjects and comes after
 randomization for the rest. Starting at `TRTSDT` would drop or
-shift exactly the subjects whose care differed from assignment,
-and the comparison would no longer be between randomized groups.
+shift exactly the subjects whose care differed from assignment.
+The comparison would then no longer be between randomized groups.
 :::
 
 ## Industry practice: tables, validation, double programming {#sec-cdisc-industry}
@@ -763,12 +767,12 @@ and the comparison would no longer be between randomized groups.
 ### The pharmaverse
 
 Until the late 2010s, almost all ADaM work in industry was done in
-SAS (@sec-sas). Since about 2022, the year `admiral`
-[@mancini2026admiral] first reached CRAN (the Comprehensive R
-Archive Network), a cross-company collaboration called the
+SAS (@sec-sas). The `admiral` package [@mancini2026admiral] first
+reached CRAN (the Comprehensive R Archive Network) in about 2022.
+Since then a cross-company collaboration called the
 [**pharmaverse**](F-glossary.qmd#gloss-pharmaverse) has produced R packages for each step of the
-pipeline: `admiral` for ADaM derivations, `metacore` and
-`metatools` to read and apply specifications, and `xportr` to
+pipeline. These include `admiral` for ADaM derivations, `metacore`
+and `metatools` to read and apply specifications, and `xportr` to
 write the SAS transport (XPT) files the FDA requires. At a sponsor
 that has adopted R, expect these in production.
 
@@ -776,7 +780,7 @@ that has adopted R, expect these in production.
 
 Every table in a CSR is built from ADaM, and several R packages
 build them. `gtsummary` [@sjoberg2021gtsummary] is the general
-one; the demographics table below is computed from `ADSL`.
+one. The demographics table below is computed from `ADSL`.
 
 ```{r}
 #| label: cdisc-table1
@@ -794,7 +798,7 @@ adsl |>
 
 Two families are built for regulatory output. `rtables`, with the
 analysis functions of `tern`, describes a table as a layout that
-is then applied to the data; `Tplyr` builds a table from layers of
+is then applied to the data. `Tplyr` builds a table from layers of
 counts and descriptive statistics. Neither is installed in this
 book's environment, so the code is display-only and unverified
 here:
@@ -822,29 +826,30 @@ call against whichever columns of `ADSL` seemed useful to look at. That
 is appropriate for exploration, and for the many tables a biostatistician
 builds while checking a dataset or drafting a manuscript. The tables of a
 clinical study report are built differently. The software can be the
-same; what differs is what exists before anyone writes code.
+same. What differs is what exists before anyone writes code.
 
 A CSR table, listing, or figure (collectively, a TLF) is built against a
-**shell**: a specification of the table's title, its population, every
+**shell**. The shell specifies the table's title, its population, every
 row and row group, every column and column header, the footnotes, the
-decimal rules, and often the exact page layout, agreed and signed off by
-the biostatistician and the lead statistical programmer before the
+decimal rules, and often the exact page layout. The biostatistician and
+the lead statistical programmer agree on it and sign it off before the
 database is locked. The shell is part of the TLF specification that
-accompanies the SAP, numbered so that every reviewer, from the sponsor's
-own QC programmer to an FDA statistical reviewer reading the final CSR,
-can find 'Table 14.2.1' and know in advance what it will contain and
-what it will not. Nothing about the shell depends on what the data turn
-out to show. A reviewer who sees the primary efficacy table laid out one
-way in the SAP and a different way in the CSR therefore has reason to
-ask whether the second table was shaped by a look at the results, the
-appearance a pre-specified shell exists to avoid.
+accompanies the SAP. It is numbered so that every reviewer can find
+'Table 14.2.1' and know in advance what it will contain and what it will
+not. That holds from the sponsor's own QC programmer to an FDA
+statistical reviewer reading the final CSR. Nothing about the shell
+depends on what the data turn out to show. Suppose a reviewer sees the
+primary efficacy table laid out one way in the SAP and a different way
+in the CSR. That reviewer has reason to ask whether the second table was
+shaped by a look at the results. This is the appearance a pre-specified
+shell exists to avoid.
 
-A **mock** is the shell filled with placeholder values, typeset and
-reviewed before the data exist or before they are unblinded, to confirm
-that the layout reads correctly, that long row labels do not wrap badly,
-and that the table fits a printed page the way the shell's author
-imagined. A mock for HF-HOME's composite-endpoint table might look like
-this, with every number a placeholder:
+A **mock** is the shell filled with placeholder values. It is typeset
+and reviewed before the data exist or before they are unblinded. The
+review confirms that the layout reads correctly, that long row labels do
+not wrap badly, and that the table fits a printed page the way the
+shell's author intended. A mock for HF-HOME's composite-endpoint table
+might look like this, with every number a placeholder:
 
 ```
 Table 14.2.1  Supportive Analysis: Time to 30-Day Readmission or Death
@@ -860,18 +865,19 @@ Program: adtte.R / tlf-14-2-1.R    Output generated: ddMONyyyy hh:mm
 ```
 
 Once the shell and mock are signed off, the programmer implements the
-layout in code, and the layout, not the programmer's judgment at
-table-building time, decides what appears. In `tern`, the shell becomes
-a `rtables` layout: the column split, the row-generating functions, and
-their order are fixed once, and the same layout code is applied to
-whatever data a given run provides. In `Tplyr`, the shell becomes a
-sequence of layers, each one a row group (`group_desc()` for a
-continuous summary, `group_count()` for a categorical one), added in the
-order the shell specifies. Neither package lets the real numbers
-rearrange the table; a hazard ratio of 1.3 and a hazard ratio of 0.6
-print into the same cell, because the cell was fixed before either
-number existed. A sketch of HF-HOME's table in `tern`, display-only
-because the package is not installed in this book's environment:
+layout in code. From then on the layout decides what appears, not the
+programmer's judgment at table-building time. In `tern`, the shell
+becomes a `rtables` layout. The column split, the row-generating
+functions, and their order are fixed once. The same layout code is then
+applied to whatever data a given run provides. In `Tplyr`, the shell
+becomes a sequence of layers, each one a row group (`group_desc()` for a
+continuous summary, `group_count()` for a categorical one). The layers
+are added in the order the shell specifies. Neither package lets the
+real numbers rearrange the table. A hazard ratio of 1.3 and a hazard
+ratio of 0.6 print into the same cell, because the cell was fixed before
+either number existed. Below is a sketch of HF-HOME's table in `tern`.
+It is display-only because the package is not installed in this book's
+environment:
 
 ```r
 library(rtables)
@@ -894,53 +900,56 @@ build_table(lyt, adtte)
 ```
 
 The shell this code implements is identical, row for row, to the mock
-above; what changes between a dry run on placeholder data and the
-locked-data run is only the numbers the layout computes, never the rows
-or columns that appear. This is also why a shell is reviewed so early:
+above. Between a dry run on placeholder data and the locked-data run,
+only the numbers the layout computes change. The rows and columns that
+appear do not. This is also why a shell is reviewed so early. Consider
 a row the SAP's analysis does not support, or a row the shell omits
-that the SAP requires, is a cheap fix before any code exists and an
-expensive one once a locked dataset's TLFs are already being QC'd
-against it.
+that the SAP requires. Either is a cheap fix before any code exists. It
+is an expensive one once a locked dataset's TLFs are already being QC'd
+against the shell.
 
 Two further conventions follow from the shell existing at all. First,
-the exact column structure, including column order, the definition of
-any 'Total' or 'Overall' column, and whether a column reports counts,
-percentages, or both, is part of the shell and is never a programmer's
-choice at build time; two programmers building the same shell from the
-same data must produce column-identical tables even before double
-programming compares the numbers inside them. Second, the shell commits
-to a population and an analysis before the shell's author has seen any
-outcome data, which is a weaker but related form of the pre-specification
-this book has argued for throughout: an estimand and an analysis plan
-fixed before results exist cannot be reshaped by what the results turn
-out to be (@sec-analysis-plan-estimands).
+the exact column structure is part of the shell and is never a
+programmer's choice at build time. This includes column order, the
+definition of any 'Total' or 'Overall' column, and whether a column
+reports counts, percentages, or both. Two programmers building the same
+shell from the same data must produce column-identical tables. This
+holds even before double programming compares the numbers inside them.
+Second, the shell commits to a population and an analysis before the
+shell's author has seen any outcome data. This is a weaker but related
+form of the pre-specification this book has argued for throughout. An
+estimand and an analysis plan fixed before results exist cannot be
+reshaped by what the results turn out to be
+(@sec-analysis-plan-estimands).
 
 The same shell discipline governs listings and figures, the other two
-letters of 'TLF'. A listing is a shell too, specifying
-exactly which SDTM or ADaM variables appear, in what order, sorted by
-what key, with what footnotes about truncation or suppression of
-confidential fields; a figure's shell specifies the plot type, axes,
-legend, and any reference lines, the way `ggsurvplot()`'s arguments
-above fix the axis labels and the arm legend before any data are
-plotted. A Kaplan-Meier figure built during exploratory analysis and a
-CSR figure built from the same `fit` object then share their statistics
-and differ only in presentation, provided the shell that specifies the
-CSR figure's axes and legend was agreed in advance and the code that
-builds it, display-only or not, implements that shell exactly.
+letters of 'TLF'. A listing has a shell too. It specifies exactly which
+SDTM or ADaM variables appear, in what order, and sorted by what key. It
+also states the footnotes about truncation or suppression of
+confidential fields. A figure's shell specifies the plot type, axes,
+legend, and any reference lines. This is the way `ggsurvplot()`'s
+arguments above fix the axis labels and the arm legend before any data
+are plotted. Consider a Kaplan-Meier figure built during exploratory
+analysis and a CSR figure built from the same `fit` object. The two then
+share their statistics and differ only in presentation. This holds
+provided the shell for the CSR figure's axes and legend was agreed in
+advance. The code that builds it, display-only or not, must also
+implement that shell exactly.
 
-TLFs are QC'd the same way ADaM datasets are: a second programmer, often
-using a different package or a simpler ad hoc script, independently
-reproduces the numbers inside the shell and compares them to the
-primary output, cell by cell, the same discipline as the `diffdf`
-comparison in @sec-cdisc-industry applied to a table instead of a
-dataset. A `gtsummary` table built quickly from the locked data is a
-reasonable independent check on a `tern` table's numbers, precisely
-because the two packages compute the summary statistics by different
-code paths from the same shell's row and column definitions; agreement
-between them is evidence about the numbers, while agreement between two
-runs of the same `tern` layout is evidence about nothing new, for the
-same reason a second run of identical code added nothing to the ADaM
-double-programming check earlier in this chapter.
+TLFs are QC'd the same way ADaM datasets are. A second programmer
+independently reproduces the numbers inside the shell, often with a
+different package or a simpler ad hoc script. The programmer then
+compares them to the primary output, cell by cell. This is the same
+discipline as the `diffdf` comparison in @sec-cdisc-industry, applied to
+a table instead of a dataset. A `gtsummary` table built quickly from the
+locked data is a reasonable independent check on a `tern` table's
+numbers. The reason is that the two packages compute the summary
+statistics by different code paths from the same shell's row and column
+definitions. Agreement between them is evidence about the numbers.
+Agreement between two runs of the same `tern` layout is evidence about
+nothing new. The reason is the same one that made a second run of
+identical code add nothing to the ADaM double-programming check earlier
+in this chapter.
 
 ::: {.callout-tip title='Verification'}
 Before trusting a built TLF, check it against its own shell line by
@@ -957,13 +966,13 @@ clearer, and adds it. The added row is correctly computed. What is
 wrong?
 
 **Answer.** The row was not in the shell the biostatistician and the
-lead programmer signed off on. Adding it, even correctly, means the
-table that reaches the SAP's reviewers and ultimately FDA differs from
-the one that was specified and agreed before the data were seen, which
-is exactly the appearance of data-driven table-building that a
-pre-specified shell exists to rule out. The right process is to propose
-the row as a shell change, get it reviewed and signed off, and only then
-implement it; a good idea discovered while coding is still a
+lead programmer signed off on. Adding it, even correctly, changes the
+table that reaches the SAP's reviewers and ultimately FDA. That table
+now differs from the one specified and agreed before the data were
+seen. This is exactly the appearance of data-driven table-building that
+a pre-specified shell exists to rule out. The right process is to
+propose the row as a shell change, get it reviewed and signed off, and
+only then implement it. A good idea discovered while coding is still a
 specification change, not a coding decision.
 :::
 
@@ -995,32 +1004,32 @@ from the day-30 and change rows; the denominator for each row is
 stated as n, not N, to make this explicit.
 ```
 
-The main decision is the footnote: `ADLB` as built in the worked
-example has one row per subject per visit actually measured, so a
-subject missing the day-30 draw contributes no day-30 row and no
-`CHG` value, rather than an explicit missing-data code. A shell that
-reports only `N` in the header without an `n` row for each statistic
-would let a reader assume the change row was computed on every
-randomized subject, which it was not; the footnote is the shell's way
-of pre-committing to disclosing that gap rather than leaving a
-programmer to decide, after seeing how much data is missing, whether
-it is worth mentioning.
+The main decision is the footnote. `ADLB` as built in the worked
+example has one row per subject per visit actually measured. A
+subject missing the day-30 draw therefore contributes no day-30 row
+and no `CHG` value, rather than an explicit missing-data code.
+Suppose a shell reports only `N` in the header, without an `n` row
+for each statistic. A reader could then assume the change row was
+computed on every randomized subject, which it was not. The footnote
+is the shell's way of committing in advance to disclose that gap. It
+does not leave a programmer to decide, after seeing how much data is
+missing, whether the gap is worth mentioning.
 :::
 
 ### R in submissions and validated packages
 
 R is accepted in submissions. The R Consortium's R Submissions
 Working Group has run pilot submissions to FDA built in R. Pilot
-1, four TLFs, received FDA's final review response in March 2022;
+1, four TLFs, received FDA's final review response in March 2022.
 Pilot 2, a Shiny application, received its response in September
-2023; Pilot 3, ADaM datasets and TLFs built in R, received its
-final response letter in August 2024; and Pilot 4, the Shiny
+2023. Pilot 3, ADaM datasets and TLFs built in R, received its
+final response letter in August 2024. Pilot 4, the Shiny
 application delivered through WebAssembly and through a
 container, received FDA's review letter in May 2026.[^pilots]
 These are test submissions, not drug approvals. What a sponsor must
 show is that the software it relies on is fit for purpose. The R
 Validation Hub, another R Consortium working group, publishes a
-risk-based approach to that question, and its `riskmetric` package
+risk-based approach to that question. Its `riskmetric` package
 scores a package on documentation, testing, maintenance, and use
 (display-only; not installed here):
 
@@ -1031,7 +1040,7 @@ pkg_ref('survival') |>
   pkg_score()
 ```
 
-As of this writing, `riskmetric` is maintenance-only: the Validation
+As of this writing, `riskmetric` is maintenance-only. The Validation
 Hub has moved its development effort to a successor, `val.meter`,
 and directs feature requests there. Bug reports for `riskmetric`
 itself are still accepted. Check both packages' status before
@@ -1050,9 +1059,9 @@ adopting either.
 ### Double programming
 
 The standard validation of an ADaM dataset or a table in industry
-is [**double programming**](F-glossary.qmd#gloss-double-programming): a second programmer derives the same
+is [**double programming**](F-glossary.qmd#gloss-double-programming). A second programmer derives the same
 output independently from the specification, without reading the
-first programmer's code, and the two outputs are compared value by
+first programmer's code. The two outputs are then compared value by
 value. Any difference is investigated until both agree or the
 specification is clarified. The `diffdf` package is the usual
 comparison tool in R (display-only; not installed here):
@@ -1098,11 +1107,11 @@ nrow(mismatches)
 ```
 
 The QC derivation shares no code and no intermediate dataset with
-the primary one: it uses `visits.csv` for the last contact where
-the primary used the `DS` date, and the outcome flags where the
-primary used `HO` and `DS`. Agreement on all
-`r nrow(primary)` subjects is evidence about the derivation; a
-second run of the same code would be evidence about nothing.
+the primary one. It uses `visits.csv` for the last contact where
+the primary used the `DS` date. It uses the outcome flags where the
+primary used `HO` and `DS`. Agreement on all `r nrow(primary)`
+subjects is evidence about the derivation. A second run of the same
+code would be evidence about nothing.
 
 ::: {.callout-important title='LLM prompt'}
 An independent re-derivation by a model is the AI analogue of
@@ -1130,14 +1139,14 @@ derivation must not see the first.
 > subject.
 
 *Failure mode.* A model shown the primary code reproduces its
-errors, which defeats the comparison; a model not shown the
+errors, which defeats the comparison. A model not shown the
 specification invents a censoring rule, often `CNSR = 1` for
 every censored subject. *Check.* Run its function on the real
-files inside your environment and compare with the
-`mismatches` join above, which must return no rows; investigate
-every assumption it listed against the SAP. Real SDTM and ADaM are
+files inside your environment and compare with the `mismatches`
+join above, which must return no rows. Then investigate every
+assumption it listed against the SAP. Real SDTM and ADaM are
 individual patient data and the sponsor's confidential
-information: send the specification and synthetic rows, never the
+information. Send the specification and synthetic rows, never the
 datasets (@sec-ai-governance).
 :::
 
@@ -1148,9 +1157,9 @@ agree exactly. What has been shown?
 
 **Answer.** That the program is deterministic, not that it is
 correct. Double programming works because the second
-derivation is independent: different code, written from the
-specification by someone who has not seen the first, so that a
-shared misreading is unlikely. A misread censoring rule survives
+derivation is independent. It is different code, written from the
+specification by someone who has not seen the first. A shared
+misreading is therefore unlikely. A misread censoring rule survives
 any number of re-runs of the same code.
 :::
 
@@ -1158,13 +1167,13 @@ any number of re-runs of the same code.
 
 Double programming (@sec-cdisc-industry) is evidence about one dataset.
 Two further layers of rule govern the computing environment that
-produces every dataset and table in a submission: a US regulation on
-what counts as a trustworthy electronic record, and an international
-guideline on how a sponsor manages the risk that its computerized
-systems, R and its packages among them, introduce into a trial's data.
-A biostatistician who only ever sees SAS or R code will still meet both,
-usually at a sponsor's own standard operating procedures (SOPs), which
-exist to implement them.
+produces every dataset and table in a submission. The first is a US
+regulation on what counts as a trustworthy electronic record. The second
+is an international guideline on how a sponsor manages the risk that its
+computerized systems introduce into a trial's data. R and its packages
+are among those systems. A biostatistician who only ever sees SAS or R
+code will still meet both. The usual point of contact is a sponsor's own
+standard operating procedures (SOPs), which exist to implement them.
 
 ### 21 CFR Part 11: electronic records and electronic signatures
 
@@ -1172,111 +1181,114 @@ Title 21, Part 11 of the US Code of Federal Regulations
 [@fda1997part11] sets the conditions under which the FDA accepts
 electronic records and electronic signatures as equivalent to paper
 records and handwritten signatures. It does not, by itself, require
-that any particular record be kept; it applies once a sponsor chooses
-to keep, in electronic form, a record that some other FDA regulation
-(the 'predicate rule') already requires, for instance the clinical data
-underlying a new drug application. Three obligations matter most to a
+that any particular record be kept. Rather, it applies once a sponsor
+chooses to keep a required record in electronic form. The requirement
+itself comes from some other FDA regulation (the 'predicate rule'). The
+clinical data underlying a new drug application are one instance.
+Three obligations matter most to a
 statistician or programmer who works inside a system built to satisfy
 Part 11.
 
 **Audit trails.** A system covered by Part 11 must generate a
-computer-generated, time-stamped audit trail that records who created,
-modified, or deleted a record, and when, without obscuring the earlier
-entries. For an ADaM dataset this means the specification, the
+computer-generated, time-stamped audit trail. The trail records who
+created, modified, or deleted a record, and when, without obscuring the
+earlier entries. For an ADaM dataset this means the specification, the
 programs, and the dataset itself typically live in a validated system
-(a clinical trial management system or a controlled document and code
-repository) that logs every change, rather than in a shared folder
-where a file can be silently overwritten. A `git` history is a step in
-this direction but is not, by itself, a Part 11 audit trail: Part 11
-requires the trail to be part of a controlled, access-restricted system
-with its own retention guarantees, which plain version control does not
-provide on its own.
+that logs every change. Examples are a clinical trial management system
+or a controlled document and code repository. They do not live in a
+shared folder where a file can be overwritten without a trace. A `git`
+history is a step in this direction but is not, by itself, a Part 11
+audit trail. Part 11 requires the trail to be part of a controlled,
+access-restricted system with its own retention guarantees. Plain
+version control does not provide that on its own.
 
 **Access controls.** Only authorized individuals may operate the
-system, each identified by a unique credential, with access rights set
-by role (read-only reviewer, programmer with write access to a
-particular study, and so on). A programmer who shares a login with a
-colleague, even briefly, breaks the link between the audit trail's
-record of 'who' and the person who actually acted, which is the
+system. Each is identified by a unique credential, with access rights
+set by role (read-only reviewer, programmer with write access to a
+particular study, and so on). Suppose a programmer shares a login with a
+colleague, even briefly. That breaks the link between the audit trail's
+record of 'who' and the person who actually acted. This link is the
 specific guarantee Part 11 is built to provide.
 
 **Record retention.** Records kept to satisfy a predicate rule must
 remain retrievable, and reproducible in a readable form, for the
-retention period that rule specifies, which can run well beyond a
-study's active life and beyond the working life of the software that
-produced the record. A sponsor's SOPs for archiving an R environment,
-down to the package versions a study used, exist to keep that promise
-when R itself, or a package on CRAN, has moved on.
+retention period that rule specifies. That period can run well beyond a
+study's active life. It can also outlast the working life of the
+software that produced the record. A sponsor's SOPs for archiving an R
+environment, down to the package versions a study used, exist to keep
+that promise when R itself, or a package on CRAN, has moved on.
 
-**Electronic signatures.** Where a signature is required (sign-off on a
-SAP, approval of a locked dataset, release of a CSR), Part 11 requires
-that the signature be uniquely linked to one individual, never reused
-or reassigned to someone else, and applied only by its genuine owner,
-typically through a two-component mechanism such as a credential plus a
-password or token. A biostatistician's electronic approval of an ADaM
-specification inside a controlled document system is the Part 11
-analogue of a wet signature on a paper memo, and carries the same legal
-weight once the system itself meets the regulation.
+**Electronic signatures.** A signature may be required for sign-off on a
+SAP, approval of a locked dataset, or release of a CSR. In each case
+Part 11 requires that the signature be uniquely linked to one
+individual, never reused or reassigned to someone else. It must be
+applied only by its genuine owner, typically through a two-component
+mechanism such as a credential plus a password or token. Consider a
+biostatistician's electronic approval of an ADaM specification inside a
+controlled document system. It is the Part 11 analogue of a wet
+signature on a paper memo. It carries the same legal weight once the
+system itself meets the regulation.
 
-Part 11 is US-specific and narrower than it sounds: it is a rule about
-what makes an *electronic* record acceptable in place of a paper one,
-not a general statement of what good computing practice looks like. The
-broader question, of how much validation and control a given
-computerized system needs, is addressed by ICH guidance.
+Part 11 is US-specific and narrower than it sounds. It is a rule about
+what makes an *electronic* record acceptable in place of a paper one. It
+is not a general statement of good computing practice. The broader
+question of how much validation and control a given computerized system
+needs is addressed by ICH guidance.
 
 These obligations reach a biostatistician who never touches a
-validated system directly. An FDA inspection of a study site
-or sponsor, conducted under the agency's Bioresearch Monitoring (BIMO)
-program, can and does ask to see the audit trail behind a reported
-result: who changed a value in the clinical database, when, and under
-whose approval a locked dataset was released for analysis. A derivation
-that exists only as an interactive session typed at a console, with no
-record of who ran it or when, is not what Part 11 or a sponsor's SOPs
-describing it will accept as the basis for a submitted result, however
-correct the derivation's numbers turn out to be, because the record of
-how a result was produced is treated as part of the evidence for it.
+validated system directly. The FDA inspects study sites and sponsors
+under its Bioresearch Monitoring (BIMO) program. Such an inspection can
+and does ask to see the audit trail behind a reported result. That is,
+it asks who changed a value in the clinical database, when, and under
+whose approval a locked dataset was released for analysis. Consider a
+derivation that exists only as an interactive session typed at a
+console, with no record of who ran it or when. Neither Part 11 nor a
+sponsor's SOPs will accept it as the basis for a submitted result,
+however correct its numbers turn out to be. The record of how a result
+was produced is treated as part of the evidence for it.
 
 ### ICH E6(R3): data governance and computerized systems
 
-ICH E6 is the Good Clinical Practice (GCP) guideline, revised twice
-since its original 1996 text; the third revision, E6(R3), reached ICH
-Step 4 (the point at which the ICH Assembly adopts the final text and
-recommends it to its member regulatory authorities) on 6 January 2025,
-with the European Medicines Agency's Step 5 adoption of the principles
-and Annex 1 taking effect on 23 July 2025 [@ich2025e6r3]. As of this
+ICH E6 is the Good Clinical Practice (GCP) guideline. It has been
+revised twice since its original 1996 text. The third revision, E6(R3),
+reached ICH Step 4 on 6 January 2025. Step 4 is the point at which the
+ICH Assembly adopts the final text and recommends it to its member
+regulatory authorities. The European Medicines Agency's Step 5 adoption
+of the principles and Annex 1 took effect on 23 July 2025
+[@ich2025e6r3]. As of this
 writing, Annex 2 of E6(R3) is on a later timetable; check the ICH
 database for the current status before citing a date for it.
 
 E6(R3)'s most consequential change for a statistician or programmer is
 a shift to **risk-based quality management**, applied explicitly to
-computerized systems. Rather than
-prescribing a fixed checklist for every system regardless of what it
-does, the guideline asks the sponsor to identify what could go wrong
-with a given system's data (a wrong randomization code, a corrupted
-export, an unvalidated calculation silently feeding a reported result)
-and to scale the system's validation, access control, and documentation
+computerized systems. The guideline does not prescribe a fixed checklist
+for every system regardless of what it does. Instead, it asks the
+sponsor to identify what could go wrong with a given system's data.
+Examples are a wrong randomization code, a corrupted export, or an
+unvalidated calculation silently feeding a reported result. The sponsor
+then scales the system's validation, access control, and documentation
 to the size and likelihood of that risk. A sponsor's own patient
 randomization system warrants more scrutiny than a read-only reporting
-dashboard built on already-locked data, and E6(R3) asks the sponsor to
-be able to show that it reasoned this way, not merely that it applied
-one uniform procedure to both.
+dashboard built on already-locked data. E6(R3) asks the sponsor to be
+able to show that it reasoned this way. It is not enough to show that
+one uniform procedure was applied to both.
 
 Regulators and industry commonly summarize the resulting data-integrity
 expectations with the mnemonic ALCOA+: data should be attributable,
 legible, contemporaneous, original, and accurate (the original ALCOA),
 and, as elaborated since, complete, consistent, enduring, and available.
-E6(R3) does not use this acronym in its own text, but its data
-governance expectations (traceable changes, protection against
-unauthorized alteration, and systems fit for their intended use) align
-with it, and the mnemonic is a convenient checklist against which to
+E6(R3) does not use this acronym in its own text. However, its data
+governance expectations align with it. These include traceable changes,
+protection against unauthorized alteration, and systems fit for their
+intended use. The mnemonic is a convenient checklist against which to
 read a sponsor's data-management SOPs.
 
 Part 11 and E6(R3) are not redundant. Part 11 is a US rule about when an
-electronic record substitutes for a paper one; E6(R3) is an
+electronic record substitutes for a paper one. E6(R3) is an
 international guideline about how a sponsor manages the quality of a
-clinical trial, of which the integrity of its computerized systems is
-one part. A sponsor operating a Part 11-compliant system has satisfied
-one specific US requirement; it has not, by that fact alone, satisfied
+clinical trial. The integrity of its computerized systems is one part of
+that. A sponsor operating a Part 11-compliant system has satisfied one
+specific US requirement. It has not, by that fact alone, satisfied
 E6(R3)'s broader expectation that the system's validation effort was
 scaled to its risk and documented as such. A global sponsor running a
 multinational trial needs to show both.
@@ -1287,13 +1299,13 @@ Under a risk-based framework, R itself, and every package an analysis
 depends on, is a computerized system whose risk to the trial's data
 must be assessed and, where warranted, mitigated. Sponsors that use R
 do not re-derive that assessment from first principles for every
-study. The R Validation Hub, the R Consortium working group already
-introduced in @sec-cdisc-industry for `riskmetric` and its successor
-`val.meter`, offers the industry a shared approach for R: assess a package
-once per environment (its test coverage, its maintenance activity, the
-stability of its exported interface, the size of its user base) and
-reuse that assessment, documented, across the studies that run in the
-same validated environment, rather than re-justifying the choice of
+study. The R Validation Hub was introduced in @sec-cdisc-industry for
+`riskmetric` and its successor `val.meter`. It offers the industry a
+shared approach for R. A package is assessed once per environment on its
+test coverage, its maintenance activity, the stability of its exported
+interface, and the size of its user base. That documented assessment is
+then reused across the studies that run in the same validated
+environment. There is no need to re-justify the choice of
 `survival::coxph()` in every SAP.
 
 Double programming (@sec-cdisc-industry) is per-analysis evidence: it shows that this
@@ -1303,69 +1315,69 @@ shows that the software both derivations relied on behaves as its
 documentation claims, before either derivation is attempted. Neither
 substitutes for the other. A correctly validated copy of `survival`
 run with a transposed censoring code still produces the wrong curve
-(@sec-cdisc-adam); and a careful, independently double-programmed
-derivation built on a package that silently drops `NA` rows from a
-join is still wrong for a reason double programming alone will not
-surface, because both programmers may make the same assumption about
-the package. A sponsor's R validation SOP and the study team's double
-programming plan are two different controls, addressed at two different
-layers of risk, and both are expected.
+(@sec-cdisc-adam). Conversely, consider a careful, independently
+double-programmed derivation built on a package that silently drops
+`NA` rows from a join. It is still wrong, and double programming alone
+will not surface the reason. Both programmers may make the same
+assumption about the package. A sponsor's R validation SOP and the
+study team's double programming plan are two different controls. They
+address two different layers of risk, and both are expected.
 
 The practical effect for a programmer joining such a sponsor is a
-validated environment rather than a free choice of package versions: an
-`renv.lock` (@sec-renv) pinned to a specific, already-assessed set of
-package versions, changed only through a controlled process that
-re-triggers the relevant risk assessment, rather than upgraded package
-by package whenever a newer CRAN release appears. This can feel like
-friction to someone used to running `renv::update()` freely, but it is
-the same logic as SDTM's immutability (@sec-cdisc-pipeline): a result
-traced to a package version that the validation record no longer
-describes is a result whose computational basis can no longer be
-reconstructed, which is precisely the failure E6(R3)'s risk-based
-framework and Part 11's retention requirement are both written to
-prevent.
+validated environment rather than a free choice of package versions.
+That is, an `renv.lock` (@sec-renv) is pinned to a specific,
+already-assessed set of package versions. It is changed only through a
+controlled process that re-triggers the relevant risk assessment. It is
+not upgraded package by package whenever a newer CRAN release appears.
+This can feel like friction to someone used to running `renv::update()`
+freely. However, it is the same logic as SDTM's immutability
+(@sec-cdisc-pipeline). Suppose a result is traced to a package version
+that the validation record no longer describes. The computational basis
+of that result can no longer be reconstructed. This is precisely the
+failure that E6(R3)'s risk-based framework and Part 11's retention
+requirement are both written to prevent.
 
 ### eSubmission mechanics: eCTD and pkglite
 
 The datasets, programs, and Define-XML discussed earlier in this
 chapter (@sec-cdisc-pipeline) reach FDA assembled into the electronic
-Common Technical Document
-(eCTD), the standardized, XML-backboned folder structure that ICH
-regions require for a regulatory submission. At a high level, an eCTD
-submission is organized into five numbered modules: Module 1 holds
-region-specific administrative information; Modules 2 through 4 hold
-the Common Technical Document summaries, quality, and nonclinical
-information; and Module 5 holds the clinical study reports, including,
-for each study, its datasets, its ADaM and SDTM metadata (Define-XML),
-and its analysis programs, in a defined subfolder structure. A
-submission is built incrementally over a product's life cycle, with
-each later submission adding or replacing eCTD 'leaves' rather than
-restarting the folder from scratch, which is part of why the ADRG and
-SDRG (@tbl-cdisc-package) exist as narrative guides to what changed and
-why. Within Module 5, a study's materials sit under a folder keyed to
-its study identifier, with conventional subfolders separating the
-datasets themselves from the programs that produced them (`datasets/`
-and `analysis/programs/`, in the naming most sponsors have converged
-on, though the eCTD standard itself does not mandate these exact
-names); Define-XML lives beside the datasets it describes, so a
-reviewer opening the study folder can move from a variable's entry in
-Define-XML to the dataset that contains it and, where provided, to the
+Common Technical Document (eCTD). The eCTD is the standardized,
+XML-backboned folder structure that ICH regions require for a
+regulatory submission. At a high level, an eCTD submission is organized
+into five numbered modules. Module 1 holds region-specific
+administrative information. Modules 2 through 4 hold the Common
+Technical Document summaries, quality, and nonclinical information.
+Module 5 holds the clinical study reports. For each study it includes
+the datasets, the ADaM and SDTM metadata (Define-XML), and the analysis
+programs, in a defined subfolder structure. A submission is built
+incrementally over a product's life cycle. Each later submission adds or
+replaces eCTD 'leaves' rather than restarting the folder from scratch.
+This is part of why the ADRG and SDRG (@tbl-cdisc-package) exist as
+narrative guides to what changed and why. Within Module 5, a study's
+materials sit under a folder keyed to its study identifier.
+Conventional subfolders separate the datasets themselves from the
+programs that produced them. Most sponsors have converged on the names
+`datasets/` and `analysis/programs/`, though the eCTD standard itself
+does not mandate these exact names. Define-XML lives beside the
+datasets it describes. A reviewer opening the study folder can
+therefore move from a variable's entry in Define-XML to the dataset
+that contains it. Where provided, the reviewer can also move on to the
 program that derived it, without leaving the submission's own folder
 structure.
 
 The eCTD's file-format rules have historically been a poor fit for R
-source code: FDA's eCTD gateway accepted a restricted list of file
-types, and a source R package, with its nested `R/`, `man/`, `tests/`,
-and `data/` subdirectories, did not sit comfortably inside a single
+source code. FDA's eCTD gateway accepted a restricted list of file
+types. A source R package, with its nested `R/`, `man/`, `tests/`, and
+`data/` subdirectories, did not sit comfortably inside a single
 accepted leaf. `pkglite` [@zhang2026pkglite] was built at Merck to
-solve exactly this problem: it collates a package's source files into
+solve exactly this problem. It collates a package's source files into
 one or a small number of plain-text files, in a documented, lossless
-format, that pack back into the original package structure with a
-single call. A programmer preparing an R package for inclusion in an
-eCTD submission (display-only; not installed here) collates the
-package using the `file_ectd()` specification, which selects the files
-an eCTD submission expects, then packs the result into a single text
-file:
+format. These files pack back into the original package structure with
+a single call. Consider a programmer preparing an R package for
+inclusion in an eCTD submission (display-only; not installed here).
+The programmer collates the package using the `file_ectd()`
+specification, which selects the files an eCTD submission expects. The
+result is then packed into a single text file:
 
 ```r
 library(pkglite)
@@ -1377,12 +1389,12 @@ collate(pkg = 'path/to/mypackage', file_ectd()) |>
 A reviewer, or the original team at a later submission, restores the
 package from that text file with `unpack()`. As of this writing, the
 R Consortium reports that FDA has since expanded the file formats its
-eCTD portal accepts for R, so a sponsor can in some cases submit a
-non-public R package directly as a `.zip` archive; `pkglite`'s
-plain-text, line-by-line output remains useful on its own terms,
-independent of what the gateway accepts, because a text file is
+eCTD portal accepts for R. A sponsor can therefore in some cases submit
+a non-public R package directly as a `.zip` archive. However,
+`pkglite`'s plain-text, line-by-line output remains useful on its own
+terms, independent of what the gateway accepts. A text file is
 readable, diffable, and version-controllable in a way a zipped binary
-archive is not, which matters for a reviewer trying to see what changed
+archive is not. That matters for a reviewer trying to see what changed
 between two submitted versions of a package.
 
 ::: {.callout-warning title='Pitfall'}
@@ -1390,9 +1402,9 @@ between two submitted versions of a package.
 regulatory standing.** A system can generate a flawless, tamper-evident
 audit trail and still be running an unvalidated, undocumented R package
 whose output no one has assessed for risk. Part 11 governs the
-*record*, not the *software* that produced it; satisfying one says
-nothing about having satisfied the other, and a sponsor's own
-validation SOPs, not Part 11 itself, are what close that gap.
+*record*, not the *software* that produced it. Satisfying one says
+nothing about having satisfied the other. A sponsor's own validation
+SOPs, not Part 11 itself, are what close that gap.
 :::
 
 ### Exercises
@@ -1407,16 +1419,16 @@ validation SOPs, not Part 11 itself, are what close that gap.
    assessment.
 
 ::: {.callout-note collapse='true' title='Solution to exercise 5'}
-A plausible argument, not a settled fact: `survival` has shipped with
-base R's recommended package set for decades, has an exceptionally
-large user base, and changes its exported interface rarely, all of
-which argue for lower risk under the Hub's framework. That argument is
-only as good as its evidence, though; the right next step is to check,
-for the two packages' versions actually pinned
-in the study's `renv.lock`, their CRAN check status, their last
-release date, and their test coverage (for instance with `covr`), which
-is what a `riskmetric` or `val.meter` run (@sec-cdisc-industry) is
-built to summarize rather than leaving to intuition.
+What follows is a plausible argument, not a settled fact. `survival`
+has shipped with base R's recommended package set for decades. It has
+an exceptionally large user base and changes its exported interface
+rarely. All of these argue for lower risk under the Hub's framework.
+However, the argument is only as good as its evidence. The right next
+step is to check the two packages' versions actually pinned in the
+study's `renv.lock`. For those versions we would check their CRAN check
+status, their last release date, and their test coverage (for instance
+with `covr`). A `riskmetric` or `val.meter` run (@sec-cdisc-industry) is
+built to summarize exactly this, rather than leaving it to intuition.
 :::
 
 6. A sponsor's SOP requires that every ADaM program be reviewed and
@@ -1429,14 +1441,14 @@ built to summarize rather than leaving to intuition.
 The electronic approval itself, if it uniquely identifies the approver
 and cannot be reassigned or reused by someone else, satisfies Part
 11's electronic-signature requirement. The requirement to review the
-program *before* release is not a Part 11 obligation at all; Part 11
-is silent on what a sponsor must review, only on what makes an
-electronic record and signature acceptable once a review happens. The
-review requirement itself follows from E6(R3)'s risk-based
-quality-management expectation: a program that derives a reported
+program *before* release is not a Part 11 obligation at all. Part 11
+is silent on what a sponsor must review. It speaks only to what makes
+an electronic record and signature acceptable once a review happens.
+The review requirement itself follows from E6(R3)'s risk-based
+quality-management expectation. A program that derives a reported
 ADaM variable is a computerized-system output with real risk to data
-integrity, and the SOP's review step is the control a sponsor has
-chosen to manage that risk before the output is trusted downstream.
+integrity. The SOP's review step is the control a sponsor has chosen
+to manage that risk before the output is trusted downstream.
 :::
 
 ## Rules of thumb
@@ -1487,7 +1499,7 @@ stopifnot(setequal(adtte_spec$variable, names(adtte)))
 adtte_spec
 ```
 
-A full specification adds a type and a derivation column; the
+A full specification adds a type and a derivation column. The
 derivation for `CNSR`, for instance, reads '0 if the first of
 `HO.HOSTDTC` (readmission) or `DS.DSSTDTC` where
 `DS.DSDECOD = 'DEATH'` falls within 30 days of `STARTDT`; 2 if
@@ -1542,10 +1554,10 @@ the check on the values.
    analysis-ready datasets derived from SDTM. In industry,
    statistical programmers typically build ADaM against
    specifications written or reviewed by the biostatistician, who
-   also writes the SAP; SDTM is built by data management or
+   also writes the SAP. SDTM is built by data management or
    clinical programmers.
 2. A censored observation. `CNSR = 0` is the event, and other
-   positive integers may code other censoring reasons; pass
+   positive integers may code other censoring reasons. Pass
    `CNSR == 0` to `survival::Surv()` as the event.
 3. `ADSL` is the subject-level anchor dataset, with exactly one
    row per subject: treatment assignment, demographics, baseline

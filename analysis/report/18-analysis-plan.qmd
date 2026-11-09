@@ -1,17 +1,17 @@
 # Statistical Analysis Plans {#sec-analysis-plan}
 
 A trial registers one primary outcome and publishes another. The
-paper reads well, its p-value is small, and nothing in it reveals
+paper reads well and its p-value is small. Nothing in it reveals
 the switch, because the only evidence is a document the reader never
-opens. When the COMPare project checked every trial published over
-six weeks in five high-impact medical journals against its protocol
-or registry entry, 58 of 67 had discrepancies, and the papers added
-a mean of 5.4 outcomes per trial that had never been declared
+opens. The COMPare project checked every trial published over six
+weeks in five high-impact medical journals against its protocol or
+registry entry. Of 67 trials, 58 had discrepancies, and the papers
+added a mean of 5.4 outcomes per trial that had never been declared
 [@goldacre2019compare]. Most of the correction letters the team
-sent went unpublished. The switches had passed peer review; a dated
-plan to compare against is what caught them. This chapter is about
-writing that plan so that it binds, and so that a reader can check
-it did.
+sent went unpublished. The switches had passed peer review. What
+caught them was a dated plan to compare against. This chapter is
+about writing that plan so that it is binding, and so that a reader
+can check that it was followed.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -105,15 +105,15 @@ answers are in @sec-quiz-answers-18.
 ## Why pre-specify {#sec-analysis-plan-why}
 
 The SAP is the professional biostatistician's most important
-non-code document, and the argument for it is narrower and stronger
+non-code document. The argument for it is narrower and stronger
 than the one usually made. It is not primarily a defense against
 dishonesty. Very few analysts set out to select the analysis that
 gives the answer they wanted. What they do, having looked at the
 data, is make a long series of small and individually defensible
 choices. Each is one they would have made differently had the data
-looked otherwise, and none is experienced as a choice at all. The
-p-value that emerges at the end has a nominal Type I error rate that
-assumes none of this happened.
+looked otherwise, and none feels like a choice at the time. The
+p-value at the end has a nominal Type I error rate that assumes
+none of this happened.
 
 ### Researcher degrees of freedom
 
@@ -122,19 +122,18 @@ transformations, which subgroups, which outcome), the chance that
 *some* analysis gives $p < 0.05$ under the null is much greater than
 5%. @simmons2011false calculate that four common degrees of freedom
 together inflate the false-positive rate from 5% to about 60%. The
-problem does not need conscious p-hacking: in the 'garden of forking
-paths' [@gelman2013garden], the reported test's calibration depends
-on the choices that *would* have been made on different data, even
-if the analyst made only one.
+problem does not require conscious p-hacking. In the 'garden of
+forking paths' [@gelman2013garden], the reported test's calibration
+depends on the choices that *would* have been made on different
+data, even if the analyst made only one.
 
 The inflation is easy to see. The simulation below generates trials
-with no treatment effect at all, and lets the analyst make up to four
-yes-or-no choices: which of two correlated outcomes, whether to
-adjust for age, whether to drop values more than two standard
+with no treatment effect at all. It lets the analyst make up to
+four yes-or-no choices: which of two correlated outcomes, whether
+to adjust for age, whether to drop values more than two standard
 deviations from the mean, and whether to report the older half as
-a subgroup. Each choice
-doubles the number of analyses, and the analyst reports the smallest
-p-value.
+a subgroup. Each choice doubles the number of analyses, and the
+analyst reports the smallest p-value.
 
 ```{r}
 #| label: sap-forking-sim
@@ -204,12 +203,12 @@ false-positive rate from
 `r sprintf("%.0f%%", 100 * forking$false_positive[1])` to
 `r sprintf("%.0f%%", 100 * forking$false_positive[5])`. A plan
 written before the data are seen fixes the covariates, the model,
-the missing-data strategy, and the multiple-comparison procedure,
-and it is the only instrument that distinguishes the two situations
-after the fact, because by then the analyst's memory of what they
-would have done is not evidence. The trade-off is real:
-pre-specification restricts flexibility. The flexibility it
-restricts was producing inflated false-positive rates anyway.
+the missing-data strategy, and the multiple-comparison procedure.
+It is the only instrument that distinguishes the two situations
+after the fact. By then the analyst's memory of what they would
+have done is not evidence. The trade-off is real, since
+pre-specification restricts flexibility. However, the flexibility
+it restricts was producing inflated false-positive rates anyway.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** In the simulation, every one of the 16 analyses is a
@@ -218,11 +217,11 @@ valid test at the 5% level. Why does the reported result not have a
 
 **Answer.** Because the analyst reports the *smallest* of 16
 p-values, and the minimum of several valid p-values is not a valid
-p-value. Each test is calibrated on its own; the procedure 'run
-several, report the best' is not, and the reader is told the error
+p-value. Each test is calibrated on its own. The procedure 'run
+several, report the best' is not, yet the reader is told the error
 rate of a single test. The tests are correlated (they share the
 data), which is why the rate rises more slowly than
-$1 - 0.95^{16}$, but it rises all the same.
+$1 - 0.95^{16}$. It rises all the same.
 :::
 
 ## Estimands: what the trial estimates {#sec-analysis-plan-estimands}
@@ -266,15 +265,15 @@ and each one asks a different question:
 {#tbl-estimand-strategies}
 
 A treatment-policy strategy cannot handle a terminal event such as
-death, because no outcome exists after it; that is why HF-HOME uses
-the composite strategy for death and treatment policy for the
+death, because no outcome exists after it. For this reason HF-HOME
+uses the composite strategy for death and treatment policy for the
 visits. The choice determines what counts as missing data, which is
 why @sec-missing-trials starts from the estimand.
 
 ### Why 'patients who got the visit' answers no question
 
 The tempting analysis compares patients by what they received. The
-running study's files show how far that drifts from any estimand:
+running study's files show how far that departs from any estimand:
 
 ```{r}
 #| label: sap-estimand-receipt
@@ -332,7 +331,7 @@ patients were less likely to receive one, and
 had their event by day 7, which in the trial's records prevents the
 visit (the immortal-time trap of @sec-team-science). A principal
 stratum is defined by what a patient *would* experience, which
-randomization balances; a subset defined by what patients *did*
+randomization balances. A subset defined by what patients *did*
 experience is not balanced by anything.
 :::
 
@@ -360,7 +359,7 @@ deaths
 The SAP uses a composite strategy: death within 30 days is an event,
 so the variable is defined for every patient. A treatment-policy
 strategy would need the readmission outcome after death, which does
-not exist; the addendum notes that treatment policy cannot be
+not exist. The addendum notes that treatment policy cannot be
 implemented for terminal events. Treating death as censoring, or
 dropping the deaths, would instead estimate an effect among
 survivors, a population that the treatment itself may change.
@@ -371,13 +370,13 @@ survivors, a population that the treatment itself may change.
 HF-HOME restricted to home-health patients who received the visit
 and usual-care patients who did not. Which estimand does it target?
 
-**Answer.** None of the five. It is neither a hypothetical estimand
-(that needs a model for what unvisited patients would have
-experienced) nor a principal stratum (that needs the patients who
-*would* be visited if assigned, identified in both arms). It
-compares two subsets selected after randomization by frailty and by
-early events, so its estimate mixes the treatment effect with those
-differences. If the question is the effect of actually receiving
+**Answer.** None of the five. It is not a hypothetical estimand,
+which needs a model for what unvisited patients would have
+experienced. Nor is it a principal stratum, which needs the
+patients who *would* be visited if assigned, identified in both
+arms. It compares two subsets selected after randomization by
+frailty and by early events, so its estimate mixes the treatment
+effect with those differences. If the question is the effect of actually receiving
 the visit, state it as a hypothetical or principal-stratum estimand
 and pre-specify the assumptions that identify it.
 :::
@@ -386,10 +385,11 @@ and pre-specify the assumptions that identify it.
 
 A standard biostatistical SAP has the sections in @tbl-sap-sections.
 They condense the published guideline for the content of
-clinical-trial SAPs [@gamble2017sap], whose 55 items are the fuller
-checklist to use for a trial, and each maps to the statistical
-principles in ICH E9 [@ich1998e9] and its addendum. A downloadable
-SAP skeleton with these sections will accompany the book.
+clinical-trial SAPs [@gamble2017sap]. The guideline's 55 items are
+the fuller checklist to use for a trial. Each section maps to the
+statistical principles in ICH E9 [@ich1998e9] and its addendum. A
+downloadable SAP skeleton with these sections will accompany the
+book.
 
 | SAP section | Contents | Gamble et al. (2017) | ICH E9 or E9(R1) |
 |---|---|---|---|
@@ -416,25 +416,25 @@ Not every section is needed for every study. For an observational
 secondary analysis, sections 3 and 4 are simpler, and sections 8 to
 12 are the same.
 
-@tbl-sap-sections is a template for the statistical content; the
+@tbl-sap-sections is a template for the statistical content. The
 protocol around it has its own template. The International Council
 for Harmonisation's M11 guideline [@ich2025m11] specifies a
-harmonized structure for the whole clinical trial protocol, not only
-its statistics, as a common table of contents, headers, and
-machine-readable technical specification so that the same sections
-appear in the same order across sponsors and regions. As of this
-writing, M11 was adopted by the ICH regulatory members at Step 4 on
-19 November 2025, with regional adoption (Step 5) following on each
-region's own timeline; readers should check the current ICH and
-regional-authority sites before relying on dates or the technical
-specification's exact version, since the Step 5 transition was still
-in progress when this chapter was written. Where M11 applies, a
+harmonized structure for the whole clinical trial protocol, not
+only its statistics. It does so through a common table of contents,
+headers, and machine-readable technical specification, so that the
+same sections appear in the same order across sponsors and regions.
+As of this writing, M11 was adopted by the ICH regulatory members
+at Step 4 on 19 November 2025. Regional adoption (Step 5) follows
+on each region's own timeline. The Step 5 transition was still in
+progress when this chapter was written, so readers should check the
+current ICH and regional-authority sites before relying on dates or
+the technical specification's exact version. Where M11 applies, a
 SAP's sections 3 and 4 (design, eligibility) should reference the
 protocol's corresponding M11 sections by number rather than restate
-them, so the two documents cannot drift apart.
+them. The two documents then cannot drift apart.
 
 Section 13, reporting, is where the SAP commits to a reporting
-guideline before the result is known; @sec-communicating-guidelines
+guideline before the result is known. @sec-communicating-guidelines
 gives the table matching study design to guideline.
 
 ### Specific enough to constrain
@@ -449,30 +449,32 @@ that matter. Aim for the second.
 
 Where you do not know whether an assumption will hold, pre-specify a
 method that remains valid either way rather than a test that chooses
-between methods. 'If the residuals show heteroscedasticity, we will
-use heteroscedasticity-consistent (HC1) standard errors; otherwise
-classical standard errors (SEs)' looks careful but
-is a pretest procedure: the combined rule's error rate is that of
-neither branch, and classical SEs chosen after a heteroscedasticity
-test that lacked power are the worst of both. 'We will use HC3
-standard errors' commits to an estimator that is valid whether or
-not the variance is constant and costs little when it is
-[@long2000hc]. 'We will use SEs' constrains nothing.
+between methods. Consider 'If the residuals show
+heteroscedasticity, we will use heteroscedasticity-consistent (HC1)
+standard errors; otherwise classical standard errors (SEs)'. This
+looks careful, but it is a pretest procedure. The combined rule's
+error rate is that of neither branch. Classical SEs chosen after a
+heteroscedasticity test that lacked power are the worst of both.
+'We will use HC3 standard errors', by contrast, commits to an
+estimator that is valid whether or not the variance is constant,
+and costs little when it is [@long2000hc]. 'We will use SEs'
+constrains nothing.
 
 ### Complete is not the same as good
 
 The template says what a SAP must contain, not whether the analysis
-it specifies is a good one; a SAP can be complete, tagged before
+it specifies is a good one. A SAP can be complete, tagged before
 data access, and still pre-specify a weak analysis. Harrell's author
-checklist [@harrell2024checklist], written for the reviewer of a
-finished manuscript, is the right instrument to run against a draft,
-because every item on it is a way a paper gets rejected that a plan
-could have prevented. Its recurring targets are decisions sections 7
-and 8 invite: categorizing a continuous covariate rather than
-modeling it with a spline, selecting variables stepwise, reporting a
-p-value without the interval that gives it magnitude, and choosing a
-sample size from an effect observed in a previous study rather than
-the effect worth detecting. *Regression Modeling Strategies*
+checklist [@harrell2024checklist] was written for the reviewer of a
+finished manuscript. It is nevertheless the right instrument to run
+against a draft, because every item on it is a way a paper gets
+rejected that a plan could have prevented. Its recurring targets
+are decisions that sections 7 and 8 invite. These include
+categorizing a continuous covariate rather than modeling it with a
+spline, and selecting variables stepwise. They also include
+reporting a p-value without the interval that gives it magnitude,
+and choosing a sample size from an effect observed in a previous
+study rather than the effect worth detecting. *Regression Modeling Strategies*
 [@harrell2015rms] is the book-length argument behind those items.
 Read the checklist once before you draft section 8, and again after.
 
@@ -492,11 +494,11 @@ section 11 of the HF-HOME SAP below.
 ## Sample size {#sec-analysis-plan-power}
 
 Base R's `stats` package covers the two designs most clinical SAPs
-start from, a parallel-group randomized controlled trial (RCT) with
-a continuous or a binary outcome: `power.t.test()` for a continuous
-outcome and `power.prop.test()` for a binary one. Supplying `power`
-solves for
-the sample size per arm; supplying `n` solves for power:
+start from. These are a parallel-group randomized controlled trial
+(RCT) with a continuous outcome, handled by `power.t.test()`, and
+one with a binary outcome, handled by `power.prop.test()`.
+Supplying `power` solves for the sample size per arm; supplying `n`
+solves for power:
 
 ```{r}
 #| label: sap-power-base
@@ -513,8 +515,8 @@ For designs beyond these, community packages such as `pwr` and, for
 group-sequential and adaptive trials, `rpact` are the usual next
 step. The in-house `zzpower` package is one further option. It is
 installed from GitHub rather than CRAN and has not been through an
-external review, so where base R covers the same design, cross-check
-its answer against `stats`; for the calculation below the two agree
+external review. Where base R covers the same design, cross-check
+its answer against `stats`. For the calculation below the two agree
 once rounded up to whole patients.
 
 ```{r}
@@ -532,7 +534,7 @@ zzpower::power_calc("ttest_2groups",
 In the SAP, report the sample size with the underlying assumptions,
 and apply the attrition assumption rather than merely stating it.
 The calculation gives the number of participants who must be
-*analyzed*; the number enrolled has to be larger by the factor
+*analyzed*. The number enrolled has to be larger by the factor
 $1/(1 - \text{attrition})$:
 
 ```{r}
@@ -582,7 +584,7 @@ ceiling(per_arm)          # analytic n per arm
 
 With `sd = 1`, `delta` is the standardized effect. The same
 calculation in `zzpower` reads its result from `sample_sizes` rather
-than `sample_size`: the element is a list, because a two-arm
+than `sample_size`. The element is a list, because a two-arm
 calculation returns per-arm and total figures separately, along with
 an intention-to-treat (ITT) inflated version. Its `$n` is the
 analytic requirement per arm, and it agrees with base R once
@@ -608,7 +610,7 @@ stopifnot(identical(ceiling(per_arm), ceiling(per_arm_zz)))
 The per-arm requirement is what the design effect below scales.
 
 **Then the design effect.** A cluster randomized trial does not
-randomize patients; it randomizes practices, and patients within a
+randomize patients. It randomizes practices, and patients within a
 practice resemble one another. The variance inflation is
 $\text{DEFF} = 1 + (m - 1)\rho$, with $m$ patients per cluster and
 $\rho$ the intracluster correlation:
@@ -632,18 +634,18 @@ data.frame(
 )
 ```
 
-An intracluster correlation of 0.02 sounds negligible and is not.
-With 20 patients per practice it inflates the required sample by
-38%, because the design effect depends on $\rho$ and cluster size
-jointly. Doubling the cluster size to 40 would inflate it by 78%
-instead, so recruiting more patients per practice buys
-progressively less.
+An intracluster correlation of 0.02 sounds negligible, but it is
+not. With 20 patients per practice it inflates the required sample
+by 38%, because the design effect depends on $\rho$ and cluster
+size jointly. Doubling the cluster size to 40 would inflate it by
+78% instead. Recruiting more patients per practice therefore gives
+progressively less benefit.
 
-Two things belong in the SAP alongside this table. The value of
-$\rho$ is an assumption, not a measurement, and it should be
-attributed to a source and given a sensitivity range. And the
+Two things belong in the SAP alongside this table. First, the
+value of $\rho$ is an assumption, not a measurement. It should be
+attributed to a source and given a sensitivity range. Second, the
 number that gets recruited is `clusters`, rounded up, so the
-realized sample is generally larger than `n_cluster`; quoting the
+realized sample is generally larger than `n_cluster`. Quoting the
 latter as the target understates what the trial must enroll.
 :::
 
@@ -709,11 +711,11 @@ which were pre-specified; only your timeline knows that.
 > in the results.
 
 *Failure mode.* The model matches on topic rather than
-specification, calling a 90-day outcome pre-specified because the
-SAP mentions 30-day readmission, and it cannot know when an analysis
-was decided. *Check.* For every 'pre-specified' label, confirm that
-the quoted sentence is in the tagged SAP (`git show
-sap-v1.0-locked:SAP/sap-v1.0.qmd`); the list of unreported SAP
+specification. It may call a 90-day outcome pre-specified because
+the SAP mentions 30-day readmission, and it cannot know when an
+analysis was decided. *Check.* For every 'pre-specified' label,
+confirm that the quoted sentence is in the tagged SAP (`git show
+sap-v1.0-locked:SAP/sap-v1.0.qmd`). The list of unreported SAP
 analyses is the outcome-switching audit of this chapter's opening.
 A SAP and a results outline are structure, not data
 (@sec-ai-governance).
@@ -733,7 +735,7 @@ audit is a table with one row per outcome: as pre-specified (with
 the document, version, and date), as reported, and the
 classification. It counts the outcomes added without declaration
 and the pre-specified outcomes not reported, as COMPare did
-[@goldacre2019compare], and for each discrepancy checks whether the
+[@goldacre2019compare]. For each discrepancy it checks whether the
 paper itself discloses and explains it. An undisclosed switch of the
 primary outcome is the finding that matters most.
 :::
@@ -747,7 +749,7 @@ significant interaction. How should this appear in the paper?
 pre-specified, and the test was selected after the data were seen,
 so its Type I error rate is not 5% in any meaningful sense. Report
 it as hypothesis-generating, in the discussion rather than as a
-confirmatory result; it is a candidate for a future pre-registered
+confirmatory result. It is a candidate for a future pre-registered
 study. Mislabeling exploratory findings as confirmatory is among
 the most common forms of inferential overreach in clinical
 research.
@@ -813,7 +815,7 @@ git tag -a sap-v1.1-amendment-1 -m "Amendment 1: revised missing-data strategy f
 ```
 
 Amendments must be made before unblinded data analysis to retain
-confirmatory status; amendments made after unblinding (after seeing
+confirmatory status. Amendments made after unblinding (after seeing
 outcomes) are exploratory by definition. For trials, deposit the
 locked SAP at the trial registry (ClinicalTrials.gov, ANZCTR,
 ISRCTN) at the time of registration. The deposited copy is the
@@ -837,10 +839,10 @@ git log --format='%h %ad %s' --date=iso -- SAP/
 git diff sap-v1.0-locked sap-v1.1-amendment-1 -- SAP/
 ```
 
-The first lists both tags with their messages in creation order;
-the second dates every change to the SAP; the third shows exactly
+The first lists both tags with their messages in creation order.
+The second dates every change to the SAP. The third shows exactly
 what the amendment changed. Locally these prove *what* and *in what
-order*, not *when*: a determined author could have created both
+order*, but not *when*. A determined author could have created both
 tags yesterday. Pushing the tags, and depositing the SAP with a
 registry, is what supplies credible dates (see the Check below).
 :::
@@ -861,13 +863,13 @@ What supplies the timing is publication to somewhere you do not
 control. Pushing the tag to a remote creates a record on a server
 with its own timestamps and log. The registry deposit is stronger
 still, since ClinicalTrials.gov records a submission date you cannot
-edit, and stronger again is an archive that freezes a copy of the
-content under its own dated record, such as a Zenodo deposit with
-its digital object identifier (DOI) or a registration on the Open
-Science Framework (OSF). The
-tag makes the pre-specification *findable and unambiguous*; an
-external record makes it *credible*. A SAP tagged but never pushed
-provides organization without evidence. This is the same
+edit. Stronger again is an archive that freezes a copy of the
+content under its own dated record. Examples are a Zenodo deposit
+with its digital object identifier (DOI) and a registration on the
+Open Science Framework (OSF). The tag makes the pre-specification
+*findable and unambiguous*; an external record makes it
+*credible*. A SAP tagged but never pushed provides organization
+without evidence. This is the same
 distinction @sec-federal draws between hosting an artifact and
 depositing it.
 :::
@@ -876,90 +878,92 @@ depositing it.
 
 The SAP this chapter has been teaching you to write already does
 most of what the broader open-science practice of *preregistration*
-asks for: a dated, specific, checkable statement of what you will do
-before you see the data. This section places that practice in its
-wider context and names the parts a SAP alone does not supply.
+asks for. That is, it is a dated, specific, checkable statement of
+what you will do before you see the data. This section places that
+practice in its wider context and names the parts a SAP alone does
+not supply.
 
 ### Plain preregistration
 
 A preregistration is a frozen, time-stamped research plan lodged
 with a registry before data collection, most commonly the Open
 Science Framework (OSF). It states the hypotheses, the design, the
-sample, and the planned analysis, and it is then locked: the
+sample, and the planned analysis, and it is then locked. The
 registry will show, to anyone who asks, exactly what was written and
 when. No editor or reviewer evaluates it, and registering a plan
 creates no obligation to publish the results. This is the same
 function @sec-analysis-plan-tagging gives a pushed Git tag deposited
-with a trial registry, generalized to any study, including the
-observational and non-clinical work this book's methods apply to
-outside a trial [@nosek2018preregistration]. The difference is
-where the timestamp comes from. A tag pushed to your own remote
-proves order and content to anyone who can read your repository; an
-OSF registration proves the same thing to a reader who has never
-heard of your repository, with no git literacy required. For a
-clinical trial the registry deposit required by law
-(ClinicalTrials.gov and the like) already does this; for other
-designs, OSF is the equivalent, and it costs nothing to use it
-alongside, or instead of, a private tag.
+with a trial registry. Here it is generalized to any study,
+including the observational and non-clinical work to which this
+book's methods apply outside a trial [@nosek2018preregistration].
+The difference is where the timestamp comes from. A tag pushed to
+your own remote proves order and content to anyone who can read
+your repository. An OSF registration proves the same thing to a
+reader who has never heard of your repository, with no git
+literacy required. For a clinical trial, the registry deposit
+required by law (ClinicalTrials.gov and the like) already does
+this. For other designs, OSF is the equivalent, and it costs
+nothing to use it alongside, or instead of, a private tag.
 
 ### Registered reports
 
 A *registered report* is a publication format, not a registry
-action: a journal commits to publishing a study based on its
+action. A journal commits to publishing a study based on its
 methods, evaluated by peer review, before the results exist. The
 process runs in two stages. A Stage 1 manuscript contains the
 background, hypotheses, and planned methods, including everything
-this chapter asks a SAP to contain; reviewers assess whether the
-design can answer the question, and a journal that accepts it grants
-*in-principle acceptance*: publication no longer depends on whether
-the results are positive, negative, or null. After the study runs,
-a Stage 2 submission adds the results and discussion, and review at
-that stage checks adherence to the registered plan rather than
-re-litigating the design [@chambers2022registered]. The format
-directly targets publication bias, since a null result accepted at
-Stage 1 is published exactly as reliably as a positive one, and it
-targets the SAP's own concern from the other direction: a reviewer,
-not only your own discipline, checks the plan for researcher degrees
-of freedom before it is locked. Registered reports remain uncommon
-in clinical trials, where a protocol and SAP already undergo
-sponsor, IRB, and regulatory review before data access, but they
-are an increasingly available option in observational and
-secondary-data research that has no equivalent gatekeeper, and a
-growing number of journals across the health and social sciences now
-offer the format; check a target journal's author guidelines for
-current participation.
+this chapter asks a SAP to contain. Reviewers assess whether the
+design can answer the question. A journal that accepts it grants
+*in-principle acceptance*, meaning that publication no longer
+depends on whether the results are positive, negative, or null.
+After the study runs, a Stage 2 submission adds the results and
+discussion. Review at that stage checks adherence to the registered
+plan rather than reopening the design [@chambers2022registered].
+The format directly targets publication bias, since a null result
+accepted at Stage 1 is published exactly as reliably as a positive
+one. It also addresses the SAP's own concern from the other
+direction. A reviewer, and not only your own discipline, checks the
+plan for researcher degrees of freedom before it is locked.
+Registered reports remain uncommon in clinical trials, where a
+protocol and SAP already undergo sponsor, IRB, and regulatory
+review before data access. However, they are an increasingly
+available option in observational and secondary-data research that
+has no equivalent gatekeeper. A growing number of journals across
+the health and social sciences now offer the format. Check a target
+journal's author guidelines for current participation.
 
 ### Preprints
 
-A preprint is a different thing again, and the three terms are
-easy to conflate because all three involve posting something
-publicly before the usual gatekeeping. A preprint is a completed
-manuscript, posted before (or in parallel with) peer review, to
-disseminate results faster than a journal's review cycle allows.
-Posting one makes no claim about what was decided before the data
-were seen; a paper can be rigorously preregistered and still take
-a year to reach a preprint server, or it can be preprinted with no
+A preprint is a different thing again. The three terms are easy to
+conflate because all three involve posting something publicly
+before the usual gatekeeping. A preprint is a completed manuscript,
+posted before (or in parallel with) peer review, to disseminate
+results faster than a journal's review cycle allows. Posting one
+makes no claim about what was decided before the data were seen. A
+paper can be rigorously preregistered and still take a year to
+reach a preprint server. It can also be preprinted with no
 preregistration behind it at all. In the health and life sciences,
-the two servers in common use are bioRxiv, launched in 2013 for
-biology, and medRxiv, launched in 2019 specifically for the medical
-and health sciences as a joint project of Cold Spring Harbor
-Laboratory, Yale University, and BMJ [@rawlinson2019medrxiv].
-Each preprint receives a permanent DOI and a prominent disclaimer
-that it has not been peer reviewed and should not guide clinical
-practice; medRxiv screens submissions for plausible methods and
-absence of immediate public-health risk; it does not evaluate
-whether the analysis is sound the way a journal's reviewers would
-try to. As of this writing, that is the operating scope of both
-servers, but preprint-server policy changes faster than this book
-is revised, so confirm current submission and screening policies on
-each server directly before relying on them.
+the two servers in common use are bioRxiv and medRxiv. bioRxiv was
+launched in 2013 for biology. medRxiv was launched in 2019
+specifically for the medical and health sciences, as a joint
+project of Cold Spring Harbor Laboratory, Yale University, and BMJ
+[@rawlinson2019medrxiv]. Each preprint receives a permanent DOI and
+a prominent disclaimer that it has not been peer reviewed and
+should not guide clinical practice. medRxiv screens submissions for
+plausible methods and absence of immediate public-health risk. It
+does not evaluate whether the analysis is sound in the way a
+journal's reviewers would try to. As of this writing, that is the
+operating scope of both servers. However, preprint-server policy
+changes faster than this book is revised, so confirm current
+submission and screening policies on each server directly before
+relying on them.
 
 ### Where the SAP fits, and what it does not cover
 
 @tbl-prereg-compare places the four practices beside one another.
-None substitutes for the others: a registered clinical trial still
+None substitutes for the others. A registered clinical trial still
 needs the SAP's specificity, whether or not it is also deposited on
-OSF, and a preprint of the eventual paper needs the SAP's discipline
+OSF. A preprint of the eventual paper needs the SAP's discipline
 about pre-specified versus exploratory results, whether or not it
 was ever formally registered.
 
@@ -977,12 +981,12 @@ disciplines and designs with no registry requirement, or add peer
 review before the data exist, or address dissemination speed rather
 than pre-specification at all. {#tbl-prereg-compare}
 
-The practical move for the kind of analysis this chapter teaches is
-small: write the SAP exactly as detailed as @tbl-sap-sections asks,
-tag it, push the tag, and, where no trial registry applies, also
-register it on OSF. That one extra step converts a private,
+For the kind of analysis this chapter teaches, the practical step
+is small. Write the SAP exactly as detailed as @tbl-sap-sections
+asks, tag it, and push the tag. Where no trial registry applies,
+also register it on OSF. That one extra step converts a private,
 reconstructible timeline into one a stranger can verify without
-trusting your repository, at a cost of perhaps twenty minutes.
+trusting your repository. It costs perhaps twenty minutes.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A colleague preprints a paper on medRxiv the week
@@ -990,12 +994,12 @@ before submitting it to a journal and says, 'the analysis is
 preregistered, I posted it early.' What is wrong with the claim?
 
 **Answer.** Posting a preprint is not preregistration. A preprint is
-the finished manuscript, posted for fast dissemination; it says
+the finished manuscript, posted for fast dissemination. It says
 nothing about when the analysis was decided relative to when the
-data were seen, and medRxiv does not check that either way. If the
-analysis plan was written and tagged (or registered on OSF) before
-data access, that is what makes it preregistered, and the preprint
-is a separate, later step that disseminates the result.
+data were seen, and medRxiv does not check that either way. What
+makes an analysis preregistered is a plan written and tagged (or
+registered on OSF) before data access. The preprint is a separate,
+later step that disseminates the result.
 :::
 
 ### Exercises
@@ -1010,13 +1014,14 @@ is a separate, later step that disseminates the result.
 ::: {.callout-note collapse='true' title='Solution'}
 There is no single key, because the trial is yours to choose.
 ClinicalTrials.gov keeps a visible version history for registered
-outcomes, so a change made after the trial started is dated and, for
-later changes, often distinguishable from the original entry. A
-sound audit lists each registered outcome, its registration date (or
-amendment date), whether and how it appears in the preprint, and
-flags any outcome in the preprint that has no corresponding
-registry entry at any date, which is the same undisclosed-switch
-pattern @goldacre2019compare documents at scale.
+outcomes. A change made after the trial started is therefore dated
+and, for later changes, often distinguishable from the original
+entry. A sound audit lists each registered outcome, its
+registration date (or amendment date), and whether and how it
+appears in the preprint. It also flags any outcome in the preprint
+that has no corresponding registry entry at any date. This is the
+same undisclosed-switch pattern that @goldacre2019compare
+documents at scale.
 :::
 
 ## Worked example: the HF-HOME SAP {#sec-analysis-plan-worked}
@@ -1247,7 +1252,7 @@ ggplot(power_curve, aes(n, power)) +
 > two families each spend 0.05, and the familywise
 > rate can approach 0.10.
 
-This level of specificity is what 'pre-specified' means; any
+This level of specificity is what 'pre-specified' means. Any
 vaguer sentence leaves a researcher degree of freedom open.
 
 ::: {.callout-tip title='Verification'}
@@ -1284,10 +1289,11 @@ stopifnot(all(table(hf_rand$arm) == n_rand))
 *Failure mode.* The draft lists 'ITT population' in place of the
 estimand, calls the adjusted odds ratio 'the treatment effect' when
 the summary is a marginal risk difference, or quotes a sample size
-from memory that the code does not reproduce; this chapter's own
-earlier draft was underpowered in exactly that way. *Check.* Run the
-code; compare every attribute with @tbl-estimand-attributes; confirm
-that the estimator's output is the summary the estimand names.
+from memory that the code does not reproduce. This chapter's own
+earlier draft was underpowered in exactly that way. *Check.* Run
+the code, and compare every attribute with
+@tbl-estimand-attributes. Then confirm that the estimator's output
+is the summary the estimand names.
 :::
 
 ## The data management and sharing plan {#sec-federal-dmsp}
@@ -1300,11 +1306,10 @@ requirements (@sec-federal) arrive at the end of a project, when
 almost everything they ask for exists: a compendium
 (@sec-rrtools), a lockfile (@sec-renv), a container
 (@sec-docker), a pipeline that rebuilds the analysis
-(@sec-targets). The DMSP is the exception. Its timing runs
-opposite to everything else there, which is why it belongs with
-the other planning documents, beside the SAP: both are written
-before the work, and both are checked, at publication, against
-what was done.
+(@sec-targets). The DMSP is the exception. Its timing is the
+reverse of the others, which is why it belongs with the other
+planning documents, beside the SAP. Both are written before the
+work, and both are checked, at publication, against what was done.
 
 ### The six elements
 
@@ -1321,11 +1326,11 @@ hf_mb    <- ceiling(sum(file.size(hf_files)) / 1e6)
 Since January 2023, every NIH application for research that will
 generate scientific data must include a DMSP, recommended to run
 no more than two pages. The plan is assessed by NIH program
-staff, not scored by peer reviewers: reviewers do not factor it
-into the overall impact score unless the funding opportunity says
-otherwise. The approved plan becomes a term of the award,
-program officers can require updates, and compliance is monitored
-after the award. @tbl-federal-dmsp-elements lists the six
+staff, not scored by peer reviewers. That is, reviewers do not
+factor it into the overall impact score unless the funding
+opportunity says otherwise. The approved plan becomes a term of
+the award. Program officers can require updates, and compliance is
+monitored after the award. @tbl-federal-dmsp-elements lists the six
 elements, what each must say to be checkable, and what HF-HOME
 says.
 
@@ -1345,11 +1350,12 @@ checked. {#tbl-federal-dmsp-elements}
 ### Treat the plan as a workflow document
 
 A plan that says 'data will be deposited at Zenodo at
-publication' is compliant on paper and provides no mechanism to
-make it happen. A plan that builds deposition into the pipeline
-(a tagged release that mints a digital object identifier, or
-DOI, at every preprint; a continuous-integration job that checks
-the data DOI resolves) enforces itself. Two judgments decide
+publication' is compliant on paper but provides no mechanism to
+make it happen. A better plan builds deposition into the pipeline.
+Examples are a tagged release that mints a digital object
+identifier, or DOI, at every preprint, and a
+continuous-integration job that checks the data DOI resolves. Such
+a plan enforces itself. Two judgments decide
 whether the plan can be carried out:
 
 - **Public access does not mean unsupervised release.** PHI,
@@ -1412,11 +1418,12 @@ whether the plan can be carried out:
 This is the specificity program staff look for, and every
 sentence can be checked at publication. Vague language ('data
 will be shared appropriately') gets flagged. If an analysis
-needed actual dates rather than offsets, a limited data set
-shared under a DUA is the alternative; it remains PHI, so it is
-shared only with recipients who sign that agreement and only as
-the consent form and IRB permit. Confirm that a repository accepts
-limited data sets before naming one in the plan.
+needed actual dates rather than offsets, the alternative is a
+limited data set shared under a DUA. A limited data set remains
+PHI. It is therefore shared only with recipients who sign that
+agreement, and only as the consent form and IRB permit. Confirm
+that a repository accepts limited data sets before naming one in
+the plan.
 
 ::: {.callout-tip title='Verification'}
 The plan promises that only de-identified data leave the
@@ -1449,8 +1456,8 @@ manifest
 
 `r sum(manifest$identifier_columns != "")` of the
 `r nrow(manifest)` files carry an identifier as received, because
-every file that records a date does, so they cannot be deposited
-as they are. The plan's first element has to promise
+every file that records a date does. These files cannot be
+deposited as they are. The plan's first element has to promise
 de-identified data, and the deposit has to be built from a
 release such as the one in @sec-deident-worked.
 :::
@@ -1509,10 +1516,10 @@ argument?
 **Answer.** Being unscored at review is not being unenforced.
 Program staff assess the plan before award, the approved plan
 becomes a term of the award, and compliance is monitored
-afterward. A loose plan also fails its author: a plan written
-before the work is the only document that can commit the
-project to a deposit structure, and one that promises the wrong
-access mode is discovered at publication, when changing it means
+afterward. A loose plan also fails its author. A plan written
+before the work is the only document that can commit the project
+to a deposit structure. If it promises the wrong access mode, the
+error is discovered at publication, when changing it means
 renegotiating with the program officer.
 :::
 

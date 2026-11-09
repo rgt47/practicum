@@ -1,8 +1,9 @@
 # Data in Hand
 
 This part asks how raw files become an analysis dataset you can
-trust. It closes the first quarter, and its output, a checked and
-de-identified dataset, is the input to everything in the second.
+trust. It closes the first quarter. Its output is a checked and
+de-identified dataset, and that dataset is the input to everything
+in the second quarter.
 
 - @sec-acquisition reads a clinical export with a full column
   specification and asserts against its usual pathologies.

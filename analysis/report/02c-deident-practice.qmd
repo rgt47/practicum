@@ -16,17 +16,18 @@ opening_alone <- sum(opening_cells == 1)
 Of the `r format(opening_n, big.mark = ",")` patients in the
 HF-HOME demographics file, `r format(opening_alone, big.mark = ",")`
 are the only person in the file with their combination of
-five-digit ZIP code, date of birth, and sex, the three fields that
-singled out the Weld records (@sec-deident). The file is
-synthetic, but its fields behave as a real trial's do, and the
+five-digit ZIP code, date of birth, and sex. These are the three
+fields that singled out the Weld records (@sec-deident). The file
+is synthetic, but its fields behave as a real trial's do, and the
 arithmetic is the same. Removing the names, record numbers, and
-telephone numbers changes none of those combinations. This chapter
-builds two releases of the file, one under Safe Harbor and one
-that needs an Expert Determination, writes the assertions each
-must pass, and then measures what both leave behind. The concepts
-are in @sec-deident; here they meet the wrangling and joins of the
-preceding chapters, and each claim about a release becomes a line
-of code that fails when the claim is false.
+telephone numbers changes none of those combinations. This
+chapter builds two releases of the file, one under Safe Harbor
+and one that needs an Expert Determination. It writes the
+assertions each must pass, and then measures what both leave
+behind. The concepts are in @sec-deident. Here we apply them with
+the wrangling and joins of the preceding chapters. Each claim
+about a release becomes a line of code that fails when the claim
+is false.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -121,15 +122,15 @@ answers are in @sec-quiz-answers-02c.
 The HF-HOME demographics file holds every kind of identifier a
 real trial file does. The names, medical record numbers (MRNs,
 prefixed `SYN-`), and telephone numbers (in the fictional `555-01`
-exchange) are synthetic; the ZIP codes are real codes, so the
-transformations behave as they would on real data; some patients
-are over 89; and the generator plants three ZIP prefixes, `036`,
+exchange) are synthetic. The ZIP codes are real codes, so the
+transformations behave as they would on real data. Some patients
+are over 89. The generator also plants three ZIP prefixes, `036`,
 `059`, and `821`, that the HHS guidance lists among the 17
 prefixes whose areas had 20,000 or fewer people in the 2000
-Census. The regulation asks for current Census data, and the
-guidance warns against relying on its 2000 list once newer data
-are published; derive the list from current data before applying
-this code to real data.[^zip3]
+Census. The regulation asks for current Census data. The
+guidance also warns against relying on its 2000 list once newer
+data are published. Derive the list from current data before
+applying this code to real data.[^zip3]
 
 [^zip3]: The three prefixes are the ones the HF-HOME generator
     plants, not the complete restricted list. Hard-coding a list
@@ -199,13 +200,13 @@ head(release_sh)
 ```
 
 The `crosswalk` stays with the covered entity, apart from the
-released data and never disclosed; because the subject ID carries
-no information about the patient, keeping it does not break the
-Safe Harbor claim (45 CFR 164.514(c)). Sorting by `subject_id`
-matters too: left in `patient_id` order, the rows would still
-carry enrollment order. The cost is plain in the output: with
-only the year of discharge, no interval between two of a
-patient's dates can be computed.
+released data, and is never disclosed. Because the subject ID
+carries no information about the patient, keeping it does not
+break the Safe Harbor claim (45 CFR 164.514(c)). Sorting by
+`subject_id` matters too. Left in `patient_id` order, the rows
+would still carry enrollment order. The cost is plain in the
+output. With only the year of discharge, no interval between two
+of a patient's dates can be computed.
 
 ::: {.callout-tip title='Verification'}
 State the Safe Harbor conditions as assertions. The chunk prints
@@ -251,12 +252,12 @@ difference is an age.
 
 The second release keeps what a longitudinal analysis needs. It
 replaces the MRN with a salted hash, so that visits arriving in
-later extracts link to the same key without a lookup table, and
-shifts each patient's dates by one random per-patient offset,
-preserving intervals while hiding the calendar dates. The salt is
-read from an environment variable, so that it never enters the
-repository; the fallback string exists only so that the book
-renders.
+later extracts link to the same key without a lookup table. It
+also shifts each patient's dates by one random per-patient
+offset, which preserves intervals while hiding the calendar
+dates. The salt is read from an environment variable, so that it
+never enters the repository. The fallback string exists only so
+that the book renders.
 
 ```{r}
 #| label: deident-expert
@@ -291,11 +292,11 @@ head(release_ed)
 ```
 
 Neither feature of this release is Safe Harbor. The `link_key`
-is a one-way hash: the same MRN always produces the same key, so
-a patient's records link across extracts, and the key cannot
-feasibly be reversed provided the salt stays secret. But it is
-derived from the MRN, which is exactly what 164.514(c) forbids of
-a re-identification code, and anyone holding the salt can
+is a one-way hash. The same MRN always produces the same key, so
+a patient's records link across extracts. The key cannot
+feasibly be reversed, provided the salt stays secret. However, it
+is derived from the MRN, which is exactly what 164.514(c) forbids
+of a re-identification code. Anyone holding the salt can also
 regenerate every key from a list of record numbers. The shifted
 discharge date is still a full date, finer than the year Safe
 Harbor allows. A release like this one is de-identified only if a
@@ -412,9 +413,9 @@ stopifnot(lengths(flagged$found)[4] == 0)
 The dictionary catches the patients' own names because they are
 already in a structured column of the same table. It misses
 'Sarah' in the fourth note, a relative's name that appears in no
-column, and it would equally miss a referring physician, an
+column. It would equally miss a referring physician, an
 employer, or a misspelling. A structured column has a fixed
-domain, so one rule handles every value; free text has no domain,
+domain, so one rule handles every value. Free text has no domain,
 and detection becomes a recall problem with no upper bound. That
 is why regulated workflows usually suppress free text rather than
 try to clean it.
@@ -444,11 +445,11 @@ sum(recovered == shifted$true_date)
 ```
 
 All `r nrow(phi)` dates are recovered from one. A single offset
-preserves the differences *between* patients, so a single known
-date, from a news report, a social-media post, or the adversary's
-own admission, anchors every other. Per-patient offsets break
-that chain, at the cost of the between-patient calendar
-relationship, which is why the worked example draws one offset per
+preserves the differences *between* patients. One known date
+(from a news report, a social-media post, or the adversary's own
+admission) therefore anchors every other. Per-patient offsets
+break that chain, at the cost of the between-patient calendar
+relationship. That is why the worked example draws one offset per
 patient. Even per-patient offsets leave season roughly intact
 when the range is narrow, and that is part of what an Expert
 Determination has to weigh.
@@ -474,16 +475,18 @@ fields the Weld records kept.
 
 ### k-anonymity
 
-The simplest formal tool is [**k-anonymity**](F-glossary.qmd#gloss-k-anonymity) [@sweeney2002kanonymity]:
-a dataset is k-anonymous on a set of quasi-identifiers if every
-combination of their values that appears is shared by at least
-$k$ records, so that no individual is distinguishable from at
-least $k - 1$ others. Achieving a target $k$ is a matter of
-generalizing (coarsening age into bands, ZIP codes into prefixes)
-and suppressing (removing the rare rows) until the condition
-holds. Refinements such as l-diversity and t-closeness address
-weaknesses that k-anonymity alone does not; the `sdcMicro`
-package implements these methods for R [@templ2015sdcmicro].
+The simplest formal tool is
+[**k-anonymity**](F-glossary.qmd#gloss-k-anonymity)
+[@sweeney2002kanonymity]. A dataset is k-anonymous on a set of
+quasi-identifiers if every combination of their values that
+appears is shared by at least $k$ records. That is, no individual
+is distinguishable from at least $k - 1$ others. Achieving a
+target $k$ is a matter of generalizing (coarsening age into
+bands, ZIP codes into prefixes) and suppressing (removing the
+rare rows) until the condition holds. Refinements such as
+l-diversity and t-closeness address weaknesses that k-anonymity
+alone does not. The `sdcMicro` package implements these methods
+for R [@templ2015sdcmicro].
 
 ```{r}
 #| label: deident-k-anonymity
@@ -494,9 +497,9 @@ c(k = min(cells$n), patients_alone = sum(cells$n == 1))
 
 The Safe Harbor release is `r min(cells$n)`-anonymous on age, sex,
 and ZIP prefix: `r sum(cells$n == 1)` patients are alone in their
-cell. Safe Harbor removed every listed identifier and certified
-nothing about the remainder, which is the gap Expert
-Determination exists to fill.
+cell. Safe Harbor removed every listed identifier but certified
+nothing about the remainder. Expert Determination exists to fill
+that gap.
 
 ::: {.callout-warning title='Pitfall'}
 **A release can pass every Safe Harbor check and still single
@@ -504,15 +507,16 @@ people out.** The assertions in @sec-deident-worked are structural
 checks: they confirm that identifiers are absent, not that the
 remainder is safe. Safe Harbor also requires that the covered
 entity have no actual knowledge that the rest could identify
-someone, and a team that has just counted `r sum(cells$n == 1)`
+someone. A team that has just counted `r sum(cells$n == 1)`
 unique patients may no longer meet that condition for a public
 release. Compute $k$ before you describe any release.
 :::
 
 De-identification reduces risk by degrees, and a release is
-never simply safe or unsafe. Your contribution as the statistician is
-to quantify the residual risk and to match the transformation to
-the sensitivity of the data and the openness of the release.
+never simply safe or unsafe. The statistician's contribution is
+to quantify the residual risk. It is also to match the
+transformation to the sensitivity of the data and the openness of
+the release.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** The Safe Harbor release has `r nrow(release_sh)`
@@ -523,8 +527,8 @@ release is safe. What is wrong with the reasoning?
 **Answer.** $k$ is a minimum, not an average. One patient alone
 in a cell is identifiable whatever the average, and the release
 has `r sum(cells$n == 1)` of them. Generalization helps only when
-it merges the rarest cells, so the useful question is never 'how
-coarse are my bands' but 'who is alone'.
+it merges the rarest cells. The useful question is therefore 'who
+is alone', rather than 'how coarse are my bands'.
 :::
 
 ### Exercises
@@ -570,33 +574,32 @@ stopifnot(!any(still_alone$zip3 %in% c("919", "920", "921")))
 ```
 
 Banding age reduces the patients alone from `r sum(cells$n == 1)`
-to `r k_bands[["alone"]]` but leaves $k$ at `r k_bands[["k"]]`:
-every patient still alone lives outside the San Diego prefixes,
-where so few patients share a prefix that a band cannot rescue
-them. Dropping the prefix raises $k$ to
-`r k_no_zip[["k"]]`. Each step costs analytic resolution: age
-bands cost any analysis that uses age as continuous, and dropping
-geography costs any adjustment for site or region. Suppressing
-the few rows in the rarest cells would raise $k$ at a smaller
-cost, and that trade is the kind an Expert Determination
-documents.
+to `r k_bands[["alone"]]` but leaves $k$ at `r k_bands[["k"]]`.
+Every patient still alone lives outside the San Diego prefixes.
+There so few patients share a prefix that a band cannot help.
+Dropping the prefix raises $k$ to `r k_no_zip[["k"]]`. Each step
+costs analytic resolution. Age bands cost any analysis that uses
+age as continuous, and dropping geography costs any adjustment
+for site or region. Suppressing the few rows in the rarest cells
+would raise $k$ at a smaller cost. That trade is the kind an
+Expert Determination documents.
 :::
 
 ## Trusted research environments {#sec-deident-tre}
 
 An Expert Determination release still leaves the file in
-@sec-deident-worked, and every file that leaves a covered entity is
-a file that can be lost, copied, or matched against another
-dataset by someone the entity never agreed to trust. Some data
-cannot accept that risk at any level of generalization: a rare
+@sec-deident-worked. Every file that leaves a covered entity can
+be lost, copied, or matched against another dataset by someone
+the entity never agreed to trust. Some data cannot accept that
+risk at any level of generalization. Examples are a rare
 diagnosis, a small catchment area, or a sponsor's contractual
 limits on where the data may sit. For such data the remedy is to
-release nothing. If HF-HOME's files could never
-leave the hospital's own systems, the statistician still has to
+release nothing. Suppose HF-HOME's files could never leave the
+hospital's own systems. The statistician would still have to
 produce a result, and a trusted research environment (TRE) is
-where that happens: a controlled system that lets approved
-analysts run approved code against the data in place, so that only
-the output, never the rows, crosses the boundary.
+where that happens. A TRE is a controlled system that lets
+approved analysts run approved code against the data in place.
+Only the output, never the rows, crosses the boundary.
 
 ### The Five Safes
 
@@ -617,29 +620,28 @@ breach of any one undoes the protection the other four provide.
 HF-HOME. {#tbl-deident-five-safes}
 
 Safe Harbor and Expert Determination are entirely about the first
-row; a TRE adds the other four, which is why data judged too
-sensitive to de-identify for an open release can still be analyzed
-under access controls that de-identification alone does not
-supply. The two are complements, not alternatives: a TRE is safer
-still when the data inside it are also de-identified, because safe
-settings and safe people reduce the chance of a leak, not its
+row. A TRE adds the other four. For that reason, data judged too
+sensitive to de-identify for an open release can still be
+analyzed, under access controls that de-identification alone
+does not supply. The two approaches are complements. A TRE is
+safer still when the data inside it are also de-identified. Safe
+settings and safe people reduce the chance of a leak, but not its
 consequence if one occurs.
 
 ### Federated analysis: the model goes to the data
 
 A single TRE solves the problem for one site. A multi-site trial
-raises it again, because combining patient-level data from five
-hospitals into one file recreates exactly the export risk a TRE
-exists to avoid, now five times over. **Federated analysis**
-inverts the usual flow: the analysis code travels to each site,
-runs there against that site's own data, and only a summary, a
-count, a rate, a model's sufficient statistics, travels back to be
-combined.
+raises it again. Combining patient-level data from five hospitals
+into one file recreates exactly the export risk a TRE exists to
+avoid, now five times over. **Federated analysis** reverses the
+usual flow. The analysis code travels to each site and runs there
+against that site's own data. Only a summary (a count, a rate, a
+model's sufficient statistics) travels back to be combined.
 
 The chunk below plays the part of five sites computing their own
-30-day event rate and sending back only two numbers each, the
-count and the number of events, which is all a fixed-effect
-combination needs:
+30-day event rate. Each sends back only two numbers, the count
+and the number of events, which is all a fixed-effect combination
+needs:
 
 ```{r}
 #| label: deident-tre-federated
@@ -665,20 +667,22 @@ overall_rate
 A coordinating analyst who never sees a single patient's record
 can still compute the overall 30-day event rate of
 `r scales::percent(overall_rate, accuracy = 0.1)` from these ten
-numbers, five counts and five event totals. What a federated
-analysis cannot do as easily is anything that needs a joint
-distribution across sites, such as an interaction between site and
-a patient-level covariate; that kind of question either stays
+numbers, five counts and five event totals. A federated analysis
+cannot as easily do anything that needs a joint distribution
+across sites, such as an interaction between site and a
+patient-level covariate. That kind of question either stays
 within one site or is negotiated as a further, specific summary
-each site is willing to release, not as row-level data.
+that each site is willing to release. It is not answered with
+row-level data.
 
 ### Output disclosure control
 
-A TRE's safe settings keep row-level data from leaving, but a
-table of counts can disclose almost as much if a cell is small
-enough. The crosstab below, site by race, a real covariate pattern
-in the synthetic HF-HOME file, is exactly the kind of table an
-analyst would ask to take out of a TRE to put in a report:
+A TRE's safe settings keep row-level data from leaving. However,
+a table of counts can disclose almost as much if a cell is small
+enough. The crosstab below shows site by race, a real covariate
+pattern in the synthetic HF-HOME file. It is exactly the kind of
+table an analyst would ask to take out of a TRE to put in a
+report:
 
 ```{r}
 #| label: deident-tre-crosstab
@@ -694,14 +698,14 @@ race_tab |> filter(race %in% c("American Indian or Alaska Native",
                                "Native Hawaiian or Other Pacific Islander"))
 ```
 
-Several of these cells hold fewer than ten patients. A table this
-small lets anyone who knows that one American Indian or Alaska
-Native patient was treated at Site A, perhaps from a referral
-pattern or a clinic schedule, now also learn whatever else the
-report cross-tabulates by site and race for that row, not because
-any identifier survived but because the cell has only one person
-in it. **Small-cell suppression** removes the count rather than
-the row:
+Several of these cells hold fewer than ten patients. Suppose
+someone knows that one American Indian or Alaska Native patient
+was treated at Site A, perhaps from a referral pattern or a
+clinic schedule. A table this small lets that person also learn
+whatever else the report cross-tabulates by site and race for
+that row. No identifier survived; the cell simply has only one
+person in it. **Small-cell suppression** removes the count rather
+than the row:
 
 ```{r}
 #| label: deident-tre-suppress
@@ -716,12 +720,12 @@ race_tab |>
 ```
 
 Most TREs set their own threshold and their own rule for what
-counts as a disclosive cell (a complementary suppression problem
-arises when every other cell in a row or column is visible, which
-can let a reader back out a suppressed count by subtraction from a
-reported total); ten is a common choice but not a universal one,
-and the output-check team inside the TRE, not the analyst alone,
-signs off on what leaves.
+counts as a disclosive cell. Ten is a common choice but not a
+universal one. A related problem, complementary suppression,
+arises when every other cell in a row or column is visible. A
+reader can then recover a suppressed count by subtraction from a
+reported total. The output-check team inside the TRE, not the
+analyst alone, signs off on what leaves.
 
 ::: {.callout-warning title='Pitfall'}
 **Suppressing the cell and reporting the row and column totals
@@ -739,11 +743,11 @@ unnecessary. Evaluate the argument against @tbl-deident-five-safes.
 
 **Answer.** The argument conflates safe settings with safe data.
 A TRE's access controls lower the chance that row-level data leak
-out, but they do not lower what a leak, an insider misuse, or an
-output that slips past review would expose if it did. De-identifying
-the data inside the TRE is still worth doing, because it is the
-one safe that protects the data even when one of the other four
-fails.
+out. They do not lower what would be exposed by a leak, an
+insider misuse, or an output that slips past review.
+De-identifying the data inside the TRE is still worth doing. It
+is the one safe that protects the data even when one of the
+other four fails.
 :::
 
 ### Exercises
@@ -756,33 +760,33 @@ fails.
 
 ::: {.callout-note collapse='true' title='Solution'}
 Sending patient-level `age` and `event_30d` is no longer a
-federated analysis; it is a data export with two columns instead
-of all of them, and a quasi-identifier (`age`) travels with an
+federated analysis. It is a data export with two columns instead
+of all of them. A quasi-identifier (`age`) also travels with an
 outcome that many studies treat as sensitive. It violates safe
-outputs: the output leaving each site is no longer a checked
-summary but row-level data that was never reviewed for disclosure
-risk, regardless of how few columns it has.
+outputs. The output leaving each site is no longer a checked
+summary. It is row-level data that was never reviewed for
+disclosure risk, regardless of how few columns it has.
 :::
 
 ## Synthetic data and differential privacy {#sec-deident-synthetic}
 
 Every HF-HOME file used so far is itself synthetic, generated by a
-script rather than collected from patients, which is why the
+script rather than collected from patients. That is why the
 chapter can show real-looking de-identification code without
 touching anyone's actual record (@sec-deident-worked's opening).
 That is a different use of the word from the one in this section.
-There, syntheticity is a property of the whole dataset, built once
-to stand in for a real trial throughout this book. Here, **synthetic
-data** is a disclosure-control technique applied *to* a real
-dataset: replace the real records with records drawn from a model
-fit to them, so that no released row corresponds to an actual
-patient, while the dataset's statistical structure, as much of it
-as the model captures, survives for analysis.
+There, being synthetic is a property of the whole dataset, built
+once to stand in for a real trial throughout this book. Here,
+**synthetic data** is a disclosure-control technique applied *to*
+a real dataset. The real records are replaced with records drawn
+from a model fit to them. No released row then corresponds to an
+actual patient. The dataset's statistical structure, as much of
+it as the model captures, survives for analysis.
 
 ### Generating synthetic data
 
-The simplest synthesis shuffles each column independently,
-preserving every column's marginal distribution exactly while
+The simplest synthesis shuffles each column independently. This
+preserves every column's marginal distribution exactly, while
 destroying any association between columns:
 
 ```{r}
@@ -795,15 +799,16 @@ head(synth_naive)
 ```
 
 Every age, sex, and ZIP prefix in `synth_naive` is a value that
-appeared in `release_sh`; none of the three-way combinations need
+appeared in `release_sh`. None of the three-way combinations need
 have appeared together in a real patient. The `synthpop` package
-[@nowok2016synthpop] does the same job properly: instead of
-shuffling columns independently, it synthesizes them one at a time
-in a chosen order, each one modeled on the real values of the
-columns synthesized before it (by default with classification and
-regression trees), so that the associations among columns are
-preserved rather than destroyed (display-only; not installed in
-this environment):
+[@nowok2016synthpop] does the same job properly. It synthesizes
+the columns one at a time in a chosen order, rather than
+shuffling them independently. Each column is modeled on the real
+values of the columns synthesized before it (by default with
+classification and regression trees). In this way the
+associations among columns are preserved rather than destroyed.
+The code is display-only, since the package is not installed in
+this environment:
 
 ```r
 library(synthpop)  # display-only; not installed here
@@ -821,7 +826,7 @@ at a real patient.
 **Utility** asks whether a model fit on the synthetic data agrees
 with the same model fit on the real data. The independent-column
 shuffle above fails this badly whenever the relationship of
-interest is between two of the shuffled columns, which is usually
+interest is between two of the shuffled columns. That is usually
 exactly the relationship a trial exists to estimate:
 
 ```{r}
@@ -851,16 +856,16 @@ c(real_odds_ratio = round(or_real, 2),
   naive_synthetic_odds_ratio = round(or_naive, 2))
 ```
 
-The real data show an odds ratio of
-`r round(or_real, 2)` for home-health visits, consistent with the
-protective effect the trial was built to find; the naively
-synthesized data show a ratio of `r round(or_naive, 2)`, because
-shuffling `arm` destroyed its association with the outcome before
-the model ever saw it. `synthpop`'s sequential synthesis exists
-precisely to keep this from happening, and its `compare()`
-function overlays the two models' coefficients and confidence
-intervals so that a utility failure like this one is visible
-without hand-rolling the comparison above.
+The real data show an odds ratio of `r round(or_real, 2)` for
+home-health visits, consistent with the protective effect the
+trial was built to find. The naively synthesized data show a
+ratio of `r round(or_naive, 2)`. Shuffling `arm` destroyed its
+association with the outcome before the model ever saw it.
+`synthpop`'s sequential synthesis exists precisely to keep this
+from happening. Its `compare()` function overlays the two models'
+coefficients and confidence intervals. A utility failure like
+this one is then visible without writing the comparison above by
+hand.
 
 **Disclosure risk** asks the opposite question: whether a record
 that was identifiable in the real data is still identifiable, or
@@ -885,39 +890,42 @@ c(real_uniques = nrow(real_unique),
 
 `r nrow(replicated)` of the `r nrow(real_unique)` combinations that
 singled out one real patient in `release_sh` also appear somewhere
-in `synth_naive`. No synthetic row *is* that patient, but a
-released dataset that reproduces their rare combination still
-tells an attacker who already suspects that patient was in the
-study that the combination was real, which is itself a disclosure.
-`synthpop`'s `disclosure()` function computes this and related
-measures (display-only), including whether a record's full set of
-quasi-identifiers, not just a three-column summary, is replicated.
+in `synth_naive`. No synthetic row *is* that patient. However,
+consider an attacker who already suspects that patient was in
+the study. A released dataset that reproduces the patient's rare
+combination tells the attacker that the combination was real, and
+that is itself a disclosure. `synthpop`'s `disclosure()` function
+computes this and related measures (display-only). These include
+whether a record's full set of quasi-identifiers, not just a
+three-column summary, is replicated.
 
 ::: {.callout-important title='Differential privacy'}
 k-anonymity (@sec-deident-risk) and the utility and risk checks
-above are properties of a particular released *dataset*: run them
-again on a different release and the numbers change. **Differential
-privacy** [@dwork2006calibrating] is instead a property of the
-*mechanism* that produced a result, a mathematically provable bound
-on how much that result could possibly have changed had any one
-record been added, removed, or altered. A mechanism satisfying
-that bound guarantees it for every record, in every dataset it
-might ever be run on, before anyone runs it, which is the kind of
-guarantee neither k-anonymity nor a synthetic-data utility check
-can offer; the latter two show that a given release held up,
-without bounding what a different release might do.
+above are properties of a particular released *dataset*. Run them
+again on a different release and the numbers change.
+**Differential privacy** [@dwork2006calibrating] is instead a
+property of the *mechanism* that produced a result. It is a
+mathematically provable bound on how much that result could
+possibly have changed had any one record been added, removed, or
+altered. A mechanism satisfying that bound guarantees it for
+every record, in every dataset it might ever be run on, before
+anyone runs it. Neither k-anonymity nor a synthetic-data utility
+check can offer that kind of guarantee. They show that a given
+release held up, without bounding what a different release might
+do.
 
 The bound is usually met by adding carefully calibrated random
-noise to a statistic, tuned so that one record's presence or
-absence barely moves the noisy answer. This book treats the idea
-conceptually only: calibrating that noise correctly, choosing the
-privacy budget (usually called $\epsilon$) that trades accuracy
-against protection, and composing many queries without exhausting
-that budget are each their own technical literature, well past an
-introductory look. The U.S. Census Bureau adopted differential
-privacy for the 2020 Census because it could offer that provable
-bound across every table the Bureau might publish, and it
-accepted some loss of accuracy in any single table to get it.
+noise to a statistic. The noise is tuned so that one record's
+presence or absence barely moves the noisy answer. This book
+treats the idea conceptually only. Three problems each have their
+own technical literature, well past an introductory look. They
+are calibrating that noise correctly, choosing the privacy budget
+(usually called $\epsilon$) that trades accuracy against
+protection, and composing many queries without exhausting that
+budget. The U.S. Census Bureau adopted differential privacy for
+the 2020 Census because it could offer that provable bound across
+every table the Bureau might publish. The Bureau accepted some
+loss of accuracy in any single table to get it.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -927,10 +935,10 @@ Why does preserving marginals not preserve utility?
 
 **Answer.** Most analytic questions, including the trial's own,
 are about associations between columns, not about any one column's
-distribution on its own. Shuffling columns independently guarantees
-that each one's distribution is unchanged while guaranteeing, with
-the same move, that no two columns are related to each other any
-longer. A synthesis has to model the joint distribution, as
+distribution on its own. Shuffling columns independently
+guarantees that each one's distribution is unchanged. The same
+step also guarantees that no two columns are related to each
+other any longer. A synthesis has to model the joint distribution, as
 `synthpop`'s sequential approach does, to keep what most questions
 actually need.
 :::
@@ -955,12 +963,12 @@ c(real = round(or_real, 2),
 ```
 
 Shuffling only `ef_pct` leaves the odds ratio close to
-`r round(or_real, 2)`, because `arm`, the column the research
-question is actually about, kept its real association with
-`event_30d`. The earlier naive synthesis shuffled `arm` as well,
-which is what erased the finding; a covariate's own distribution
-can be resampled far more freely than the treatment assignment a
-trial exists to evaluate.
+`r round(or_real, 2)`. The reason is that `arm`, the column the
+research question is actually about, kept its real association
+with `event_30d`. The earlier naive synthesis shuffled `arm` as
+well, and that is what erased the finding. A covariate's own
+distribution can be resampled far more freely than the treatment
+assignment a trial exists to evaluate.
 :::
 
 ## Rules of thumb
@@ -995,9 +1003,10 @@ typed, and the assertions placed before any `write_csv()`, so that
 a failed check writes nothing. Compare the two runs with
 `tools::md5sum()` on the output files, or with
 `identical(readr::read_csv(a), readr::read_csv(b))`. The crosswalk
-belongs outside the project directory, or at least outside Git:
-it is the one output that must never travel with the compendium,
-the reverse of the sharing @sec-why argues for.
+belongs outside the project directory, or at least outside Git.
+It is the one output that must never travel with the compendium.
+In this respect it is the reverse of the sharing @sec-why argues
+for.
 :::
 
 7. *On your own work (no key).* Take a dataset you hold that

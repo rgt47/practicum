@@ -46,11 +46,11 @@ outcome: the health-information exchange that records readmissions
 and deaths could not find them. Most had moved away. Among patients
 with an out-of-state ZIP code, `r pct_area[["Out of state"]]`% are
 unascertained, against `r pct_area[["San Diego area"]]`% of the rest.
-R's modeling functions drop those patients without a word, and the
+R's modeling functions drop those patients without a warning. The
 estimate that results is unbiased only if moving away is unrelated
 to the outcome, given what the model adjusts for. Nothing in the
 data can confirm that. Any analysis of these outcomes rests on an
-assumption about why they are missing, and the questions to ask are
+assumption about why they are missing. The questions to ask are
 which assumption, and how far the conclusion moves when it is
 wrong.
 
@@ -145,12 +145,13 @@ answers are in @sec-quiz-answers-17.
 Every real clinical dataset has missing values, and the decisions
 around them often move an estimate more than the choice of model
 does. No method here is free of difficulty. Complete-case analysis
-is simple but discards information; multiple imputation keeps it
-but adds a model with assumptions of its own; sensitivity analysis
-is essential but open-ended. The workable stance is to document the
-missingness, state the assumed mechanism and defend it from the
-study's conduct, implement one principled approach, and report how
-the conclusion moves under the alternatives.
+is simple but discards information. Multiple imputation keeps the
+information but adds a model with assumptions of its own.
+Sensitivity analysis is essential but open-ended. The approach we
+recommend has four parts. Document the missingness. State the
+assumed mechanism and defend it from the study's conduct.
+Implement one principled approach. Finally, report how the
+conclusion moves under the alternatives.
 
 ### Three stories
 
@@ -170,8 +171,8 @@ reasons.
   recorded, missingness depends on the value that was not seen. This
   is *missing not at random* ([**MNAR**](F-glossary.qmd#gloss-mcar-mar-mnar)).
 
-The HF-HOME patients who moved out of state sit in the second story
-if moving is unrelated to how they fared; they move to the third if,
+The HF-HOME patients who moved out of state fit the second story
+if moving is unrelated to how they fared. They fit the third if,
 say, patients who moved in with family after a bad discharge were
 also sicker.
 
@@ -191,13 +192,13 @@ $X$ the other observed variables.
 The labels describe the missingness process, but they do not by
 themselves say which analysis is valid. For the coefficients of a
 regression model, the question that decides whether complete-case
-analysis is biased is narrower: once the covariates in the model are
-held fixed, does missingness still depend on the outcome? If it does
-not, complete-case estimates are unbiased whatever the label,
-including the MNAR case of a covariate that goes missing because of
-its own value. If it does, they are biased, even under MAR
-[@white2010bias; @hughes2019accounting]. Multiple imputation and
-likelihood methods rest on a different condition, MAR given the
+analysis is biased is narrower. Once the covariates in the model
+are held fixed, does missingness still depend on the outcome? If it
+does not, complete-case estimates are unbiased whatever the label.
+This includes the MNAR case of a covariate that goes missing
+because of its own value. If it does, they are biased, even under
+MAR [@white2010bias; @hughes2019accounting]. Multiple imputation
+and likelihood methods rest on a different condition, MAR given the
 variables in the imputation model. @tbl-missing-mechanisms is
 organized by what the missingness depends on.
 
@@ -215,17 +216,18 @@ MI is multiple imputation. The simulation in
 @sec-missing-complete-case checks the first, third, and fifth
 rows. {#tbl-missing-mechanisms}
 
-Three qualifications. The table concerns regression coefficients: a
-mean or prevalence estimated from complete cases is biased under MAR
-in general. In logistic regression, missingness that depends on the
-outcome alone biases only the intercept, not the odds ratios, by the
-argument that justifies case-control designs. And unbiased is not
-efficient: a complete-case analysis that is unbiased can still
+We note three qualifications. First, the table concerns regression
+coefficients. A mean or prevalence estimated from complete cases is
+in general biased under MAR. Second, in logistic regression,
+missingness that depends on the outcome alone biases only the
+intercept, not the odds ratios. The argument is the same one that
+justifies case-control designs. Third, unbiased is not the same as
+efficient. A complete-case analysis that is unbiased can still
 discard precision that imputation would recover.
 
 @fig-missing-mechanisms draws the three labels as what $R$ depends
-on. The arrows say only what the label says; the table above is
-what tells you which analysis survives.
+on. The arrows say only what the label says. The table above is
+what tells you which analysis remains valid.
 
 ```{mermaid}
 %%| echo: false
@@ -265,9 +267,9 @@ analysis. No row of @tbl-missing-mechanisms can be confirmed from
 the observed data, because the data cannot distinguish MAR from
 MNAR. 'The patient was lost to follow-up' could be any of the three
 stories. The assumption is a substantive claim about why the
-missingness occurred, defended by what you know about the data
-collection, and a sensitivity analysis under departures from MAR is
-expected whatever the primary assumption [@ich2019e9r1].
+missingness occurred. It is defended by what you know about the
+data collection. A sensitivity analysis under departures from MAR
+is expected whatever the primary assumption [@ich2019e9r1].
 
 ::: {.callout-important title='LLM prompt'}
 Use a model to draft the list of reasons values could be missing,
@@ -293,7 +295,7 @@ not to decide which mechanism holds.
 *Failure mode.* The model assigns each variable a confident label
 and recommends Little's test as confirmation, which can reject MCAR
 but can never establish MAR. *Check.* Take the list to the clinical
-collaborator; their account of the data collection overrides the
+collaborator. Their account of the data collection overrides the
 model's guesses, and every MAR claim should map to a variable in
 your imputation model. A missingness summary is structure, not
 data, so it may go to any approved tool (@sec-ai-governance).
@@ -311,16 +313,16 @@ not have, so no test on the observed data separates them. A test
 that appeared to would be evidence you had the missing values after
 all.
 
-What you can show is narrower and still worth showing: that
-missingness is *not* MCAR, by demonstrating that it varies with
-observed covariates; that every variable predicting missingness is
-in the imputation model, which makes MAR plausible rather than
-proven; and that the conclusion survives a departure from MAR,
-through a delta adjustment or a tipping-point analysis
-(@sec-missing-trials). The last of these answers the reviewer most
-directly. It shows how far from MAR the truth would have to be
-before your conclusion changed, and lets the reader judge whether
-that distance is credible.
+What you can show is narrower and still worth showing. First, you
+can show that missingness is *not* MCAR, by demonstrating that it
+varies with observed covariates. Second, you can show that every
+variable predicting missingness is in the imputation model. This
+makes MAR plausible rather than proven. Third, you can show that
+the conclusion holds under a departure from MAR, through a delta
+adjustment or a tipping-point analysis (@sec-missing-trials). The
+last of these answers the reviewer most directly. It shows how far
+from MAR the truth would have to be before your conclusion changed,
+and lets the reader judge whether that distance is credible.
 :::
 
 ## Diagnosing missingness {#sec-missing-diagnosis}
@@ -428,18 +430,19 @@ hf |>
 
 Unascertainment is nearly equal in the two arms and is driven by
 residence, which is observed. That rules out MCAR in the strict
-sense and is consistent with MAR given area. It cannot rule out that
-patients who moved fared differently from those who stayed; that is
-what the sensitivity analysis in @sec-missing-trials addresses.
+sense and is consistent with MAR given area. It cannot rule out
+that patients who moved fared differently from those who stayed.
+The sensitivity analysis in @sec-missing-trials addresses that
+possibility.
 
 ::: {.callout-warning title='Pitfall'}
 **A missing-value code read as a number shrinks the missingness and
 shifts the mean.** Site D's systems export a missing systolic blood
 pressure as `-99`. Read with the default `na = c("", "NA")`, those
-cells become measurements: the missingness count drops, the mean
-falls, and every downstream model treats `-99` mmHg as a patient.
-Declare every code the sources use in `na =` when you read, and
-compare the counts against the codebook.
+cells become measurements. The missingness count drops, the mean
+falls, and every downstream model treats `-99` mmHg as a real
+reading. Declare every code the sources use in `na =` when you
+read, and compare the counts against the codebook.
 :::
 
 ### Exercises
@@ -492,9 +495,10 @@ safe?
 **Answer.** No. Equal rates say nothing about *who* is missing in
 each arm. If home-health patients who moved were sicker than those
 who stayed, while usual-care movers were not, the complete-case
-contrast is biased even with identical missingness rates. Balance in
-counts is reassuring about power, not about bias; the assumption has
-to be argued, and then tested by sensitivity analysis.
+contrast is biased even with identical missingness rates. Balance
+in counts is reassuring about power, but not about bias. The
+assumption has to be argued, and then tested by sensitivity
+analysis.
 :::
 
 ## Complete-case analysis {#sec-missing-complete-case}
@@ -511,7 +515,7 @@ nrow(airquality)
 ```
 
 Complete case is acceptable when missingness does not depend on the
-outcome, given the model's covariates; its regression coefficients
+outcome, given the model's covariates. Its regression coefficients
 are then unbiased whether the mechanism is labeled MCAR, MAR, or
 MNAR, though imputation may still gain precision. It is also the
 natural sensitivity analysis beside a primary multiple imputation,
@@ -521,7 +525,7 @@ model.
 It is not acceptable when missingness plausibly depends on the
 outcome, directly or through observed variables outside the analysis
 model that predict it. The bias can be large, and the fraction of
-rows lost does not by itself bound it: how strongly missingness
+rows lost does not by itself bound it. How strongly missingness
 depends on the outcome matters as much as how many rows go. No
 percentage threshold makes complete case safe.
 
@@ -529,10 +533,10 @@ percentage threshold makes complete case safe.
 
 The claims in @tbl-missing-mechanisms are easy to check. The
 simulation below deletes about a quarter of a covariate `x` from the
-same data-generating model three times, changing only what the
-deletion depends on: the other covariate `z`, the outcome `y`, or
+same data-generating model three times. Only what the deletion
+depends on changes: the other covariate `z`, the outcome `y`, or
 `x` itself. Each replicate fits complete case, mean imputation, and
-multiple imputation, and records the bias of the coefficient on `x`
+multiple imputation. It records the bias of the coefficient on `x`
 and whether the 95% interval covers the truth.
 
 ```{r}
@@ -593,17 +597,18 @@ knitr::kable(sim, digits = 2, row.names = FALSE,
                            "Bias", "SE", "Coverage"))
 ```
 
-Read the table one mechanism at a time. When missingness depends on `z`, a covariate in the model, all three
-methods are close to unbiased and cover near 95%. When it depends on
-`y`, which is MAR because `y` is fully observed, complete case and
-mean imputation are biased and their intervals miss the truth far
-more often than 5% of the time, while multiple imputation recovers,
-because the outcome is in its imputation model. When `x` goes missing
-because of its own value, which is MNAR, complete case is close to
-unbiased, because once `x` and `z` are held fixed the deletion does
-not depend on `y`, and multiple imputation is the method that is
-biased, because it fills the missing values as though they resembled
-the observed ones [@white2010bias].
+Read the table one mechanism at a time. When missingness depends on
+`z`, a covariate in the model, all three methods are close to
+unbiased and cover near 95%. When it depends on `y`, which is MAR
+because `y` is fully observed, complete case and mean imputation
+are biased. Their intervals miss the truth far more often than 5%
+of the time. Multiple imputation, on the other hand, recovers,
+because the outcome is in its imputation model. When `x` goes
+missing because of its own value, which is MNAR, complete case is
+close to unbiased. That is, once `x` and `z` are held fixed, the
+deletion does not depend on `y`. Here multiple imputation is the
+method that is biased, because it fills the missing values as
+though they resembled the observed ones [@white2010bias].
 
 ::: {.callout-tip title='Verification'}
 Confirm the three sign changes the table teaches, so that a change
@@ -660,9 +665,9 @@ round(rowMeans(replicate(100, aux_rep())), 3)
 Complete case is biased, because `w` carries information about `y`,
 so the deletion depends on the outcome given `x` and `z`. Imputation
 without `w` is close to unbiased here only because `y`, which is
-nearly `w`, is in the imputation model; with `w` added it does at
+nearly `w`, is in the imputation model. With `w` added it does at
 least as well. The general rule is the fourth row of
-@tbl-missing-mechanisms: include in the imputation model every
+@tbl-missing-mechanisms. Include in the imputation model every
 variable that predicts missingness and the outcome, even if the
 analysis model leaves it out.
 :::
@@ -675,9 +680,9 @@ any such bound?
 **Answer.** No. The bias depends on how strongly missingness depends
 on the outcome given the covariates, not only on how many rows go.
 A small fraction deleted by a strong outcome-dependent process can
-bias more than a large fraction deleted at random; in the simulation
-the 'covariate z' row loses as many rows as the 'outcome y' row and
-is unbiased.
+bias more than a large fraction deleted at random. In the
+simulation, the 'covariate z' row loses as many rows as the
+'outcome y' row and is unbiased.
 :::
 
 ## Single imputation, and why it fails {#sec-missing-single}
@@ -689,13 +694,13 @@ fails in two ways.
 
 1. The spread of the filled variable is biased downward, because
    the imputed values have no noise. What that does to a standard
-   error depends on what was filled: filling an outcome typically
-   gives intervals that are too short, while filling a covariate can
+   error depends on what was filled. Filling an outcome typically
+   gives intervals that are too short. Filling a covariate can
    inflate the residual variance and widen them, as the simulation
    shows. Neither error is an honest one.
-2. Coefficients can be biased: the filled rows carry no information
-   about how the variable relates to the outcome, and when it is
-   correlated with other covariates the bias spreads to their
+2. Coefficients can be biased. The filled rows carry no information
+   about how the variable relates to the outcome. When the variable
+   is correlated with other covariates, the bias spreads to their
    coefficients too.
 
 ```{r}
@@ -720,14 +725,14 @@ own coefficient, both remain antipatterns.
 ### Carrying values forward, and regression without noise
 
 [**Last observation carried forward (LOCF)**](F-glossary.qmd#gloss-locf) assumes that a patient
-who drops out stays at the last observed value, which is
+who drops out stays at the last observed value. This is
 biologically implausible for most diseases. The National Research
 Council report on missing data in trials recommends against single
-imputation methods such as LOCF as the primary approach unless their
-assumptions are scientifically justified [@nrc2010prevention], and
+imputation methods such as LOCF as the primary approach, unless
+their assumptions are scientifically justified [@nrc2010prevention].
 Harrell's author checklist [@harrell2024checklist] rules it out
-altogether, on the grounds that an assumption no one believes is not
-made believable by being labeled a sensitivity analysis.
+altogether. The reasoning is that an assumption no one believes is
+not made believable by being labeled a sensitivity analysis.
 
 **Single regression imputation without noise** produces intervals
 that are too tight: the imputed values lie exactly on a regression
@@ -744,12 +749,13 @@ uncertainty. Which is right?
 
 **Answer.** Both, about different quantities. Mean imputation
 shrinks the spread of the variable it fills, which the chunk above
-shows directly. But the standard error of a regression coefficient
-is not that spread: filling a quarter of a covariate with a constant
-destroys the covariance between `x` and `y` in those rows, which
-weakens the estimated relationship and inflates the residual
-variance, so the reported error goes up. The understatement warning
-applies most sharply when the outcome itself is filled in.
+shows directly. However, the standard error of a regression
+coefficient is not that spread. Filling a quarter of a covariate
+with a constant destroys the covariance between `x` and `y` in
+those rows. This weakens the estimated relationship and inflates
+the residual variance, so the reported error goes up. The
+understatement warning applies most sharply when the outcome
+itself is filled in.
 :::
 
 ## Multiple imputation with mice {#sec-missing-mi}
@@ -833,7 +839,7 @@ Pool the $M$ analyses:
 The $(1 + 1/M)$ factor is a finite-sample correction. Degrees of
 freedom use the Barnard-Rubin adjustment (the `mice` default), which
 produces slightly conservative t-tests for moderate $M$.
-`mice::pool()` does all of this; inspect the components:
+`mice::pool()` does all of this. We can inspect the components:
 
 ```{r}
 #| label: miss-pooled-diagnostics
@@ -843,9 +849,9 @@ summary(pooled)$lambda
 ```
 
 `fmi`, the fraction of missing information, says how much of the
-variance in $\hat\beta$ is due to missing data, and `lambda` the
+variance in $\hat\beta$ is due to missing data. `lambda` gives the
 proportion of total variance attributable to it. Values above 0.5
-mean the analysis leans heavily on the imputation model, and
+mean the analysis relies heavily on the imputation model, and
 sensitivity analysis matters more.
 
 ### Exercises
@@ -873,12 +879,12 @@ dplyr::bind_rows(
   dplyr::select(method, term, estimate, std.error)
 ```
 
-The coefficients move little; the standard errors are what change,
+The coefficients move little. The standard errors are what change,
 and they change in both directions. MI uses all 153 rows rather than
-the 111 complete ones, which tightens some estimates, while the
-between-imputation variance widens others. A method that only ever
-tightened intervals would be recovering information it does not
-have.
+the 111 complete ones, which tightens some estimates. The
+between-imputation variance, on the other hand, widens others. A
+method that only ever tightened intervals would be claiming
+information it does not have.
 :::
 
 4. Use `mice::ampute()` to induce MAR missingness on the complete
@@ -910,7 +916,7 @@ data.frame(term = names(truth),
 
 MI recovers the full-data coefficients approximately, which is the
 claim being checked. A single run can miss by more than you expect,
-so one replicate is only a demonstration; the evidence is the
+so one replicate is only a demonstration. The evidence is the
 simulation in @sec-missing-complete-case.
 :::
 
@@ -919,53 +925,55 @@ simulation in @sec-missing-complete-case.
 fraction of the time. Since the imputation model is the same, what
 exactly does the extra work of `m = 20` buy?
 
-**Answer.** Not a better point estimate: one draw and twenty pooled
-draws give similar coefficients. What twenty draws buy is the
-standard error. Rubin's rules add the *between*-imputation variance,
-which measures how much the estimate moves depending on which
-plausible values were filled in. A single draw has no between
-component, so the reported interval is too narrow. Single
-imputation treats a guess as an observation; multiple imputation
-makes several guesses and reports how much they disagreed. The
-`fmi` above is that disagreement expressed as a fraction, which is
-why it cannot be computed from a single imputation.
+**Answer.** It does not buy a better point estimate. One draw and
+twenty pooled draws give similar coefficients. What twenty draws
+buy is the standard error. Rubin's rules add the
+*between*-imputation variance, which measures how much the estimate
+moves depending on which plausible values were filled in. A single
+draw has no between component, so the reported interval is too
+narrow. Single imputation treats a guess as an observation.
+Multiple imputation makes several guesses and reports how much they
+disagreed. The `fmi` above is that disagreement expressed as a
+fraction, which is why it cannot be computed from a single
+imputation.
 :::
 
 ## Missing outcomes in trials {#sec-missing-trials}
 
 ### Start from the estimand
 
-In a trial, what counts as missing depends on the question. A
-patient who stopped the study drug and was not followed has missing
-data for a *treatment-policy* estimand, which wants the outcome
-whatever the patient took; the same unrecorded value is not missing
-at all for a *hypothetical* estimand that asks what would have
-happened had everyone stayed on treatment. The E9(R1) addendum of
-the International Council for Harmonisation (ICH) builds the
-trial's question around these intercurrent events, and
-@sec-analysis-plan-estimands works through them for HF-HOME. Fix the
-estimand first; the missing-data method follows from it.
+In a trial, what counts as missing depends on the question. Consider
+a patient who stopped the study drug and was not followed. That
+patient has missing data for a *treatment-policy* estimand, which
+wants the outcome whatever the patient took. The same unrecorded
+value is not missing at all for a *hypothetical* estimand, which
+asks what would have happened had everyone stayed on treatment. The
+E9(R1) addendum of the International Council for Harmonisation
+(ICH) builds the trial's question around these intercurrent events.
+@sec-analysis-plan-estimands works through them for HF-HOME. Fix
+the estimand first. The missing-data method follows from it.
 
 The National Research Council report on missing data in clinical
-trials puts prevention before treatment: keep collecting outcomes
+trials puts prevention before treatment. Keep collecting outcomes
 after patients stop the assigned treatment, and design and conduct
-the trial to limit missing data, because no analysis recovers what
-was never measured [@nrc2010prevention]. Its second message is the one this
-chapter has been making: state the assumption, and test the
-conclusion against departures from it.
+the trial to limit missing data. No analysis recovers what was
+never measured [@nrc2010prevention]. The report's second message
+is the one this chapter has been making: state the assumption, and
+test the conclusion against departures from it.
 
 ### Repeated continuous outcomes: the mixed model
 
 For a continuous outcome measured at several visits, the standard
-primary analysis is a mixed model for repeated measures ([**MMRM**](F-glossary.qmd#gloss-mmrm)):
-a likelihood analysis of all observed visits, with arm, visit, their
-interaction, and baseline covariates as fixed effects, and an
-unstructured covariance across visits. It imputes nothing. Patients
-who drop out contribute every visit they attended, and the estimate
-at the final visit is valid under MAR given the earlier visits and
-covariates, which suits a hypothetical estimand of the effect had
-patients continued. The `mmrm` package [@sabanesbove2026mmrm] fits
-it; its `fev_data` example has a third of the visits missing:
+primary analysis is a mixed model for repeated measures ([**MMRM**](F-glossary.qmd#gloss-mmrm)).
+This is a likelihood analysis of all observed visits. Arm, visit,
+their interaction, and baseline covariates enter as fixed effects,
+with an unstructured covariance across visits. It imputes nothing.
+Patients who drop out contribute every visit they attended. The
+estimate at the final visit is valid under MAR given the earlier
+visits and covariates. This suits a hypothetical estimand of the
+effect had patients continued. The `mmrm` package
+[@sabanesbove2026mmrm] fits the model. Its `fev_data` example has a
+third of the visits missing:
 
 ```{r}
 #| label: miss-mmrm
@@ -987,8 +995,8 @@ df_1d(fit_mmrm, contrast)[c("est", "se", "p_val")]
 ### Reference-based multiple imputation
 
 A treatment-policy estimand asks about patients who stopped the
-active treatment, and MAR within arm then assumes they kept
-responding like those who stayed on it, which is often implausible.
+active treatment. MAR within arm then assumes they kept responding
+like those who stayed on it, which is often implausible.
 Reference-based imputation instead borrows the post-discontinuation
 trajectory from the reference (control) arm
 [@carpenter2013analysis]:
@@ -1004,7 +1012,7 @@ trajectory from the reference (control) arm
 The `rbmi` package [@gowerpage2022rbmi] implements these with
 Bayesian, approximate Bayesian, or conditional-mean imputation. It
 is not installed in the environment that builds this book, so the
-sketch below is display-only; argument names follow the package
+sketch below is display-only. Argument names follow the package
 documentation and should be checked against the installed version.
 
 ```r
@@ -1026,13 +1034,14 @@ it.
 ### Delta adjustment and the tipping point
 
 For outcomes without a reference-based model, the usual sensitivity
-analysis is a delta adjustment: impute under MAR, shift the imputed
-values by $\delta$ to represent patients who fared worse (or better)
-than MAR predicts, and refit. In `mice`, pass the shift through the
-`post` argument, so that shifted values also inform the imputation
-of other variables in later iterations. In a trial, a shift applied
-equally to both arms largely cancels in the treatment contrast, so
-the informative scenario shifts the active arm only:
+analysis is a delta adjustment. We impute under MAR, shift the
+imputed values by $\delta$ to represent patients who fared worse
+(or better) than MAR predicts, and refit. In `mice`, pass the shift
+through the `post` argument, so that shifted values also inform the
+imputation of other variables in later iterations. In a trial, a
+shift applied equally to both arms largely cancels in the treatment
+contrast. The informative scenario therefore shifts the active arm
+only:
 
 ```r
 post <- make.post(trial)
@@ -1046,10 +1055,11 @@ A [**tipping-point analysis**](F-glossary.qmd#gloss-tipping-point-analysis) vari
 changes, and asks whether that $\delta$ is clinically plausible.
 When each arm gets its own shift, the tipping point becomes a
 boundary in two dimensions, $(\delta_{\text{control}},
-\delta_{\text{active}})$, and the report shows the region of that
-plane in which the conclusion holds [@nrc2010prevention]. Pattern-mixture models
-generalize the idea by specifying a separate model per missingness
-pattern; delta adjustment is the simplest member of that family.
+\delta_{\text{active}})$. The report then shows the region of that
+plane in which the conclusion holds [@nrc2010prevention].
+Pattern-mixture models generalize the idea by specifying a separate
+model per missingness pattern. Delta adjustment is the simplest
+member of that family.
 
 ::: {.callout-important title='LLM prompt'}
 > **Context.** HF-HOME is a two-arm randomized trial with a binary
@@ -1075,24 +1085,23 @@ pattern; delta adjustment is the simplest member of that family.
 *Failure mode.* The draft says 'sensitivity analyses will be
 performed as appropriate', or proposes a delta applied equally to
 both arms, which cancels in the contrast. *Check.* For each
-sentence, ask 'which?'; if the text does not answer, it is not
+sentence, ask 'which?'. If the text does not answer, it is not
 pre-specified. Compare the draft with section 11 of the HF-HOME
-statistical analysis plan (SAP)
-in @sec-analysis-plan-worked.
+statistical analysis plan (SAP) in @sec-analysis-plan-worked.
 :::
 
 ### Worked example: a two-dimensional tipping point for HF-HOME
 
 HF-HOME's outcome is binary, so the shift is on the risk scale, as
-in the SAP (@sec-analysis-plan): unascertained patients in each arm
-are assigned $\delta$ times the risk of their observed peers. Each
-cell of the grid below is a multiple imputation with $M = 50$. The
-arm's risk is drawn from its posterior given the observed patients,
-multiplied by that arm's $\delta$, and used to draw outcomes for its
-unascertained patients; the risk difference, usual care minus home
-health, is pooled by Rubin's rules. The estimator is the unadjusted
-difference; the SAP's primary estimator standardizes over baseline
-covariates.
+in the SAP (@sec-analysis-plan). That is, unascertained patients in
+each arm are assigned $\delta$ times the risk of their observed
+peers. Each cell of the grid below is a multiple imputation with
+$M = 50$. The arm's risk is drawn from its posterior given the
+observed patients, multiplied by that arm's $\delta$, and used to
+draw outcomes for its unascertained patients. The risk difference,
+usual care minus home health, is pooled by Rubin's rules. The
+estimator here is the unadjusted difference. The SAP's primary
+estimator, by contrast, standardizes over baseline covariates.
 
 ```{r}
 #| label: miss-hfhome-tipping
@@ -1166,20 +1175,20 @@ ggplot(grid, aes(delta_usual, delta_home, fill = estimate)) +
 Under MAR (the cell at 1, 1) the result is inconclusive, as it is in
 the complete-case analysis. The grid shows which departures would
 change that. `r sum(grid$conclusion == "Benefit")` of the
-`r nrow(grid)` cells conclude benefit, and in every one of them
-$\delta$ is larger for usual care than for home health: unascertained
-usual-care patients fared worse than their observed peers, relative
-to unascertained home-health patients. The number of cells that
-conclude harm is `r sum(grid$conclusion == "Harm")`. Whether the
-benefit region is
-plausible is a clinical question, and the report has to answer it in
-words: is there any reason to think that patients who moved away did
-worse on usual care than on home health?
+`r nrow(grid)` cells conclude benefit. In every one of them
+$\delta$ is larger for usual care than for home health. That is,
+unascertained usual-care patients fared worse than their observed
+peers, relative to unascertained home-health patients. The number
+of cells that conclude harm is `r sum(grid$conclusion == "Harm")`.
+Whether the benefit region is plausible is a clinical question, and
+the report has to answer it in words. Is there any reason to think
+that patients who moved away did worse on usual care than on home
+health?
 
 ::: {.callout-tip title='Verification'}
 The MAR cell should reproduce the complete-case risk difference,
 because with $\delta = 1$ in both arms the imputation adds noise but
-no shift, and every benefit cell should lie where usual care's
+no shift. Every benefit cell should also lie where usual care's
 $\delta$ exceeds home health's, as the text says:
 
 ```{r}
@@ -1193,11 +1202,11 @@ stopifnot(abs(cc_rd - mar_rd) < 0.5,
 ```
 :::
 
-The missing-data plan, including the primary assumption, $M$, the
-imputation methods, and every sensitivity analysis with its range of
-$\delta$, belongs in the statistical analysis plan, written and
-tagged before the outcome data are seen; @sec-analysis-plan covers
-how.
+The missing-data plan belongs in the statistical analysis plan,
+written and tagged before the outcome data are seen. It includes
+the primary assumption, $M$, the imputation methods, and every
+sensitivity analysis with its range of $\delta$. @sec-analysis-plan
+covers how.
 
 ### Exercises
 
@@ -1247,8 +1256,8 @@ ggplot2::ggplot(curve, ggplot2::aes(delta, estimate)) +
 The coefficient moves smoothly with $\delta$, so the question is
 whether it crosses zero inside a range of $\delta$ you consider
 plausible. If it does not, the conclusion is robust to this
-departure from MAR; if it does, the crossing point is what the
-report should quote, alongside an argument about which values of
+departure from MAR. If it does, the report should quote the
+crossing point, alongside an argument about which values of
 $\delta$ are credible.
 :::
 
@@ -1259,11 +1268,11 @@ What would that rule report for this draw of the HF-HOME data, and
 why does the HF-HOME analysis plan (@sec-analysis-plan) use the
 two-dimensional grid instead?
 
-**Answer.** Nothing useful: the interval already includes zero at
+**Answer.** Nothing useful. The interval already includes zero at
 $\delta = 1$, so there is nothing to tip. A one-directional rule
 quietly assumes the primary result will be positive. The
 two-dimensional grid answers the question for any result, which is
-why the plan pre-specifies it: it shows which departures would
+why the plan pre-specifies it. It shows which departures would
 change the conclusion in either direction.
 :::
 
@@ -1271,16 +1280,17 @@ change the conclusion in either direction.
 
 ### Values below a limit of detection
 
-An assay that reports a concentration only above its limit of
-detection returns, below it, not a value but the information that
-the value is small. This is *left censoring*, not missingness, and
-an analysis that discards those observations or substitutes a
-constant such as the limit divided by $\sqrt{2}$ distorts the
-variance in ways multiple imputation under MAR will not repair. The
-methods that suit it are regression on order statistics, censored
-maximum likelihood, and multiple imputation adapted to the
-threshold.[^lod] Before choosing a missing-data method, establish
-whether the values are missing or merely unobserved below a bound.
+Some assays report a concentration only above a limit of
+detection. Below that limit the assay returns no value, only the
+information that the value is small. This is *left censoring*, not
+missingness. An analysis might discard those observations, or
+substitute a constant such as the limit divided by $\sqrt{2}$.
+Either choice distorts the variance in ways multiple imputation
+under MAR will not repair. The methods that suit left censoring are
+regression on order statistics, censored maximum likelihood, and
+multiple imputation adapted to the threshold.[^lod] Before choosing
+a missing-data method, establish whether the values are missing or
+merely unobserved below a bound.
 
 [^lod]: The in-house `zzmesoimpute` package provides a common
     interface across these methods for multiplexed immunoassay data,
@@ -1309,13 +1319,13 @@ missing data:
     an item number.
 
 Harrell's author checklist [@harrell2024checklist] adds an item the
-guidelines leave implicit: an incomplete record is not a disposable
-one. Dropping every patient with any missing covariate needs the
-same justification in the methods section as an imputation model
-would. If the complete-case sample differs from the enrolled sample
-in ways the reader can check, show the comparison; if it does not
-differ on anything you measured, say so, and say what you could not
-measure.
+guidelines leave implicit: an incomplete record should not be
+discarded by default. Dropping every patient with any missing
+covariate needs the same justification in the methods section as an
+imputation model would. If the complete-case sample differs from
+the enrolled sample in ways the reader can check, show the
+comparison. If it does not differ on anything you measured, say so,
+and say what you could not measure.
 
 ## Rules of thumb
 
@@ -1390,15 +1400,16 @@ measure.
    Because MAR cannot be tested against MNAR, sensitivity analysis
    is expected under any primary assumption.
 2. [**Complete-case analysis**](F-glossary.qmd#gloss-complete-case-analysis) drops the ~12% of rows with missing
-   data, reducing the effective sample size; its coefficient
+   data, reducing the effective sample size. Its coefficient
    estimates are unbiased if missingness does not depend on the
    outcome given the covariates, whatever the mechanism label, and
    biased if it does. [**Mean imputation**](F-glossary.qmd#gloss-mean-imputation) replaces missing values
    with the sample mean. It understates the spread of the filled
-   variable and can bias coefficients, but its standard errors are
-   not reliably too narrow: for a missing predictor the filled rows
-   inflate the residual variance, and the simulation in this chapter
-   shows its standard error is the widest of the three methods. It
+   variable and can bias coefficients. However, its standard errors
+   are not reliably too narrow. For a missing predictor the filled
+   rows inflate the residual variance, and the simulation in this
+   chapter shows its standard error is the widest of the three
+   methods. It
    is wrong in either direction, except for a baseline covariate in
    a randomized trial, where it leaves the treatment effect
    unbiased. [**Multiple imputation**](F-glossary.qmd#gloss-multiple-imputation) produces $M$ plausible

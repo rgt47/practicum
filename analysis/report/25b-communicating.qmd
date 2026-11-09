@@ -4,13 +4,14 @@ The week after database lock, Dr. X sends a one-line email: 'So
 did it work?' For HF-HOME the honest answer is that the trial
 cannot tell. Its interval runs from a small harm to a benefit
 larger than the one it was designed to detect. Two easy replies
-are available, and both are wrong without anyone noticing: 'no,
-it was not significant', which a reader hears as 'home health
-does not work', and 'yes, readmissions fell by two and a half
-points', which a reader hears as a finding. Neither contains a
-false number. This chapter is about the reply that is right, and
-about the three documents in which a statistician is judged on
-it: the memo, the talk, and the response to reviewers.
+are available, and both are wrong in ways that are easy to miss.
+The first is 'no, it was not significant', which a reader takes
+to mean 'home health does not work'. The second is 'yes,
+readmissions fell by two and a half points', which a reader
+takes as a finding. Neither contains a false number. This
+chapter is about the reply that is right. It is also about the
+three documents in which a statistician is judged on it: the
+memo, the talk, and the response to reviewers.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -104,26 +105,27 @@ An analysis is a chronology: you obtained the data, cleaned it,
 described it, modeled it, checked the model, and arrived at an
 estimate. That order is right for doing the work, for the
 compendium, and for the methods section. It is wrong for almost
-every act of communication, because it withholds the thing the
-audience came for until the end and asks them to hold six
-irrelevant facts in memory on the promise of a payoff.
+every act of communication. It withholds what the audience came
+for until the end. It also asks them to hold six irrelevant
+facts in memory on the promise that they will matter later.
 
 Presenting an analysis is argument: here is the claim, here is
 the evidence, here is what would have changed my mind. The three
-genres in this chapter are three audiences for that argument. The
-talk gets the least evidence and the most argument; the response
-to reviewers gets the most evidence and the least latitude.
-Everything in them is judgment; there is no tool.
+genres in this chapter are three audiences for that argument.
+The talk gets the least evidence and the most argument. The
+response to reviewers gets the most evidence and the least
+latitude. Everything in them is a matter of judgment, and no
+tool does it for you.
 
 ### The result to communicate
 
 Every number this chapter quotes about HF-HOME is computed below
 from the running study's files and inserted by inline code, never
 typed (Habit 10). A memo feels like correspondence rather than
-output, which is why it is where typed numbers survive longest:
-a data correction arrives, the analysis is rerun, and the prose
-still carries last week's estimate. With inline code, the number
-in the sentence *is* the number from the data.
+output. For that reason it is where typed numbers survive
+longest. A data correction arrives, the analysis is rerun, and
+the prose still carries last week's estimate. With inline code,
+the number in the sentence *is* the number from the data.
 
 ```{r}
 #| label: comm-trial
@@ -186,15 +188,16 @@ round(primary[1:3], 1)
 
 The complete-case estimate uses the patients with an ascertained
 outcome. The SAP's primary estimator standardizes over baseline
-covariates (@sec-analysis-plan); under randomization both target
-the same marginal risk difference, and the unadjusted version keeps
-the arithmetic visible. The cumulative exercise at the end of the
-chapter computes the standardized one.
+covariates (@sec-analysis-plan). Under randomization both target
+the same marginal risk difference, and the unadjusted version
+keeps the arithmetic visible. The cumulative exercise at the end
+of the chapter computes the standardized one.
 
 ### The and/but/therefore skeleton
 
-The most portable structure for a scientific argument has three
-parts, easier to remember as conjunctions than as a diagram.
+The most widely usable structure for a scientific argument has
+three parts. They are easier to remember as conjunctions than as
+a diagram.
 
 **And.** The stable state of the world, which the audience already
 accepts. 'Patients hospitalized with heart failure have a 30-day
@@ -232,9 +235,10 @@ chronology it replaces.
 
 : The chronology is the order in which the work was done, and the order the methods section follows. The argument is the order in which it should be presented. The estimate is the last thing computed and the first thing said; the chronology becomes the defense rather than the narrative. {#tbl-arc}
 
-The final element is the one statisticians most often omit and the
-one that most raises a skeptical audience's trust: state what would
-have changed your mind. For HF-HOME it is concrete. 'If the
+The final element is the one statisticians most often omit. It
+is also the one that does most to earn a skeptical audience's
+trust: state what would have changed your mind. For HF-HOME it
+is concrete. 'If the
 interval had excluded the `r mcid`-point reduction, I would be
 telling you that home health does not work at the size we planned
 for; if the missing outcomes could plausibly tip the result, I
@@ -244,12 +248,12 @@ would be telling you the conclusion rests on them.'
 
 The clinical collaborator has one question, the one they asked
 three months ago. Answer it in the first sentence, then defend the
-answer. Statisticians resist this, because the defense is where
-the work was and the answer feels unearned without it. The
-audience does not share that feeling: they experience a withheld
-conclusion as evasion, and their attention is spent before you
-reach it. An inconclusive answer is still an answer, and it goes
-first like any other.
+answer. Statisticians resist this. The defense is where the work
+was, and the answer feels unearned without it. The audience does
+not share that feeling. They experience a withheld conclusion as
+evasion, and their attention is spent before you reach it. An
+inconclusive answer is still an answer, and it goes first like
+any other.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** Your draft talk opens with three slides on data
@@ -266,20 +270,19 @@ anyone asks how the denominator was built.
 
 ## Null and inconclusive results {#sec-communicating-null}
 
-HF-HOME found nothing it can call a finding. This happens
-constantly, and such results are easy to report badly. The first
-distinction is the one in this chapter's
-quiz: **absence of evidence is not evidence of absence**
-[@altman1995absence]. An interval that includes zero means the
-study could not distinguish the effect from nothing; it does not
-mean the effect is nothing.
+HF-HOME found nothing it can call a finding. This happens often,
+and such results are easy to report badly. The first distinction
+is the one in this chapter's quiz: **absence of evidence is not
+evidence of absence** [@altman1995absence]. An interval that
+includes zero means the study could not distinguish the effect
+from nothing. It does not mean the effect is nothing.
 
 ### Four interval patterns
 
 What an interval licenses depends on where it sits relative to two
 lines: zero, and the MCID on either side of it. @fig-comm-patterns
-shows the four patterns, using HF-HOME's own interval for the
-inconclusive one and illustrative values for the other three, and
+shows the four patterns. It uses HF-HOME's own interval for the
+inconclusive one and illustrative values for the other three.
 @tbl-comm-patterns gives the claim each supports.
 
 ```{r}
@@ -351,7 +354,7 @@ neither. {#tbl-comm-patterns}
 ### What HF-HOME's interval rules out
 
 An inconclusive result is not empty. The interval excludes some
-effects, and saying which is what makes the report informative.
+effects, and saying which ones makes the report informative.
 HF-HOME's interval rules out a benefit larger than
 `r sprintf("%.1f", ci[["upper"]])` points and a harm larger than
 `r sprintf("%.1f", -ci[["lower"]])` points. It cannot rule out no
@@ -363,15 +366,16 @@ points, and excludes harms larger than
 `r sprintf("%.1f", -ci[["lower"]])` points'.
 
 Contrast that with 'the difference was not statistically
-significant (p = `r sprintf("%.2f", p_value)`)', which tells the
-reader nothing about whether the study was informative, and would
-read identically for a precise null.
+significant (p = `r sprintf("%.2f", p_value)`)'. That sentence
+tells the reader nothing about whether the study was
+informative, and it would read the same for a precise null.
 
 ### An inconclusive result is not a failed study
 
-A trial that enrolled half its target and produced an interval
-spanning every effect from harmful to miraculous has produced no
-result, and the honest report says so. HF-HOME is not that trial.
+Consider a trial that enrolled half its target and produced an
+interval spanning every effect from large harm to implausibly
+large benefit. That trial has produced no result, and the honest
+report says so. HF-HOME is not that trial.
 Both arms reached the `r format(n_eval, big.mark = ",")`
 evaluable patients the SAP required
 (`r format(rates$n_obs[1], big.mark = ",")` and
@@ -379,26 +383,27 @@ evaluable patients the SAP required
 about as narrow as the design promised. The observed reduction is
 about half the planned one, and a trial with 80% power misses an
 effect of the planned size one time in five. Its result is a
-properly sized estimate that happens to straddle the line, and it
-will be worth more in a future meta-analysis than in a 'negative'
-headline.
+properly sized estimate that happens to straddle the line. It
+will be worth more in a future meta-analysis than in a
+'negative' headline.
 
 ::: {.callout-warning title='Pitfall'}
 **'No significant difference' becomes 'no difference' in the
 abstract.** Each revision of a draft shortens the sentence, and
 the shortest version of an inconclusive result is a negative one.
 Presenting an underpowered or inconclusive null as evidence of no
-effect is how the literature acquires 'negative' trials that were
-merely imprecise, and the statistician is usually the only person
-on the team positioned to stop it. Check the abstract's verb
-against @tbl-comm-patterns at every revision, not only the first.
+effect is how the literature acquires 'negative' trials that
+were merely imprecise. The statistician is usually the only
+person on the team in a position to stop it. Check the
+abstract's verb against @tbl-comm-patterns at every revision,
+not only the first.
 :::
 
 ::: {.callout-warning title='Ethics'}
 Overclaiming runs in both directions. Turning an inconclusive
 interval into 'no effect', or an observational association into
-'reduces', each says more than the evidence supports, and the
-reader acts on the verb rather than the interval.
+'reduces', says more than the evidence supports. The reader acts
+on the verb rather than the interval.
 @sec-ethics-causal treats the causal verb as an ethical matter,
 not a stylistic one (@sec-ethics).
 :::
@@ -429,7 +434,7 @@ inconclusive against an MCID of 2: both include effects larger
 than 2 points. Interval (b) excludes zero whatever the MCID, and
 (c) reaches past -5, so it is inconclusive under either. The MCID
 is therefore part of the claim, which is why the SAP names it
-before the data arrive; chosen afterward, it can be set to make
+before the data arrive. Chosen afterward, it can be set to make
 any interval a precise null.
 :::
 
@@ -440,10 +445,11 @@ at the outset was 2 points. The PI would like to write 'the
 intervention was not effective'. What do you say?
 
 **Answer.** That the sentence is not supported. The interval
-includes effects as large as 4.5 points, more than twice the MCID,
-so the data are consistent with a clinically important benefit,
-and with a clinically important harm. The correct report is that
-the study was uninformative in the range that matters: 'we found
+includes effects as large as 4.5 points, more than twice the
+MCID. The data are therefore consistent with a clinically
+important benefit, and with a clinically important harm. The
+correct report is that the study was uninformative in the range
+that matters: 'we found
 no evidence of an effect, but the study cannot exclude a
 clinically important benefit or harm'. The PI's sentence would be
 defensible only if the interval lay wholly inside $(-2, 2)$.
@@ -453,15 +459,16 @@ defensible only if the interval lay wholly inside $(-2, 2)$.
 
 `r sprintf("%.1f%%", 100 * p_missing)` of HF-HOME's patients have
 no ascertainable outcome. The complete-case estimate is valid if
-loss to the state health-information exchange is unrelated to the
-outcome given arm, and no data can confirm that. The SAP's section
-11 therefore pre-specifies a two-dimensional tipping-point analysis
-(@sec-missing-trials): unascertained patients in each arm are
-assigned $\delta$ times the risk of their observed peers in that
-arm, with $\delta_U$ (usual care) and $\delta_H$ (home health)
-varied independently from 0.5 to 2. The cell with
+loss to the state health-information exchange is unrelated to
+the outcome given arm. No data can confirm that. The SAP's
+section 11 therefore pre-specifies a two-dimensional
+tipping-point analysis (@sec-missing-trials). Unascertained
+patients in each arm are assigned $\delta$ times the risk of
+their observed peers in that arm. The two values, $\delta_U$
+(usual care) and $\delta_H$ (home health), are varied
+independently from 0.5 to 2. The cell with
 $\delta_U = \delta_H = 1$ is missing at random (MAR). Every
-randomized patient stays in the denominator, and the report names
+randomized patient stays in the denominator. The report names
 every combination that would change the conclusion, in either
 direction.
 
@@ -542,26 +549,26 @@ ggplot(grid, aes(delta_usual, delta_home, fill = conclusion)) +
 
 Under MAR (the cell at 1, 1) the result is inconclusive, as the
 complete-case analysis is. Of the `r nrow(grid)` combinations,
-`r nrow(benefit)` conclude benefit, and in every one of them
-$\delta_U$ exceeds $\delta_H$ by at least `r min_gap`: unascertained
-usual-care patients would have to fare markedly worse than their
-observed peers, relative to unascertained home-health patients. If
-home-health patients lost to the exchange fared like those
-retained ($\delta_H = 1$), benefit requires
-$\delta_U \ge `r tip_usual`$, a 30-day risk of
+`r nrow(benefit)` conclude benefit. In every one of them
+$\delta_U$ exceeds $\delta_H$ by at least `r min_gap`. That is,
+unascertained usual-care patients would have to fare markedly
+worse than their observed peers, relative to unascertained
+home-health patients. Suppose home-health patients lost to the
+exchange fared like those retained ($\delta_H = 1$). Benefit
+then requires $\delta_U \ge `r tip_usual`$, a 30-day risk of
 `r sprintf("%.0f%%", 100 * tip_usual * rates$rate[1])` among
 unascertained usual-care patients against
 `r sprintf("%.0f%%", 100 * rates$rate[1])` among those observed.
 The number of combinations that conclude harm is `r n_harm`.
 
-That is the paragraph the memo and the paper need, followed by one
-sentence of clinical judgment that no grid supplies: loss to the
-exchange was driven by out-of-state addresses, and there is no
-known reason why patients who moved would fare worse on usual care
-than on home health. The analysis does not say which cell is
-true, and a conclusion of 'benefit' in a
-corner of the grid is not a finding; it is the description of an
-assumption under which there would be one.
+That is the paragraph the memo and the paper need. It is
+followed by one sentence of clinical judgment that no grid
+supplies. Loss to the exchange was driven by out-of-state
+addresses, and there is no known reason why patients who moved
+would fare worse on usual care than on home health. The analysis
+does not say which cell is true. A conclusion of 'benefit' in a
+corner of the grid is not a finding. It describes an assumption
+under which there would be one.
 
 ::: {.callout-tip title='Verification'}
 The MAR cell should reproduce the complete-case estimate, and
@@ -581,38 +588,40 @@ stopifnot(abs(diff - mar$estimate) < 0.5,
 **A one-directional tipping-point rule reports 'robust' for a
 result with nothing to tip.** An earlier version of the HF-HOME SAP
 raised $\delta$ in the home-health arm 'until the interval includes
-zero'. Applied to an inconclusive result, the interval includes
-zero at the start, the rule stops at once, and a careless report
-calls the conclusion robust. A rule written on the assumption that
-the result will be positive is not pre-specified for the result you
-got. The two-dimensional grid answers the question for any result.
+zero'. For an inconclusive result, the interval includes zero at
+the start. The rule stops at once, and a careless report calls
+the conclusion robust. A rule written on the assumption that the
+result will be positive is not pre-specified for the result you
+got. The two-dimensional grid answers the question for any
+result.
 :::
 
 ### Beyond one grid: multiverse and specification-curve analysis
 
 The tipping-point grid varies one assumption the SAP named in
 advance: the risk of unascertained patients relative to their
-observed peers. A related but distinct idea, useful when several
-analytic choices are each individually defensible and none was
-pre-specified strongly enough to rule the others out, is to vary
-all of them at once and report the distribution of results rather
-than a single preferred one. Specification curve analysis
-[@simonsohn2020speccurve] enumerates every combination of
-defensible choices (which covariates to adjust for, which exclusion
-criteria to apply, which link function to fit), computes the
-estimate under each, plots the resulting curve of estimates ordered
-from smallest to largest, and tests jointly whether the pattern
-differs from what chance would produce. For a result like HF-HOME's,
-where the primary estimator is pre-specified and the SAP already
-narrows the choice, the HF-HOME-specific version of the idea is
-narrower: vary the covariate set used in the standardized estimator
-of the cumulative exercise, alongside the missingness assumption of
-the tipping-point grid, and show whether the inconclusive
-conclusion survives every combination jointly, not just each
-dimension separately. A multiverse analysis is a transparency tool
-for choices that are genuinely contested, not a substitute for
-pre-registering the one that matters most; a trial with a tagged
-SAP has already made the harder commitment.
+observed peers. A related but distinct idea is to vary several
+analytic choices at once and report the distribution of results
+rather than a single preferred one. It is useful when each
+choice is individually defensible and none was pre-specified
+strongly enough to rule the others out. Specification curve
+analysis [@simonsohn2020speccurve] enumerates every combination
+of defensible choices (which covariates to adjust for, which
+exclusion criteria to apply, which link function to fit). It
+computes the estimate under each and plots the resulting curve
+of estimates, ordered from smallest to largest. It then tests
+jointly whether the pattern differs from what chance would
+produce. For HF-HOME, the primary estimator is pre-specified and
+the SAP already narrows the choice. The version of the idea that
+applies here is therefore narrower. We vary the covariate set
+used in the standardized estimator of the cumulative exercise,
+alongside the missingness assumption of the tipping-point grid.
+We then show whether the inconclusive conclusion survives every
+combination jointly, not just each dimension separately. A
+multiverse analysis is a transparency tool for choices that are
+genuinely contested. It does not substitute for pre-registering
+the one that matters most, and a trial with a tagged SAP has
+already made the harder commitment.
 
 ### Exercises
 
@@ -630,9 +639,10 @@ grid |> filter(delta_usual == 1, conclusion == "Benefit")
 sprintf("%.0f%%", 100 * tip_usual * rates$rate[1])
 ```
 
-No combination with $\delta_U = 1$ concludes benefit: lowering the
-assumed risk among unascertained home-health patients alone, even
-to half their peers' risk, does not move the interval off zero.
+No combination with $\delta_U = 1$ concludes benefit. Lowering
+the assumed risk among unascertained home-health patients alone,
+even to half their peers' risk, does not move the interval off
+zero.
 The sentence: 'the result would become a benefit only if
 unascertained usual-care patients had a 30-day risk of
 `r sprintf("%.0f%%", 100 * tip_usual * rates$rate[1])` or more,
@@ -648,10 +658,11 @@ judge plausibility.
 summary?
 
 **Answer.** It reports a conditional as a finding. The grid
-shows which assumptions about unobserved patients would produce a
-benefit, and every such assumption requires usual-care patients
-lost to the exchange to fare much worse than home-health patients
-lost to it, for which there is no known mechanism. The accurate
+shows which assumptions about unobserved patients would produce
+a benefit. Every such assumption requires usual-care patients
+lost to the exchange to fare much worse than home-health
+patients lost to it. There is no known mechanism for that. The
+accurate
 summary is that the inconclusive result does not hinge on the
 missing outcomes unless they are missing in a strongly
 arm-dependent way.
@@ -661,7 +672,7 @@ arm-dependent way.
 
 One page, to a principal investigator (PI), usually in answer to
 'what did you find?' or 'is this worth pursuing?'. The memo has a
-fixed shape, and its virtue is that the reader can stop at any
+fixed shape. Its advantage is that the reader can stop at any
 point and still have something usable.
 
 1. **The finding, in one sentence, with the number and its
@@ -675,14 +686,14 @@ point and still have something usable.
    change the conclusion, in descending order of how much.
 5. **What you propose to do next, with a time cost.**
 
-The discipline is subtractive. Anything that does not survive the
-question 'would the PI act differently if they knew this?' comes
-out: most methods detail, the model specification, the
-diagnostics. They live in the compendium, and the memo says where.
-Every communication has an implicit request (fund this, publish
-this, stop this, collect more data, believe nothing yet); if you
-cannot state it, you are not ready to write, and the PI will file
-and forget a memo that ends without one.
+Writing the memo is mostly a matter of cutting. Ask of each item
+'would the PI act differently if they knew this?'. Anything that
+fails the question comes out: most methods detail, the model
+specification, the diagnostics. They live in the compendium, and
+the memo says where. Every communication has an implicit request
+(fund this, publish this, stop this, collect more data, believe
+nothing yet). If you cannot state it, you are not ready to
+write. A PI will file and forget a memo that ends without one.
 
 ### Before and after
 
@@ -719,11 +730,11 @@ weeks.
 :::
 :::
 
-The first version is accurate and useless to a busy reader: the
-finding arrives in the sixth sentence, in the register that a
+The first version is accurate, but it is of no use to a busy
+reader. The finding arrives in the sixth sentence, in the form a
 reader converts to 'no effect', and there is no request. The
-second gives the finding, its meaning, the recommendation, and the
-principal threat in four sentences.
+second gives the finding, its meaning, the recommendation, and
+the principal threat in four sentences.
 
 ### Worked example: the HF-HOME memo
 
@@ -808,12 +819,11 @@ and a hidden assertion stops the render if a data correction
 changes the pattern the words describe. {#tbl-comm-memo-anatomy}
 
 Notice what the memo leaves out: the model formula, the covariate
-list, the diagnostics, Table 1, the software versions. It points to
-the compendium, where all of that lives, and it contains every fact
-on which the PI's decision turns. It also says what the interval
-cannot rule out. A PI who learns
-that from a reviewer instead of from you will not trust the next
-memo.
+list, the diagnostics, Table 1, the software versions. It points
+to the compendium, where all of that lives. It contains every
+fact on which the PI's decision turns. It also says what the
+interval cannot rule out. A PI who learns that from a reviewer
+instead of from you will not trust the next memo.
 
 ::: {.callout-important title='LLM prompt'}
 > **Context.** I am writing a one-page memo to a clinical PI on a
@@ -835,13 +845,14 @@ memo.
 
 *Failure mode.* Calibration. The model reaches for 'a trend toward
 benefit' or 'did not reduce' where the evidence supports
-'consistent with no effect and with a benefit up to', and it
-softens or drops the caveat that hurts. *Check.* For each sentence
-that makes a claim, find the row of @tbl-comm-patterns that
-licenses it; then give the memo to a colleague and ask what you
-found and what you want. Send the summary numbers, never patient
-rows (@sec-ai-governance), and replace every number in the draft
-with the inline code that computes it before it leaves your hands.
+'consistent with no effect and with a benefit up to'. It also
+softens or drops the caveat that is least welcome. *Check.* For
+each sentence that makes a claim, find the row of
+@tbl-comm-patterns that licenses it. Then give the memo to a
+colleague and ask what you found and what you want. Send the
+summary numbers, never patient rows (@sec-ai-governance). Before
+the draft leaves your hands, replace every number in it with the
+inline code that computes it.
 :::
 
 ### Exercises
@@ -859,11 +870,11 @@ with the inline code that computes it before it leaves your hands.
 95% CI 0.70 to 0.96), and I recommend continuing it. The estimate
 is adjusted for age and sex; 41 patients with missing discharge
 dates were excluded, and I am checking whether they differ before
-we report.' The finding and the request now lead; the exclusion,
-which could change the conclusion, becomes the ranked caveat; the
-date of the extract and the model name move to the compendium.
-The verb stays 'was lower', not 'reduced', because a registry
-comparison does not license the causal verb (@sec-ethics).
+we report.' The finding and the request now lead. The exclusion,
+which could change the conclusion, becomes the ranked caveat.
+The date of the extract and the model name move to the
+compendium. The verb stays 'was lower', not 'reduced', because a
+registry comparison does not license the causal verb (@sec-ethics).
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -873,18 +884,18 @@ does not change the conclusion. Do you tell the PI, and what do
 you send?
 
 **Answer.** Yes, promptly, even though the conclusion holds. The
-figure is already in circulation, in a slide deck or
-a draft, and every downstream use of 0.71 is now wrong. Someone
-else will find it, and a discrepancy found by a reviewer costs far
-more than one you reported. Most consequential, you are
-establishing what your silence means: a collaborator who learns
-that you report changes only when they alter conclusions must
-verify everything, because your not-mentioning carries no
-information. Send the old number, the new number, what changed in
-the data, which commit produced each, and one sentence saying the
-conclusion is unaffected. Your value to a team is that your
-numbers can be relied on, which depends more on how you handle the
-ones that change than on the ones that do not.
+figure is already in circulation, in a slide deck or a draft,
+and every downstream use of 0.71 is now wrong. Someone else will
+find it. A discrepancy found by a reviewer costs far more than
+one you reported. Most important, you are establishing what your
+silence means. Suppose a collaborator learns that you report
+changes only when they alter conclusions. That collaborator must
+then verify everything, because your silence carries no
+information. Send the old number, the new number, what changed
+in the data, which commit produced each, and one sentence saying
+the conclusion is unaffected. Your value to a team is that your
+numbers can be relied on. That depends more on how you handle
+the ones that change than on the ones that do not.
 :::
 
 ## The talk {#sec-communicating-talk}
@@ -894,15 +905,15 @@ remember a number.
 
 **The first two minutes carry the talk.** Deliver the
 and/but/therefore. If the audience leaves after two minutes they
-should have the finding; everything after is for those who want to
-know whether to believe it.
+should have the finding. Everything after is for those who want
+to know whether to believe it.
 
 **One idea per slide, and the idea is the title.** A slide titled
 'Results' says nothing. A slide titled 'Home health: between no
 effect and a `r sprintf("%.0f", ci[2])`-point reduction; the trial
-cannot tell which' says the thing, and the figure beneath it is the
-evidence for the title. A listener who reads only the titles should
-get the argument.
+cannot tell which' states the point. The figure beneath it is
+the evidence for the title. A listener who reads only the titles
+should get the argument.
 
 **Show the estimate with its uncertainty, once, and large.** For
 HF-HOME that is the inconclusive row of @fig-comm-patterns on its
@@ -912,17 +923,18 @@ single most important object in the talk. Do not bury it in a
 regression table, and do not show a regression table unless someone
 asks.
 
-**Anticipate the three questions.** For any clinical analysis they
-are, reliably: how did you handle the patients who dropped out,
-could this be confounding, and does it hold in the subgroup I care
-about. Have a backup slide for each; for HF-HOME the first is
-@fig-comm-tipping. A backup slide answered in ten seconds does more
-for your credibility than the prepared talk.
+**Anticipate the three questions.** For almost any clinical
+analysis they are the same. How did you handle the patients who
+dropped out? Could this be confounding? Does it hold in the
+subgroup I care about? Have a backup slide for each. For HF-HOME
+the first is @fig-comm-tipping. A question answered in ten
+seconds from a backup slide does more for your credibility than
+the prepared talk.
 
 **Do not show code.** The compendium is where the code lives, and
-the audience is not there to audit it. One line naming the
-repository and its digital object identifier (DOI), at the end,
-discharges the obligation.
+the audience is not there to audit it. One line at the end,
+naming the repository and its digital object identifier (DOI),
+is enough.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A colleague's slide shows HF-HOME's estimate as a
@@ -931,8 +943,8 @@ titled 'Home health reduced readmissions'. Name the two problems.
 
 **Answer.** The title claims a reduction the interval does not
 establish, and the figure removes the interval that would have
-shown it. The bar also invites the reader to compare lengths, as
-if `r sprintf("%.1f", diff)` points were the effect, when any value
+shown this. The bar also invites the reader to compare lengths,
+as if `r sprintf("%.1f", diff)` points were the effect, when any value
 from `r sprintf("%.1f", ci[1])` to `r sprintf("%.1f", ci[2])` is
 consistent with the data. A point-and-interval plot against zero
 and the MCID fixes both.
@@ -942,58 +954,59 @@ and the MCID fixes both.
 
 Many journals, funders, and institutional review boards now ask for
 a one-page summary written for the trial's participants and the
-general public, separate from the technical abstract, and it is the
-same audience-matching problem as the talk, pushed one register
-further. Every word this chapter has used to be precise, 'interval',
-'MCID', 'inconclusive', is also a word a lay reader skims past. The
-discipline is the same and/but/therefore skeleton with the register
-rewritten rather than compressed: state what the study looked at,
-what the patients and families already believed, what was found,
-and what it means for someone deciding about home-health visits
-today. For HF-HOME it reads as something like: 'We studied whether
+general public. It is separate from the technical abstract. The
+problem is the same as for the talk, matching the writing to the
+audience, but for readers one step further from the work. The
+words this chapter has used to be precise ('interval', 'MCID',
+'inconclusive') are words a lay reader skims past. The method is
+the same and/but/therefore skeleton, rewritten in plain words
+rather than compressed. State what the study looked at, what the
+patients and families already believed, what was found, and what
+it means for someone deciding about home-health visits today.
+For HF-HOME it reads as something like: 'We studied whether
 a nurse visiting people at home shortly after a hospital stay for
 heart failure helps them avoid another hospital stay or death. We
 compared people who were randomly assigned to get these visits with
 people who got usual care. We did not find a clear difference
 between the two groups, but the study also could not rule out a
 real benefit, so more research is needed before we can say whether
-home visits help.' No number appears unless it is unavoidable, no
-technical term appears unlabeled, and a reader with no statistical
-training should recognize both the finding and its honest
-uncertainty. Writing this summary after the memo, not before, is
-what keeps it accurate: the memo already states what the interval
-licenses, and the plain-language version translates that sentence
+home visits help.' No number appears unless it is unavoidable,
+and no technical term appears unexplained. A reader with no
+statistical training should recognize both the finding and its
+uncertainty. Writing this summary after the memo, not before,
+keeps it accurate. The memo already states what the interval
+licenses. The plain-language version translates that sentence
 rather than re-deriving it from the raw numbers.
 
 ## Publication and submission tables {#sec-communicating-table1}
 
-A manuscript's Table 1 is read before its abstract by a reviewer
-who wants to know whether randomization worked, and it is read
-instead of the abstract by a reader deciding whether the trial's
-population resembles their own patients. It is also the table most
-often built by hand, column by column, from a spreadsheet pivot,
-which is slower than the alternative and introduces the one error
-a reviewer always catches: a count in the table that does not match
-the flow diagram's denominator.
+A reviewer who wants to know whether randomization worked reads a
+manuscript's Table 1 before its abstract. A reader deciding
+whether the trial's population resembles their own patients
+reads it instead of the abstract. It is also the table most
+often built by hand, column by column, from a spreadsheet pivot.
+That is slower than the alternative. It also introduces the one
+error a reviewer always catches: a count in the table that does
+not match the flow diagram's denominator.
 
-`gtsummary` [@sjoberg2021gtsummary] builds this table from one call
-on a tidy data frame, the same package used for the case study's
-Table 1 at @sec-penguins, and the reasons to use it carry over
-from a report to a submission. The table is reproducible from the
-compendium, its counts
-are the counts the analysis used, and a data correction regenerates
-it rather than requiring someone to re-type cells.
+`gtsummary` [@sjoberg2021gtsummary] builds this table from one
+call on a tidy data frame. It is the same package used for the
+case study's Table 1 at @sec-penguins, and the reasons to use it
+carry over from a report to a submission. The table is
+reproducible from the compendium, and its counts are the counts
+the analysis used. A data correction regenerates it rather than
+requiring someone to re-type cells.
 
 ### Worked example: HF-HOME's baseline table
 
-A journal's Table 1 for a two-arm trial is the baseline
-characteristics, by arm, of the randomized population, not the
-analytic one; every randomized patient belongs in it whether or not
-their outcome was later ascertained (CONSORT item 15,
-[@moher2025consort]). The table below joins the randomization data
-to the baseline covariates used in the SAP's standardized estimator
-(the same files as the cumulative exercise in this chapter), and
-stratifies by arm.
+A journal's Table 1 for a two-arm trial gives the baseline
+characteristics, by arm, of the randomized population rather
+than the analytic one. Every randomized patient belongs in it,
+whether or not their outcome was later ascertained (CONSORT item
+15, [@moher2025consort]). The table below joins the
+randomization data to the baseline covariates used in the SAP's
+standardized estimator (the same files as the cumulative
+exercise in this chapter). It then stratifies by arm.
 
 ```{r}
 #| label: tbl-comm-table1
@@ -1033,41 +1046,42 @@ table1_data |>
 ```
 
 Three choices in that call are the ones a reviewer checks. First,
-`by = arm` with no test added: a randomized trial's baseline
-p-values test a hypothesis known to be true by design, and the
-check callout later in this chapter (@tbl-comm-review) treats
+`by = arm` with no test added. A randomized trial's baseline
+p-values test a hypothesis known to be true by design. The check
+callout later in this chapter (@tbl-comm-review) treats
 including them as the defect. Second, `missing_text = "Missing"`
-keeps a visible row for any covariate with incomplete data, rather
-than silently shrinking the denominator; a Table 1 that drops
-missing rows without saying so understates the enrolled population.
-Third, the `label` argument renames variables once, centrally,
-rather than relabeling the printed table by hand after the fact,
-which is the step most likely to drift from the data when the
-model changes.
+keeps a visible row for any covariate with incomplete data,
+rather than silently shrinking the denominator. A Table 1 that
+drops missing rows without saying so understates the enrolled
+population. Third, the `label` argument renames variables once,
+centrally. The alternative is relabeling the printed table by
+hand after the fact, which is the step most likely to drift from
+the data when the model changes.
 
 ### From draft table to submission format
 
 `as_kable()` is the right call while drafting, because it renders
-identically in HTML and PDF output from the same `.qmd` source. At
-submission, most journals want either a Word table (`as_flex_table()`
-from the `flextable` extension) or the exact column order and
-footnote style their template specifies; check the journal's author
-guidelines for footnote conventions (abbreviations spelled out,
-units in the row label rather than a footnote) before the final
-render, because reformatting a `gtsummary` object is faster than
-rebuilding a hand-made one, but it is not free. Whichever output
-format you choose, the input data frame, the join, and the
-assertion above do not change: the table a reviewer receives is
-built from the same one validated in this chapter.
+identically in HTML and PDF output from the same `.qmd` source.
+At submission, most journals want either a Word table
+(`as_flex_table()` from the `flextable` extension) or the exact
+column order and footnote style their template specifies. Check
+the journal's author guidelines for footnote conventions
+(abbreviations spelled out, units in the row label rather than a
+footnote) before the final render. Reformatting a `gtsummary`
+object is faster than rebuilding a hand-made one, but it is not
+free. Whichever output format you choose, the input data frame,
+the join, and the assertion above do not change. The table a
+reviewer receives is built from the same one validated in this
+chapter.
 
 The in-house `zztable1` package is not used in this book's worked
-examples for a specific, documented reason: as of this writing it
-leaves the missing-value row blank instead of reporting a count
-(@sec-lab-software), the exact defect this section's worked example
-avoids by using `gtsummary`. That is a statement about the current
-state of one package, not about formula-interface tables in
-general, and it is worth re-checking before any submission that
-depends on it.
+examples, for a specific and documented reason. As of this
+writing it leaves the missing-value row blank instead of
+reporting a count (@sec-lab-software). That is the exact defect
+this section's worked example avoids by using `gtsummary`. The
+statement concerns the current state of one package, not
+formula-interface tables in general. It should be re-checked
+before any submission that depends on it.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A collaborator asks why Table 1 reports age as mean
@@ -1076,15 +1090,15 @@ depends on it.
 determines the choice, and where should it be made?
 
 **Answer.** The shape of the variable in this sample, not a house
-style. A roughly symmetric variable like age is well summarized by
-the mean and SD; a skewed one, like the penguins' body mass or a
-trial's length of stay, is better summarized by the median and
-interquartile range, which is not distorted by a long tail. The
-choice belongs in the `statistic` argument, made once and
-explicitly, visible in the code rather than guessed from the
-printed numbers; `tbl_summary()`'s `all_continuous()` default is the
-median unless overridden, which is why the override above is
-explicit.
+style. A roughly symmetric variable like age is well summarized
+by the mean and SD. A skewed one, like the penguins' body mass
+or a trial's length of stay, is better summarized by the median
+and interquartile range, which a long tail does not distort. The
+choice belongs in the `statistic` argument. It is made once and
+explicitly, so that it is visible in the code rather than
+guessed from the printed numbers. The `all_continuous()` default
+in `tbl_summary()` is the median unless overridden, which is why
+the override above is explicit.
 :::
 
 ### Exercises
@@ -1112,21 +1126,21 @@ site_data |>
 ```
 
 `ef_stratum`, because the SAP named site and ejection-fraction
-stratum as the randomization strata (@sec-analysis-plan); reporting
-its balance by arm within site is the direct check that
-stratification worked, while age or sex balance is a secondary,
+stratum as the randomization strata (@sec-analysis-plan).
+Reporting its balance by arm within site is the direct check
+that stratification worked. Age or sex balance is a secondary,
 reassuring fact rather than the one the design promised.
 :::
 
 ## Choosing a reporting guideline {#sec-communicating-guidelines}
 
 CONSORT governs this chapter's examples because HF-HOME is a
-randomized trial, but a reporting guideline is chosen by study
-design, and a mismatch is apparent to any reviewer who checks. The
-EQUATOR Network maintains the current list; @tbl-comm-guidelines
-gives the mapping a biostatistician needs most often, each row
-checked against its own statement or the EQUATOR Network's
-listing.
+randomized trial. In general, however, a reporting guideline is
+chosen by study design, and a mismatch is apparent to any
+reviewer who checks. The EQUATOR Network maintains the current
+list. @tbl-comm-guidelines gives the mapping a biostatistician
+needs most often. Each row was checked against its own statement
+or the EQUATOR Network's listing.
 
 | Design | Guideline | What it governs | Citation |
 |---|---|---|---|
@@ -1141,43 +1155,45 @@ current version against the EQUATOR Network
 (`equator-network.org`) before a submission; guideline numbers and
 scopes have changed as often as every few years. {#tbl-comm-guidelines}
 
-TRIPOD-LLM is itself recent (January 2025) and modular: a core set
-of items applies to any study involving an LLM, with additional
-items depending on whether the model was fine-tuned, prompted
-without modification, or evaluated as a diagnostic tool. A related
-2025 guideline, CHART (the Chatbot Assessment Reporting Tool,
-published in *BMJ Medicine* and listed by the EQUATOR Network),
-covers a narrower design: studies that evaluate the health advice
-a chatbot gives. Neither guideline is written for an LLM used in a
-specific analytical task inside a study, such as literature
-screening or chart abstraction; for that role, check the EQUATOR
-Network's current listing before citing a guideline in a
-manuscript.
+TRIPOD-LLM is itself recent (January 2025) and modular. A core
+set of items applies to any study involving an LLM. Additional
+items depend on whether the model was fine-tuned, prompted
+without modification, or evaluated as a diagnostic tool. A
+related 2025 guideline, CHART (the Chatbot Assessment Reporting
+Tool, published in *BMJ Medicine* and listed by the EQUATOR
+Network), covers a narrower design: studies that evaluate the
+health advice a chatbot gives. Neither guideline is written for
+an LLM used in a specific analytical task inside a study, such
+as literature screening or chart abstraction. For that role,
+check the EQUATOR Network's current listing before citing a
+guideline in a manuscript.
 
-Finding the current version of any of these takes one stop: the
-EQUATOR Network's library (`equator-network.org/reporting-guidelines`)
-lists the live guideline for a design, its extensions (an AI
-extension, a pragmatic-trial extension, an abstract-only extension,
-and so on), and the journal checklists that implement it. A
-guideline's number changes less often than its content; CONSORT has
-been revised twice since its 2001 version, in 2010 and 2025, and
-each revision added items (the 2025 checklist, for example, adds
-an open-science section covering registration and data sharing)
-that a manuscript written against the older checklist omits
-without anyone noticing until a reviewer checks the date. The same
-caution @tbl-federal-asof applies to federal policy dates
-(@sec-federal) applies here: cite the version you actually used, by
-year, not the guideline's name alone, since 'CONSORT' without a
-year could mean any of three checklists published since 2001.
+The current version of any of these can be found in one place.
+The EQUATOR Network's library
+(`equator-network.org/reporting-guidelines`) lists the current
+guideline for a design and its extensions (an AI extension, a
+pragmatic-trial extension, an abstract-only extension, and so
+on). It also lists the journal checklists that implement it. A
+guideline's number changes less often than its content. CONSORT
+has been revised twice since its 2001 version, in 2010 and 2025.
+Each revision added items (the 2025 checklist, for example, adds
+an open-science section covering registration and data sharing).
+A manuscript written against the older checklist omits them, and
+often no one notices until a reviewer checks the date.
+@tbl-federal-asof applies a caution to federal policy dates
+(@sec-federal), and the same caution applies here. Cite the
+version you actually used, by year, and not the guideline's name
+alone. 'CONSORT' without a year could mean any of three
+checklists published since 2001.
 
 Whatever the current list, a design maps to exactly one primary
-guideline, chosen before data are seen, the same
+guideline, chosen before data are seen. This is the same
 pre-specification discipline @sec-analysis-plan applies to the
 statistical model. A study with both a prediction model and a
 trial-style comparison, for instance, may owe a reader both a
 TRIPOD+AI checklist for the model and a CONSORT flow diagram for
-the comparison; naming both at the protocol stage prevents a
-reviewer from having to ask which one governs.
+the comparison. Naming both at the protocol stage means a
+reviewer does not have to ask which one governs.
 
 ::: {.callout-warning title='Pitfall'}
 **A reporting guideline chosen at submission, rather than at
@@ -1253,10 +1269,11 @@ interval licenses.
 
 ### Worked example: four responses
 
-Every number in the responses is computed: those for Comment 1.3
-come from the sensitivity chunk above, and the subgroup figures for
-Comment 2.1 from this one, which splits the ascertained patients by
-the pre-specified ejection-fraction (EF) stratum.
+Every number in the responses is computed. Those for Comment 1.3
+come from the sensitivity chunk above. The subgroup figures for
+Comment 2.1 come from the chunk below, which splits the
+ascertained patients by the pre-specified ejection-fraction (EF)
+stratum.
 
 ```{r}
 #| label: comm-subgroup
@@ -1366,13 +1383,12 @@ defensive, and each tells the editor where to look.
 
 The first response was cheap to write because of infrastructure
 built earlier. The sensitivity analysis existed because the SAP
-pre-specified it;
-promoting its figure took a day because the compendium rebuilds
-with one command; and the claim that the plan predates unblinding
-is verifiable because the SAP was tagged in Git
-(@sec-analysis-plan) and deposited at the registry. The
-infrastructure chapters of this book pay their return here, six
-months after you last thought about the analysis.
+pre-specified it. Promoting its figure took a day because the
+compendium rebuilds with one command. The claim that the plan
+predates unblinding is verifiable because the SAP was tagged in
+Git (@sec-analysis-plan) and deposited at the registry. This is
+where the infrastructure chapters of this book repay the effort,
+six months after you last thought about the analysis.
 
 ::: {.callout-important title='LLM prompt'}
 > **Context.** Attached: one reviewer comment, verbatim; the
@@ -1389,15 +1405,15 @@ months after you last thought about the analysis.
 > result that supports it. A concession is one sentence plus the
 > change; a defense states the reason once.
 
-*Failure mode.* The model is agreeable by disposition and concedes
-points it should defend, characteristically agreeing to promote an
-exploratory subgroup or to call an inconclusive trial negative
-because the reviewer asked; less often it writes a defensive
-paragraph where one sentence would do. *Check.* Compare each draft's
-posture with the one you assigned in a table like
-@tbl-comm-responses; for each conceded point ask whether you
-actually agree, and for each defended point whether the defense is
-technical rather than rhetorical.
+*Failure mode.* The model tends to agree, and it concedes points
+it should defend. Typically it agrees to promote an exploratory
+subgroup, or to call an inconclusive trial negative, because the
+reviewer asked. Less often it writes a defensive paragraph where
+one sentence would do. *Check.* Compare each draft's posture
+with the one you assigned in a table like @tbl-comm-responses.
+For each conceded point, ask whether you actually agree. For
+each defended point, ask whether the defense is technical rather
+than rhetorical.
 :::
 
 ### Exercises
@@ -1418,11 +1434,11 @@ analysis, and say why it cannot replace the primary. Patients who
 received the visit differ from those who did not, and patients with
 an event before the planned visit could not receive it, so the
 comparison breaks randomization (@sec-analysis-plan-estimands).
-(c) Concede if cheap, with judgment stated: extending the grid is
-one argument to `seq()`, but the response should say whether a
-tripled risk among patients lost to follow-up is clinically
-plausible; the grid's range is a clinical claim, not a technical
-one.
+(c) Concede if cheap, with judgment stated. Extending the grid is
+one argument to `seq()`. However, the response should say
+whether a tripled risk among patients lost to follow-up is
+clinically plausible. The grid's range is a clinical claim, not
+a technical one.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -1433,8 +1449,8 @@ p-value had been 0.03?
 **Answer.** Because the objection is to the inferential status,
 not to the size of the p-value. A subgroup chosen after the data
 were seen, in a trial not powered for interaction, has an error
-rate no one can state; a small p-value from it is one draw from the
-garden of forking paths (@sec-analysis-plan). The response would
+rate no one can state. A small p-value from it is one draw from
+the garden of forking paths (@sec-analysis-plan). The response would
 report the p-value, label the analysis exploratory, and propose
 prospective testing.
 :::
@@ -1442,8 +1458,9 @@ prospective testing.
 ## Peer review as a practice {#sec-communicating-review}
 
 You learn the skills above by reviewing other people's work more
-than by being reviewed. A reviewer who has had to articulate why an analysis is
-unconvincing writes more convincing analyses. When reviewing a
+than by being reviewed. A reviewer who has had to explain why an
+analysis is unconvincing writes more convincing analyses. When
+reviewing a
 colleague's analysis, ask the questions in
 @tbl-comm-review, roughly in the order that catches the most.
 
@@ -1468,20 +1485,21 @@ continuous variables not categorized, no stepwise selection,
 missingness documented rather than silently dropped, deviations
 from the analysis plan stated as deviations, and figures that show
 the data rather than a bar whose height is a mean. Run it against
-your own draft before you send it, which is cheaper than having a
-reviewer run it for you, and against a colleague's when you review.
-Most of its items are failures of pre-specification arriving late
-enough to be expensive. A language model asked to review your
-results section as a hostile statistical reviewer, listing every
-claim not supported by the reported evidence, is a useful
-first pass: it is better at finding overclaims in text than at
-avoiding them in its own. Treat each flag as a hypothesis to check
-against the analysis.
+your own draft before you send it, which is cheaper than having
+a reviewer run it for you. Run it against a colleague's draft
+when you review. Most of its items are failures of
+pre-specification that surface late enough to be expensive. A
+language model can provide a useful first pass. Ask it to review
+your results section as a hostile statistical reviewer and to
+list every claim the reported evidence does not support. It is
+better at finding overclaims in text than at avoiding them in
+its own. Treat each flag as a hypothesis to check against the
+analysis.
 
 When receiving review, separate the comment from its tone. A
-reviewer who is rude and right has still handed you a free defect
-report. The response letter is not the place to relitigate the
-tone, and the mildest version of a disagreement is invariably the
+reviewer who is rude and right has still given you a free defect
+report. The response letter is not the place to argue about the
+tone. The mildest version of a disagreement is almost always the
 most effective.
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -1491,12 +1509,12 @@ trial. Which row of @tbl-comm-review, or of Harrell's checklist,
 does it touch, and what do you write?
 
 **Answer.** It touches the interpretation of tests. In a randomized
-trial, baseline differences are chance by construction, so
-p-values in Table 1 test a hypothesis known to be true and say
-nothing about whether an imbalance matters. Write that the p-values
-should be removed and that any covariate whose imbalance could
-matter clinically is better handled by the pre-specified adjustment
-than by a test.
+trial, baseline differences are chance by construction. P-values
+in Table 1 therefore test a hypothesis known to be true, and
+they say nothing about whether an imbalance matters. Write that
+the p-values should be removed. Any covariate whose imbalance
+could matter clinically is better handled by the pre-specified
+adjustment than by a test.
 :::
 
 ## Rules of thumb
@@ -1574,12 +1592,13 @@ The standardized estimate is
 `r sprintf("%.1f", std_est)` points (95% bootstrap interval
 `r sprintf("%.1f", std_ci[[1]])` to `r sprintf("%.1f", std_ci[[2]])`),
 close to the complete-case `r sprintf("%.1f", diff)`, as
-randomization implies; the covariate adjustment changes the
-precision a little and the conclusion not at all, so the memo's
-words stand and only its numbers would be replaced. Note the
-bootstrap resamples all randomized patients and refits on the
-ascertained ones inside each resample, so the averaging is always
-over the full randomized population, as the SAP specifies. The
+randomization implies. The covariate adjustment changes the
+precision a little and the conclusion not at all. The memo's
+words therefore stand, and only its numbers would be replaced.
+We note that the bootstrap resamples all randomized patients and
+refits on the ascertained ones inside each resample. The
+averaging is therefore always over the full randomized
+population, as the SAP specifies. The
 `relationship` and `unmatched` arguments are what make the
 four-file join safe to trust without inspection.
 :::
@@ -1615,9 +1634,9 @@ four-file join safe to trust without inspection.
 
 ## Prerequisites answers {#sec-quiz-answers-25b}
 
-1. Because the chronology withholds the conclusion until the end
-   and asks the audience to retain the preliminaries on the
-   promise of a payoff they cannot yet evaluate. An audience wants
+1. Because the chronology withholds the conclusion until the end.
+   It asks the audience to retain the preliminaries without yet
+   knowing what they are for. An audience wants
    the claim first and the evidence second, so that they know what
    the evidence is evidence *for*. The chronology remains the right
    order for the methods section and for the compendium, where the
@@ -1632,7 +1651,7 @@ four-file join safe to trust without inspection.
    absent, or too small to matter, a statement about the world. You
    are entitled to the second only when the confidence interval
    excludes every effect you would have regarded as clinically
-   meaningful; such a precise null is a real and publishable
+   meaningful. Such a precise null is a real and publishable
    finding. When the interval includes important effects, as
    HF-HOME's does, the result is inconclusive, and the honest
    report names what the interval rules out and what it cannot.
@@ -1641,8 +1660,8 @@ four-file join safe to trust without inspection.
    (@sec-analysis-plan), so that you can show which analysis was
    primary and when it was fixed. A compendium that rebuilds with
    one command (@sec-rrtools, @sec-zzcollab), so that changing the
-   exclusion criterion is an edit and a re-render rather than an
-   archaeological expedition. And a pinned environment
+   exclusion criterion is an edit and a re-render rather than a
+   search through old files. And a pinned environment
    (@sec-renv, @sec-docker), so that the re-run six months later
    produces the published numbers rather than subtly different
    ones you then have to explain.

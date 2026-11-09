@@ -28,13 +28,14 @@ You tighten the blood-pressure exclusions in a cohort script on
 your branch, and the cohort has `r fmt(n_yours)` patients. A
 colleague, on her own branch, edits the same filter for a reason of
 her own, and her cohort has `r fmt(n_hers)`. Both counts are right,
-both branches pass their checks, and once the two are merged the
-cohort has `r fmt(n_resolved)` patients, a number neither of you
-has seen and nobody has checked. Git can tell you that two people
-edited the same lines; it cannot tell you what the combination
-means for the analysis. This chapter covers the mechanics of
-sharing a repository and the review practices that make the
-combined result somebody's deliberate decision.
+and both branches pass their checks. Once the two are merged, the
+cohort has `r fmt(n_resolved)` patients. Neither of you has seen
+that number, and nobody has checked it. Git can tell you that two
+people edited the same lines. It cannot tell you what the
+combination means for the analysis. This chapter covers the
+mechanics of sharing a repository. It also covers the review
+practices that make the combined result somebody's deliberate
+decision.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -86,7 +87,7 @@ library(dplyr)
 - Fetch before you integrate, and predict the history a merge or a
   rebase produces.
 - Work through feature branches and pull requests, and protect
-  `main` so that unreviewed changes cannot land.
+  `main` so that unreviewed changes cannot be merged.
 - Resolve a merge conflict in analysis code so that both intents
   survive, and confirm the result by its row count.
 - Review an analysis diff for the changes a test suite does not
@@ -123,18 +124,18 @@ answers are in @sec-quiz-answers-05b.
 
 ## Remotes, fetch, and the two shapes of history {#sec-git-teams-remotes}
 
-The mechanics of Git are largely indifferent to the number of
-people using them: the commit is still a snapshot, the branch is
+The mechanics of Git largely do not depend on the number of
+people using them. The commit is still a snapshot, the branch is
 still a movable pointer, and the tag is still fixed. What changes
-when a second person joins is the object Git maintains. The
-repository becomes the record of what the team did, and the team
-must be able to reconstruct the analysis from it. Three consequences organize this
-chapter: two people editing one file will eventually collide
-(@sec-git-teams-conflicts); the history becomes something a
-colleague reads, so a careless commit message becomes a shared
-cost; and a change to the analysis now arrives from someone else,
-so someone must look at it before it becomes the analysis of
-record (@sec-git-teams-review).
+when a second person joins is what the repository is for. It
+becomes the record of what the team did, and the team must be able
+to reconstruct the analysis from it. Three consequences organize
+this chapter. First, two people editing one file will eventually
+collide (@sec-git-teams-conflicts). Second, the history becomes
+something a colleague reads, so a careless commit message becomes
+a shared cost. Third, a change to the analysis now arrives from
+someone else, so someone must look at it before it becomes the
+analysis of record (@sec-git-teams-review).
 
 A remote is a copy of the repository somewhere else, usually on
 GitHub, conventionally named `origin`. Your local repository
@@ -149,12 +150,12 @@ git log --oneline origin/main..main    # what I did
 ```
 
 Of all the network operations in Git, `git fetch` is the one that
-cannot surprise you: it updates your picture of the remote and
+cannot surprise you. It updates your picture of the remote and
 leaves your own work untouched. Form the habit of fetching first
 and looking, rather than pulling and finding out.
 
 When you and a collaborator have both committed, the two histories
-have diverged and must be reconciled, in one of two ways
+have diverged. They must be reconciled, in one of two ways
 (@tbl-git-teams-merge-rebase).
 
 | | Merge | Rebase |
@@ -168,22 +169,22 @@ have diverged and must be reconciled, in one of two ways
 : The two shapes of history. {#tbl-git-teams-merge-rebase}
 
 `git pull` is a fetch followed by one of these, chosen by
-configuration, which is exactly the ambiguity that makes it a poor
-thing to type without thinking. Configure it explicitly once:
+configuration. That ambiguity is why it is a poor command to type
+without thinking. Configure it explicitly once:
 
 ```bash
 git config --global pull.rebase true    # or false, but choose
 ```
 
-For a small analysis team, rebase on pull for your own unpushed
-work and merge for integrating a completed branch is a workable
-default: your local history stays clean, and the integration of a
-finished piece of work is recorded as the event it was. The one
-absolute rule is the one every Git tutorial states and every team
-eventually violates: **never rebase commits that someone else has
-pulled.** Rewriting shared history forces everyone downstream to
-reconcile a history that no longer matches theirs, and the
-recovery is tedious.
+For a small analysis team, a workable default is to rebase on pull
+for your own unpushed work and to merge when integrating a
+completed branch. Your local history stays clean, and the
+integration of a finished piece of work is recorded as the event
+it was. One rule is absolute. Every Git tutorial states it, and
+every team eventually violates it: **never rebase commits that
+someone else has pulled.** Rewriting shared history forces everyone
+downstream to reconcile a history that no longer matches theirs,
+and the recovery is tedious.
 
 ::: {.callout-important title='LLM prompt'}
 Recovering a shared branch is where a model's first suggestion can
@@ -209,18 +210,19 @@ rewrite.
 
 *Failure mode.* The suggestion contains `git push --force`. On a
 shared branch a force push discards commits that your colleagues
-may already have pulled, and it is the one operation in this
-chapter that can lose another person's work.
-`git push --force-with-lease` is the safer form, because it refuses
-when the remote has moved since you last fetched (an IDE, or
-integrated development environment, that fetches in the background can defeat that check). Better still is
-`git revert`, which undoes a commit by adding a new one and
-rewrites nothing. *Check.* Before any history-altering command on
-a shared branch, ask a simpler question: has anyone else pulled
-this? If the answer is yes or unknown, revert rather than rewrite,
-and compare `git log --oneline origin/main` before and after. Logs
-hold commit messages and file names, not data, so they may go to
-any approved tool; read the messages for identifiers first
+may already have pulled. It is the one operation in this chapter
+that can lose another person's work. `git push --force-with-lease`
+is the safer form, because it refuses when the remote has moved
+since you last fetched. (An IDE, or integrated development
+environment, that fetches in the background can defeat that
+check.) Better still is `git revert`, which undoes a commit by
+adding a new one and rewrites nothing. *Check.* Before any
+history-altering command on a shared branch, ask a simpler
+question. Has anyone else pulled this? If the answer is yes or
+unknown, revert rather than rewrite, and compare
+`git log --oneline origin/main` before and after. Logs hold commit
+messages and file names, not data, so they may go to any approved
+tool. Read the messages for identifiers first
 (@sec-ai-governance).
 :::
 
@@ -232,7 +234,7 @@ work?
 **Answer.** No. `git status` compares your branch with your cached
 copy of the remote, which changes only when you fetch. If you have
 not fetched since this morning, 'up to date' means up to date with
-this morning. `git fetch` first, then `git status`; or ask the
+this morning. Run `git fetch` first, then `git status`, or ask the
 server directly with `git ls-remote origin main`.
 :::
 
@@ -254,7 +256,7 @@ reviews. Only then does it join the analysis of record.
 %%|   checks and colleague review. A decision node asks whether both
 %%|   pass: if no, the loop returns to commit and push; if yes, the
 %%|   branch merges to main."
-%%| fig-cap: "The feature-branch workflow. Work never lands on `main`
+%%| fig-cap: "The feature-branch workflow. Work never goes to `main`
 %%|   directly: it arrives through a pull request that CI has checked
 %%|   and a colleague has read. The branch is short-lived and is
 %%|   deleted once merged."
@@ -288,45 +290,43 @@ gh pr merge --squash --delete-branch
 ```
 
 The `--squash` flag collapses the branch's commits into one on
-`main`. For an analysis repository this is usually right: the
+`main`. For an analysis repository this is usually right. The
 fifteen commits of a working afternoon ('fix typo', 'actually fix
 typo') are noise, and what `main` should record is the one logical
 change. Reserve a true merge for branches whose internal commits
 are each meaningful.
 
-Three properties of the workflow are the reasons to adopt it
-rather than pushing to `main` and hoping. Nothing unreviewed
-becomes the analysis, because the pull request is a gate that a
-human must open. CI checks the proposal: the workflow of
-@sec-ci, which restores `renv`, runs the tests, and renders the
-report, answers 'does this change break the analysis' before the
-change lands. And the branch is a unit of thought: six months
-later, the pull request that merged `sensitivity-mnar` is a
-small, self-contained record of what was added, why, and what the
+Three properties of the workflow are the reasons to adopt it,
+rather than pushing to `main` and hoping. First, nothing
+unreviewed becomes the analysis, because a human must approve the
+pull request. Second, CI checks the proposal. The workflow of
+@sec-ci restores `renv`, runs the tests, and renders the report.
+It answers 'does this change break the analysis' before the change
+is merged. Third, the branch holds one piece of work. Six months
+later, the pull request that merged `sensitivity-mnar` is a small,
+self-contained record of what was added, why, and what the
 reviewer asked.
 
 ### Protecting `main`
 
-The `main` branch is the version of the analysis you would defend,
-and anything that has not been reviewed and has not passed CI is
-not that. The workflow is a convention until the repository
-enforces it.
-On GitHub, in the repository's settings, add a branch
-protection rule or a ruleset for `main` that requires a pull
-request before merging, requires the status check from @sec-ci
-to pass, and forbids force pushes. Three caveats, as of this
-writing (GitHub moves these settings between plans and pages
-from time to time): repository administrators can bypass a
-rule unless you also choose the option that applies it to them;
-on GitHub's free plan, rules are enforced on public
+The `main` branch is the version of the analysis you would defend.
+Anything that has not been reviewed and has not passed CI is not
+that version. The workflow is a convention until the repository
+enforces it. On GitHub, in the repository's settings, add a branch
+protection rule or a ruleset for `main`. It should require a pull
+request before merging, require the status check from @sec-ci to
+pass, and forbid force pushes. Three caveats apply as of this
+writing, since GitHub moves these settings between plans and pages
+from time to time. First, repository administrators can bypass a
+rule unless you also choose the option that applies it to them.
+Second, on GitHub's free plan, rules are enforced on public
 repositories but not on private ones, which need a paid or
-organization plan; and the newer rulesets page offers the same
+organization plan. Third, the newer rulesets page offers the same
 protections under different names. On a team of one this is
-unnecessary; on a team of two it is the cheapest insurance
-available, because the failure it
-prevents (a hurried Friday push straight to `main` that breaks
-the render and is discovered on Monday) is the one that
-actually happens.
+unnecessary. On a team of two it is the cheapest insurance
+available. The failure it prevents (a hurried Friday push straight
+to `main` that breaks the render and is discovered on Monday) is
+the one that actually happens.
 
 ### Exercises
 
@@ -337,14 +337,14 @@ actually happens.
    Then try to push a commit directly to `main`. What happens?
 
 ::: {.callout-note collapse='true' title='Solution'}
-The push is rejected: Git prints the remote's error, which names
+The push is rejected. Git prints the remote's error, which names
 the protected branch and the rule that blocked it, and `main` on
 GitHub is unchanged (`git ls-remote origin main` still prints the
-old hash). If the push succeeds, one of the caveats above applies:
-the rule exempts administrators, or the plan does not enforce rules
-on a private repository. Push the commit to a branch instead and
-open a pull request; `gh pr checks` then shows the required status
-check.
+old hash). If the push succeeds, one of the caveats above applies.
+Either the rule exempts administrators, or the plan does not
+enforce rules on a private repository. Push the commit to a branch
+instead and open a pull request. `gh pr checks` then shows the
+required status check.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -356,13 +356,13 @@ careful and push to `main`?
 second reader. Pushing to `main` means
 the analysis of record changed and nobody looked. The pull request
 costs about ninety seconds and buys three things you cannot get
-otherwise: a second pair of eyes on a statistical change, a CI run
-against the proposed state rather than the merged one, and a
-durable written record of why the change was made, attached to the
-change itself. The 'we are careful' argument also fails for a
-structural reason: what you are guarding against is not your
-colleague's carelessness, nor your own, but the interaction of two
-correct changes that are wrong together.
+otherwise. These are a second pair of eyes on a statistical
+change, a CI run against the proposed state rather than the merged
+one, and a durable written record of why the change was made,
+attached to the change itself. The 'we are careful' argument also
+fails for a structural reason. You are guarding against more than
+carelessness, your colleague's or your own. You are guarding
+against two correct changes that are wrong together.
 :::
 
 ## Merge conflicts {#sec-git-teams-conflicts}
@@ -386,23 +386,23 @@ analytic <- visits |>
   )
 ```
 
-The region above `=======` is what you have; the region below is
+The region above `=======` is what you have. The region below is
 what arrived. The marker `>>>>>>>` names its source. Your job is to
 edit the file so that it says what the analysis should say, and to
 delete all three marker lines.
 
 **Read a merge conflict as two statements about the analysis.**
 The tooling invites you to pick a winner. Yours drops
-implausibly high systolic and diastolic pressures; theirs adds a
+implausibly high systolic and diastolic pressures. Theirs adds a
 lower bound on systolic pressure and tightens its upper bound from
 250 to 220. Two of these three changes are not alternatives at
-all: the diastolic ceiling and the systolic floor are halves of a
+all. The diastolic ceiling and the systolic floor are halves of a
 single decision that the two of you reached independently, and
 both belong in the result. The third, the systolic ceiling, is a
-genuine disagreement that no merge can settle. The resolution that
-preserves both intents, keeping the ceiling the analysis plan
-specifies (here 250) until the disagreement is resolved, is the
-following:
+genuine disagreement that no merge can settle. The following
+resolution preserves both intents. It keeps the ceiling the
+analysis plan specifies (here 250) until the disagreement is
+resolved:
 
 ```r
 analytic <- visits |>
@@ -421,11 +421,11 @@ silently by whoever pushed last.
 
 ### What the resolution does to the cohort
 
-The cohort in this chapter is synthetic: `r fmt(n_cohort)` patients
-generated in the chapter's source with a fixed seed, some with
-implausible pressures and some with a missing outcome. Counting it
-under each version of the filter shows why the merged count needs
-its own check.
+The cohort in this chapter is synthetic. It has `r fmt(n_cohort)`
+patients, generated in the chapter's source with a fixed seed,
+some with implausible pressures and some with a missing outcome.
+Counting it under each version of the filter shows why the merged
+count needs its own check.
 
 ```{r}
 #| label: tbl-git-teams-conflict-counts
@@ -493,14 +493,13 @@ it again with the diff in front of you.
 
 A conflict in a hand-written R script is a genuine disagreement and
 deserves a human. A conflict in a file that a program writes is
-different: resolve it by regenerating the file, never by editing
-it. A conflict in `renv.lock` is a real dependency disagreement
-wearing the costume of a JSON (JavaScript Object Notation) merge
-failure: decide which
-dependency state you want, take that side's lockfile, and rebuild
-from it with `renv::restore()`, reinstall anything of yours that is
-genuinely still needed, and `renv::snapshot()` (@sec-renv explains
-the three verbs).
+different. Resolve it by regenerating the file, never by editing
+it. A conflict in `renv.lock` looks like a JSON (JavaScript Object
+Notation) merge failure, but it is a real dependency disagreement.
+Decide which dependency state you want and take that side's
+lockfile. Then rebuild from it with `renv::restore()`, reinstall
+anything of yours that is genuinely still needed, and run
+`renv::snapshot()` (@sec-renv explains the three verbs).
 
 ::: {.callout-warning title='Pitfall'}
 **Under a rebase, `--theirs` is your own work.** Taking one side
@@ -509,9 +508,9 @@ of a conflicted file wholesale is usually written
 on the operation. During a merge it is the branch you are merging
 in (here `origin/main`). During a rebase, including the rebase that
 `git pull` performs once `pull.rebase` is `true` as recommended
-above, the roles are reversed: `--ours` is the upstream you are
-replaying onto and `--theirs` is your own commit. The command
-succeeds either way and the file looks plausible either way. To
+above, the roles are reversed. `--ours` is the upstream you are
+replaying onto, and `--theirs` is your own commit. The command
+succeeds either way, and the file looks plausible either way. To
 avoid guessing, name the commit instead of the side:
 `git checkout origin/main -- renv.lock` takes the version on
 `origin/main` in either case.
@@ -519,13 +518,13 @@ avoid guessing, name the commit instead of the side:
 
 ### The conflicts that should never happen
 
-Most conflicts a research team experiences are self-inflicted,
-caused by committing files that are outputs rather than sources. A
-rendered `paper.html`, a `_freeze/` cache, a `figures/*.png`, an
-`.Rproj.user/` directory: every one of these changes on every
-render, on every machine, and every one of them will conflict,
-meaninglessly, forever. The remedy is a `.gitignore` that keeps
-them out of the repository:
+Most conflicts a research team experiences are self-inflicted.
+They are caused by committing files that are outputs rather than
+sources. Consider a rendered `paper.html`, a `_freeze/` cache, a
+`figures/*.png`, or an `.Rproj.user/` directory. Each of these
+changes on every render, on every machine, and each will keep
+producing conflicts that mean nothing. The remedy is a
+`.gitignore` that keeps them out of the repository:
 
 ```
 # outputs and caches
@@ -545,11 +544,11 @@ renv/staging/
 @sec-quarto argues for committing `_freeze/` so that collaborators
 and CI need not re-run expensive chunks. That argument stands, and
 it is in genuine tension with this one. Resolve it by deciding as a
-team: either commit `_freeze/` and accept that the person who
-renders last regenerates it (and resolve any conflict in it by
-regenerating, per the rule above), or leave it out and let CI bear
-the cost. Both are defensible. Not deciding is what produces the
-weekly conflict nobody understands.
+team. One option is to commit `_freeze/` and accept that the
+person who renders last regenerates it (and to resolve any
+conflict in it by regenerating, per the rule above). The other is
+to leave it out and let CI bear the cost. Both are defensible. Not
+deciding is what produces the weekly conflict nobody understands.
 
 Two kinds of file repay a `.gitattributes` entry, which tells Git
 how to treat them:
@@ -562,17 +561,17 @@ how to treat them:
 You may see `renv.lock merge=ours` recommended for the
 lockfile. Leave it out. Git defines no `ours` merge driver, so
 on its own the line does nothing and the lockfile still
-conflicts; once someone also runs
+conflicts. Once someone also runs
 `git config merge.ours.driver true`, Git silently keeps your
-lockfile and discards your collaborator's on every merge, with
-no conflict to prompt the regeneration described above. That is
-picking a side wholesale, without the decision.
+lockfile and discards your collaborator's on every merge. There is
+then no conflict to prompt the regeneration described above. That
+is picking a side wholesale, without the decision.
 
-Without the line-ending declaration, a team that mixes Windows
-and macOS machines will eventually
-produce a diff in which every line of a file has changed, and no
-review is possible through that noise (@sec-shell shows what a
-carriage return looks like at the byte level).
+Without the line-ending declaration, a team that mixes Windows and
+macOS machines will eventually produce a diff in which every line
+of a file has changed. No review is possible through that noise
+(@sec-shell shows what a carriage return looks like at the byte
+level).
 
 ### Exercises
 
@@ -643,7 +642,7 @@ c(main_before  = nrow(filter(toy, sbp <= 250, !is.na(outcome))),
 ```
 
 Relative to `dbp-ceiling`, the resolution loses patient 7 (systolic
-45); relative to `sbp-range`, it gains patients 5 and 11 (systolic
+45). Relative to `sbp-range`, it gains patients 5 and 11 (systolic
 230 and 225) and loses patient 8 (diastolic 155). `git log --oneline
 --graph` then shows the two lines of work meeting at
 `Merge branch 'main' into dbp-ceiling`.
@@ -656,36 +655,38 @@ exclusion for missing outcomes, in a different part of the file.
 Git merges both without a conflict. Is that the right outcome?
 
 **Answer.** Git did the right thing. Whether the *analysis* is
-right is a question Git cannot reach, and this is the limit of what
-version control buys a team. A merge conflict is a textual
-condition: two branches changed overlapping lines. These edits did
-not overlap, so the merge is clean and both changes are now in
-effect together, which is very likely what nobody tested. The
-analytic cohort is now smaller than either statistician intended,
-and each will assume the count they saw on their own branch.
+right is a question Git cannot answer, and this is the limit of
+what version control gives a team. A merge conflict is a textual
+condition, in which two branches changed overlapping lines. These
+edits did not overlap, so the merge is clean. Both changes are now
+in effect together, and very likely nobody tested that
+combination. The analytic cohort is now smaller than either
+statistician intended, and each will assume the count they saw on
+their own branch.
 
-This is the semantic-conflict case, and it is the argument for the
-pull request rather than for Git. A human reading the diff asks
-what the combined effect on the cohort is; a merge algorithm
-cannot. It is also the argument for the integration test of
-@sec-testing: an assertion on the final row count, or on the
+This is the semantic-conflict case. It is an argument for the pull
+request, since Git alone does not help. A human reading the diff
+asks what the combined effect on the cohort is, and a merge
+algorithm cannot. It is also the argument for the integration test
+of @sec-testing. An assertion on the final row count, or on the
 number of exclusions at each step, fails on the merged code even
-though neither change failed alone. State the row count in the pull
-request description: two pull requests that each say 'n drops from
-500 to 480' should make a reviewer ask what happens when both land.
+though neither change failed alone. State the row count in the
+pull request description. Two pull requests that each say 'n drops
+from 500 to 480' should make a reviewer ask what happens when both
+are merged.
 :::
 
 ## Reviewing an analysis diff {#sec-git-teams-review}
 
 A software engineer reviewing a diff asks whether it is correct,
 tested, and clear. A statistician reviewing an analysis diff asks
-those questions and then the ones that matter more, which a green
-test suite does not answer. The review is where the statistical
-judgment of @sec-team-science meets the infrastructure of this
-chapter, and it is the highest-value thing a second pair of eyes
-does on a research compendium. @tbl-git-teams-review is the
-checklist, in rough order of how often each question catches
-something.
+those questions too. The statistician then asks questions that
+matter more, which a passing test suite does not answer. The
+review is where the statistical judgment of @sec-team-science
+meets the infrastructure of this chapter. In our view, it is the
+most valuable thing a second reader does on a research compendium.
+@tbl-git-teams-review is the checklist, in rough order of how
+often each question catches something.
 
 | Question | Why it matters | In the diff, look for |
 |---|---|---|
@@ -733,24 +734,24 @@ which is worth more than the same conversation held at a desk.
 
 ::: {.callout-note collapse='true' title='Solution'}
 Three questions apply. *Denominator*: `age >= 18` is a new
-exclusion; ask how many rows it removes, whether the number is
-reported, and whether the analysis plan sanctions it (in a trial
+exclusion. Ask how many rows it removes, whether the number is
+reported, and whether the analysis plan sanctions it. (In a trial
 that enrolled only adults it should remove none, and a non-zero
-count is itself a finding). *Join cardinality*: the `left_join()`
-to `labs_baseline` has no `relationship` argument; if a patient has
+count is itself a finding.) *Join cardinality*: the `left_join()`
+to `labs_baseline` has no `relationship` argument. If a patient has
 two baseline lab rows, the cohort multiplies, and every bootstrap
 sample with it. Ask for `relationship = "many-to-one"` and a row
 count before and after. *Pre-specification*: `egfr` is a new
-covariate in the primary model; it is either in the plan or it is
+covariate in the primary model. It is either in the plan or it is
 an exploratory analysis, and the code should say which.
 
-The moved `set.seed()` looks risky and is not, here: nothing
+The moved `set.seed()` looks risky but, here, is not. Nothing
 between its old and new positions draws a random number (reading a
 file, filtering, and joining do not), so the bootstrap draws are
-unchanged. Verify rather than assume: run the old and new versions
+unchanged. Verify rather than assume. Run the old and new versions
 on the same data with the join and filter removed, and compare the
 first few bootstrap estimates. A review that flags everything
-unusual teaches the author to ignore the review; say which changes
+unusual teaches the author to ignore the review. Say which changes
 matter and why.
 :::
 
@@ -760,11 +761,11 @@ pass, and the diff is small and idiomatic. What is the one
 question from @tbl-git-teams-review that a reviewer who knows no
 statistics would never ask?
 
-**Answer.** Whether the analysis is pre-specified. Everything else
-on the list a careful engineer might stumble on (a changed row
-count, a new join, a moved seed), but whether a new covariate or
-subgroup appears in the analysis plan can be answered only by
-someone who has read the plan and knows why it matters.
+**Answer.** Whether the analysis is pre-specified. A careful
+engineer might come across everything else on the list (a changed
+row count, a new join, a moved seed). However, whether a new
+covariate or subgroup appears in the analysis plan can be answered
+only by someone who has read the plan and knows why it matters.
 :::
 
 ## Attribution: blame and bisect {#sec-git-teams-bisect}
@@ -778,15 +779,15 @@ git blame -L 40,60 R/cohort.R
 ```
 
 The `-L` flag restricts the output to a line range, which is
-almost always what you want. The command is named unfortunately;
-its use is archaeological rather than accusatory. The commit hash
-it reports leads to the message, which leads (if the advice of
-@sec-git-solo about messages that explain why was followed) to the
-reason.
+almost always what you want. The command is poorly named. Its use
+is to trace the history of a line, not to assign fault. The commit
+hash it reports leads to the message. If the advice of
+@sec-git-solo about messages that explain why was followed, the
+message leads to the reason.
 
 `git bisect` finds the commit that changed a result, by binary
 search over the history. You name a commit where the result was
-right and one where it was wrong, and it checks out the midpoint
+right and one where it was wrong. It then checks out the midpoint
 and asks you:
 
 ```bash
@@ -801,17 +802,18 @@ git bisect reset
 ```
 
 Over a hundred commits this converges in about seven steps. It can
-be automated, which is where it becomes genuinely useful on an
-analysis repository:
+also be automated, and that is where it becomes genuinely useful
+on an analysis repository:
 
 ```bash
 git bisect run Rscript -e 'stopifnot(abs(get_estimate() - 0.62) < 0.01)'
 ```
 
 Git runs the command at each midpoint and uses its exit status to
-decide. The prerequisite is atomic commits (@sec-git-solo): bisect
-over a history of 'Tuesday's work' commits will correctly identify
-the day the result changed and tell you nothing useful about why.
+decide. The prerequisite is atomic commits (@sec-git-solo). Over a
+history of 'Tuesday's work' commits, bisect will correctly identify
+the day the result changed. It will tell you nothing useful about
+why.
 
 ### Exercises
 
@@ -858,7 +860,7 @@ Author: Reader <reader@example.com>
 
 followed by the commit's file summary and `bisect found first 'bad'
 commit`. Run `git bisect reset` to return to `main`. The message
-'Tidy the exclusion code' is the lesson: a commit described as a
+'Tidy the exclusion code' is the lesson. A commit described as a
 refactor changed a reported number, and only a test of the number
 found it.
 :::
@@ -868,20 +870,20 @@ found it.
 first bad commit, and each of the two branches it joined is good on
 its own. What happened?
 
-**Answer.** A semantic conflict: two changes, each correct alone,
+**Answer.** A semantic conflict. Two changes, each correct alone,
 are wrong together, as in the clean merge of the Check in
 @sec-git-teams-conflicts. Bisect has located the moment the
-combination first existed, which is the right answer; the fix is a
-decision about how the two changes should combine, made with both
-authors, not a revert of either.
+combination first existed, which is the right answer. The fix is
+not a revert of either change. It is a decision, made with both
+authors, about how the two changes should combine.
 :::
 
 ## Worked example: two statisticians, one compendium {#sec-git-teams-worked}
 
-The scenario: you and a colleague are analyzing the readmissions
-cohort of @tbl-git-teams-conflict-counts. You take the primary
-model; she takes the missing-data sensitivity analysis. Both of you
-touch the cohort-construction script.
+You and a colleague are analyzing the readmissions cohort of
+@tbl-git-teams-conflict-counts. You take the primary model, and
+she takes the missing-data sensitivity analysis. Both of you touch
+the cohort-construction script.
 
 ```bash
 # Monday. Both of you start from the same main.
@@ -910,11 +912,11 @@ git merge origin/main
 # CONFLICT (content): Merge conflict in R/cohort.R
 ```
 
-You open `R/cohort.R`, find the conflict shown in
-@sec-git-teams-conflicts, and recognize that two of the three edits
-are complementary rather than competing. You keep her systolic
-floor and your diastolic ceiling, keep the plan's systolic ceiling
-of 250, and leave a comment on her merged pull request asking where
+You open `R/cohort.R` and find the conflict shown in
+@sec-git-teams-conflicts. Two of the three edits are complementary
+rather than competing. You keep her systolic floor and your
+diastolic ceiling, and you keep the plan's systolic ceiling of 250.
+You then leave a comment on her merged pull request asking where
 220 came from.
 
 ```bash
@@ -923,15 +925,15 @@ git commit                    # concludes the merge
 git push
 ```
 
-CI re-runs against the updated branch. It fails: the combined
-cohort now has `r fmt(n_resolved)` rows, and a test in
+CI re-runs against the updated branch, and it fails. The combined
+cohort now has `r fmt(n_resolved)` rows, but a test in
 `inst/tinytest/test-cohort.R`, written on your branch, asserted
-`r fmt(n_yours)`. You account for the
-difference (@tbl-git-teams-conflict-counts), update the assertion,
-note the new denominator in the manuscript, and push again. The
-check goes green, your colleague reviews the diff, asks whether the
-exclusion is in the analysis plan (it is, as an amendment, tagged
-before unblinding), and merges.
+`r fmt(n_yours)`. You account for the difference
+(@tbl-git-teams-conflict-counts), update the assertion, note the
+new denominator in the manuscript, and push again. The check
+passes. Your colleague reviews the diff and asks whether the
+exclusion is in the analysis plan. It is, as an amendment tagged
+before unblinding, and she merges.
 
 ```bash
 gh pr merge --squash --delete-branch
@@ -946,7 +948,7 @@ the protocol's original exclusions. The answer takes ninety seconds
 to find.
 
 ::: {.callout-tip title='Verification'}
-After the merge lands, confirm that `main` is what you reviewed and
+After the merge, confirm that `main` is what you reviewed and
 that the count on `main` is the one the manuscript reports:
 
 ```bash
@@ -966,22 +968,22 @@ help rather than hinder?
 
 **Answer.** Because it turned the merged count, which neither
 analyst had seen, into a decision someone had to make. Without the
-assertion, the merge would have changed the denominator silently,
-and the manuscript would have reported your branch's number for an
-analysis that no longer produced it. Updating the assertion is
+assertion, the merge would have changed the denominator silently.
+The manuscript would then have reported your branch's number for
+an analysis that no longer produced it. Updating the assertion is
 correct only after the difference is explained, which is why the
 example accounts for it before pushing again.
 :::
 
 ## Rules of thumb
 
-1. **Habit 3: version control from day one.** Nothing lands on
+1. **Habit 3: version control from day one.** Nothing reaches
    `main` unreviewed: feature branch, pull request, green check,
    human reader, with branch protection to make the convention
    real.
 2. **Habit 8: a bug that produces a plausible number is the
    expensive kind.** Resolve conflicts by intent, not by side, and
-   explain the merged row count before you commit it; regenerate,
+   explain the merged row count before you commit it. Regenerate,
    never edit, a generated file.
 3. **Habit 5: pre-specify, then tag.** Review the analysis, not
    only the code: denominators, joins, seeds, pre-specification,
@@ -1023,7 +1025,7 @@ commit. `git merge origin/main` stops with
 you appended at the same place. Keep both lines, delete the
 markers, `git add README.md`, `git commit --no-edit`, and push,
 which now succeeds. In `colleague`, `git pull` brings in the merge.
-The rejected push is Git protecting your colleague's work; the
+The rejected push is Git protecting your colleague's work. The
 fetch-and-look step is the habit of @sec-git-teams-remotes.
 :::
 
@@ -1061,9 +1063,9 @@ fetch-and-look step is the habit of @sec-git-teams-remotes.
    `git rebase`, depending on configuration. Fetching updates
    your picture of the remote (`origin/main`) and changes
    nothing else. The reconciliation then takes one of two
-   shapes: a merge creates a commit with two parents,
+   shapes. A merge creates a commit with two parents,
    preserving the fact that the two lines of work were
-   parallel; a rebase replays your two commits on top of their
+   parallel. A rebase replays your two commits on top of their
    three, producing a linear history that reads as though you
    had started from their latest state. Configure
    `pull.rebase` explicitly so that `git pull` stops being
@@ -1071,24 +1073,24 @@ fetch-and-look step is the habit of @sec-git-teams-remotes.
    already pulled.
 2. A merge conflict occurs when two commits change the same
    region of the same file and Git cannot determine which
-   change to keep, so it writes both into the file between
+   change to keep. Git writes both into the file between
    `<<<<<<<`, `=======`, and `>>>>>>>` markers and stops. In
    analysis code, 'take mine' or 'take theirs' is almost
-   always wrong because each side usually encodes a deliberate
+   always wrong, because each side usually encodes a deliberate
    analytic decision (one collaborator added a lower bound on
    an exclusion criterion; the other tightened the upper
-   bound). The correct resolution preserves both intents, and
-   the conflict has done something valuable by surfacing a
+   bound). The correct resolution preserves both intents. The
+   conflict has also been useful, since it surfaced a
    substantive disagreement that a silent last-push-wins would
    have buried. The exception is a conflict in a generated
    file (`renv.lock`, a rendered document, a cache), which is
    resolved by regenerating the file rather than editing it.
 3. Because a pull request supplies a second reader, which trust
-   between colleagues does not. It buys three things: a
-   second pair of eyes on a statistical change before it
-   becomes the analysis of record, a CI run against the
-   proposed state rather than after the fact, and a durable
-   written record of the reasoning attached to the change
-   itself. It also catches the one failure mode no amount of
-   individual care can prevent: two changes that are each
-   correct in isolation and wrong in combination.
+   between colleagues does not. It provides a second pair of
+   eyes on a statistical change before it becomes the analysis
+   of record. It provides a CI run against the proposed state
+   rather than after the fact. It also leaves a durable written
+   record of the reasoning, attached to the change itself.
+   Finally, it catches the one failure mode that no amount of
+   individual care can prevent, namely two changes that are
+   each correct in isolation and wrong in combination.

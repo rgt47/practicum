@@ -3,15 +3,16 @@
 Two analysts ran the same bootstrap script, from the same commit
 and with the same seed, and reported different confidence
 intervals for the same trial. Neither had made an error. One
-machine ran R 3.5 and the other R 3.6, and R 3.6.0 changed the
+machine ran R 3.5 and the other R 3.6. R 3.6.0 changed the
 algorithm `sample()` uses to draw integers, so the same seed
 produced different resamples. The difference sat in the second
-decimal place, small enough to pass for rounding and large enough
-to change a table a reviewer had already seen. `renv` could not
-have caught it, because no package changed; the R build beneath
-the packages did. A container fixes R, the system libraries, and
-the operating system along with the packages, so that the same
-code gives the same number on every machine that runs the image.
+decimal place. It was small enough to pass for rounding and large
+enough to change a table a reviewer had already seen. `renv` could
+not have caught it, because no package changed. What changed was
+the R build beneath the packages. A container fixes R, the system
+libraries, and the operating system along with the packages. The
+same code then gives the same number on every machine that runs
+the image.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -96,12 +97,13 @@ answers are in @sec-quiz-answers-09.
 `renv` pins the R packages, and R packages are not the whole
 environment. Beneath them sit the R build itself, the system
 libraries packages compile against, and the operating system
-(OS), none of which the lockfile installs. Most of the time this
+(OS). The lockfile installs none of these. Most of the time this
 does not matter, which is exactly why it is easy to overlook. The
-chunk below reproduces the opening on the HF-HOME trial: it
+chunk below reproduces the opening on the HF-HOME trial. It
 bootstraps the 30-day risk difference, in percentage points, with
-the same seed under the integer sampler R used before version 3.6.0
-and the one it has used since.
+the same seed under two integer samplers. The first is the one R
+used before version 3.6.0, and the second is the one it has used
+since.
 
 ```{r}
 #| label: docker-same-code
@@ -134,26 +136,27 @@ intervals <- rbind(r_before_3_6 = boot_rd('Rounding'),
 round(intervals, 2)
 ```
 
-Same data, same seed, same resampling code, and only the sampler
-differs, as it does between R 3.5 and any R since 3.6.0: the lower
-bound moves from
+The data, the seed, and the resampling code are the same. Only the
+sampler differs, as it does between R 3.5 and any R since 3.6.0.
+The lower bound moves from
 `r sprintf('%.2f', intervals[1, 1])` to
 `r sprintf('%.2f', intervals[2, 1])`. Both intervals include zero,
-as the trial's result is inconclusive, but a reader comparing your
-table with a rerun sees two different numbers and no explanation.
-The `sample.kind` argument lets one R imitate the other here; a
-change in a system linear-algebra library offers no such switch,
-and it can move the last digits of a regression coefficient
-between two machines with identical lockfiles. Docker closes the
-gap by specifying the whole stack rather than its top layer.
+as the trial's result is inconclusive. However, a reader comparing
+your table with a rerun sees two different numbers and no
+explanation. The `sample.kind` argument lets one R imitate the
+other here. A change in a system linear-algebra library offers no
+such switch. It can move the last digits of a regression
+coefficient between two machines with identical lockfiles. Docker
+closes the gap by specifying the whole stack rather than its top
+layer.
 
 The cost is a second technology to learn and a build step to wait
-for. It is worth paying for work that must reproduce years later,
-and for work that depends on system libraries at all. It is not
-worth paying for a self-contained analysis that will be finished
-this quarter. The case for containers in research computing was
-made by Boettiger [-@boettiger2015introduction], and it is the
-argument this chapter assumes.
+for. The cost is worth paying for work that must reproduce years
+later, and for work that depends on system libraries at all. It
+is not worth paying for a self-contained analysis that will be
+finished this quarter. Boettiger [-@boettiger2015introduction]
+made the case for containers in research computing, and this
+chapter assumes his argument.
 
 ### The mental model
 
@@ -170,9 +173,9 @@ argument this chapter assumes.
 
 On an Apple Silicon Mac, add `--platform linux/amd64` to every
 `docker pull`, `docker run`, and `docker build`. Many R images
-and binary package repositories target x86_64 only, and an image
-built for arm64 will not run on a typical Linux server; see
-@tbl-docker-failures. Every command in this chapter carries the
+and binary package repositories target x86_64 only. An image
+built for arm64 will not run on a typical Linux server (see
+@tbl-docker-failures). Every command in this chapter carries the
 flag, which costs nothing on an Intel machine.
 
 The everyday commands (display-only):
@@ -187,7 +190,7 @@ docker images                        # list local images
 docker rmi my-analysis:v1.0          # remove an image
 ```
 
-The `--rm` flag removes the container when it exits; without it,
+The `--rm` flag removes the container when it exits. Without it,
 stopped containers accumulate.
 
 ::: {.callout-tip title='Verification'}
@@ -212,14 +215,14 @@ container from it, install a new R package inside the running
 container, then exit. Is the package available the next time you
 run a container from the same image?
 
-**Answer.** No. The image is immutable; changes inside a container
+**Answer.** No. The image is immutable. Changes inside a container
 live only in its writable layer, which is discarded when the
 container is removed (at exit, with `--rm`). To add the package
 permanently, install it in the project, snapshot `renv.lock`, and
 rebuild the image. Docker reproduces an analysis only if changes
-happen in the Dockerfile and the lockfile, in version control,
-never in running containers. 'Works
-on my machine' becomes 'works on this image, which everyone has'.
+happen in the Dockerfile and the lockfile, in version control.
+They should never happen in running containers. 'Works on my
+machine' becomes 'works on this image, which everyone has'.
 :::
 
 ## Choosing and pinning a base image {#sec-docker-rocker}
@@ -243,15 +246,15 @@ Each builds on the one before it and is tagged with its R version:
 observed for recent tags. {#tbl-docker-rocker}
 
 Pick the smallest base that has your prerequisites. A larger base
-is convenient during development and costs build time, disk, and
-a larger surface of things that can change underneath you. For a
-compendium whose packages are pinned by `renv`, `rocker/r-ver` is
-the right base: the lockfile, not the image, decides the
+is convenient during development. It costs build time and disk,
+and it gives more things the chance to change underneath you. For
+a compendium whose packages are pinned by `renv`, `rocker/r-ver`
+is the right base. The lockfile, not the image, decides the
 packages.
 
 ### Tags, digests, and what each pins
 
-`FROM rocker/r-ver:4.4.0` pins the R version; `FROM
+`FROM rocker/r-ver:4.4.0` pins the R version. `FROM
 rocker/r-ver:latest` drifts. Neither pins the bytes. Only a digest
 does:
 
@@ -260,9 +263,9 @@ FROM rocker/r-ver:4.4.0@sha256:73adabf378930f8744f56bac1fe5e99870532eb4ced1a1507
 ```
 
 The same reasoning applies to system packages installed with
-`apt-get`: either pin their versions, or accept that a rebuild
+`apt-get`. Either pin their versions, or accept that a rebuild
 months later installs newer ones. A digest-pinned base fixes the
-packages that come with the base; it cannot fix what a later
+packages that come with the base. It cannot fix what a later
 `apt-get update` fetches.
 
 ::: {.callout-tip title='Verification'}
@@ -274,7 +277,7 @@ docker inspect --format '{{index .RepoDigests 0}}' rocker/r-ver:4.4.0
 
 It prints `rocker/r-ver@sha256:` followed by 64 hexadecimal
 characters. Paste the hash after the tag in your `FROM` line, as
-above, and rebuild; the build log's `FROM` step now names the
+above, and rebuild. The build log's `FROM` step now names the
 digest.
 :::
 
@@ -288,13 +291,13 @@ digest.
    readmission rates with `sf`.
 
 ::: {.callout-note collapse='true' title='Solution'}
-(a) `rocker/r-ver` at the R version in the lockfile: the lockfile
+(a) `rocker/r-ver` at the R version in the lockfile. The lockfile
 supplies the packages, so a larger base only adds things to drift.
 (b) Still `rocker/r-ver`, plus `quarto install tinytex` in the
-Dockerfile (@sec-docker-canonical); `rocker/verse` also works and
+Dockerfile (@sec-docker-canonical). `rocker/verse` also works and
 is larger. (c) `rocker/tidyverse`, which includes RStudio Server
-and the packages a course needs, so that the first day is not
-spent installing. (d) `rocker/r-ver` with the spatial system
+and the packages a course needs. The first day is then not spent
+installing. (d) `rocker/r-ver` with the spatial system
 libraries added to the `apt-get` line, as in the worked example
 (@sec-docker-worked), or `rocker/geospatial` if you prefer to
 inherit them.
@@ -306,31 +309,31 @@ That is an exact version, not `latest`. Does rebuilding it in two
 years give you the same image?
 
 **Answer.** Probably not. A tag is a movable label, not a fixed
-identity. `4.4.1` pins the R version, and the maintainers can and
-do rebuild that tag against a newer Ubuntu base, refreshed apt
-packages, and patched system libraries; your `FROM` line resolves
-to whatever the tag points at today. The digest cannot change: if
+identity. `4.4.1` pins the R version. However, the maintainers can
+and do rebuild that tag against a newer Ubuntu base, refreshed apt
+packages, and patched system libraries. Your `FROM` line resolves
+to whatever the tag points at today. The digest cannot change. If
 it resolves at all, it resolves to exactly the bytes you built
 against.
 
-A pinned digest has its own cost: it never picks up a security
+A pinned digest has its own cost. It never picks up a security
 patch, so it ages into a liability, and the hash is unreadable in
 a diff. The usual compromise is a version tag during development
-and a digest recorded at the moment of submission, alongside the
-`sap-v1.0` tag of @sec-analysis-plan, so the archived artifact is
-reconstructible even though day-to-day work is not frozen.
-Archiving the built image (@sec-docker-sharing) sidesteps the
-question entirely.
+and a digest recorded at the moment of submission. The digest is
+recorded alongside the `sap-v1.0` tag of @sec-analysis-plan. The
+archived artifact is then reconstructible even though day-to-day
+work is not frozen. Archiving the built image (@sec-docker-sharing)
+avoids the question entirely.
 :::
 
 ## A research-compendium Dockerfile {#sec-docker-canonical}
 
-This is the book's one canonical Dockerfile; @sec-renv and
-@sec-rrtools use it unchanged. It assumes a compendium with the
-paper at `analysis/paper/` (the layout @sec-rrtools, the next
-chapter, sets out in full), a `renv.lock` that includes
-`rmarkdown` and `knitr`
-(Quarto needs both to run R chunks), and the `.Rprofile` and
+This is the book's one canonical Dockerfile, and @sec-renv and
+@sec-rrtools use it unchanged. It assumes three things. The first
+is a compendium with the paper at `analysis/paper/`, the layout
+that @sec-rrtools, the next chapter, sets out in full. The second
+is a `renv.lock` that includes `rmarkdown` and `knitr` (Quarto
+needs both to run R chunks). The third is the `.Rprofile` and
 `renv/activate.R` that `renv::init()` writes.
 
 ```dockerfile
@@ -369,7 +372,7 @@ CMD ["quarto", "render", "analysis/paper/paper.qmd"]
 
 - **Quarto is not in the base image.** `rocker/r-ver` does not
   include the Quarto command line interface (CLI), so the image
-  installs a pinned release; without it, `quarto render` fails.
+  installs a pinned release. Without it, `quarto render` fails.
 - **The render command is `quarto render`.** `rmarkdown::render()`
   is the R Markdown renderer and does not process a `.qmd`
   project.
@@ -377,18 +380,18 @@ CMD ["quarto", "render", "analysis/paper/paper.qmd"]
   Otherwise `renv` restores the right packages onto the wrong R.
 
 For the strongest pin, replace the tag with the digest, as in
-@sec-docker-rocker. The image above renders HTML; for PDF output,
+@sec-docker-rocker. The image above renders HTML. For PDF output,
 add `RUN quarto install tinytex --no-prompt` after the Quarto
 layer.
 
 ::: {.callout-warning title='Pitfall'}
 **A base image that does not match the lockfile builds without
 error.** `renv::restore()` installs the recorded package versions
-onto whatever R the image has, notes the mismatch in one line of a
-build log nobody reads (`Using R 4.4.0 (lockfile was generated
-with R 4.6.1)`), and the image renders. The packages are pinned and R is
-not, which is the gap the opening described. Read the R version
-from the lockfile before you write the `FROM` line:
+onto whatever R the image has. It notes the mismatch in one line
+of a build log nobody reads (`Using R 4.4.0 (lockfile was
+generated with R 4.6.1)`), and the image renders. The packages are
+pinned and R is not, which is the gap the opening described. Read
+the R version from the lockfile before you write the `FROM` line:
 `renv::lockfile_read('renv.lock')$R$Version`.
 :::
 
@@ -396,8 +399,8 @@ from the lockfile before you write the `FROM` line:
 
 Next to the Dockerfile, commit a `.dockerignore`. It keeps the
 local package library, credentials, and other machine-specific
-files out of the build context, and therefore out of an image you
-may later push to a public registry:
+files out of the build context. They therefore stay out of an
+image you may later push to a public registry:
 
 ```
 .git/
@@ -414,18 +417,18 @@ _freeze/
 ```
 
 Without it, `COPY . .` copies your `.Renviron`, with whatever API
-tokens it holds, into a layer of the image, and deleting the file
-in a later layer does not remove it from the earlier one.
+tokens it holds, into a layer of the image. Deleting the file in a
+later layer does not remove it from the earlier one.
 
 ### Layer order
 
 The order of the Dockerfile is lockfile, then restore, then project
 source, and @fig-docker-layers shows why. Docker caches each layer
 and reuses it on the next build unless that layer or something
-above it has changed. Copying the lockfile and restoring packages
-*before* copying the frequently edited manuscript means that an
-ordinary day of writing invalidates only the fast final `COPY`,
-leaving the slow package-restore layer untouched.
+above it has changed. We therefore copy the lockfile and restore
+packages *before* copying the frequently edited manuscript. An
+ordinary day of writing then invalidates only the fast final
+`COPY`, and the slow package-restore layer is left untouched.
 
 ```{mermaid}
 %%| echo: false
@@ -464,13 +467,13 @@ docker run --rm --platform linux/amd64 \
 
 `quarto render` writes its output next to the source, in
 `/work/analysis/paper/`, so that is the directory to mount. The
-rendered file then appears in your host's `analysis/paper/`; a
+rendered file then appears in your host's `analysis/paper/`. A
 mount at any other container path receives nothing.
 
-Data follow the same choice. Copying data into the image makes it
-self-contained and larger; mounting them keeps the image small and
-means the image alone no longer reproduces the analysis. Embed
-small, shareable data; mount large or sensitive data, and never
+Data involve a similar choice. Copying data into the image makes
+it self-contained and larger. Mounting them keeps the image small,
+but the image alone then no longer reproduces the analysis. Embed
+small, shareable data, and mount large or sensitive data. Never
 build an image containing protected health information that might
 reach a registry.
 
@@ -487,7 +490,7 @@ docker run --rm --platform linux/amd64 readmissions:v1.0 \
 ```
 
 After you edit a `.qmd` file and rebuild, the line after the
-`renv::restore` step should read `CACHED`; if the step runs again,
+`renv::restore` step should read `CACHED`. If the step runs again,
 the layer order is wrong. `R --version` should match the
 lockfile's `R$Version`, and `renv::status()` should report no
 issues. A mismatched base tag shows up here as a status message
@@ -517,8 +520,8 @@ that the lockfile was generated with a different R.
 
 *Failure mode.* Models write a base tag from their training data
 (`rocker/r-ver:4.4.0`, or `latest`) that does not match your
-lockfile, invent a plausible-looking digest, omit the
-`.dockerignore`, or copy the whole project before the restore so
+lockfile. They also invent a plausible-looking digest, omit the
+`.dockerignore`, or copy the whole project before the restore, so
 that every edit reinstalls every package. *Check.* Run the
 Verification above, and compare the draft line by line with the
 canonical Dockerfile. The prompt carries file names and package
@@ -557,11 +560,11 @@ The canonical Dockerfile above is the corrected file.
 Which layers rebuild, and why is that correct?
 
 **Answer.** The two `COPY` layers that bring in `renv.lock` and its
-bootstrap files change, so the restore layer and everything after
-it rebuild; the base image, the system libraries, and the Quarto
-install are reused from cache. That is the intended behavior: a
-dependency change should reinstall packages, and an edit to the
-manuscript should not.
+bootstrap files change. The restore layer and everything after it
+therefore rebuild. The base image, the system libraries, and the
+Quarto install are reused from cache. That is the intended
+behavior. A dependency change should reinstall packages, and an
+edit to the manuscript should not.
 :::
 
 ## Interactive and multi-service containers {#sec-docker-rstudio}
@@ -581,12 +584,12 @@ docker run -d --rm --platform linux/amd64 \
 ```
 
 Set `RSTUDIO_PASSWORD` in your shell first, rather than typing a
-password into a command that lands in your shell history. Binding
-to `127.0.0.1` keeps the server off your network; a bare `-p
-8787:8787` publishes it on every interface, so anyone who can
+password into a command that is saved in your shell history.
+Binding to `127.0.0.1` keeps the server off your network. A bare
+`-p 8787:8787` publishes it on every interface, so anyone who can
 reach your machine can try the login. Then open
 `http://localhost:8787` and log in as `rstudio`. Your project is
-mounted under `/home/rstudio/project`; inside the container, run
+mounted under `/home/rstudio/project`. Inside the container, run
 `renv::restore()` to install its packages. The pattern suits
 teaching (every student gets the same environment) and
 collaborative analysis.
@@ -599,8 +602,9 @@ docker port analysis-rstudio
 ```
 
 It should print `8787/tcp -> 127.0.0.1:8787`. An address of
-`0.0.0.0` means the server is reachable from your network; stop
-the container and restart it with the `127.0.0.1:` prefix.
+`0.0.0.0` means the server is reachable from your network. In
+that case, stop the container and restart it with the
+`127.0.0.1:` prefix.
 :::
 
 ### Several services: a pointer to Compose
@@ -612,10 +616,10 @@ Read passwords from a `.env` file beside the Compose file
 (`POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env}`), list
 `.env` in both `.gitignore` and `.dockerignore`, and never write a
 password into the committed file. Use the `docker compose`
-subcommand: the hyphenated `docker-compose` binary is Compose
-version 1, which reached end of life in 2023, and the top-level
-`version:` key older examples show is obsolete. Docker's Compose
-documentation covers the rest. For most biostatistical analyses a
+subcommand. The hyphenated `docker-compose` binary is Compose
+version 1, which reached end of life in 2023. The top-level
+`version:` key that older examples show is obsolete. Docker's
+Compose documentation covers the rest. For most biostatistical analyses a
 single container is enough.
 
 ## Sharing and archiving an image {#sec-docker-sharing}
@@ -633,10 +637,10 @@ docker run --rm --platform linux/amd64 ghcr.io/username/readmissions:v1.0
 ```
 
 Docker Hub works the same way with `username/readmissions:v1.0`. A
-registry is hosting, not archiving: accounts lapse, free tiers
-change, and images are deleted. For the archival copy, save the
-built image as a file and deposit it with the compendium, for
-example on Zenodo, which issues a DOI (digital object identifier):
+registry provides hosting, not archiving. Accounts lapse, free
+tiers change, and images are deleted. For the archival copy, save
+the built image as a file and deposit it with the compendium. One
+option is Zenodo, which issues a DOI (digital object identifier):
 
 ```bash
 docker save readmissions:v1.0 | gzip > readmissions-v1.0.tar.gz
@@ -644,10 +648,10 @@ docker save readmissions:v1.0 | gzip > readmissions-v1.0.tar.gz
 ```
 
 The saved image is the environment itself, not instructions for
-rebuilding it, so it survives the base image's tag being rebuilt,
-the apt mirrors moving on, and the registry disappearing. Record
-the image ID and the base digest in the compendium's README at
-submission.
+rebuilding it. It therefore survives the base image's tag being
+rebuilt, the apt mirrors moving on, and the registry
+disappearing. Record the image ID and the base digest in the
+compendium's README at submission.
 
 ::: {.callout-tip title='Verification'}
 Confirm that the archive restores the image you built:
@@ -660,7 +664,7 @@ docker image inspect --format '{{.Id}}' readmissions:v1.0
 ```
 
 `docker load` reads the gzipped file directly. The two IDs must be
-identical; then run the loaded image and compare the rendered
+identical. Then run the loaded image and compare the rendered
 paper with yours.
 :::
 
@@ -670,13 +674,14 @@ after submission. You have the Dockerfile with a version tag, and
 the image on a registry under an account that has lapsed. What can
 you reproduce, and what would have made it exact?
 
-**Answer.** You can rebuild from the Dockerfile, but the tag may
-now point at a different base and `apt-get` will fetch newer system
-libraries, so you get a close environment, not the same one. The
-exact environment needed either the archived image file, which
-restores the identical bytes, or at least a digest-pinned `FROM`
-line, which fixes the base. With either, the R build and system
-libraries are those that produced the table.
+**Answer.** You can rebuild from the Dockerfile. However, the tag
+may now point at a different base, and `apt-get` will fetch newer
+system libraries. You get a close environment, not the same one.
+The exact environment needed one of two things. The first is the
+archived image file, which restores the identical bytes. The
+second, at least, is a digest-pinned `FROM` line, which fixes the
+base. With either, the R build and system libraries are those
+that produced the table.
 :::
 
 ## Diagnosing build failures {#sec-docker-failures}
@@ -717,9 +722,9 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 
 *Failure mode.* A model that cannot read the cause from a
 truncated log proposes a different base image or a long list of
-`lib*-dev` packages, which makes the build pass and the image
+`lib*-dev` packages. This makes the build pass and the image
 larger without saying why. *Check.* Rebuild with the one added
-package; the failing step should now complete, and the log line
+package. The failing step should now complete, and the log line
 the model quoted should be the one that named the missing
 library.
 :::
@@ -733,12 +738,12 @@ library.
    preceded by `ssl.h: No such file or directory`.
 
 ::: {.callout-note collapse='true' title='Solution'}
-(a) `libxml2-dev`. (b) `libgdal-dev`; `sf` also needs
+(a) `libxml2-dev`. (b) `libgdal-dev`. `sf` also needs
 `libproj-dev` and `libgeos-dev`, so add all three, as in the
 worked example. (c) `libssl-dev`. The canonical Dockerfile already
 installs (a) and (c), so a log showing either means the line was
 edited away. In each case the log names the library or the header
-file; the fix is the Ubuntu `-dev` package that provides it.
+file. The fix is the Ubuntu `-dev` package that provides it.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -790,17 +795,19 @@ docker run --rm --platform linux/amd64 \
   readmissions:v1.0
 ```
 
-The paper renders. The reader now has the same R version, the
-same package versions, and the same system libraries as of the day
-they built, which is close to your environment but not identical
-to it: the tag may have been rebuilt since (@sec-docker-rocker).
-For an identical environment, give the reader the digest-pinned
-Dockerfile or the archived image.
+The paper renders. The reader now has the same R version and the
+same package versions. The system libraries are those current on
+the day the reader built the image. This is close to your
+environment but not identical to it, since the tag may have been
+rebuilt in the meantime (@sec-docker-rocker). For an identical
+environment, give the reader the digest-pinned Dockerfile or the
+archived image.
 
 ::: {.callout-tip title='Verification'}
-The reader's check is the one the opening needed: the same number.
-Compare the key estimate in the reader's rendered paper with the
-one in yours, and the environments behind them:
+The reader's check is the one the opening needed, which is the
+same number. Compare the key estimate in the reader's rendered
+paper with the one in yours, and compare the environments behind
+them:
 
 ```bash
 docker run --rm --platform linux/amd64 readmissions:v1.0 \
@@ -816,31 +823,33 @@ the cause is in the code or the data, not the machine.
 ## An aside: Nix and rix {#sec-docker-nix}
 
 Everything above pins reproducibility with a lockfile and a
-container image, which is the mainstream path for an R research
+container image. This is the mainstream path for an R research
 compendium and the one this book teaches. A smaller but active
-community takes a different route to the same goal: Nix, a package
-manager and build system built around the idea that a build should
-be a pure function of its declared inputs. Where
-`apt-get install` or a base image's own history can change what
-`FROM rocker/r-ver:4.4.0` resolves to over time (@sec-docker-rocker),
-a Nix build specifies every dependency, down to the compiler
-toolchain, as an explicit input, and stores each built package in a
-content-addressed store keyed by the hash of its own inputs. Two
-builds from the same Nix expression on two machines produce
-bit-identical results, in principle without needing a container at
-all, because the isolation Nix relies on is the content-addressed
-store rather than a container runtime.
+community takes a different route to the same goal. That route is
+Nix, a package manager and build system built around the idea
+that a build should be a pure function of its declared inputs.
+Recall that `apt-get install` or a base image's own history can
+change what `FROM rocker/r-ver:4.4.0` resolves to over time
+(@sec-docker-rocker). A Nix build, by contrast, specifies every
+dependency, down to the compiler toolchain, as an explicit input.
+It stores each built package in a content-addressed store keyed
+by the hash of its own inputs. Two builds from the same Nix
+expression on two machines produce bit-identical results. In
+principle this needs no container at all, because the isolation
+Nix relies on is the content-addressed store rather than a
+container runtime.
 
 The R package [**rix**](https://cran.r-project.org/package=rix)
-[@rodrigues2024rix], maintained by Bruno Rodrigues and, as of this
-writing, on CRAN and under active development (incubated through
-rOpenSci), exists to make that approach reachable from R without
-writing Nix's own expression language by hand. Its central function,
-`rix()`, takes an R version, a vector of packages, and optionally
-system dependencies, and writes a `default.nix` file describing the
-environment; the Nix tool then builds exactly that environment from
-the file. The pattern (display-only, since it needs Nix installed,
-which this book's environment does not have):
+[@rodrigues2024rix] is maintained by Bruno Rodrigues. As of this
+writing it is on CRAN and under active development (incubated
+through rOpenSci). It exists to make the Nix approach reachable
+from R without writing Nix's own expression language by hand. Its
+central function, `rix()`, takes an R version, a vector of
+packages, and optionally system dependencies. It writes a
+`default.nix` file describing the environment, and the Nix tool
+then builds exactly that environment from the file. The pattern
+is shown below. It is display-only, since it needs Nix installed,
+and this book's environment does not have Nix:
 
 ```r
 library(rix)
@@ -856,40 +865,41 @@ rix(
 ```
 
 A Nix-built environment can run inside a Docker container as well
-as outside one; the two technologies answer slightly different
-questions (Nix: 'exactly which inputs built this package', Docker:
-'what filesystem and process isolation does this run under') and
-some reproducibility-focused teams layer them, using `rix` to
-generate the environment description and a thin Dockerfile only to
-package it for a system that expects a container image. That
-combination is outside the scope of this aside, which presents
-`rix` and Nix as a documented, maintained alternative to the
-`renv`-plus-Docker path this book teaches without recommending
-either one on its own.
+as outside one. The two technologies answer slightly different
+questions. Nix answers 'exactly which inputs built this package',
+and Docker answers 'what filesystem and process isolation does
+this run under'. Some reproducibility-focused teams layer them.
+They use `rix` to generate the environment description and a thin
+Dockerfile only to package it for a system that expects a
+container image. That combination is outside the scope of this
+aside. We present `rix` and Nix as a documented, maintained
+alternative to the `renv`-plus-Docker path this book teaches,
+without recommending either one on its own.
 
-Weighed against `renv` plus Docker, Nix's case is a stronger
-reproducibility guarantee in principle (the whole dependency
-closure, not just the OS and R packages, is pinned and content-
-addressed) and no dependency on a container daemon, which matters
-on systems where Docker itself is unavailable or unwanted
-(@sec-cloud-hpc's clusters are exactly such a system, though they
-typically lack Nix as well). The cost is a steep learning curve: the
-Nix expression language, the distinction between channels and
-flakes, and the unfamiliar error messages when a build fails are a
-larger investment than learning Docker, and the R community's
-documentation and troubleshooting resources for Nix are thinner than
-for `renv` and Docker, both of which this book assumes you will use
-day to day. Some reproducibility-focused groups, particularly where
-Nix is already part of the organization's infrastructure, use `rix`
-and Nix instead of `renv` plus Docker for these reasons; for
-most research compendia starting from nothing, the mainstream path
-of this book remains the one to learn first. If a future
-collaborator hands you a `default.nix` instead of a Dockerfile, the
-diagnostic instinct to bring is the same one this chapter teaches
-for Docker: ask what each declared input pins, read the build log
-for the dependency that failed to resolve, and distrust a cached
-result that was built from a different declared input than the one
-in front of you.
+On the plus side, weighed against `renv` plus Docker, Nix offers a
+stronger reproducibility guarantee in principle. The whole
+dependency closure, not just the OS and R packages, is pinned and
+content-addressed. Nix also has no dependency on a container
+daemon. That matters on systems where Docker itself is
+unavailable or unwanted. The clusters of @sec-cloud-hpc are
+exactly such a system, though they typically lack Nix as well. On
+the minus side, the learning curve is steep. The Nix expression
+language, the distinction between channels and flakes, and the
+unfamiliar error messages when a build fails are a larger
+investment than learning Docker. The R community's documentation
+and troubleshooting resources for Nix are also thinner than for
+`renv` and Docker. This book assumes you will use both of those
+day to day. Some reproducibility-focused groups use `rix` and Nix
+instead of `renv` plus Docker for these reasons, particularly
+where Nix is already part of the organization's infrastructure.
+For most research compendia starting from nothing, the mainstream
+path of this book remains the one to learn first. A future
+collaborator may hand you a `default.nix` instead of a
+Dockerfile. If so, bring the same diagnostic instinct this
+chapter teaches for Docker. Ask what each declared input pins, and
+read the build log for the dependency that failed to resolve.
+Distrust a cached result that was built from a different declared
+input than the one in front of you.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A collaborator who already knows Nix suggests
@@ -898,27 +908,27 @@ by `rix`. What would the team gain, and what would it need to learn
 that it does not already know from this chapter?
 
 **Answer.** It would gain a stronger, content-addressed pin on every
-dependency, including the compiler toolchain, and the ability to
-reproduce the environment without a container runtime at all. It
-would need to learn the Nix expression language well enough to
-debug a failed build, since the diagnostic habits of
-@sec-docker-failures (reading an `apt-get` error, matching a missing
-library to a Ubuntu package) do not transfer directly to Nix's own
-error messages and build logs.
+dependency, including the compiler toolchain. It would also gain
+the ability to reproduce the environment without a container
+runtime at all. It would need to learn the Nix expression language
+well enough to debug a failed build. The diagnostic habits of
+@sec-docker-failures (reading an `apt-get` error, matching a
+missing library to a Ubuntu package) do not transfer directly to
+Nix's own error messages and build logs.
 :::
 
 ## Rules of thumb
 
 1. **Habit 4: pin the environment.** The lockfile pins the
-   packages; the image pins R, the system libraries, and the OS,
-   and only a digest or an archived image pins the bytes.
+   packages. The image pins R, the system libraries, and the OS.
+   Only a digest or an archived image pins the bytes.
 2. **Habit 8: a plausible number is the expensive bug.** A
    different R or BLAS produces a different number without an
-   error; check the R version and `renv::status()` inside the
+   error. Check the R version and `renv::status()` inside the
    container, not only that the build succeeded.
 3. **Habit 3: tag what you submit.** Record the base digest and the
    image ID with the Git tag, and archive the image beside the
-   compendium; a registry is hosting, not archiving.
+   compendium. A registry provides hosting, not archiving.
 
 ## Cumulative practice
 
@@ -982,13 +992,13 @@ error messages and build logs.
    compilers), the R build itself, *and* R packages. When an
    analysis depends on a specific OS or system library, Docker
    comes far closer than `renv` alone to reproducing it years
-   later, and a digest-pinned or archived image closer still. For
-   pure-R analyses `renv` may suffice; for anything with non-R
+   later. A digest-pinned or archived image comes closer still.
+   For pure-R analyses `renv` may suffice. For anything with non-R
    dependencies, Docker is the prudent choice.
 3. `rocker/tidyverse:4.4.0` provides Ubuntu LTS (the base of the
    `rocker/r-ver` images it builds on; 22.04 for this tag), R
    4.4.0, RStudio Server, and the tidyverse packages
    pre-installed. A container starts immediately without package
    installation, which suits teaching and quick collaborative
-   work. It is larger than `rocker/r-ver`, a trade-off justified
-   when most projects use the tidyverse anyway.
+   work. It is larger than `rocker/r-ver`. The trade-off is
+   justified when most projects use the tidyverse anyway.

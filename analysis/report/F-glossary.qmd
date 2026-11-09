@@ -95,8 +95,8 @@ keep. Resolved by editing the marked region and committing. See
 @sec-git-teams.
 
 [**Pull request.**]{#gloss-pull-request} A proposal to merge a
-branch, reviewed by a colleague and checked by CI before it
-lands. See @sec-git-teams.
+branch, reviewed by a colleague and checked by CI before it is
+merged. See @sec-git-teams.
 
 [**Tag.**]{#gloss-tag} A permanent, human-readable name for a
 specific commit, used here to mark submission and analysis-plan
@@ -234,8 +234,8 @@ it as an antipattern. See @sec-missing-single.
 [**MMRM.**]{#gloss-mmrm} Mixed model for repeated measures: a
 likelihood analysis of all observed visits with an unstructured
 covariance across visits. It imputes nothing and is valid under
-MAR; the standard primary analysis for a repeated continuous
-outcome in a trial. See @sec-missing-trials.
+MAR. It is the standard primary analysis for a repeated
+continuous outcome in a trial. See @sec-missing-trials.
 
 [**Multiple imputation.**]{#gloss-multiple-imputation} Generating
 several completed datasets, fitting the model in each, and
@@ -266,8 +266,8 @@ diagram reports every exclusion and loss with a count. See
 
 [**Data lock and unblinding.**]{#gloss-data-lock} The point after
 which the dataset does not change and treatment assignment
-becomes known. Everything pre-specified before it carries the
-study's inferential authority. See @sec-analysis-plan.
+becomes known. Only analyses pre-specified before it count as
+confirmatory. See @sec-analysis-plan.
 
 [**Estimand.**]{#gloss-estimand} A precise statement of what is
 being estimated, given by the five ICH E9(R1) attributes:
@@ -467,8 +467,8 @@ best cost-benefit ratio for analysis code.
 
 [**Mutation testing.**]{#gloss-mutation-testing} Planting
 deliberate bugs (mutants) to see whether the test suite fails on
-them. The share of mutants killed measures how much the suite can
-see. See @sec-testing-worked.
+them. The share of mutants killed measures how many errors the
+suite can detect. See @sec-testing-worked.
 
 [**Snapshot test.**]{#gloss-snapshot-test} A test comparing output
 against a recorded version, which detects change without

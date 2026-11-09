@@ -19,19 +19,19 @@ n_site_clean <- length(unique(tolower(trimws(crf_site))))
 ```
 
 The HF-HOME case report form (CRF) export arrives from the data
-manager, and before loading it into R you ask the shell two quick
+manager. Before loading it into R, you ask the shell two quick
 questions. Is the header where you expect it?
 `grep -c '^patient_id' crf_export.csv` counts the lines that begin
 with the first column's name and answers 0. How many patients have
 no discharge weight, which two of the sites record as an empty
 last field? `grep -c ',$' crf_export.csv` also answers 0. The true
-answers are 1 and `r n_empty_weight`: the file begins with three
+answers are 1 and `r n_empty_weight`. The file begins with three
 invisible bytes, a byte-order mark (BOM), and every line ends in a
 carriage return that the terminal does not display. Nothing
-failed; the shell answered exactly the questions you typed, about
-a file that is not quite the one on your screen. This chapter
-teaches the working subset of the shell, and the habit of looking
-at the bytes before you trust a count.
+failed. The shell answered exactly the questions you typed, but
+about a file that is not quite the one on your screen. This
+chapter teaches the working subset of the shell. It also teaches
+the habit of looking at the bytes before you trust a count.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -121,14 +121,14 @@ answers are in @sec-quiz-answers-04b.
 
 The shell is a text interface to the operating system. You type a
 command, the shell runs a program, and the program prints its
-output. Its power derives from a design decision made in the early
-1970s: build many small programs, each doing one thing well, and
-let the output of one become the input of the next. You can go far
-in data science without the shell, but not without friction,
-because the tools this book depends on (Git, Docker, `ssh`, and
+output. Its usefulness comes from a design decision made in the
+early 1970s. That is, build many small programs, each doing one
+thing well, and let the output of one become the input of the
+next. You can go far in data science without the shell, but not
+easily. The tools this book depends on (Git, Docker, `ssh`, and
 the schedulers of a computing cluster) are all operated from it.
 The chapter uses `bash`, the default on most Linux systems and
-inside almost every Docker container; macOS ships `zsh`, which
+inside almost every Docker container. macOS ships `zsh`, which
 differs only in details that do not matter here.
 
 Three commands answer 'where am I, what is here, and how do I
@@ -177,11 +177,11 @@ directory.
 ::: {.callout-note collapse='true' title='Solution'}
 From the root, `analysis/data/raw_data/hfhome/visits.csv`; from
 `analysis/report/`, `../data/raw_data/hfhome/visits.csv`. `ls` on
-the path prints the path back if the file exists and
+the path prints the path back if the file exists, and
 `No such file or directory` if it does not. The same file has a
-different relative path from each directory, which is why a script
-that uses relative paths must also say which directory it runs
-from.
+different relative path from each directory. For that reason, a
+script that uses relative paths must also say which directory it
+runs from.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -191,22 +191,22 @@ with 'does not exist', although the file is in the repository.
 What is the likeliest cause?
 
 **Answer.** The path is relative, so it is resolved from the
-working directory, and you ran the script from a different
-directory than your colleague did (for example from `analysis/`
-rather than the repository root). Run `pwd`, or `getwd()` in R, to
-see where you are. The durable fix is a convention the whole
-project follows, such as always running from the root, or the
+working directory. You ran the script from a different directory
+than your colleague did (for example from `analysis/` rather than
+the repository root). Run `pwd`, or `getwd()` in R, to see where
+you are. The durable fix is a convention the whole project
+follows, such as always running from the root. Another is the
 `here` package, which builds paths from the project root wherever
 the script is run.
 :::
 
 ## Looking at a file before R does {#sec-shell-inspect}
 
-A malformed or enormous file can choke R if you read it blind, and
-a subtly malformed one can be read without complaint into the
-wrong values. A few seconds at the shell tell you the row count,
-the delimiter, and whether the bytes are what they appear to be,
-before R ever sees the file.
+A malformed or enormous file can stall R if you read it without
+looking first. A subtly malformed one can be read without
+complaint into the wrong values. A few seconds at the shell tell
+you the row count, the delimiter, and whether the bytes are what
+they appear to be, before R ever sees the file.
 
 | Command | Answers |
 |---|---|
@@ -231,13 +231,13 @@ tail -n +2 crf_export.csv | wc -l
 ```
 
 The header names eight columns separated by commas, as the CSV
-(comma-separated values) format prescribes, and the two data
-rows already show two of the sites' conventions: one writes sex as
-`Female` and dates with dashes, the other `F` and dates as eight
-digits with the identifier's leading zeros gone. `wc -l` counts
-newline characters, so the second count, which skips the header,
-is the number of data rows if no quoted field contains a line
-break.
+(comma-separated values) format prescribes. The two data rows
+already show two of the sites' conventions. One writes sex as
+`Female` and dates with dashes. The other writes `F`, and dates as
+eight digits with the identifier's leading zeros gone. `wc -l`
+counts newline characters. The second count, which skips the
+header, is therefore the number of data rows if no quoted field
+contains a line break.
 
 ### The invisible bytes
 
@@ -250,8 +250,8 @@ grep -c '^patient_id' crf_export.csv || true
 grep -c ',$' crf_export.csv || true
 ```
 
-`grep -c` exits with an error status when it counts zero matches,
-and `|| true` keeps that status from stopping a script; the zeros
+`grep -c` exits with an error status when it counts zero matches.
+The `|| true` keeps that status from stopping a script. The zeros
 are the misleading answers. `head` shows characters as your
 terminal draws them, and a terminal draws neither a BOM nor a
 carriage return. Two commands show the bytes themselves:
@@ -263,23 +263,24 @@ head -c 16 crf_export.csv | od -c
 head -n 2 crf_export.csv | cat -e
 ```
 
-`od -c` prints each byte, and the first three, `357 273 277` in
-octal (`EF BB BF` in hexadecimal), are the UTF-8 byte-order mark,
-a marker some Windows tools write at the start of a file. `cat -e`
+`od -c` prints each byte. The first three, `357 273 277` in octal
+(`EF BB BF` in hexadecimal), are the UTF-8 byte-order mark, a
+marker some Windows tools write at the start of a file. `cat -e`
 marks the end of each line with `$`, and the `^M` before it is a
-carriage return: the file has Windows (CRLF, carriage return and
-line feed) line endings, `r format(n_cr, big.mark = ",")` carriage
-returns in `r format(crf_rows + 1, big.mark = ",")` lines. This is why the two `grep` counts in the
-opening returned 0: no line begins with `patient_id`, because the
-first begins with the BOM, and no line ends in a comma, because
-every line ends in `\r`.[^file-cmd]
+carriage return. That is, the file has Windows (CRLF, carriage
+return and line feed) line endings, with
+`r format(n_cr, big.mark = ",")` carriage returns in
+`r format(crf_rows + 1, big.mark = ",")` lines. This is why the
+two `grep` counts in the opening returned 0. No line begins with
+`patient_id`, because the first begins with the BOM. No line ends
+in a comma, because every line ends in `\r`.[^file-cmd]
 
 [^file-cmd]: The `file` command is often recommended for this
     triage, and versions without a test for CSV files report both
     the BOM and the CRLF line terminators. Versions that recognize
     CSV files (`file` 5.41 on the macOS
     machine that built this book, for one) report only `CSV text`
-    and say nothing about either; `file -e csv crf_export.csv`
+    and say nothing about either. `file -e csv crf_export.csv`
     turns the CSV test off and restores the full report. Minimal
     Docker images often lack `file` altogether, while `od` and
     `cat` are always present.
@@ -310,8 +311,8 @@ names(crf)[1]
 ```
 
 The counts agree, and `readr` has removed the BOM from the first
-column's name. When they disagree, a quoted field holds a line
-break, or the last line has no final newline; find out which
+column's name. When they disagree, either a quoted field holds a
+line break or the last line has no final newline. Find out which
 before you trust either number.
 :::
 
@@ -327,7 +328,7 @@ mv a.csv archive/      # move or rename
 rm scratch.csv         # delete: no trash can, no undo
 ```
 
-`rm` does not move a file to a trash can; it deletes it, and
+`rm` does not move a file to a trash can. It deletes it, and
 `rm -rf` on the wrong directory is unrecoverable. Read a deletion
 command before running it, and never build one from a variable you
 have not inspected. A redirection that writes to a file you are
@@ -344,16 +345,16 @@ rm -r "$tmp"
 ```
 
 The chunk works on a copy in a temporary directory and deletes the
-directory at the end; the second count shows what happened to the
+directory at the end. The second count shows what happened to the
 copy.
 
 ::: {.callout-warning title='Pitfall'}
 **Redirecting a command's output onto its own input empties the
 file.** The shell opens `crf.csv` for writing, which truncates it
-to zero bytes, before `tr` reads a single byte, so the command
-reads an empty file and writes an empty file, and reports no
-error. On a raw export this destroys the evidence (Habit 2). Write
-the repaired version somewhere else, for example
+to zero bytes, before `tr` reads a single byte. The command then
+reads an empty file, writes an empty file, and reports no error.
+On a raw export this destroys the evidence (Habit 2). Write the
+repaired version somewhere else, for example
 `tr -d '\r' < crf_export.csv > ../derived/crf_lf.csv`, and never
 point a redirection at a file in the raw-data directory.
 :::
@@ -376,10 +377,10 @@ visits_bytes[1:3]
 sum(visits_bytes == as.raw(0x0d))
 ```
 
-`tail -n +2 visits.csv | wc -l` prints the row count above,
+`tail -n +2 visits.csv | wc -l` prints the row count above.
 `head -n 1 visits.csv` shows the comma-separated, quoted column
-names, `head -c 16 visits.csv | od -c` begins with `"` rather than
-`357 273 277` (no BOM), and `head -n 2 visits.csv | cat -e` shows
+names. `head -c 16 visits.csv | od -c` begins with `"` rather than
+`357 273 277` (no BOM). `head -n 2 visits.csv | cat -e` shows
 lines ending in `$` with no `^M` (no carriage returns, as the zero
 count above confirms). Of the HF-HOME files, only the CRF export
 carries either.
@@ -392,11 +393,11 @@ lines for a CSV file with a header. Can you conclude that it holds
 
 **Answer.** Not yet. `wc -l` counts newline characters. A quoted
 field that contains a line break (a free-text comment, say) adds a
-line without adding a record, and a last line with no final
-newline is a record that `wc -l` does not count. The shell count
-is a fast first estimate; the record count is what a CSV parser
-reports, which is why the Verification compares the two rather
-than trusting either.
+line without adding a record. A last line with no final newline is
+a record that `wc -l` does not count. The shell count is a fast
+first estimate. The record count is what a CSV parser reports.
+That is why the Verification compares the two rather than
+trusting either.
 :::
 
 ## Pipes and redirection {#sec-shell-pipes}
@@ -441,17 +442,17 @@ The line reads as a sentence: drop the header, keep the third
 comma-delimited field, sort it, count each distinct value, and
 rank the counts. `uniq -c` counts *adjacent* repeats, which is why
 the first `sort` is required. The quotation marks are part of the
-field, because `cut` knows nothing about CSV quoting; a field that
-contains a quoted comma would be split in the wrong place, which
-is one reason to keep the shell for questions and R for analysis.
+field, because `cut` knows nothing about CSV quoting. A field that
+contains a quoted comma would be split in the wrong place. This is
+one reason to keep the shell for questions and R for analysis.
 
 ### The shell and R side by side
 
 Every pipeline in this chapter has an R equivalent, and the
-equivalent is the check. The shell is excellent glue (fetching
-files, orchestrating steps, inspecting inputs) and a poor place to
-do statistics: draw the line where @sec-wrangling draws it, and do
-the analysis in R.
+equivalent is the check. The shell is good for connecting steps
+(fetching files, orchestrating steps, inspecting inputs). It is a
+poor place to do statistics. Draw the line where @sec-wrangling
+draws it, and do the analysis in R.
 
 | Question | Shell | R |
 |---|---|---|
@@ -499,8 +500,8 @@ version, redirect it to a file outside the raw-data directory, as
 the Pitfall above requires.
 
 ::: {.callout-important title='LLM prompt'}
-A model writes shell pipelines fluently, and the error it makes is
-the field number or an invisible byte, not the syntax.
+A model writes shell pipelines fluently. Its errors tend to be in
+the field number or an invisible byte, and rarely in the syntax.
 
 > **Context.** I have a CSV file. Its header, and two lines of the
 > file passed through `cat -e`, are below [paste them; for real
@@ -520,7 +521,7 @@ the field number or an invisible byte, not the syntax.
 
 *Failure mode.* The model counts fields from zero or from the
 wrong end, drops the `sort` before `uniq -c`, or ignores the `^M`
-that `cat -e` shows, so that every count is plausible and one
+that `cat -e` shows. Every count is then plausible, and one
 category is split in two. *Check.* Run both the pipeline and the
 `dplyr` code and compare them line for line, as in the
 Verification above. A header and an invented row are structure,
@@ -557,7 +558,7 @@ Each site's label arrives in several spellings that differ in case
 and in leading or trailing spaces. `sort | uniq -c | cat -e` makes
 a trailing space visible as a space before the `$`. `readr` trims
 the spaces by default, so a count after `read_csv()` finds fewer
-spellings than the shell does; the shell is reporting what the
+spellings than the shell does. The shell is reporting what the
 file contains.
 :::
 
@@ -566,12 +567,12 @@ file contains.
 `tail -n +2 labs.csv | cut -d, -f3 | sort | uniq -c | sort -rn | head -n 1`
 print, read left to right?
 
-**Answer.** It drops the header of `labs.csv`, keeps the third
-comma-delimited field (the test code), sorts the values so that
-identical ones are adjacent, counts each distinct value (`uniq -c`
-needs the prior `sort`), sorts those counts in descending numeric
-order, and keeps the first line: the most frequent test and its
-count. It is the shell equivalent of
+**Answer.** It drops the header of `labs.csv` and keeps the third
+comma-delimited field (the test code). It sorts the values so that
+identical ones are adjacent, and counts each distinct value
+(`uniq -c` needs the prior `sort`). It then sorts those counts in
+descending numeric order and keeps the first line, which is the
+most frequent test and its count. It is the shell equivalent of
 `count(labs, test_code, sort = TRUE) |> slice(1)`.
 :::
 
@@ -587,12 +588,12 @@ find . -name '*.csv' -size +500k | sort
 ```
 
 The first command counts the laboratory rows for patient `2433`,
-who appears in no other file: an orphan record that a join
-(@sec-joins) would silently drop or keep depending on its type.
-The second lists the CSV files larger than 500 kibibytes; `find`
-prints in directory order, which differs between systems, so the
-`sort` makes the output stable. The same two commands search a
-project's code (display-only):
+who appears in no other file. This is an orphan record, which a
+join (@sec-joins) would silently drop or keep depending on its
+type. The second lists the CSV files larger than 500 kibibytes.
+`find` prints in directory order, which differs between systems,
+so the `sort` makes the output stable. The same two commands
+search a project's code (display-only):
 
 ```bash
 # every line that mentions the CRF export, with line numbers
@@ -652,7 +653,7 @@ Exercise 3, or is done in R after the same normalization.
 
 A pipeline you run by hand is a pipeline you will run differently
 next time. A shell script is a text file of commands with a `#!`
-line naming the interpreter; it records the steps, runs them
+line naming the interpreter. It records the steps, runs them
 identically every time, and is version-controlled with the
 analysis. The reproducibility argument of @sec-why applies to the
 shell as much as to R.
@@ -696,11 +697,12 @@ cat(check_out, sep = "\n")
 
 Three lines make the script safe. `set -euo pipefail` stops it at
 the first failed command, at the first use of an unset variable,
-and at a failure anywhere in a pipeline, rather than letting it
-plow on; it is the single most valuable line in any script.
-Quoting every variable (`"$f"`, `"$dir"`) protects against paths
-that contain spaces. And `${1:-.}` gives the directory argument a
-default, so that `set -u` does not stop a run with no argument.
+and at a failure anywhere in a pipeline. Without it, the script
+would carry on past the error. In our view it is the most
+valuable line in any script. Quoting every variable (`"$f"`,
+`"$dir"`) protects against paths that contain spaces. Finally,
+`${1:-.}` gives the directory argument a default, so that
+`set -u` does not stop a run with no argument.
 
 A script that fetches the raw file in the first place needs one
 more guard (display-only, because it reaches the network):
@@ -714,7 +716,7 @@ curl -fsSL "$1" -o data/raw/crf_export.csv
 ```
 
 Without the `-f` flag, a server's '404 Not Found' page is saved as
-if it were the extract and the script carries on; with it, `curl`
+if it were the extract, and the script carries on. With it, `curl`
 exits with an error and `set -e` stops the script.
 
 ::: {.callout-tip title='Verification'}
@@ -780,8 +782,8 @@ Add the count inside the loop and widen both `printf` lines:
 cols=$(head -n 1 "$f" | tr ',' '\n' | wc -l | tr -d ' ')
 ```
 
-`tr` puts each header field on its own line and `wc -l` counts
-them; this is exact only because no HF-HOME header contains a
+`tr` puts each header field on its own line, and `wc -l` counts
+them. This is exact only because no HF-HOME header contains a
 quoted comma. The counts, from R:
 
 ```{r}
@@ -802,9 +804,9 @@ identifiers that the de-identification chapter removes.
 `Rscript analysis.R`. The URL has moved. What happens?
 
 **Answer.** Without `-f`, `curl` saves the server's error page as
-`visits.csv` and exits successfully; without `-e`, the script would
+`visits.csv` and exits successfully. Without `-e`, the script would
 have continued even if it had not. R then reads an HTML page as a
-CSV and, depending on the page, stops with a parse error or, worse,
+CSV. Depending on the page, it stops with a parse error or, worse,
 produces a one-column data frame that later steps summarize. With
 `curl -f` and `set -e`, the script stops at the download, with an
 error naming the URL.
@@ -840,10 +842,10 @@ error naming the URL.
 unname(tools::md5sum(crf_path))
 ```
 
-`md5sum -c` prints `OK` beside each file whose bytes still match;
-change one byte of a copy and it prints `FAILED`. The manifest is
+`md5sum -c` prints `OK` beside each file whose bytes still match.
+Change one byte of a copy and it prints `FAILED`. The manifest is
 written outside the raw directory, so the directory holds only
-what you received, and the manifest belongs under version control
+what you received. The manifest belongs under version control
 (@sec-git-solo), so that its history shows when the evidence last
 changed.
 :::
@@ -881,12 +883,11 @@ changed.
 1. The pipe `|` sends the standard output of the command on
    its left to the standard input of the command on its
    right, so small tools compose into a pipeline. R's `|>` is
-   the same idea: it sends the value on its
-   left as the first argument of the function on its right;
-   both let you read a transformation left to right as a
-   sequence of steps.
+   the same idea. It sends the value on its left as the first
+   argument of the function on its right. Both let you read a
+   transformation left to right as a sequence of steps.
 2. An absolute path names a location from the filesystem
-   root and begins with `/` (or `~` for home); a relative
+   root and begins with `/` (or `~` for home). A relative
    path is interpreted from the current working directory.
    `.` is the current directory, `..` its parent, `~` your
    home directory, and `/` the root.

@@ -1,16 +1,16 @@
 # Joining and Reshaping {#sec-joins}
 
-A join has two failure modes, and neither raises an error. It can
-drop rows, when a key present on one side is absent on the other,
-and the analysis then proceeds on a smaller, and possibly
-different, cohort than the one the methods section describes. Or
-it can multiply rows, when a key that should be unique is not,
-and a patient then contributes several times to an estimate that
-assumed one contribution. The first shrinks the denominator; the
-second corrupts the standard errors; both produce a data frame
-that looks exactly like the one you wanted. Arithmetic catches
-them: a stated expectation about how many rows the result should
-have, checked against how many it does.
+A join can fail in two ways, and neither raises an error. First,
+it can drop rows. This happens when a key present on one side is
+absent on the other. The analysis then proceeds on a smaller, and
+possibly different, cohort than the one the methods section
+describes. Second, it can multiply rows. This happens when a key
+that should be unique is not. A patient then contributes several
+times to an estimate that assumed one contribution. The first
+failure shrinks the denominator, and the second corrupts the
+standard errors. In both cases the data frame looks like the one
+you wanted. Simple arithmetic catches both. We state how many rows
+the result should have, and check that against how many it does.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -97,10 +97,9 @@ Almost every biostatistical project joins tables: demographics to
 outcomes, labs to medications, clinical data to imaging indices.
 The operation is one function call. The difficulty lies in the
 question the join is meant to answer, and in what the keys
-actually contain. The
-generic tour of the two-table verbs is in R for Data Science
-[@wickham2023r4ds, ch. 19]; this chapter keeps to the judgments a
-clinical dataset forces on you.
+actually contain. The generic tour of the two-table verbs is in R
+for Data Science [@wickham2023r4ds, ch. 19]. In this chapter we
+keep to the judgments that a clinical dataset requires.
 
 ### The `_join` family
 
@@ -115,12 +114,12 @@ clinical dataset forces on you.
 | `semi_join`    | Rows of `x` with a match in `y` (no `y` cols)       |
 | `anti_join`    | Rows of `x` with no match in `y`                    |
 
-`semi_join` and `anti_join` are filtering joins: they filter `x`
+`semi_join` and `anti_join` are filtering joins. They filter `x`
 based on `y` without adding `y`'s columns. The other four are
-mutating joins: they add columns.[^pandas] The choice among the
-mutating joins reduces to two questions, shown in
-@fig-join-choice: do you want to keep rows that fail to match, and
-if so, from which side.
+mutating joins, which add columns.[^pandas] The choice among the
+mutating joins comes down to two questions, shown in
+@fig-join-choice. Do you want to keep rows that fail to match? If
+so, from which side?
 
 [^pandas]: In `pandas`, the four mutating joins are one call,
     `x.merge(y, on="id", how=...)` with `how` set to `"inner"`,
@@ -215,8 +214,8 @@ anti_join(band_members, band_instruments, by = "name")
 `inner_join` keeps only John and Paul, who appear in both.
 `left_join` keeps all three band members, giving Mick an `NA`
 instrument. `full_join` keeps Keith as well, giving him an `NA`
-band. `anti_join` returns Mick alone: the band member with no
-instrument row, and it adds no columns.
+band. `anti_join` returns Mick alone, the band member with no
+instrument row, and adds no columns.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -227,19 +226,19 @@ carry?
 
 **Answer.** `anti_join(demographics, outcomes, by = "patient_id")`.
 It is a filtering join, so it carries none of the outcome table's
-columns: it returns rows of `demographics` only. A `left_join`
+columns. It returns rows of `demographics` only. A `left_join`
 followed by `filter(is.na(outcome))` gives the same patients, but
-it adds columns you then have to drop, and it misreads a patient
-whose outcome record exists with a missing value as a patient with
-no record.
+with two drawbacks. It adds columns you then have to drop. It also
+misreads a patient whose outcome record exists with a missing value
+as a patient with no record.
 :::
 
 ## Cardinality: when a join multiplies rows {#sec-joins-cardinality}
 
 ### Many-to-many joins
 
-A many-to-many join occurs when both tables have duplicate keys:
-each row in the left can match several rows in the right, and the
+A many-to-many join occurs when both tables have duplicate keys.
+Each row in the left can match several rows in the right, and the
 reverse. The result is the product of the matches for each key.
 
 ```{r}
@@ -258,9 +257,9 @@ inner_join(a, b, by = "id")
 ```
 
 `dplyr` 1.1.0 and later warns by default. Take the warning
-seriously: on a key that should be unique, it means rows have
-multiplied. The fix is not to silence it but to declare the
-relationship you expect:
+seriously. On a key that should be unique, it means rows have
+multiplied. Do not silence it. Instead, declare the relationship
+you expect:
 
 ```{r}
 #| label: joins-relationship
@@ -274,11 +273,11 @@ inner_join(a, b, by = "id", relationship = "one-to-one")
 
 ### Declaring the relationship
 
-The common case is many-to-one: several visits per patient, one
-demographics row per patient. The three small tables below are
-used by the rest of the chapter. P004 appears in `visits` but not
-in `demographics`, a gap the audits in @sec-joins-keys are there
-to catch.
+The common case is many-to-one: several visits per patient, and
+one demographics row per patient. The rest of the chapter uses the
+three small tables below. P004 appears in `visits` but not in
+`demographics`. The audits in @sec-joins-keys are designed to catch
+this kind of gap.
 
 ```{r}
 #| label: joins-fixtures
@@ -311,17 +310,18 @@ visits |>
 # errors if a patient_id appears more than once in demographics
 ```
 
-The assertion catches the data-quality bug at the join site,
-where it is easiest to debug, instead of three scripts later as a
-standard error that is too small.
+The assertion catches the data-quality bug at the join site, where
+it is easiest to debug. Without it, the bug would appear three
+scripts later as a standard error that is too small.
 
 ::: {.callout-warning title='Pitfall'}
 **A one-to-many join multiplies rows without a warning.** `dplyr`
-warns only when keys repeat on *both* sides. If each visit key is
-unique and a patient appears twice in `demographics` (a re-consent
-appended rather than replaced), `left_join(visits, demographics)`
-quietly returns an extra row for every visit of that patient. Only
-`relationship = "many-to-one"` turns this into an error.
+warns only when keys repeat on *both* sides. Suppose each visit key
+is unique, and a patient appears twice in `demographics` (a
+re-consent appended rather than replaced). Then
+`left_join(visits, demographics)` quietly returns an extra row for
+every visit of that patient. Only `relationship = "many-to-one"`
+turns this into an error.
 :::
 
 ### Exercises
@@ -348,7 +348,7 @@ left_join(vis, demo_dup, by = "patient_id")
 stopifnot(!anyDuplicated(demo_dup$patient_id))
 ```
 
-The join itself does not fail; it quietly returns more rows than
+The join itself does not fail. It quietly returns more rows than
 it received, and because `vis` has unique keys, `dplyr` does not
 even warn. The `stopifnot()` fails loudly, which is the behavior
 you want. Declaring `relationship = "many-to-one"` on the join
@@ -362,7 +362,7 @@ What likely happened, and how do you find out?
 
 **Answer.** The demographics table has duplicate `patient_id`
 values, and each duplicate creates extra rows in the join output.
-A clean many-to-one join returns 10,000 rows, one per visit; the
+A clean many-to-one join returns 10,000 rows, one per visit. The
 2,500 extra rows are the visits of patients with more than one
 demographics record. Diagnose with:
 
@@ -371,13 +371,13 @@ demographics record. Diagnose with:
 demographics |> count(patient_id) |> filter(n > 1)
 ```
 
-Fix the duplication at its source. The tempting shortcut,
-`distinct(patient_id, .keep_all = TRUE)`, keeps whichever row for
-each patient happens to come first, so it chooses a record by file
-order rather than by any rule: if the duplicates disagree on age
-or sex, which one survives is an accident. If de-duplication is
-right, state the rule in code (the most recent record, say, with
-`slice_max()` on a date column). Adding
+Fix the duplication at its source. The tempting shortcut is
+`distinct(patient_id, .keep_all = TRUE)`. It keeps whichever row
+for each patient happens to come first. That is, it chooses a
+record by file order rather than by any rule. If the duplicates
+disagree on age or sex, which one survives is an accident. If
+de-duplication is right, state the rule in code (the most recent
+record, say, with `slice_max()` on a date column). Adding
 `relationship = "many-to-one"` to the join catches the problem at
 the join site.
 :::
@@ -385,16 +385,17 @@ the join site.
 ## Keys and referential integrity {#sec-joins-keys}
 
 A join that returns the number of rows you predicted usually did
-what you meant; one that returns 'about the right number' is where
-the bugs live. The checks below run before the analytic join and
-take seconds.
+what you meant. A join that returns 'about the right number' is
+where the bugs are usually found. The checks below run before the
+analytic join and take seconds.
 
 ### Auditing keys before the join
 
 Two CRF (case report form) files that should cover the same
-patients usually do not, exactly. `anti_join()` lists the patients
-on one side that are absent from the other, which is the quickest
-way to find missing records, ID typos, or a cohort mismatch.
+patients usually do not match exactly. `anti_join()` lists the
+patients on one side that are absent from the other. It is the
+quickest way to find missing records, ID typos, or a cohort
+mismatch.
 
 ```{r}
 #| label: joins-key-audit
@@ -442,16 +443,17 @@ labs |>
 
 Document the canonical form of every identifier (character, with
 leading zeros, upper case) and check it on every read. `dplyr`
-refuses to join a character key to a numeric one, which is the
-loud case. The quiet case is two character keys that spell the
-same patient differently.
+refuses to join a character key to a numeric one. That failure is
+easy to see. The failure that is hard to see is two character keys
+that spell the same patient differently.
 
 ::: {.callout-warning title='Pitfall'}
 **Lost leading zeros match nothing, and the row count does not
 move.** If one file was read with `patient_id` as a number and
 later converted with `as.character()`, `"001"` has become `"1"`.
 A `left_join` on that key returns every row of the left table,
-the count you expected, with `NA` in every right-hand column.
+which is the count you expected. However, every right-hand column
+is `NA`.
 Read identifiers as character from the start
 (`col_types = cols(patient_id = col_character())`).
 :::
@@ -482,7 +484,7 @@ rows_upsert(target, source, by = "id")
 rows_patch(target, source, by = "id", unmatched = "ignore")
 ```
 
-`rows_upsert` adds new patients and updates existing ones;
+`rows_upsert` adds new patients and updates existing ones.
 `rows_patch` fills in missing values without overwriting existing
 ones.
 
@@ -508,9 +510,9 @@ stopifnot(nrow(merged) == 3)
 ```
 
 P002 is updated in place rather than duplicated, and P003 is
-inserted. The row count is the check that distinguishes an upsert
-from an accidental `bind_rows()`, which would have produced four
-rows and two conflicting records for P002.
+inserted. The row count distinguishes an upsert from an accidental
+`bind_rows()`. The latter would have produced four rows and two
+conflicting records for P002.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -524,26 +526,28 @@ visits could have failed to match, and `left_join` would still
 return exactly 500 rows, each with `NA` in every demographics
 column. The lost-leading-zeros case above does exactly this.
 
-Two checks catch it and the count does not. Count the `NA`s in a
-column that came from the right-hand table, which should be zero
-if every visit has demographics. And run the anti-join:
+The count does not catch this, but two other checks do. First,
+count the `NA`s in a column that came from the right-hand table.
+The count should be zero if every visit has demographics. Second,
+run the anti-join:
 
 ```r
 visits |> anti_join(demographics, by = "patient_id") |>
   distinct(patient_id)
 ```
 
-An empty result means every key matched; a result listing every
+An empty result means every key matched. A result listing every
 patient means the join silently did nothing. `nrow()` is a
 structural check, in the sense @sec-testing gives that term, and
-structural checks pass on wrong answers.
+structural checks can pass on wrong answers.
 :::
 
 ## Reshaping and stacking sources {#sec-joins-reshaping}
 
-Some joins need wide data and others long; @sec-wrangling covers
-`pivot_longer()` and `pivot_wider()`. When several sources hold
-alternative measurements of the same kind, the usual pattern is:
+Some joins need wide data and others need long data.
+@sec-wrangling covers `pivot_longer()` and `pivot_wider()`. When
+several sources hold alternative measurements of the same kind,
+the usual pattern is:
 
 1. Convert each source to long format with consistent column names.
 2. Stack the sources with `bind_rows()` rather than joining them.
@@ -565,10 +569,10 @@ b_long <- read_csv("siteB.csv") |>
 combined <- bind_rows(a_long, b_long)
 ```
 
-`bind_rows()` stacks; `bind_cols()` places tables side by side by
-position, which is rarely correct for clinical data, because
-nothing checks that row 12 of one table is the same patient as row
-12 of the other. When the tables share a key, join on it.
+`bind_rows()` stacks tables. `bind_cols()` places tables side by
+side by position. That is rarely correct for clinical data,
+because nothing checks that row 12 of one table is the same patient
+as row 12 of the other. When the tables share a key, join on it.
 
 ### Exercises
 
@@ -612,16 +616,16 @@ expects one row per visit?
 **Answer.** One-to-many: a visit with two tests appears twice.
 Any per-visit model then counts that visit twice. Pivot `labs`
 wide first, to one row per visit, and declare
-`relationship = "one-to-one"` on the join; the worked example
+`relationship = "one-to-one"` on the join. The worked example
 below does both.
 :::
 
 ## Worked example: a multi-source patient cohort {#sec-joins-worked}
 
 The script below runs against the three fixture tables shown
-earlier, written out as files so that it reads them as it would
-read a real export. P004, who has visits but no demographics row,
-is planted, so the audit warns once.
+earlier. They are written out as files, so that the script reads
+them as it would read a real export. P004, who has visits but no
+demographics row, is planted deliberately, so the audit warns once.
 
 ```{r}
 #| label: joins-worked-example
@@ -681,20 +685,20 @@ saveRDS(analytic, file.path(src, "analytic.rds"))
 analytic
 ```
 
-The script cleans names, verifies key uniqueness (on the composite
-key for the long `labs` table), runs an `anti_join()` audit,
-reshapes `labs` to one row per visit, performs the joins with
-explicit `relationship` declarations, and asserts the final row
-count. Joining the long `labs` table directly would have been
-one-to-many and would have returned seven rows from six visits,
-failing the final check. A reviewer can read the script and trust
-the join semantics without re-deriving them.
+The script cleans names and verifies key uniqueness, using the
+composite key for the long `labs` table. It runs an `anti_join()`
+audit and reshapes `labs` to one row per visit. It then performs
+the joins with explicit `relationship` declarations, and asserts
+the final row count. Joining the long `labs` table directly would
+have been one-to-many. It would have returned seven rows from six
+visits and failed the final check. A reviewer can read the script
+and trust the join semantics without re-deriving them.
 
 `unmatched = "error"` is the companion to `relationship`.
-`relationship` constrains how many rows each key matches;
+`relationship` constrains how many rows each key matches.
 `unmatched` constrains whether keys go unmatched at all. For a
-left join it checks only the right-hand table, so here it stops
-the script if a patient in `demographics` has no visits, while the
+left join it checks only the right-hand table. Here, therefore, it
+stops the script if a patient in `demographics` has no visits. The
 `anti_join()` audit covers the other direction.
 
 ::: {.callout-tip title='Verification'}
@@ -736,9 +740,9 @@ first three rows take seconds and catch most join bugs before
 they happen. {#tbl-join-checklist}
 
 ::: {.callout-important title='LLM prompt'}
-An agentic version: a coding agent adds the assertions and runs
-the script, and you review the evidence it reports rather than
-only its code.
+In an agentic version, a coding agent adds the assertions and runs
+the script. You then review the evidence it reports, not only its
+code.
 
 > **Context.** `R/build_analytic.R` joins `visits` (key
 > `visit_id`; `patient_id` repeats) to `demographics` (one row per
@@ -760,10 +764,10 @@ only its code.
 > report it instead of fixing it.
 
 *Failure mode.* The agent silences a failing check by declaring
-`"many-to-many"` or inserting `distinct()`, which hides the
-duplicate the check found. *Check.* Search the diff for
-`many-to-many`, `distinct(`, and new `filter(` calls; then run the
-script yourself and walk @tbl-join-checklist. The agent sees the
+`"many-to-many"` or inserting `distinct()`. Either change hides the
+duplicate that the check found. *Check.* Search the diff for
+`many-to-many`, `distinct(`, and new `filter(` calls. Then run the
+script yourself and go through @tbl-join-checklist. The agent sees the
 dictionary, code, and synthetic rows, never patient data
 (@sec-ai-governance).
 :::
@@ -777,8 +781,8 @@ one-to-one. Pivoting first makes `visit_id` unique in `labs_wide`,
 so `relationship = "one-to-one"` can be declared and the final
 `nrow(analytic) == nrow(visits)` check can hold. Joining the long
 table and pivoting afterward would multiply the visit rows in the
-intermediate result, and any summary computed on that
-intermediate would silently count some visits twice.
+intermediate result. Any summary computed on that intermediate
+would silently count some visits twice.
 :::
 
 ## Rules of thumb
@@ -787,8 +791,8 @@ intermediate would silently count some visits twice.
    count, declare `relationship =` and, where it applies,
    `unmatched = "error"`, and let the code refuse anything else.
 2. **Habit 8: a join that drops or multiplies rows produces a
-   plausible number.** A matching row count is a structural check;
-   pair it with an anti-join audit and an `NA` count on the
+   plausible number.** A matching row count is a structural check.
+   Pair it with an anti-join audit and an `NA` count on the
    right-hand columns.
 3. **Habit 7: convert late, validate early.** Read identifiers as
    character, document their canonical form, and check it before
@@ -846,7 +850,7 @@ intermediate would silently count some visits twice.
    present in `y`. In a biomedical cleanup workflow it answers:
    'Which patients appear in my outcome file but not in the lab
    data?' (or the reverse). It thereby exposes missing records,
-   miscoded IDs, or mismatched cohorts; it does not detect
+   miscoded IDs, or mismatched cohorts. It does not detect
    duplicate IDs, which need a `count()` on the key. Run it
    before the analytic join, so that problems surface early.
 3. `table_a |> left_join(table_b, by = 'patient_id', relationship = 'many-to-one')`.

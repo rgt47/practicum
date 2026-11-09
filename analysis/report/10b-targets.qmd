@@ -1,16 +1,17 @@
 # Reproducible Pipelines with targets {#sec-targets}
 
-Table 2 of a trial manuscript reports the primary outcome by arm,
-and it was built from an analysis-set file that a cleaning script
+Table 2 of a trial manuscript reports the primary outcome by arm.
+It was built from an analysis-set file that a cleaning script
 wrote on Tuesday. On Wednesday a colleague noticed that the script
 counted every patient whose outcome was never ascertained as
 event-free, and fixed it. You re-ran the cleaning script and the
-model, but not the script that writes Table 2, because nothing told
-you to. The manuscript now reports risks from Tuesday's analysis
-set beside a model fitted to Wednesday's; every number is
-plausible, and no step raised an error. A dependency-aware pipeline
-makes that state impossible: it knows that Table 2 depends on the
-analysis set, and it rebuilds the one whenever the other changes.
+model. You did not re-run the script that writes Table 2, because
+nothing told you to. The manuscript now reports risks from
+Tuesday's analysis set beside a model fitted to Wednesday's. Every
+number is plausible, and no step raised an error. A
+dependency-aware pipeline makes that state impossible. It knows
+that Table 2 depends on the analysis set, and it rebuilds the
+table whenever the analysis set changes.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -116,26 +117,28 @@ An analysis is a chain of steps: read the raw data, derive the
 analysis set, summarize it, fit a model, write the report. When
 you change one step, everything downstream of it becomes stale,
 and everything upstream remains sound. Doing this bookkeeping by
-hand means remembering which steps to re-run after every change,
-and the errors it produces are silent: a table built from a stale
-intermediate looks exactly like a table built from a current one.
+hand means remembering which steps to re-run after every change.
+The errors it produces are silent. That is, a table built from a
+stale intermediate looks exactly like a table built from a current
+one.
 
 The `targets` package [@landau2021targets] automates the
-bookkeeping. You declare the steps; `targets` works out their
+bookkeeping. You declare the steps. `targets` works out their
 dependencies and order, runs only what has changed and what
 depends on it, and skips the rest. It is the R successor to GNU
-Make, designed around R objects rather than files. The payoff is
-partly speed, but mostly trust: when `targets` reports that a
-target is up to date, it reflects the current code and data,
-which a hand re-run cannot promise.
+Make, designed around R objects rather than files. The benefit is
+partly speed, but mostly trust. When `targets` reports that a
+target is up to date, the target reflects the current code and
+data. A hand re-run cannot promise that.
 
 The organizing idea is the [**directed acyclic graph**](F-glossary.qmd#gloss-dag) (DAG). Each
 step is a node; an arrow from step A to step B means B uses A's
-output. 'Directed' because dependencies have a direction;
-'acyclic' because a step cannot, even indirectly, depend on
-itself. Given the graph, the order of execution is determined, and
-so is the set of steps that a change makes stale: everything
-reachable by following the arrows forward from the changed node.
+output. The graph is 'directed' because dependencies have a
+direction. It is 'acyclic' because a step cannot depend on itself,
+even indirectly. Given the graph, the order of execution is
+determined. So is the set of steps that a change makes stale:
+everything reachable by following the arrows forward from the
+changed node.
 @fig-targets-dag is the graph of the pipeline this chapter builds;
 each node is named after its target.
 
@@ -164,16 +167,17 @@ flowchart TD
   T2 -.-> REP["report"]
 ```
 
-The graph is only as clear as the decomposition it encodes, and
-you make the decomposition; the tool only records it. Make each
-target a meaningful unit (read, derive, summarize, model, report),
-each computed by a function with explicit inputs and one output,
-rather than one thousand-line script that a single target wraps.
-A target that does too much is rebuilt for every small change; a
-target that does too little clutters the graph without adding
-information. The finished plan is also documentation: `_targets.R`
-states what depends on what, and it is often the most useful
-single file for a collaborator new to the project.
+The graph is only as clear as the decomposition it encodes. You
+make the decomposition; the tool only records it. Make each target
+a meaningful unit (read, derive, summarize, model, report). Each
+should be computed by a function with explicit inputs and one
+output, rather than by one thousand-line script that a single
+target wraps. A target that does too much is rebuilt for every
+small change. A target that does too little clutters the graph
+without adding information. We note that the finished plan is also
+documentation. `_targets.R` states what depends on what, and it is
+often the most useful single file for a collaborator new to the
+project.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** In @fig-targets-dag, you edit the function behind
@@ -209,7 +213,7 @@ The pipeline reads the HF-HOME randomization list and outcomes
 file, derives the analysis set, and summarizes the primary outcome
 by arm as the manuscript's Table 2. The chunks below build it in a
 temporary directory, so that running them changes nothing in the
-book's own project; in your own work the same files live at the
+book's own project. In your own work the same files live at the
 root of the compendium.
 
 ```{r}
@@ -301,20 +305,20 @@ list(
 `tar_source()` sources every script in `R/`. Declaring `rand_file`
 and `outcomes_file` with `format = "file"` tells `targets` to watch
 the files' contents, so that a new extract invalidates everything
-downstream. The dependencies are not declared explicitly;
-`targets` reads them from the code, noticing that `analysis_set`
+downstream. The dependencies are not declared explicitly. Instead,
+`targets` reads them from the code. It notices that `analysis_set`
 uses `randomization` and `outcomes`, that `table_2` uses
 `analysis_set`, and so on. That is how it builds the graph in
 @fig-targets-dag without your drawing it.
 
-`tar_option_set(packages = ...)` names the packages every
-target needs. `targets` runs each target in a clean
-environment, so a `library()` call at the top of a script
-you sourced interactively does not carry over; packages
-the functions in `R/` use must be listed here (or called
-with `pkg::fn()`). The functions above call `read_csv()` and
-`inner_join()` without a namespace, so without that line every
-target after the file targets would fail.
+`tar_option_set(packages = ...)` names the packages every target
+needs. `targets` runs each target in a clean environment. A
+`library()` call at the top of a script you sourced interactively
+therefore does not carry over. The packages that the functions in
+`R/` use must be listed here (or called with `pkg::fn()`). The
+functions above call `read_csv()` and `inner_join()` without a
+namespace. Without that line, every target after the file targets
+would fail.
 
 ### Running it
 
@@ -489,11 +493,10 @@ table_2_v2
 ```
 
 The two reads are skipped and the two stale targets are rebuilt.
-The fix to the derivation reached Table 2 without your
-remembering it, so the failure in the opening cannot recur. On a
-pipeline whose model fit takes an
-hour, the same mechanism is the difference between an iteration
-that costs minutes and one that costs the hour.
+The fix to the derivation reached Table 2 without your having to
+remember it, so the failure in the opening cannot recur. Consider
+a pipeline whose model fit takes an hour. There the same mechanism
+means that an iteration costs minutes rather than the full hour.
 
 ::: {.callout-tip title='Verification'}
 Confirm that the rebuilt table now counts only ascertained
@@ -516,25 +519,25 @@ stopifnot(
 **A file read inside a function is invisible to `targets`.** If a
 function opens `"data/outcomes.csv"` by its path, rather than
 receiving the path from a `format = "file"` target, `targets`
-tracks the function's code but not the file. Replace the file with
-a new extract and `tar_outdated()` reports nothing, `tar_make()`
-skips everything, and Table 2 is stale again, with the tool
-vouching for it. The same holds for any global variable or
-option a function reads. Pass every input as an argument, and
+tracks the function's code but not the file. Suppose you replace
+the file with a new extract. Then `tar_outdated()` reports nothing
+and `tar_make()` skips everything. Table 2 is stale again, and the
+tool reports it as current. The same holds for any global
+variable or option a function reads. Pass every input as an argument, and
 declare every file with `format = "file"`. Exercise 3 shows the
 failure.
 :::
 
 Two further assumptions belong to you rather than to the tool.
-The first is determinism: a pipeline assumes that the same inputs
-produce the same outputs. `targets` gives each target its own
-random-number seed, derived from the seed option
-(`tar_option_set(seed = ...)`) and the target's name, so a
-simulation or bootstrap target reproduces its draws however the
-pipeline is scheduled; a target that reads the clock or an
-unpinned package defeats that. The second is the environment: the
-pipeline records code and data, not package versions, which is
-the lockfile's job (@sec-renv).
+The first is determinism. That is, a pipeline assumes that the
+same inputs produce the same outputs. `targets` gives each target
+its own random-number seed, derived from the seed option
+(`tar_option_set(seed = ...)`) and the target's name. A simulation
+or bootstrap target therefore reproduces its draws however the
+pipeline is scheduled. A target that reads the clock or an
+unpinned package defeats that. The second assumption is the
+environment. The pipeline records code and data, not package
+versions; recording versions is the lockfile's job (@sec-renv).
 
 ::: {.callout-important title='LLM prompt'}
 When `targets` rebuilds more than you expected, or less, a model
@@ -636,10 +639,11 @@ risk <- setNames(table_2_v2$risk_pct, table_2_v2$arm)
 risk[["Usual care"]] - risk[["Home health"]]
 ```
 
-The difference is a few points in favor of home health, from
-rounded risks; an estimate for the manuscript belongs in its own
-target, with a confidence interval, computed from `analysis_set`
-rather than from a rounded table. The analysis plan's primary
+The difference is a few points in favor of home health, computed
+from rounded risks. An estimate for the manuscript belongs in its
+own target, with a confidence interval. It should be computed from
+`analysis_set` rather than from a rounded table. The analysis
+plan's primary
 estimator is in @sec-analysis-plan.
 :::
 
@@ -649,12 +653,12 @@ The opening's failure ended in the manuscript, so the pipeline
 should end there too. The `report` target sketched in
 @fig-targets-dag would call a function of your own that renders
 the document. When the report is a Quarto document, use
-`tarchetypes::tar_quarto(report, "report.qmd")` instead:
-it renders the document and reads the `tar_read()` and
-`tar_load()` calls inside it, so the report becomes
-stale whenever a target it reads changes. The addition to the plan
-is two lines (display-only here, because it needs the
-`tarchetypes` and `quarto` packages and a report to render):
+`tarchetypes::tar_quarto(report, "report.qmd")` instead. It
+renders the document and reads the `tar_read()` and `tar_load()`
+calls inside it. The report then becomes stale whenever a target
+it reads changes. The addition to the plan is two lines. They are
+display-only here, because they need the `tarchetypes` and
+`quarto` packages and a report to render:
 
 ```r
 library(tarchetypes)
@@ -675,9 +679,9 @@ targets::tar_read(table_2)
 ````
 
 A report that recomputes its numbers in its own chunks, rather
-than reading them from targets, is outside the graph again:
-`targets` cannot know that it depends on the analysis set, and it
-can go stale exactly as Table 2 did. @sec-quarto covers the
+than reading them from targets, is outside the graph again.
+`targets` cannot know that the report depends on the analysis set,
+and the report can go stale exactly as Table 2 did. @sec-quarto covers the
 document itself and the inline numbers it should carry.
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -691,8 +695,9 @@ and is the rendered report current?
 `tar_quarto()` found no `tar_read()` or `tar_load()` call in the
 document, so the report depends on nothing in the pipeline, and
 its copy of the derivation still holds Tuesday's mistake. The
-pipeline is current and the report is not: the opening's failure,
-one file later. Read every reported number from a target.
+pipeline is current and the report is not. This is the opening's
+failure again, one file later. Read every reported number from a
+target.
 :::
 
 ### Exercises
@@ -712,16 +717,15 @@ does not read the table with `tar_read()` or `tar_load()`, so
 
 ## Pipelines in the compendium and the container {#sec-targets-compendium}
 
-A `targets` pipeline sits naturally inside the research
-compendium of @sec-rrtools: the `_targets.R` plan and the
-`R/` functions live in the package structure, `renv`
-(@sec-renv) pins the packages the pipeline uses, and the
-Dockerfile (@sec-docker) can end with `CMD ["Rscript",
-"-e", "targets::tar_make()"]` so that running a container
-from the image executes the entire analysis. `CMD` runs
-when the container starts, not when the image is built;
-building only prepares the environment, which is what you
-want, since an image that baked in results would have to
+A `targets` pipeline fits naturally inside the research
+compendium of @sec-rrtools. The `_targets.R` plan and the `R/`
+functions live in the package structure, and `renv` (@sec-renv)
+pins the packages the pipeline uses. The Dockerfile (@sec-docker)
+can end with `CMD ["Rscript", "-e", "targets::tar_make()"]`, so
+that running a container from the image executes the entire
+analysis. `CMD` runs when the container starts, not when the
+image is built. Building only prepares the environment. That is
+what you want, since an image that baked in results would have to
 be rebuilt for every change to the code.
 
 The store, `_targets/`, holds every built target. Commit
@@ -791,26 +795,27 @@ withr::with_dir(proj, targets::tar_meta(fields = c(
 `tar_meta()` returns one row per target with its build time, any
 warning or error it raised, and (with other fields) the hash of
 its code and data, which is what `tar_outdated()` reads to decide
-staleness. It is the pipeline's own bookkeeping, and it was not
+staleness. It is the pipeline's own bookkeeping. It was not
 written to be read on its own as an account of a run in an audit
-file, which becomes a gap once a pipeline's output feeds a
+file. That becomes a gap once a pipeline's output feeds a
 regulatory submission.
 
-Two of the gaps in `tar_meta()` as an audit record are worth
-naming before reaching for another tool. First, it describes the
-store, not a single execution: a target with `seconds = 0.3` and no
-error could have been built just now, or weeks ago on a different
+Two of the gaps in `tar_meta()` as an audit record should be named
+before we reach for another tool. First, it describes the store,
+not a single execution. A target with `seconds = 0.3` and no error
+could have been built just now, or weeks ago on a different
 machine, and `tar_meta()` alone does not say which. (`tar_meta()`
 does include a `time` field recording the most recent build's
-timestamp, but a submission-grade run log usually wants the start
-and end of a whole pipeline execution, not of each target
+timestamp. However, a submission-grade run log usually wants the
+start and end of a whole pipeline execution, not of each target
 separately.) Second, it records nothing about the R session that
 built the targets beyond what the project's `renv.lock` separately
-pins; if a target was built under an R or package version that
-later drifted from the lockfile, `tar_meta()` would not flag it,
-`renv::status()` would (@sec-renv). A run log meant to satisfy an
-external reviewer needs both: a session-level record of what ran
-and when, and a target-level record of what it depended on.
+pins. Suppose a target was built under an R or package version
+that later drifted from the lockfile. `tar_meta()` would not flag
+it, but `renv::status()` would (@sec-renv). A run log meant to
+satisfy an external reviewer needs both records. That is, it needs
+a session-level record of what ran and when, and a target-level
+record of what each target depended on.
 
 ### Structured logging in general-purpose R
 
@@ -829,47 +834,48 @@ log_threshold(INFO)
 log_info('starting analysis_set derivation, {nrow(randomization)} rows')
 ```
 
-These give a pipeline step a log line it would not otherwise have,
-but writing good `logger` calls by hand, at every step that matters,
-is the discipline to maintain, and nothing checks that you did it
+These give a pipeline step a log line it would not otherwise have.
+However, you have to write good `logger` calls by hand, at every
+step that matters, and nothing checks that you did it
 consistently.
 
 ### Run-logging tools built for an audit trail
 
 Two R packages, both on CRAN as of this writing, are built
-specifically to produce a record of a script's execution suitable
-as an audit trail, in the sense regulated clinical trial programming
-means by that phrase: the `pharmaverse` ecosystem's `logrx`
-[@pharmaverse2025logrx], and Novo Nordisk's `whirl`
-[@novonordisk2025whirl]. Both target clinical programming workflows
-more directly than general data science, so they are worth knowing
-about rather than reaching for by default.
+specifically to produce a record of a script's execution. The
+record is meant to serve as an audit trail, in the sense regulated
+clinical trial programming gives that phrase. The packages are the
+`pharmaverse` ecosystem's `logrx` [@pharmaverse2025logrx], and
+Novo Nordisk's `whirl` [@novonordisk2025whirl]. Both target
+clinical programming workflows more directly than general data
+science. They are therefore worth knowing about, but not worth
+reaching for by default.
 
-`logrx` wraps the execution of a single R script and writes a log
-that records the code that ran, the session information (R version,
-attached packages and their versions, platform), and flags any
-function call from a package that is not on an approved list, which
-is the detail that makes it useful for a submission where every
+`logrx` wraps the execution of a single R script and writes a log.
+The log records the code that ran and the session information (R
+version, attached packages and their versions, platform). It also
+flags any function call from a package that is not on an approved
+list. That detail makes it useful for a submission where every
 function used must be traceable to a validated package. `whirl`
-runs one or more scripts (`whirl::run()`, with an option to run them
-in parallel) and, using the Quarto command line tool, writes each
-script its own human-readable HTML log recording its status (ran
-clean, warned, or errored), the executed code, the timestamp, and
-the session's package versions, plus a summary page across all the
-scripts in a batch.
+runs one or more scripts (`whirl::run()`, with an option to run
+them in parallel). Using the Quarto command line tool, it writes
+each script its own human-readable HTML log. The log records the
+script's status (ran clean, warned, or errored), the executed
+code, the timestamp, and the session's package versions. `whirl`
+also writes a summary page across all the scripts in a batch.
 
-Neither package knows about `targets`' dependency graph; what each
+Neither package knows about `targets`' dependency graph. What each
 adds is a readable, archivable artifact of one execution, which
-`tar_meta()` does not produce. A pipeline that must satisfy an audit
-requirement can run `tar_make()` from inside a script that `whirl`
-or `logrx` wraps, so that the resulting log records the whole
-pipeline run (R version, package versions, start and end time)
-alongside the metadata `targets` itself keeps about which targets
-built and which were current. Treat this as a pointer rather than a
-recommendation to adopt either package without checking its current
-documentation against your submission's requirements: both are
-actively maintained, and neither is installed here, so every code
-block above is display-only.
+`tar_meta()` does not produce. A pipeline that must satisfy an
+audit requirement can run `tar_make()` from inside a script that
+`whirl` or `logrx` wraps. The resulting log then records the whole
+pipeline run (R version, package versions, start and end time).
+It sits alongside the metadata `targets` itself keeps about which
+targets built and which were current. Treat this as a pointer, not
+as a recommendation to adopt either package. Check its current
+documentation against your submission's requirements first. Both
+are actively maintained, and neither is installed here, so every
+code block above is display-only.
 
 Which of `logrx` and `whirl` fits a given project depends on how the
 scripts are organized. `logrx` wraps one script at a time and leans
@@ -878,10 +884,10 @@ whose validation plan names an approved package list. `whirl` runs
 one or several scripts, in parallel if asked, and produces a
 Quarto-rendered log per script plus a batch summary, which suits a
 pipeline broken into several standalone programs rather than one
-`targets` plan. Either sits beside `targets` rather than inside it:
-the log records that the pipeline ran and under what environment,
-and `tar_meta()` and `tar_outdated()` remain the tools that say
-whether what ran was actually current.
+`targets` plan. Either sits beside `targets` rather than inside
+it. The log records that the pipeline ran and under what
+environment. `tar_meta()` and `tar_outdated()` remain the tools
+that say whether what ran was actually current.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A collaborator asks, 'does `tar_meta()` give us
@@ -921,57 +927,58 @@ versions.
 
 ## Make and Snakemake beside targets {#sec-targets-make}
 
-`targets` is not the only dependency-aware build tool, and a
+`targets` is not the only dependency-aware build tool. A
 biostatistician moves between ecosystems often enough that the
-other two are worth placing on the same map.
+other two are worth comparing with it.
 
-**GNU Make**, the tool `targets`' epigraph credits, is older, far
-more ubiquitous, and language-agnostic: it ships on nearly every
-Unix-like system, and a `Makefile` can orchestrate steps written in
-R, Python, shell, or anything else, simply by calling each as a
-command-line program. Its staleness check is the file's modification
-timestamp, not the content or the code that produced it, which is
-both Make's simplicity and its limitation. Touching a file without
-changing its content makes Make think it is stale; editing the
-function behind a target without touching any file on disk, the
-everyday case `targets` tracks correctly through `tar_outdated()`,
-makes Make think nothing changed. Make is a reasonable choice for
-gluing together steps in different languages at a coarse grain (run
-the R pipeline, then a Python script, then a report), and a poor
-substitute for `targets`' fine-grained, R-object-aware caching inside
-an R analysis.
+**GNU Make**, the tool the chapter's epigraph credits, is older,
+far more widely installed, and language-agnostic. It ships on
+nearly every Unix-like system. A `Makefile` can orchestrate steps
+written in R, Python, shell, or anything else, by calling each as
+a command-line program. Its staleness check is the file's
+modification timestamp, not the content or the code that produced
+it. That is both Make's simplicity and its limitation. Touching a
+file without changing its content makes Make think it is stale.
+Conversely, editing the function behind a target without touching
+any file on disk makes Make think nothing changed. That is the
+everyday case `targets` tracks correctly through `tar_outdated()`.
+Make is a reasonable choice for joining steps in different
+languages at a coarse grain (run the R pipeline, then a Python
+script, then a report). It is a poor substitute for `targets`'
+fine-grained, R-object-aware caching inside an R analysis.
 
 **Snakemake** is the Python ecosystem's closer analogue to
-`targets`: a workflow manager built around rules with declared inputs
-and outputs, assembled into a dependency graph, with its own
-staleness checking and, notably, strong support for scaling a
-pipeline across a cluster's job scheduler, including SLURM
-(@sec-cloud-hpc), with far less hand-written batch-script boilerplate
-than @sec-cloud shows for a bare job array. A biostatistician who
-collaborates with a bioinformatics or computational-biology group,
-where Snakemake is close to a lingua franca, will meet it on the
-Python side of a mixed project even when the statistical analysis
-stays in R.
+`targets`. It is a workflow manager built around rules with
+declared inputs and outputs, assembled into a dependency graph,
+with its own staleness checking. It also has strong support for
+scaling a pipeline across a cluster's job scheduler, including
+SLURM (@sec-cloud-hpc). It needs far less hand-written
+batch-script boilerplate than @sec-cloud shows for a bare job
+array. Snakemake is close to a common language in bioinformatics
+and computational-biology groups. A biostatistician who
+collaborates with such a group will meet it on the Python side of
+a mixed project, even when the statistical analysis stays in R.
 
 ### Python interoperability from an R-primary compendium
 
 A project that is R-primary but needs one Python step (an
 off-the-shelf machine learning library, say, with no R equivalent)
 has two ways to call it without leaving the `targets` pipeline.
-`reticulate` embeds a Python session inside the R session, so a
-`tar_target()` can call a Python function and receive its result
-back as an R object directly, at the cost of keeping both
+`reticulate` embeds a Python session inside the R session. A
+`tar_target()` can then call a Python function and receive its
+result back directly as an R object. The cost is that both
 languages' environments (an R library and a Python environment)
-pinned and compatible, which doubles the surface @sec-renv and
-@sec-docker have to cover. The plainer alternative is to shell out:
-a target whose command is `system2('python3', c('script.py',
-input_path))`, with the Python script reading and writing files
-that are themselves `targets` inputs and outputs (`format = "file"`
-on each side of the boundary). Shelling out loses `reticulate`'s
-convenient object passing, but it keeps the two languages' package
-management fully separate, and it is often the simpler choice for
-a single well-defined step rather than a continuously interleaved
-R-and-Python analysis.
+must be kept pinned and compatible. That doubles the surface
+@sec-renv and @sec-docker have to cover. The plainer alternative
+is to shell out. That is, a target's command is
+`system2('python3', c('script.py', input_path))`. The Python
+script reads and writes files that are themselves `targets` inputs
+and outputs (`format = "file"` on each side of the boundary).
+Shelling out loses `reticulate`'s convenient object passing.
+However, it keeps the two languages' package management fully
+separate. It is often the simpler choice for a single well-defined
+step, as opposed to a continuously interleaved R-and-Python
+analysis.
 
 R and Python can be mixed under any of these tools; the choice is
 which ecosystem's tool organizes the whole pipeline. Both Make and
@@ -982,13 +989,13 @@ The practical rule of thumb for a mostly-R biostatistics project is
 to let the language that does most of the analytical work own the
 pipeline, and to treat the other language's steps as single,
 well-defined targets or rules rather than interleaving the two
-throughout. A pipeline that calls `reticulate` from inside one
-`tar_target()` and also shells out to `Rscript` from inside one
-Snakemake `rule`, in the same project, usually means the team never
-settled the question and is paying the cost of both tools' setup at
-once: two lockfiles (`renv.lock` and a Python environment file), two
-dependency graphs to reason about, and two places a stale
-intermediate could hide. Settling it early, even informally, is
+throughout. Consider a project whose pipeline calls `reticulate`
+from inside one `tar_target()` and also shells out to `Rscript`
+from inside one Snakemake `rule`. That usually means the team
+never settled the question. It is paying the cost of both tools'
+setup at once: two lockfiles (`renv.lock` and a Python environment
+file), two dependency graphs to reason about, and two places a
+stale intermediate could hide. Settling it early, even informally, is
 worth more than either tool's specific features.
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -996,11 +1003,12 @@ worth more than either tool's specific features.
 `targets` pipeline in Make, arguing that 'everyone already has
 `make`'. What would the team lose?
 
-**Answer.** Make's staleness check is the file timestamp, so it
-would have to read and write every intermediate (the analysis set,
-the table) to a file, and a change to a function's code with no
-file touched would go undetected unless the Makefile recipe also
-hashed the function source, which is work `targets` already does.
+**Answer.** Make's staleness check is the file timestamp. The
+pipeline would therefore have to read and write every intermediate
+(the analysis set, the table) to a file. A change to a function's
+code with no file touched would go undetected, unless the Makefile
+recipe also hashed the function source. `targets` already does
+that work.
 The team would gain ubiquity and language-agnosticism and lose
 `targets`' R-object-aware dependency tracking, `tar_outdated()`'s
 prediction of what will rebuild, and the ability to keep
@@ -1021,12 +1029,12 @@ Snakemake organizing the whole pipeline, with the R step called by
 shelling out to `Rscript`, or `targets` organizing it, with the
 Python step called through `reticulate` or shelled out to `python3`.
 The consideration is which language the team is more fluent in for
-maintaining the pipeline's own logic (not just the analysis code):
-a team that lives in Python day to day will find Snakemake's rules
-more natural to extend, and a team centered on R, with only one
-Python step, may prefer to keep `targets` as the organizing tool and
-treat Python as a dependency called from one target, the way this
-section's `reticulate` and shell-out options do.
+maintaining the pipeline's own logic (not just the analysis code).
+A team that works in Python day to day will find Snakemake's rules
+more natural to extend. A team centered on R, with only one Python
+step, may prefer to keep `targets` as the organizing tool. It
+would treat Python as a dependency called from one target, the way
+this section's `reticulate` and shell-out options do.
 :::
 
 ## Rules of thumb

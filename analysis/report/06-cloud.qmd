@@ -2,17 +2,17 @@
 
 A doctoral student submitted a simulation study to the university
 cluster as 200 array tasks and went home. By morning the queue was
-empty and the results directory held 169 files: 31 tasks had
-exceeded the default memory request and been killed, and the
+empty and the results directory held 169 files. That is, 31 tasks
+had exceeded the default memory request and been killed. The
 scheduler had recorded the fact in a log nobody opened. The
-summary script averaged the files it found, and the power table in
+summary script averaged the files it found. The power table in
 the draft reported the planned number of replicates for every
 scenario, including the largest trials, where the losses were
-concentrated. Running out of memory is ordinary; what made this
+concentrated. Running out of memory is ordinary. What made this
 failure expensive was that it was silent. This chapter is about
 running work on someone else's computer, a shared cluster or a
-rented cloud machine, without losing the job, the data
-governance, or the budget.
+rented cloud machine. The aim is to do so without losing the job,
+the data governance, or the budget.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -103,13 +103,14 @@ answers are in @sec-quiz-answers-06.
 
 Some analyses outgrow a laptop: multi-core simulations,
 genome-scale pipelines, multi-hour model fits. Whether to 'move to
-the cloud' is a procurement question; the question that decides
-the remedy is which specific resource has run out. Wall-clock time, memory, and the availability of your own machine
-are three different shortages with three different remedies, and
-an analyst who has named the shortage correctly usually finds
-that the cheapest adequate remedy is not the public cloud.
-@fig-compute-tier puts the tiers in the order a working academic
-biostatistician should try them.
+the cloud' is a procurement question. The question that decides
+the remedy is which specific resource has run out. Wall-clock
+time, memory, and the availability of your own machine are three
+different shortages, and each has its own remedy. An analyst who
+has named the shortage correctly usually finds that the cheapest
+adequate remedy is not the public cloud. @fig-compute-tier puts
+the tiers in the order a working academic biostatistician should
+try them.
 
 ```{mermaid}
 %%| echo: false
@@ -152,40 +153,40 @@ processing unit. The three shortages differ in kind:
 
 Be careful with the arithmetic of the first row, because the naive
 version oversells the result. Doubling the cores does not halve
-the time: the serial part of the job does not speed up at all, and
-the coordination overhead grows with the core count. A simulation
-that uses 4 cores does not benefit from a 32-core machine. The
-second row is a different purchase. On a large-memory machine the
-wall-clock time may be no better than the laptop's would have
-been had the laptop been able to run the job at all, so the cost
-has to be justified by feasibility alone.
+the time. The serial part of the job does not speed up at all,
+and the coordination overhead grows with the core count. A
+simulation that uses 4 cores does not benefit from a 32-core
+machine. The second row is a different purchase. On a
+large-memory machine the wall-clock time may be no better than
+the laptop's, had the laptop been able to run the job at all. The
+cost therefore has to be justified by feasibility alone.
 
-Remote compute is the wrong answer in three cases, and they share
-a cause: the round trip to a machine that is not in front of you.
-*Interactive exploration* over SSH is laggy, and
-exploration is exactly the phase in which you issue many small
-commands and look at each result. Anything *latency-sensitive*, a
-Shiny app under active debugging above all, is worse for the same
-reason. And a *short analysis* is not worth provisioning at any
-speed, because thirty seconds of computation is dwarfed by the
-minutes of setup, transfer, and teardown around it.
+Remote compute is the wrong answer in three cases. They share a
+cause, which is the round trip to a machine that is not in front
+of you. *Interactive exploration* over SSH is laggy, and
+exploration is the phase in which you issue many small commands
+and look at each result. Anything *latency-sensitive*, a Shiny app
+under active debugging above all, is worse for the same reason.
+Finally, a *short analysis* is not worth provisioning at any
+speed. Thirty seconds of computation is small next to the minutes
+of setup, transfer, and teardown around it.
 
 ### Profile before you parallelize
 
 Moving a slow job to a bigger machine is tempting because it
-needs no code changes, and it is often the wrong first move: a
-cloud instance with sixteen cores multiplies a slow step by
-sixteen rather than fixing it, and the bill arrives either way.
-The bottleneck is frequently not where intuition places it; a
-single `data.frame` operation inside a loop, or a function called
-once per row instead of once per vector, can dominate a run that
+needs no code changes. It is often the wrong first move. A cloud
+instance with sixteen cores spreads a slow step across sixteen
+cores rather than fixing it, and the bill arrives either way. The bottleneck
+is frequently not where intuition places it. A single
+`data.frame` operation inside a loop, or a function called once
+per row instead of once per vector, can dominate a run that
 looks, from the outside, like 'the model fit is slow'. Two tools
 answer the question before you provision anything.
 `profvis::profvis()` records where a script spends its time at the
-line level and renders an interactive flame graph; `bench::mark()`
+line level and renders an interactive flame graph. `bench::mark()`
 microbenchmarks a small number of candidate expressions against
-each other, with memory allocation alongside timing, which a plain
-`system.time()` comparison omits.
+each other. It reports memory allocation alongside timing, which
+a plain `system.time()` comparison omits.
 
 ```r
 library(profvis)
@@ -194,12 +195,13 @@ library(bench)
 # bench::mark(loop_version(), vector_version())
 ```
 
-Both packages are not installed in this book's environment, so the
-block above is display-only; install them with `pak::pak()` to run
-it yourself. Whichever tool you use, the habit is the same:
-profile on a small, fast case on the laptop, fix what the profile
-names, and only then decide whether the fixed version still needs
-more cores, more memory, or more machines than the laptop has.
+Neither package is installed in this book's environment, so the
+block above is display-only. Install them with `pak::pak()` to run
+it yourself. Whichever tool you use, the habit is the same. We
+profile a small, fast case on the laptop and fix what the profile
+names. Only then do we decide whether the fixed version still
+needs more cores, more memory, or more machines than the laptop
+has.
 
 ### Exercises
 
@@ -230,44 +232,46 @@ memory 'because it has many more cores'. What is wrong with the
 plan?
 
 **Answer.** The shortage is memory, not cores, and 64 GB is still
-less than the job needs, so it will fail on the new machine just
+less than the job needs. The job will fail on the new machine just
 as it failed on the laptop, now at an hourly rate. Name the
-shortage first: the job needs a machine with more than 128 GB of
+shortage first. The job needs a machine with more than 128 GB of
 memory, and the core count is nearly irrelevant to whether it
 runs.
 :::
 
 ## Batch jobs on a cluster {#sec-cloud-hpc}
 
-For most academic work the first stop is the university cluster:
-usually free to affiliated researchers, with R and the common
-scientific libraries already installed. The trade-offs are the
-queue, the shared environment, and a way of working, batch
-submission, that differs from the laptop's.
+For most academic work the first stop is the university cluster.
+It is usually free to affiliated researchers, with R and the
+common scientific libraries already installed. The trade-offs are
+the queue, the shared environment, and batch submission, a way of
+working that differs from the laptop's.
 
 ### Login nodes, compute nodes, and the scheduler
 
-You SSH into a *login node*, which is shared by everyone on the
+You SSH into a *login node*. It is shared by everyone on the
 cluster and is for editing files and submitting jobs, not for
 computing. The work runs on *compute nodes*, which a scheduler
 allocates. The most common scheduler is SLURM, originally the
 Simple Linux Utility for Resource Management
 [@yoo2003slurm].[^slurm-name] You describe the job (cores, memory,
-time limit) in a batch script; SLURM queues it, runs it when the
-resources are free, and kills it if it exceeds what it asked for.
+time limit) in a batch script. SLURM queues it and runs it when
+the resources are free. It kills the job if the job exceeds what
+it asked for.
 
 [^slurm-name]: The project now writes its name 'Slurm' and calls
     it a workload manager; the book keeps the capitals most
     cluster documentation still uses.
 
-Most clusters do not permit Docker, for a good reason: the Docker
+Most clusters do not permit Docker, for a good reason. The Docker
 daemon runs as root, and a shared multi-user cluster cannot grant
-every user root. The standard substitute is [**Apptainer**](F-glossary.qmd#gloss-apptainer) (formerly
-Singularity), a container runtime that runs unprivileged and can
-build its image directly from your Docker image
+every user root. The standard substitute is
+[**Apptainer**](F-glossary.qmd#gloss-apptainer) (formerly
+Singularity). It is a container runtime that runs unprivileged and
+can build its image directly from your Docker image
 [@kurtzer2017singularity]. The reproducibility argument of
-@sec-docker survives the move intact: the image is the same image,
-and only the runtime changes.
+@sec-docker still holds after the move. The image is the same
+image, and only the runtime changes.
 
 ### A minimal batch script
 
@@ -328,7 +332,7 @@ be killed. Request about a third more than the peak you observed.
 
 A simulation study is the cluster's natural workload: many
 independent replicates, each small. A *job array* submits one
-script many times, and each copy, a *task*, reads its own index
+script many times. Each copy, called a *task*, reads its own index
 from `SLURM_ARRAY_TASK_ID`. The array below runs 40 tasks, at most
 10 at a time (display-only):
 
@@ -349,11 +353,12 @@ apptainer exec analysis.sif \
 `%A` is the array's job ID and `%a` the task index, so each task
 writes its own log. The R side is a function of the task index.
 The simulation below estimates the power of the HF-HOME design
-(@sec-analysis-plan-worked): a 25% event risk under usual care
-against 20% under home health, at the evaluable sample size the
-SAP (statistical analysis plan) computes for 80% power. Each task
-gets its own random-number stream, derived from one seed, so that
-tasks never share random numbers and any task can be rerun alone.
+(@sec-analysis-plan-worked). The design compares a 25% event risk
+under usual care against 20% under home health. The sample size
+is the evaluable size the SAP (statistical analysis plan) computes
+for 80% power. Each task gets its own random-number stream,
+derived from one seed. Tasks therefore never share random numbers,
+and any task can be rerun alone.
 
 ```{r}
 #| label: cloud-sim-task
@@ -397,8 +402,8 @@ list.files(results_dir)
 ```
 
 The step that combines the tasks is where the opening's failure
-happened, so it checks that every task it expects is present
-before it reads any of them:
+happened. It therefore checks that every task it expects is
+present before it reads any of them:
 
 ```{r}
 #| label: cloud-sim-combine
@@ -425,11 +430,11 @@ c(replicates = nrow(sims), power = power_hat, mc_se = mc_se)
 
 The estimate from `r nrow(sims)` replicates is
 `r round(power_hat, 3)`, with a Monte Carlo standard error of
-`r round(mc_se, 3)`; the analytic power at this sample size is
+`r round(mc_se, 3)`. The analytic power at this sample size is
 `r sprintf('%.3f', power_exact)`. A real study runs enough
-replicates to make the Monte Carlo standard error small against
-the differences it reports, and states the replicate count it
-actually achieved.
+replicates to make the Monte Carlo standard error small relative
+to the differences it reports. It also states the replicate count
+it actually achieved.
 
 ::: {.callout-warning title='Pitfall'}
 **Combining whatever files exist turns a killed task into a
@@ -447,10 +452,10 @@ c(replicates = nrow(naive), power = mean(naive$p_value < 0.05))
 combine_tasks(results_dir, n_tasks)
 ```
 
-`list.files()` found seven files and returned an estimate from
-`r nrow(naive)` replicates as readily as from `r nrow(sims)`, without
-a word; the guarded `combine_tasks()` names the missing task and
-stops.
+`list.files()` found seven files. The idiom returned an estimate
+from `r nrow(naive)` replicates as readily as from `r nrow(sims)`,
+with no warning. The guarded `combine_tasks()` names the missing
+task and stops.
 :::
 
 ::: {.callout-tip title='Verification'}
@@ -471,11 +476,11 @@ incomplete set.
 
 Within one node, the parallelism is R's own. The `future`
 framework [@bengtsson2021future] runs the same code sequentially
-on a laptop and across a node's cores by changing one line, the
-plan, which keeps the parallel and serial versions of an analysis
-from diverging. A job array is the better tool when the tasks are
-independent and many; `future` is the better tool inside a single
-long task.
+on a laptop and across a node's cores. Only one line, the plan,
+changes. This keeps the parallel and serial versions of an
+analysis from diverging. A job array is the better tool when the
+tasks are independent and many. `future` is the better tool inside
+a single long task.
 
 ### Exercises
 
@@ -512,9 +517,9 @@ head(rerun, 3)
 ```
 
 When a task is killed, you resubmit only that index
-(`sbatch --array=3 sim.sbatch`) and get the replicates the full
-run would have produced, instead of rerunning the whole study or
-mixing streams.
+(`sbatch --array=3 sim.sbatch`). You get the replicates the full
+run would have produced. There is no need to rerun the whole study
+or to mix streams.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -523,24 +528,25 @@ each task with `parallel::nextRNGStream()` instead of calling
 `set.seed(20260423)` in every task?
 
 **Answer.** With the same seed in every task, every task draws the
-same random numbers, so 40 tasks of 25 replicates are 25
-replicates repeated 40 times, and the Monte Carlo standard error
-computed from 1,000 rows is far too small. The L'Ecuyer streams are
-distinct by construction and depend only on the seed and the task
-index, so the study is both correct and reproducible task by task.
+same random numbers. That is, 40 tasks of 25 replicates are 25
+replicates repeated 40 times. The Monte Carlo standard error
+computed from 1,000 rows is then far too small. The L'Ecuyer
+streams are distinct by construction and depend only on the seed
+and the task index. The study is therefore both correct and
+reproducible task by task.
 :::
 
 ## Planning and reporting a simulation study {#sec-cloud-sim}
 
-The job array of @sec-cloud-hpc ran a simulation already; this
-section asks what the simulation should have been before any task
-was submitted. A large simulation study is the textbook case for a
-job array, because it is many independent, identical replicates,
-but running thousands of replicates efficiently does not make the
-study well designed. A simulation study answers a question about
-the properties of a statistical method, and like any study it
-needs a plan written before the data, here the pseudo-random
-numbers, are generated.
+The job array of @sec-cloud-hpc already ran a simulation. In this
+section we ask what the simulation should have been before any
+task was submitted. A large simulation study is the textbook case
+for a job array, because it is many independent, identical
+replicates. However, running thousands of replicates efficiently
+does not make the study well designed. A simulation study answers
+a question about the properties of a statistical method. Like any
+study, it needs a plan written before the data (here the
+pseudo-random numbers) are generated.
 
 ### The ADEMP framework
 
@@ -555,34 +561,35 @@ quantities the methods under study are trying to estimate;
 **P**erformance measures, the statistics that summarize how well
 each method recovered the estimand across the simulated replicates
 (bias, coverage, power, and so on). Writing the plan in this order,
-before any code runs, catches a common failure mode: a simulation
-coded first and described later tends to acquire scenarios and
-measures that happened to be convenient to program, rather than the
-ones the aims required.
+before any code runs, catches a common failure mode. A simulation
+coded first and described later tends to acquire the scenarios and
+measures that happened to be convenient to program. These are not
+always the ones the aims required.
 
-For the job array of @sec-cloud-hpc, an ADEMP sketch might read:
-the aim is to estimate the power of the two-proportion test at the
-HF-HOME design's planned sample size; the data-generating mechanism
-is independent binomial outcomes at the usual-care and home-health
-risks under the alternative; the estimand is the test's rejection
-probability; the method is `prop.test()`; and the performance
-measure is the empirical rejection rate, which @sec-cloud-hpc
-reported alongside its Monte Carlo standard error. The rest of this
-section concerns that standard error, the piece of a simulation
-report that is easy to omit and that tells the reader whether the
-simulation ran long enough to trust.
+For the job array of @sec-cloud-hpc, an ADEMP sketch might read
+as follows. The aim is to estimate the power of the two-proportion
+test at the HF-HOME design's planned sample size. The
+data-generating mechanism is independent binomial outcomes at the
+usual-care and home-health risks under the alternative. The
+estimand is the test's rejection probability, and the method is
+`prop.test()`. The performance measure is the empirical rejection
+rate, which @sec-cloud-hpc reported alongside its Monte Carlo
+standard error. The rest of this section concerns that standard
+error. It is the piece of a simulation report that is easy to
+omit, and it tells the reader whether the simulation ran long
+enough to trust.
 
 ### Monte Carlo error on a performance measure
 
 A simulation study estimates a performance measure, such as bias or
-coverage, from a finite number of replicates, `r`'`nsim`'`, and like
-any estimate from a finite sample, it has its own standard error:
+coverage, from a finite number of replicates, `r`'`nsim`'`. Like
+any estimate from a finite sample, it has its own standard error,
 the *Monte Carlo standard error* (MCSE). Reporting a performance
 measure without its MCSE is like reporting a trial's risk
-difference without a confidence interval; the reader cannot tell
+difference without a confidence interval. The reader cannot tell
 whether 94 percent coverage, from 50 replicates, differs
 meaningfully from the nominal 95 percent. Three measures and their
-MCSEs appear in almost every simulation report, and each MCSE is a
+MCSEs appear in almost every simulation report. Each MCSE is a
 function of a quantity the simulation already computed:
 
 $$
@@ -606,21 +613,23 @@ $$
 where $\theta$ is the true value of the estimand (known, because
 the data were simulated) and $\hat\theta_i$ and $\text{CI}_i$ are
 the estimate and confidence interval from replicate $i$. Each MCSE
-shrinks with $\sqrt{n_{\text{sim}}}$, the same arithmetic as the
-Monte Carlo standard error of a power estimate in @sec-cloud-hpc,
-which is why a simulation study, like a job array, wants many
-replicates: they sharpen the point estimate and also make the
-study's own uncertainty small enough to be worth reporting.
+shrinks with $\sqrt{n_{\text{sim}}}$. This is the same arithmetic
+as the Monte Carlo standard error of a power estimate in
+@sec-cloud-hpc. It is why a simulation study, like a job array,
+wants many replicates. More replicates sharpen the point estimate.
+They also make the study's own uncertainty small enough to be
+worth reporting.
 
 ### A worked example, by hand
 
-The loop below is deliberately plain: base R, no package beyond
-what every R installation ships, so that the mechanics of bias,
-empirical SE, and coverage, and of their MCSEs, are visible rather
-than hidden inside a function call. The scenario is a smaller-N
-version of the HF-HOME design, usual care at a 25 percent 30-day
-event risk against home health at 20 percent, so that it runs in a
-fraction of a second rather than needing the job array:
+The loop below is deliberately plain. It uses base R and no
+package beyond what every R installation ships. The mechanics of
+bias, empirical SE, and coverage, and of their MCSEs, are then
+visible rather than hidden inside a function call. The scenario
+is a smaller-N version of the HF-HOME design: usual care at a 25
+percent 30-day event risk against home health at 20 percent. At
+this size it runs in a fraction of a second and does not need the
+job array:
 
 ```{r}
 #| label: cloud-ademp-sim
@@ -662,36 +671,36 @@ From `r n_sim` replicates, the estimated bias is
 `r sprintf('%.4f', mcse_bias)`), consistent with an unbiased
 estimator at this precision. Coverage is
 `r sprintf('%.3f', coverage_hat)` (Monte Carlo standard error
-`r sprintf('%.3f', mcse_coverage)`), which should sit close to the
-nominal 0.95 for a confidence interval built from the normal
-approximation at this sample size; a value several MCSEs away from
-0.95 would be evidence of a real problem with the method, not
-simulation noise. Each line of the loop is one simulated trial, in
-the Data-generating mechanism's terms; the vector of estimates and
-coverage indicators across replicates is what the Performance
-measures are computed from.
+`r sprintf('%.3f', mcse_coverage)`). For a confidence interval
+built from the normal approximation at this sample size, coverage
+should sit close to the nominal 0.95. A value several MCSEs away
+from 0.95 would be evidence of a real problem with the method,
+not simulation noise. In the Data-generating mechanism's terms,
+each pass through the loop is one simulated trial. The Performance
+measures are computed from the vector of estimates and coverage
+indicators across replicates.
 
-A real methods paper runs this scenario, and several others
-varying the sample size and the event risks, at many more
-replicates per scenario than the 2,000 used here, which is where
-@sec-cloud-hpc's job array becomes the right tool: each scenario,
+A real methods paper runs this scenario and several others that
+vary the sample size and the event risks. It uses many more
+replicates per scenario than the 2,000 used here. This is where
+@sec-cloud-hpc's job array becomes the right tool. Each scenario,
 or each block of replicates within a scenario, is an independent
-task, submitted the same way `sim_task()` was, and `combine_tasks()`
-guards the combination step the same way. The MCSE formulas above
-do not change when the replicates come from forty cluster tasks
-instead of one `for` loop; what changes is how fast `n_sim` can grow
-large enough to make the MCSEs small.
+task, submitted the same way `sim_task()` was. `combine_tasks()`
+guards the combination step in the same way. The MCSE formulas
+above do not change when the replicates come from forty cluster
+tasks instead of one `for` loop. What changes is how fast `n_sim`
+can grow large enough to make the MCSEs small.
 
 ::: {.callout-tip title='Verification'}
 Before trusting a simulation's MCSEs, confirm that the replicates
-behind them are actually independent, the assumption every formula
-above relies on. If the simulation runs on a job array, that means
-the same check as @sec-cloud-hpc: one random-number stream per
-task, derived from the seed and the task index, never the same
-seed repeated across tasks. A simulation whose scenarios share a
-random-number stream understates its own MCSEs, exactly as a
-coverage estimate from repeated replicates would, and the formulas
-give a false sense of precision.
+behind them are actually independent. Every formula above relies
+on that assumption. If the simulation runs on a job array, the
+check is the same as in @sec-cloud-hpc. There should be one
+random-number stream per task, derived from the seed and the task
+index, and never the same seed repeated across tasks. A simulation
+whose scenarios share a random-number stream understates its own
+MCSEs, exactly as a coverage estimate from repeated replicates
+would. The formulas then give a false sense of precision.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -704,8 +713,8 @@ without the MCSE. With `coverage_hat = 0.946` and `n_sim = 100`,
 $\text{MCSE} = \sqrt{0.946 \times 0.054 / 100} \approx 0.023$, so the
 observed coverage is well within one MCSE of 0.95. The gap looks
 meaningful only because the report omitted the number that would
-have shown it was not. More replicates, not a different method,
-would be the first thing to ask for.
+have shown it was not. The first thing to ask for would be more
+replicates rather than a different method.
 :::
 
 ### Exercises
@@ -731,9 +740,9 @@ c(ratio_expected = sqrt(n_sim_big / n_sim),
   ratio_observed = (emp_se_big / sqrt(n_sim_big)) / mcse_bias)
 ```
 
-The observed ratio is close to the expected $\sqrt{5}$, with the
-small discrepancy coming from Monte Carlo noise in `emp_se_big`
-itself, which has its own MCSE.
+The observed ratio is close to the expected $\sqrt{5}$. The small
+discrepancy comes from Monte Carlo noise in `emp_se_big` itself,
+which has its own MCSE.
 :::
 
 ## Working on a remote machine {#sec-cloud-remote}
@@ -745,11 +754,11 @@ disconnect, and moving data to and from the machine.
 ### Keeping a job alive
 
 You SSH in, start a job, and your laptop goes to sleep or the
-wireless connection drops. The job dies with your shell, and whatever
-it had computed dies with it. The mechanism explains why each
-remedy works: when the connection closes, the shell receives a
+wireless connection drops. The job dies with your shell, and
+whatever it had computed is lost. The mechanism explains why each
+remedy works. When the connection closes, the shell receives a
 hangup signal, `SIGHUP`, and relays it to the processes it
-started, whose default response is to terminate. Each remedy
+started. Their default response is to terminate. Each remedy
 either keeps the process from receiving the signal or gives it a
 parent other than the shell you are about to lose.
 
@@ -819,14 +828,15 @@ that reads without error and is missing its last rows.
    happened, and which two changes would have prevented it?
 
 ::: {.callout-note collapse='true' title='Solution'}
-The trailing `&` puts the job in the background of your shell but
-leaves it one of that shell's jobs. When the connection dropped,
+The trailing `&` puts the job in the background of your shell, but
+it is still one of that shell's jobs. When the connection dropped,
 the shell received the hangup and relayed it to its jobs, which
 terminated the analysis. There is no log because the command
-never redirected its output to a file. Either `nohup Rscript analysis.R >
-analysis.log 2>&1 &`, which ignores the hangup and writes a log, or
-starting the job inside `tmux` would have kept it alive; on a
-cluster, `sbatch` replaces both.
+never redirected its output to a file. Two changes would each have
+kept it alive. The first is `nohup Rscript analysis.R >
+analysis.log 2>&1 &`, which ignores the hangup and writes a log.
+The second is starting the job inside `tmux`. On a cluster,
+`sbatch` replaces both.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -844,9 +854,9 @@ classic 'I let it run overnight and it died' surprise.
 ## The public cloud, minimally {#sec-cloud-aws}
 
 When the cluster is unavailable, its queue is too slow, or the job
-needs hardware it lacks, you rent. The dominant providers overlap
-heavily, and this chapter uses Amazon Web Services (AWS) for
-concreteness:
+needs hardware it lacks, you rent a machine. The dominant
+providers overlap heavily, and this chapter uses Amazon Web
+Services (AWS) for concreteness:
 
 | Provider | Note |
 |---|---|
@@ -865,8 +875,8 @@ cloud. {#tbl-cloud-providers}
 A cloud account bills from the first minute, and nothing in it
 stops by default. The first step, before any instance exists, is
 a budget that emails you when spending crosses a threshold. In the
-console this is Billing, then Budgets; from the command line, with
-two small files describing the budget and the alert
+console this is Billing, then Budgets. From the command line it
+takes two small files, one describing the budget and one the alert
 (display-only):
 
 ```json
@@ -902,9 +912,9 @@ aws budgets create-budget \
   --notifications-with-subscribers file://notify.json
 ```
 
-A budget alerts; it does not stop anything, and billing data reach
-it hours after the spending. The stopping mechanisms are the
-idle alarm and the job script in @sec-cloud-cost.
+A budget sends an alert. It does not stop anything, and billing
+data reach it hours after the spending. The stopping mechanisms
+are the idle alarm and the job script in @sec-cloud-cost.
 
 ::: {.callout-tip title='Verification'}
 List the account's budgets and confirm yours, with its limit
@@ -918,7 +928,7 @@ aws budgets describe-budgets \
 ```
 
 Then confirm the subscription email arrived and that you accepted
-it; an alert sent to an unconfirmed address reaches no one.
+it. An alert sent to an unconfirmed address reaches no one.
 :::
 
 ### The services you need
@@ -943,13 +953,13 @@ about six.
 ### Credentials: single sign-on and instance roles
 
 Sign in through IAM Identity Center (single sign-on, SSO, which an
-institutional account usually provides) and let the AWS command
-line interface (CLI) fetch short-lived credentials. Give an
-instance the permissions it needs, to write to one S3 bucket, say,
-through an IAM role attached to the instance, never by copying
-access keys onto it. Long-lived access keys for an IAM user are
-the credential most often leaked, in a committed file or a pasted
-log, and the hardest to notice once leaked.
+institutional account usually provides). Then let the AWS command
+line interface (CLI) fetch short-lived credentials. An instance
+gets the permissions it needs (to write to one S3 bucket, say)
+through an IAM role attached to the instance. Never copy access
+keys onto it. Long-lived access keys for an IAM user are the
+credential most often leaked, in a committed file or a pasted
+log. They are also the hardest to notice once leaked.
 
 Install version 2 of the CLI and configure it once (display-only):
 
@@ -966,18 +976,19 @@ aws ec2 describe-instances --query \
   --output table
 ```
 
-Avoid `pip install awscli`, which many older tutorials show: the
+Avoid `pip install awscli`, which many older tutorials show. The
 `awscli` package on PyPI is still version 1 of the CLI, which
 lacks `aws configure sso` among other things. The browser console
-is good for learning and one-off inspection; the CLI is what makes
+is good for learning and one-off inspection. The CLI is what makes
 a job scripted and repeatable.
 
 ### Launching an instance
 
 Launch from the CLI (display-only). The `resolve:ssm:` form looks
-up the parameter Canonical publishes in AWS Systems Manager (SSM)
-for the current Ubuntu 24.04 LTS (long-term support) image in
-whatever region you are using, so the command does not go stale:
+up a parameter that Canonical publishes in AWS Systems Manager
+(SSM). The parameter names the current Ubuntu 24.04 LTS (long-term
+support) image in whatever region you are using, so the command
+does not go stale:
 
 ```bash
 AMI=resolve:ssm:/aws/service/canonical/ubuntu/server/\
@@ -994,16 +1005,16 @@ aws ec2 run-instances \
 ```
 
 A literal AMI ID such as `ami-0c7217cdde317cfec` names one image in
-one region, and Ubuntu publishes a new one every few weeks, so a
-hard-coded ID is wrong in every other region and stale within a
-month. To see the ID the parameter resolves to, pass the path
-after `resolve:ssm:` to `aws ssm get-parameter --name <path>
+one region, and Ubuntu publishes a new one every few weeks. A
+hard-coded ID is therefore wrong in every other region and stale
+within a month. To see the ID the parameter resolves to, pass the
+path after `resolve:ssm:` to `aws ssm get-parameter --name <path>
 --query Parameter.Value`.
 
 Connect, and run the project's container rather than installing R
 by hand (display-only). A fresh Ubuntu instance does not have
-Docker, so install it first (Ubuntu's `docker.io` package, or
-Docker's own apt repository for a current release):
+Docker, so install it first. Use Ubuntu's `docker.io` package, or
+Docker's own apt repository for a current release:
 
 ```bash
 ssh -i ~/.ssh/my-keypair.pem ubuntu@<public-ip>
@@ -1016,11 +1027,11 @@ docker run --rm -v "$(pwd)":/work my-analysis-image:v1.0 \
   Rscript /work/analysis/scripts/main.R
 ```
 
-The container is what makes the instance reproducible: a cloud
+The container is what makes the instance reproducible. A cloud
 machine needs the same environment specification as the laptop
 that ran the analysis, and the image of @sec-docker is that
 specification. Installing `r-base` from apt and running
-`renv::restore()` also works, but it gives you the R version
+`renv::restore()` also works. However, it gives you the R version
 Ubuntu packages, not the one your lockfile records.
 
 ::: {.callout-tip title='Verification'}
@@ -1041,12 +1052,12 @@ forget to stop.
 
 ### Where the data may go
 
-Provisioning is routine; the compliance exposure comes from
-deciding what data may sit on the machine. Protected
-health information (PHI) on a personal AWS account is a violation
-in most institutions. Use the institutional account, keep data
+Provisioning is routine. The compliance exposure comes from
+deciding what data may sit on the machine. Protected health
+information (PHI) on a personal AWS account is a violation in
+most institutions. Use the institutional account, and keep data
 inside the institutional network where the account provides for
-it, and treat 'I'll just upload the CSV to my personal bucket for
+it. Treat 'I'll just upload the CSV to my personal bucket for
 testing' as a red flag.
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -1058,20 +1069,20 @@ Harbor. Is that sufficient to proceed?
 questions, and the other two are the ones that stop projects.
 
 The first is contractual. A data use agreement (DUA) typically
-names where data may be stored and processed, and many prohibit
+names where data may be stored and processed. Many prohibit
 third-party cloud entirely or require specific arrangements. Safe
 Harbor de-identification does not release you from a DUA you
-signed, and an institutional review board (IRB) protocol naming
-institutional servers is a commitment you cannot vary alone.
+signed. An institutional review board (IRB) protocol that names
+institutional servers is a commitment you cannot change alone.
 
 The second is regulatory. Under HIPAA (the Health Insurance
 Portability and Accountability Act), using a cloud provider for PHI
 requires a Business Associate Agreement (BAA). Your institution may
 hold one covering specific AWS accounts under specific
-configurations; the personal account you opened with a credit card
+configurations. The personal account you opened with a credit card
 is not covered by it.
 
-The third is the one @sec-deident already made: Safe Harbor
+The third is the point @sec-deident already made. Safe Harbor
 produces data that are de-identified, not anonymous. Residual
 re-identification risk is why the DUA and the BAA exist at all.
 
@@ -1085,18 +1096,19 @@ often the cheapest way through.
 
 Cloud billing surprises share a structure. The meter runs on
 elapsed time rather than on work done, so an idle instance costs
-exactly what a busy one costs, and nothing in the system produces
-an event when your analysis finishes. A laptop that has finished
-its job sits there quietly; a rented machine that has finished its
-job sits there quietly and bills you for it, over a weekend, from a
-browser tab you closed on Friday. Every practice in this section
-supplies the stopping event the platform does not.
+exactly what a busy one costs. Nothing in the system produces an
+event when your analysis finishes. A laptop that has finished its
+job sits there quietly. A rented machine that has finished its job
+also sits there quietly, but it bills you for the time. It may do
+so over a whole weekend, from a browser tab you closed on Friday.
+Every practice in this section supplies the stopping event that
+the platform does not.
 
 ### What it costs
 
-Prices, instance types, and image paths are the most perishable
-facts in this book, so they live in one dated table, and every
-cost quoted in this chapter is computed from it.
+Prices, instance types, and image paths are the facts in this
+book most likely to go out of date. They are kept in one dated
+table, and every cost quoted in this chapter is computed from it.
 
 ```{r}
 #| label: cloud-as-of-data
@@ -1150,13 +1162,13 @@ more than a small laptop.
 
 ### Spot instances
 
-Spot instances are spare capacity sold at a steep discount, and the
-catch is that AWS can reclaim them with two minutes' notice. For
+Spot instances are spare capacity sold at a steep discount.
+Unfortunately, AWS can reclaim them with two minutes' notice. For
 embarrassingly parallel simulations that save their results as
-they go, spot is usually the cheapest option available, provided
-the job can resume from its last saved state: the job array of
-@sec-cloud-hpc, writing one file per task, has exactly this
-property (display-only):
+they go, spot is usually the cheapest option available. This
+holds provided the job can resume from its last saved state. The
+job array of @sec-cloud-hpc, which writes one file per task, has
+exactly this property (display-only):
 
 ```bash
 aws ec2 run-instances --instance-type c6i.xlarge \
@@ -1167,10 +1179,10 @@ aws ec2 run-instances --instance-type c6i.xlarge \
 ### A job script that always stops the instance
 
 End every job by uploading its results and shutting the instance
-down, and configure the instance to *stop* (not terminate) on
-shutdown; a stopped instance bills only for its disk. The upload
-and shutdown must happen whether the analysis succeeded or failed
-(display-only):
+down. Configure the instance to *stop* (not terminate) on
+shutdown, since a stopped instance bills only for its disk. The
+upload and shutdown must happen whether the analysis succeeded or
+failed (display-only):
 
 ```bash
 #!/usr/bin/env bash
@@ -1189,11 +1201,11 @@ Rscript analysis.R > analysis.log 2>&1
 
 The `#!` line must be the first line of the file, or it is an
 ordinary comment. `set -e` stops the script at the first failing
-command, and without the `trap` that would mean stopping before the
+command. Without the `trap`, that would mean stopping before the
 upload and the shutdown. The `trap` runs `finish` whenever the
-script exits, so an error in `analysis.R` no longer leaves an idle
-instance billing over the weekend, and the log reaches S3 either
-way, which is where you will look first.
+script exits. An error in `analysis.R` therefore no longer leaves
+an idle instance billing over the weekend. The log also reaches S3
+either way, and S3 is where you will look first.
 
 A second, independent stop is an alarm on the instance itself,
 which stops it after an hour below 5% CPU use, whatever the script
@@ -1231,10 +1243,10 @@ yourself.
 
 *Failure mode.* Drafts commonly put the upload and `shutdown`
 after the `Rscript` line, where `set -e` skips them on the first
-error, so a failed analysis leaves a running instance and no log.
-Prices, AMI IDs, and instance types in a model's answer come from
-its training data and are stale by construction; take them from
-@tbl-cloud-as-of and the SSM path. *Check.* Add `quit(status = 1)`
+error. A failed analysis then leaves a running instance and no
+log. Prices, AMI IDs, and instance types in a model's answer come
+from its training data and are stale by construction. Take them
+from @tbl-cloud-as-of and the SSM path. *Check.* Add `quit(status = 1)`
 as the first line of `analysis.R`, run the script, and confirm
 that the instance reaches `stopped` and that the log is in S3. Put
 the budget alert in place before any agent or script provisions
@@ -1251,33 +1263,34 @@ aws ec2 describe-instances --instance-ids "$INSTANCE_ID" \
 aws s3 ls s3://my-bucket/project/analysis.log
 ```
 
-The first should print `stopped` within a few minutes; the second
+The first should print `stopped` within a few minutes. The second
 should list the log, whose last lines show the R error.
 :::
 
 ### The environmental cost of compute
 
-A rented instance has a cost beyond the invoice: the electricity
-it draws, and the carbon associated with generating that
-electricity, which varies by region and by the data center's
-energy mix. This book will not quote a figure for grams of
-carbon dioxide per core-hour, because the honest number depends on
-which grid supplies the data center, how the provider's published
-efficiency claims are audited, and how quickly both change; any
-specific emissions factor stated here would be stale, and possibly
-wrong, by the time you read it. The direction of the effect needs
-no number: a job that runs sixteen times longer than it needs to,
-because nobody profiled it first (@sec-cloud-shortage), or an idle
-instance billing over a weekend (@sec-cloud-cost), draws power for
-no analytical benefit. Job efficiency, the same habit that keeps a
-budget under control, is therefore an environmental consideration
-as well as a financial one: profile before you
-scale, choose the smallest instance that finishes the job, and
-shut the machine down the moment it is done. A researcher who
-wants a defensible number for a specific provider and region
-should consult that provider's own published sustainability
-reporting rather than a general estimate, and should expect the
-reporting itself to be contested.
+A rented instance has a cost beyond the invoice. It draws
+electricity, and generating that electricity has an associated
+carbon cost, which varies by region and by the data center's
+energy mix. We will not quote a figure for grams of carbon
+dioxide per core-hour. The honest number depends on which grid
+supplies the data center, how the provider's published efficiency
+claims are audited, and how quickly both change. Any specific
+emissions factor stated here would be stale, and possibly wrong,
+by the time you read it. The direction of the effect needs no
+number. Consider a job that runs sixteen times longer than it
+needs to, because nobody profiled it first (@sec-cloud-shortage),
+or an idle instance billing over a weekend (@sec-cloud-cost).
+Both draw power for no analytical benefit. Job efficiency, the
+same habit that keeps a budget under control, is therefore an
+environmental consideration as well as a financial one. In
+practice this means we profile before we scale, choose the
+smallest instance that finishes the job, and shut the machine
+down the moment it is done. A researcher who wants a defensible
+number for a specific provider and region should consult that
+provider's own published sustainability reporting rather than a
+general estimate. The reporting itself should be expected to be
+contested.
 
 ### Exercises
 
@@ -1302,10 +1315,10 @@ round(c(forgotten = forgotten, scripted = scripted), 2)
 The idle weekend costs
 `r round(forgotten / scripted)` times the job itself. The number
 is small for this instance and large for the GPU types in the same
-table; the habit is the same.
+table. The habit is the same in both cases.
 
 6. `Rscript` exits with a non-zero status, `set -e` stops the
-   script, and `shutdown` never runs: the instance keeps billing
+   script, and `shutdown` never runs. The instance keeps billing,
    and the only log is on its disk. The `trap ... EXIT` form runs
    the upload and the shutdown on every exit path.
 :::
@@ -1315,19 +1328,19 @@ table; the habit is the same.
 percent. Does it protect you from a `g4dn.12xlarge` left running
 over a weekend?
 
-**Answer.** It tells you, late; it does not stop anything. Budget
-data lag spending by hours, and the alert is an email. At the rate
-in @tbl-cloud-as-of the instance passes \$12.50 within a few hours
-of launch and keeps billing until someone acts. The stop has to
-come from the job script's `trap`, the idle alarm, or both; the
-budget is the backstop that tells you one of them failed.
+**Answer.** It tells you, late, and it does not stop anything.
+Budget data lag spending by hours, and the alert is an email. At
+the rate in @tbl-cloud-as-of the instance passes \$12.50 within a
+few hours of launch and keeps billing until someone acts. The stop
+has to come from the job script's `trap`, the idle alarm, or both.
+The budget is the backstop that tells you one of them failed.
 :::
 
 ## Worked example: the simulation on AWS {#sec-cloud-worked}
 
-The job array of @sec-cloud-hpc, run instead on one cloud
-instance because the cluster queue is days long. The whole
-sequence is display-only.
+In this example we run the job array of @sec-cloud-hpc on one
+cloud instance instead, because the cluster queue is days long.
+The whole sequence is display-only.
 
 ```bash
 # 0. the budget alert exists (see above)
@@ -1381,21 +1394,21 @@ results costs pennies.
 
 Suppose the same simulation took `r laptop_hours` hours on a
 laptop. The cloud run cuts the wall-clock time by a factor of
-`r laptop_hours / run_hours` for about \$`r round(compute_cost)`,
-and the judgment is whether the time saved is worth it. Read that
+`r laptop_hours / run_hours` for about \$`r round(compute_cost)`.
+The judgment is whether the time saved is worth it. Read that
 factor as an observation about this one job, not as a rate to
-expect: the 16 vCPU of a `c6i.4xlarge` are 8 physical cores, a
-recent laptop has several cores of its own, and the serial part of
-the job keeps the gain below the ratio of core counts. Time a short
-pilot on both machines before deciding.
+expect. The 16 vCPU of a `c6i.4xlarge` are 8 physical cores, and a
+recent laptop has several cores of its own. The serial part of the
+job also keeps the gain below the ratio of core counts. Time a
+short pilot on both machines before deciding.
 
 ::: {.callout-tip title='Verification'}
 Before you report anything from the cloud run, apply the checks
-that would have caught the opening's failure: the results
-directory holds one file per task, `combine_tasks()` runs without
-error, and the replicate count in the methods section is
-`nrow()` of what it returned. Then confirm that nothing is still
-billing:
+that would have caught the opening's failure. The results
+directory should hold one file per task, and `combine_tasks()`
+should run without error. The replicate count in the methods
+section should be `nrow()` of what it returned. Then confirm that
+nothing is still billing:
 
 ```bash
 aws ec2 describe-instances --filters 'Name=tag:Project,Values=sim2026' \
@@ -1485,15 +1498,15 @@ It should print `terminated` or nothing at all.
 
 ## Prerequisites answers {#sec-quiz-answers-06}
 
-1. Remote compute supplies a resource the laptop has run out of:
-   cores for parallel work, memory for a job that cannot run at
-   all on the laptop, or simply a machine that is not your own,
-   so the laptop stays free. A simulation that takes 10 hours on
-   one laptop core might take between 1.25 hours (the eightfold
-   ideal, never quite reached) and 2 hours on an 8-core machine.
-   For academic work, a university cluster is usually the first
-   choice and the public cloud the second. The trade-offs are
-   cost, data governance, and transfer overhead.
+1. Remote compute supplies a resource the laptop has run out of.
+   That may be cores for parallel work, or memory for a job that
+   cannot run at all on the laptop. It may simply be a machine
+   that is not your own, so the laptop stays free. A simulation
+   that takes 10 hours on one laptop core might take between 1.25
+   hours (the eightfold ideal, never quite reached) and 2 hours on
+   an 8-core machine. For academic work, a university cluster is
+   usually the first choice and the public cloud the second. The
+   trade-offs are cost, data governance, and transfer overhead.
 2. The AWS Management Console is a browser interface, good for
    learning the platform, one-off launches, and inspecting state.
    The AWS CLI (command line interface) is a command-line tool,

@@ -2,24 +2,25 @@
 
 A collaborator clones your repository, runs the analysis script,
 and gets a p-value of 0.06 where your draft reports 0.04. Nothing
-errors. Over two days the two of you find three differences: her
-R packages are a year newer than yours, the cleaned dataset in
+errors. Over two days the two of you find three differences. Her
+R packages are a year newer than yours. The cleaned dataset in
 the repository was produced by a version of the cleaning script
-you have since edited, and one exclusion was made by hand in a
+you have since edited. And one exclusion was made by hand in a
 spreadsheet that never entered the repository. Each difference is
-a piece of the study that did not travel with the code. Pin the
-packages and the same rerun can still differ: if the repository
-could not hold the outcomes file and the README said to copy it
-from a shared drive that now holds a later, corrected extract,
-nothing in the repository could tell either of you that the
-inputs differed. A research compendium is the arrangement in
-which everything needed to produce the paper, from the raw data
-to the environment, lives in one directory with a layout a
-stranger can read, and the Five Pillars are the checklist that
-says every layer the answer depends on is pinned. This chapter
-sets out what a compendium is and where its files go, then
-assembles the pillars, builds the result, and audits it, so that
-the collaborator's rerun either matches or tells you why not.
+a piece of the study that did not travel with the code. Even with
+the packages pinned, the same rerun can still differ. Suppose the
+repository could not hold the outcomes file, and the README said
+to copy it from a shared drive. If that drive now holds a later,
+corrected extract, nothing in the repository could tell either of
+you that the inputs differed. A research compendium is the
+arrangement in which everything needed to produce the paper, from
+the raw data to the environment, lives in one directory. Its
+layout is one a stranger can read. The Five Pillars are the
+checklist that says every layer the answer depends on is pinned.
+This chapter sets out what a compendium is and where its files
+go. It then assembles the pillars, builds the result, and audits
+it. The aim is that the collaborator's rerun either matches or
+tells you why not.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -125,13 +126,13 @@ answers are in @sec-quiz-answers-10.
 
 ## What a research compendium is {#sec-rrtools}
 
-A paper without its compendium is a description of an analysis;
-a compendium without a paper is code. Together they make a study
+A paper without its compendium is a description of an analysis.
+A compendium without a paper is code. Together they make a study
 artifact that does not depend on any one file or any one person.
-Gentleman and Temple Lang
-[-@gentleman2007statistical] introduced the term, and Marwick,
-Boettiger, and Mullen [-@marwick2018packaging] gave the working
-definition this book uses, which has three criteria:
+Gentleman and Temple Lang [-@gentleman2007statistical] introduced
+the term. Marwick, Boettiger, and Mullen [-@marwick2018packaging]
+gave the working definition this book uses, which has three
+criteria:
 
 | Criterion | What it requires | What fails without it |
 |---|---|---|
@@ -142,10 +143,10 @@ definition this book uses, which has three criteria:
 : The three criteria for a research compendium. {#tbl-rrtools-criteria}
 
 The argument for convention is practical. A directory organized
-to your own logic is navigable by you and by nobody else, and
-'nobody else' includes the version of you that returns after
-eighteen months. A compendium that follows a recognized layout
-can be opened by a stranger who has seen one before: they will
+to your own logic is navigable by you and by nobody else. 'Nobody
+else' includes the version of you that returns after eighteen
+months. A compendium that follows a recognized layout can be
+opened by a stranger who has seen one before. That reader will
 know where the paper is, where the raw data are, and which
 directory holds things that were derived rather than given. The
 specific convention matters much less than having one at all.
@@ -186,23 +187,24 @@ flowchart TD
 **Question.** Why does `rrtools` reuse the R package structure
 instead of inventing a new layout?
 
-**Answer.** Three practical reasons. The package structure is the
-only widely recognized layout in the R ecosystem, so the
-compendium is navigable for free. The package gives dependency
-declaration: `DESCRIPTION` lists what the code needs, and `renv`
-(@sec-renv) pins the versions. And it gives function management:
-helpers in `R/` are documented, tested, and loadable into the
-analysis. The cost is a few package files that are not used as a
-package (no CRAN, the Comprehensive R Archive Network, submission,
-no users importing it), which is small against the structural
-payoff.
+**Answer.** There are three practical reasons. The package
+structure is the only widely recognized layout in the R
+ecosystem, so the compendium is navigable at no extra cost. The
+package also gives dependency declaration. `DESCRIPTION` lists
+what the code needs, and `renv` (@sec-renv) pins the versions.
+Finally, it gives function management, since helpers in `R/` are
+documented, tested, and loadable into the analysis. The cost is a
+few package files that are not used as a package. There is no
+submission to CRAN (the Comprehensive R Archive Network) and no
+users importing it. That cost is small relative to the structural
+benefit.
 :::
 
 ## Where files go {#sec-rrtools-layout}
 
 ### The layout
 
-`rrtools` produces the layout below; most compendium conventions
+`rrtools` produces the layout below. Most compendium conventions
 differ from it only in names.
 
 ```
@@ -242,7 +244,7 @@ readmissions/
 
 : Where each file goes. {#tbl-rrtools-layout}
 
-The README is the entry point, not the documentation: it says what
+The README is the entry point, not the documentation. It says what
 the project is, how to rebuild it, and where things are. Long
 technical notes live elsewhere.
 
@@ -251,12 +253,13 @@ technical notes live elsewhere.
 Raw and derived data live in separate directories because raw
 data are evidence and derived data are a build product. Writing a
 cleaned table back over the input destroys the only copy of what
-you were given, and version control does not recover a file that
-was overwritten before it was ever committed. Treat `raw_data/` as
-read-only, by convention if your file system will not enforce it,
-and make the convention checkable: record a checksum of every raw
-file when it arrives. The chunk below builds the layout above in a
-temporary directory and copies in two of the HF-HOME raw files.
+you were given. Version control does not recover a file that was
+overwritten before it was ever committed. Treat `raw_data/` as
+read-only, by convention if your file system will not enforce it.
+Then make the convention checkable by recording a checksum of
+every raw file when it arrives. The chunk below builds the layout
+above in a temporary directory and copies in two of the HF-HOME
+raw files.
 
 ```{r}
 #| label: rrtools-toy-compendium
@@ -272,11 +275,11 @@ file.copy(file.path(hf_dir, c("randomization.csv", "outcomes.csv")),
           raw_dir, overwrite = TRUE)
 ```
 
-The manifest is one line per file: the file's SHA-256 checksum (a
-64-character fingerprint of its contents) and its path from the
-compendium root, in the format the `shasum` command reads and
-writes, so that you can create it in R and anyone can check it
-from a shell.
+The manifest has one line per file. Each line holds the file's
+SHA-256 checksum (a 64-character fingerprint of its contents) and
+its path from the compendium root. This is the format the
+`shasum` command reads and writes. You can therefore create the
+manifest in R, and anyone can check it from a shell.
 
 ```{r}
 #| label: rrtools-manifest
@@ -306,14 +309,14 @@ check_raw(comp)
 
 From the compendium root, `shasum -a 256 --check
 data-manifest.sha256` checks the same manifest from the shell. A
-checksum detects accidental change, which is the job here; it is
+checksum detects accidental change, which is the job here. It is
 not a defense against deliberate tampering, since whoever can edit
 the data can edit the manifest beside them.
 
 ::: {.callout-warning title='Pitfall'}
 **A 'quick fix' saved over the raw export leaves no trace in the
-data.** Exclude a few patients by hand and save the file in place,
-and every later run reads the edited file as if it were what the
+data.** Exclude a few patients by hand and save the file in place.
+Every later run then reads the edited file as if it were what the
 site sent:
 
 ```{r}
@@ -329,8 +332,8 @@ check_raw(comp)
 The analysis would have run, on
 `r format(nrow(outcomes) - 3, big.mark = ',')` patients instead of
 `r format(nrow(outcomes), big.mark = ',')`, with no error. The
-manifest makes it loud. Exclusions belong in code, in
-`derived_data/`, where they are counted and reviewed.
+manifest turns the change into an error. Exclusions belong in
+code, in `derived_data/`, where they are counted and reviewed.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -338,19 +341,19 @@ manifest makes it loud. Exclusions belong in code, in
 `analysis/data/raw_data/visits.csv` and produces a tidy analytic
 table. Where does the output go, and should it be committed?
 
-**Answer.** It goes in `analysis/data/derived_data/`, and whether
-to commit it is a trade-off, not a rule. Against committing: it is
-reproducible from the raw data and the script, so storing it
+**Answer.** It goes in `analysis/data/derived_data/`. Whether to
+commit it is a trade-off, not a rule. On the minus side, it is
+reproducible from the raw data and the script. Storing it
 duplicates information and adds a binary that changes on every
-run. For committing: it lets a reader check your numbers without
-installing your environment, and it fixes what the analysis
+run. On the plus side, it lets a reader check your numbers without
+installing your environment. It also fixes what the analysis
 actually used, which matters if the cleaning script is later
 corrected. The usual resolution is to commit derived data when it
 is small and the analysis is being archived, and to leave it
 untracked during development. What is not defensible is committing
-derived data and *not* the script that made it, which is the
-arrangement that looks tidiest and explains least, and the one
-behind the opening's stale dataset.
+derived data and *not* the script that made it. That arrangement
+looks tidiest and explains least, and it is the one behind the
+opening's stale dataset.
 :::
 
 ### Exercises
@@ -383,16 +386,16 @@ stranger can predict it.
 The three criteria say what a compendium must achieve, and the
 layout says where its files go. The Five Pillars say what it must
 contain to achieve them. The preceding chapters each solved one
-layer of the reproducibility problem and each left the wiring to
-you. A compendium layout does not come with a lockfile; a lockfile
-(@sec-renv) does not come with a container; a container
-(@sec-docker) does not know where your data came from. The Five
-Pillars are the checklist that says when the wiring is complete.
-They are tool-neutral roles: the book uses the R tools for each,
-but every language has a tool for each role, and the same five
-hold whether you assemble them by hand or let a framework do it.
-@tbl-five-pillars states what each pins and what goes wrong
-without it.
+layer of the reproducibility problem. Each left it to you to
+connect that layer to the others. A compendium layout does not
+come with a lockfile. A lockfile (@sec-renv) does not come with a
+container. A container (@sec-docker) does not know where your data
+came from. The Five Pillars are the checklist that says when the
+connections are complete. They are tool-neutral roles. The book
+uses the R tools for each, but every language has a tool for each
+role. The same five hold whether you assemble them by hand or let
+a framework do it. @tbl-five-pillars states what each pins and
+what goes wrong without it.
 
 | Pillar | Pins | In this book | Elsewhere | Without it | Check |
 |---|---|---|---|---|---|
@@ -407,15 +410,15 @@ none is sufficient, and a compendium missing any one is
 incomplete. {#tbl-five-pillars}
 
 The opening's three causes map onto pillars 2, 4, and 5. The
-remedy for each is a file: a lockfile, a script for
-every step, and raw data that the code reads and never writes.
-Some frameworks automate the pillars; `zzcollab`
+remedy for each is a file: a lockfile, a script for every step,
+and raw data that the code reads and never writes. Some
+frameworks automate the pillars. `zzcollab`
 (@sec-zzcollab-optional) is one, and it scaffolds and audits all
 five.
 
-The pillars are easier to remember as a stack than as a list,
-because each one captures a layer the one above it takes for
-granted. @fig-five-pillars is that stack.
+The pillars are easier to remember as a stack than as a list. Each
+one captures a layer that the one above it takes for granted.
+@fig-five-pillars shows that stack.
 
 ```{mermaid}
 %%| echo: false
@@ -441,16 +444,17 @@ flowchart TD
   F --> L --> P --> S --> D
 ```
 
-Two of the pillars need a word more than the table gives them.
-The `renv.lock` records the R version as well as every package,
-but it does not install R; the R installation comes from the
-Dockerfile, which is why the two must agree. And the data pillar
-does not require the data to be in the repository. Sensitive data
-often cannot live in the compendium; then the compendium holds a
-README documenting the access path, in the form @sec-federal sets
-out, and a manifest of checksums that lets anyone confirm they
-obtained the same files. The shared-drive variant of the opening
-was a data pillar with the README and without the manifest.
+Two of the pillars need more explanation than the table gives
+them. First, the `renv.lock` records the R version as well as
+every package, but it does not install R. The R installation comes from
+the Dockerfile, which is why the two must agree. Second, the data
+pillar does not require the data to be in the repository.
+Sensitive data often cannot live in the compendium. In that case
+the compendium holds a README documenting the access path, in the
+form @sec-federal sets out. It also holds a manifest of checksums
+that lets anyone confirm they obtained the same files. The
+shared-drive variant of the opening was a data pillar with the
+README and without the manifest.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A project has a Dockerfile and a committed
@@ -458,10 +462,10 @@ was a data pillar with the README and without the manifest.
 does a collaborator still have to take on trust?
 
 **Answer.** Two. The source code is pinned only if it is
-committed and the version you reported is tagged; otherwise the
-collaborator cannot know which commit produced the paper. And the
+committed and the version you reported is tagged. Otherwise the
+collaborator cannot know which commit produced the paper. The
 data are pinned only if they are in the repository or a manifest
-records their checksums; otherwise a later extract produces a
+records their checksums. Otherwise a later extract produces a
 different answer from the same code, with nothing to say so. The
 environment pillars cannot detect either problem.
 :::
@@ -472,10 +476,10 @@ A colleague argues that the lockfile is redundant, because the
 image already contains the packages. Is it?
 
 **Answer.** No. The image contains the packages that were current
-when it was built, and a rebuild months later installs whatever
-is current then, unless the lockfile pins them; the Dockerfile's
+when it was built. A rebuild months later installs whatever is
+current then, unless the lockfile pins them. The Dockerfile's
 restore step reads the lockfile for exactly that reason. The
-pillars are a stack, not a menu: the Dockerfile pins what is
+pillars are a stack, not a menu. The Dockerfile pins what is
 beneath R, and the lockfile pins what is above it.
 :::
 
@@ -493,9 +497,9 @@ the repository is under Git. Missing: the environment beneath R
 (no Dockerfile, so R and system libraries are whatever the
 collaborator has), activation (no `.Rprofile`, so the lockfile is
 ignored unless she restores it by hand), and the raw data. The
-data pillar is the serious gap: `data.csv` is derived, so a rerun
-can check `analysis.R` against it but can never check `clean.R`,
-and any hand step between the raw export and `data.csv` is
+data pillar is the serious gap. `data.csv` is derived, so a rerun
+can check `analysis.R` against it but can never check `clean.R`.
+Any hand step between the raw export and `data.csv` is also
 invisible. Add the raw export (or its access path), make
 `clean.R` read it and write to `derived_data/`, and record a
 checksum manifest.
@@ -504,9 +508,9 @@ checksum manifest.
 ## Assembling the compendium by hand {#sec-zzcollab-assemble}
 
 Assembling the pillars by hand takes about half an hour per
-project, and doing it once is the best way to understand what any
+project. Doing it once is the best way to understand what any
 framework that automates it is doing for you. Each step uses a
-tool from an earlier chapter; the commands below are
+tool from an earlier chapter. The commands below are
 display-only, because they create a project on your machine.
 
 1. **Layout and source code.** Scaffold the compendium with
@@ -573,14 +577,14 @@ rrtools::use_readme_qmd()
 ```
 
 `rrtools::use_dockerfile()` writes its own Dockerfile, based on
-`rocker/verse`. This book replaces it with the canonical Dockerfile
-in @sec-rrtools-build, so that this chapter, @sec-renv, and
-@sec-docker describe one file rather than several.
+`rocker/verse`. This book replaces it with the canonical
+Dockerfile in @sec-rrtools-build. This chapter, @sec-renv, and
+@sec-docker then describe one file rather than several.
 
 ### Other conventions
 
-`rrtools` is one convention among several, and the right one
-depends on the project's shape and the team's habits:
+`rrtools` is one convention among several. The right one depends
+on the project's shape and the team's habits:
 
 | Convention | Shape | Use when |
 |---|---|---|
@@ -616,14 +620,14 @@ the moves yourself.
 > will break after the moves.
 
 *Failure mode.* A model assigns every file somewhere, confidently,
-including logs and exploratory notebooks that fit nowhere, and
+including logs and exploratory notebooks that fit nowhere. It also
 proposes edits to paths inside scripts that silently change what
 they read. Raw files moved or renamed lose the link to their
 provenance. *Check.* After applying the moves, `git status` and
 `git diff -M --name-status HEAD` should show only renames (`R100`),
-no modifications or deletions; `shasum -a 256 --check
-data-manifest.sha256`, rerun after the manifest's paths are updated
-to the new locations, should pass; and a fresh render should
+with no modifications or deletions. Update the manifest's paths to
+the new locations and rerun `shasum -a 256 --check
+data-manifest.sha256`, which should pass. A fresh render should
 produce the same numbers. The prompt sends file names, not data
 (@sec-ai-governance).
 :::
@@ -670,7 +674,7 @@ was `{{r}} round(exp(coef(fit)["home_health"]), 2)` (95% CI
 
 Every number in the methods and results comes from code, so a
 rerun on corrected data changes the prose with the tables. EHR
-here is the electronic health record; the example is an
+here is the electronic health record. The example is an
 observational cohort, which is why the exposure is receipt of a
 visit and the estimate is adjusted.
 
@@ -686,12 +690,12 @@ quarto use template quarto-journals/jasa
 The extension adds a format (here `jasa-pdf`) that you name under
 `format:` in `paper.qmd`. The older `rticles` package offers more
 journals, including *Statistics in Medicine*, *Biometrics*, and
-JASA (`rticles::journals()` lists them), but its templates are R
-Markdown output formats for an `.Rmd` file rendered with
-`rmarkdown::render()`, not Quarto formats; they cannot be named in
+JASA (`rticles::journals()` lists them). However, its templates
+are R Markdown output formats for an `.Rmd` file rendered with
+`rmarkdown::render()`, not Quarto formats. They cannot be named in
 the `format:` key of a `.qmd`. Neither collection has a template
 for every medical journal (there is none for NEJM or JAMA, for
-instance), and most of those journals accept a plain PDF or Word
+instance). Most of those journals accept a plain PDF or Word
 manuscript at first submission.
 
 ::: {.callout-tip title='Verification'}
@@ -710,10 +714,10 @@ a placeholder where a reference belongs.
 ### A compendium with two gaps
 
 The manifest is the step most projects skip. The chunk below
-assembles a small HF-HOME compendium in a temporary directory,
-with the manifest step deliberately left out and a Dockerfile
-copied from an older project, so that the audit in
-@sec-zzcollab-audit has something to find.
+assembles a small HF-HOME compendium in a temporary directory. It
+deliberately leaves out the manifest step and uses a Dockerfile
+copied from an older project. The audit in @sec-zzcollab-audit
+then has something to find.
 
 ```{r}
 #| label: zzcollab-toy-compendium
@@ -748,15 +752,16 @@ different question, and the listing cannot answer it.
 
 ::: {.callout-warning title='Pitfall'}
 **An `.Rprofile` that never runs.** R reads `.Rprofile` from the
-directory it starts in, then from your home directory. Render from
-a subdirectory (`cd analysis/paper`, or an RStudio project rooted
-there) and the project's `.Rprofile` at the root never runs: no
-error, no message, and the analysis uses your global library while
-the lockfile says otherwise. This book hit exactly this, because
-Quarto starts R in the directory being rendered; its fix is a
-second `.Rprofile` in `analysis/report/` that points `renv` at the
-project root. The check in @tbl-five-pillars catches it: run
-`.libPaths()[1]` from the directory where you render.
+directory it starts in, then from your home directory. Suppose you
+render from a subdirectory (`cd analysis/paper`, or an RStudio
+project rooted there). The project's `.Rprofile` at the root then
+never runs. There is no error and no message, and the analysis
+uses your global library while the lockfile says otherwise. This
+book ran into exactly this problem, because Quarto starts R in the
+directory being rendered. Its fix is a second `.Rprofile` in
+`analysis/report/` that points `renv` at the project root. The
+check in @tbl-five-pillars catches it: run `.libPaths()[1]` from
+the directory where you render.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -768,20 +773,20 @@ is nothing likely to report it?
 whatever R the image supplies. The build usually succeeds, because
 most package versions install on a neighboring R, and the analysis
 runs. What changes is the layer beneath the packages (R itself,
-and the numerical libraries it links), so results can differ in
-their last digits from the ones you reported, with no error
-anywhere.
+and the numerical libraries it links). Results can therefore
+differ in their last digits from the ones you reported, with no
+error anywhere.
 :::
 
 ## Building and sharing {#sec-rrtools-build}
 
-A compendium is built in one of three ways: render the paper in
-RStudio while writing; source the analysis scripts in order after
-`devtools::load_all()` to regenerate cached results; or build the
-image, which is the only one that reproduces the environment as
-well as the results. The book's canonical Dockerfile, explained
-line by line in @sec-docker-canonical, sits at the compendium
-root:
+A compendium is built in one of three ways. You can render the
+paper in RStudio while writing. You can source the analysis
+scripts in order after `devtools::load_all()` to regenerate cached
+results. Or you can build the image, which is the only one of the
+three that reproduces the environment as well as the results. The
+book's canonical Dockerfile, explained line by line in
+@sec-docker-canonical, sits at the compendium root:
 
 ```dockerfile
 # syntax=docker/dockerfile:1
@@ -825,20 +830,21 @@ docker run --rm --platform linux/amd64 \
 ```
 
 The Dockerfile pins the R version, the system libraries, and
-(through `renv.lock`) the package versions, and the rendered paper
+(through `renv.lock`) the package versions. The rendered paper
 appears in `analysis/paper/` on your machine. A reader with Docker
 can rebuild a very close copy of the environment that produced the
-paper; an exact copy needs the digest pin or archived image
+paper. An exact copy needs the digest pin or archived image
 described in @sec-docker.
 
 Deposition is treated in full in @sec-federal. Its shape affects
-how you organize the directory, so it is worth knowing now: GitHub
-(or your institution's Git server) holds the working repository;
-an archive such as Zenodo holds a citable, DOI-bearing (digital
-object identifier) snapshot at submission, with the saved image;
-and restricted primary data go only where the data use agreement
-permits, often a controlled-access repository and sometimes
-nowhere, with the compendium documenting how to request them.
+how you organize the directory, so it is worth knowing now. GitHub
+(or your institution's Git server) holds the working repository.
+An archive such as Zenodo holds a citable, DOI-bearing (digital
+object identifier) snapshot at submission, with the saved image.
+Restricted primary data go only where the data use agreement
+permits. That is often a controlled-access repository and
+sometimes nowhere, with the compendium documenting how to request
+them.
 
 ::: {.callout-tip title='Verification'}
 The test of a compendium is a rebuild by someone who is not you,
@@ -854,8 +860,8 @@ docker run --rm --platform linux/amd64 \
 ```
 
 The paper must render, and its key numbers must match yours. A
-failure here names a file that lives only on your machine, which
-is the opening's problem found before your collaborator finds it.
+failure here names a file that lives only on your machine. That
+is the opening's problem, found before your collaborator finds it.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -866,8 +872,9 @@ rendering the paper again on your own machine?
 packages you installed, the derived files you never committed, the
 environment variables in your `.Renviron`. A rerun there passes
 whatever the compendium is missing. A fresh clone, built in a
-container, has only what the five pillars supply, so it is the
-first run that can fail for the reasons a collaborator's would.
+container, has only what the five pillars supply. It is therefore
+the first run that can fail for the reasons a collaborator's
+would.
 :::
 
 ### Exercises
@@ -879,19 +886,20 @@ first run that can fail for the reasons a collaborator's would.
 
 ::: {.callout-note collapse='true' title='Solution'}
 The paper reads a derived file that exists on her disk and is not
-in the repository, probably because `derived_data/` is listed in
-`.gitignore` and nothing in the build regenerates it. Either make
-the build produce it (the paper, or a script the Dockerfile's
-command runs, calls the cleaning code on the raw data), which is
-the better fix because it also tests the cleaning; or commit the
-derived file together with the script that made it, which is
-acceptable for an archived analysis. Committing it without the
-script is the arrangement the layout Check warned against.
+in the repository. Probably `derived_data/` is listed in
+`.gitignore` and nothing in the build regenerates it. The first
+fix is to make the build produce it: the paper, or a script the
+Dockerfile's command runs, calls the cleaning code on the raw
+data. This is the better fix, because it also tests the cleaning.
+The second fix is to commit the derived file together with the
+script that made it, which is acceptable for an archived
+analysis. Committing it without the script is the arrangement the
+layout Check warned against.
 :::
 
 ## Worked example: a small compendium {#sec-rrtools-worked}
 
-A simulation study set up as a compendium from scratch
+Here we set up a simulation study as a compendium from scratch
 (display-only):
 
 ```r
@@ -934,10 +942,11 @@ git commit -m "Initial compendium"
 git tag -a v0.1-draft -m "Initial draft for PI review"
 ```
 
-The compendium is now a self-contained directory with
-package-style code, a paper that uses the code, a lockfile and a
-Dockerfile that pin the environment, a Git history, and a tag at a
-meaningful milestone. The setup takes about thirty minutes.
+The compendium is now a self-contained directory. It holds
+package-style code and a paper that uses the code. A lockfile and
+a Dockerfile pin the environment, and there is a Git history with
+a tag at a meaningful milestone. The setup takes about thirty
+minutes.
 
 ::: {.callout-tip title='Verification'}
 Confirm that the pillars are committed and the tree is clean:
@@ -948,14 +957,14 @@ git status --short
 git tag -l 'v0.1*'
 ```
 
-The first command should list all four files, the second should
+The first command should list all four files. The second should
 print nothing, and the third should print `v0.1-draft`. Then run
 the fresh-clone check of @sec-rrtools-build against the tag.
 :::
 
 ## Auditing the pillars {#sec-zzcollab-audit}
 
-A checklist you run by eye drifts; a checklist you run as code
+A checklist you run by eye drifts. A checklist you run as code
 does not. The function below turns @tbl-five-pillars into five
 assertions about a project directory. It uses only `renv`, `cli`,
 and base R, so it audits a compendium however it was assembled.
@@ -1010,8 +1019,8 @@ audit_pillars(comp)
 ```
 
 Two pillars fail. The Dockerfile names R 4.3.1 while the lockfile
-records 4.4.0, and there is no manifest for the data. Fix both:
-set the base tag to the lockfile's version, and write the
+records 4.4.0, and there is no manifest for the data. To fix both,
+set the base tag to the lockfile's version and write the
 manifest.
 
 ```{r}
@@ -1047,18 +1056,18 @@ shasum -a 256 --check data-manifest.sha256
 ```
 
 The shell check prints `OK` beside each file. In your own project,
-run `audit_pillars(".")` from the root before every tag, and
-regenerate the manifest only when you deliberately receive new
-data, committing it with the data change. For a project under Git,
+run `audit_pillars(".")` from the root before every tag.
+Regenerate the manifest only when you deliberately receive new
+data, and commit it with the data change. For a project under Git,
 `git ls-files Dockerfile renv.lock .Rprofile` confirms that the
 files are committed, not merely present on your disk.
 :::
 
 The audit is a structural check. It confirms that each pillar is
-present and consistent; it finds what is missing, and it cannot
+present and consistent, and it finds what is missing. It cannot
 tell you that what is present works or that the analysis
 reproduces. That test is the rebuild from a fresh clone in
-@sec-rrtools-build: build the image, restore the lockfile, run the
+@sec-rrtools-build. Build the image, restore the lockfile, run the
 analysis, and compare the results with the ones you reported.
 
 ::: {.callout-important title='LLM prompt'}
@@ -1096,11 +1105,12 @@ entry error and reruns the analysis. What does the audit report,
 and what should happen next?
 
 **Answer.** The data pillar fails, because the file's checksum no
-longer matches the manifest. That is the audit doing its job: the
+longer matches the manifest. That is the audit doing its job. The
 inputs changed, and now someone knows. Raw data are evidence, so
-the correction should arrive as a new extract with its provenance
-recorded, the manifest regenerated and committed with it, and the
-changed result explained, not as a hand edit to the file.
+the correction should not arrive as a hand edit to the file. It
+should arrive as a new extract with its provenance recorded. The
+manifest should be regenerated and committed with it, and the
+changed result explained.
 :::
 
 ### Exercises
@@ -1121,7 +1131,7 @@ audit_pillars(comp)[c("pillar", "ok")]
 
 Only the data pillar fails. A one-character change to one patient
 is invisible to every other check, and to anyone reading the
-results; the manifest is what makes it loud.
+results. The manifest is what makes it detectable.
 :::
 
 5. Audit this book's own repository with
@@ -1136,8 +1146,8 @@ audit_pillars(file.path("..", ".."))[c("pillar", "ok")]
 Each `FALSE` is a pillar the book's repository does not supply in
 the form the audit checks. A missing Dockerfile means the R
 version and system libraries are whatever the reader's machine
-has; a missing data manifest means the reader cannot confirm the
-files match the ones the book was built from, though here the
+has. A missing data manifest means the reader cannot confirm the
+files match the ones the book was built from. Here, however, the
 HF-HOME files can be regenerated from their seeded script. A book
 that teaches the pillars is held to them too.
 :::
@@ -1146,12 +1156,12 @@ that teaches the pillars is held to them too.
 
 Assembling by hand gives you full control and costs half an hour
 per project. It is also exactly the kind of work that gets done
-slightly differently every time, which defeats the consistency it
+slightly differently every time. That defeats the consistency it
 was supposed to produce. Alfred North Whitehead observed, in *An
 Introduction to Mathematics* (1911), that 'civilization advances
 by extending the number of important operations which we can
-perform without thinking about them'; the tools below make the
-assembly one such operation. They automate parts of it, and they
+perform without thinking about them'. The tools below make the
+assembly one such operation. They automate parts of it. They
 differ in which pillars they supply and in how much of the layout
 they decide for you.
 
@@ -1165,24 +1175,25 @@ they decide for you.
 : Ways to assemble a compendium. None removes the audit.
 {#tbl-zzcollab-approaches}
 
-How much infrastructure a project needs is a judgment: too much
+How much infrastructure a project needs is a judgment. Too much
 on a small project is busywork, and too little on a large one is
-technical debt. A compendium is
-overkill for interactive exploration, for a one-off script, for a
-teaching example whose point is the code, and for a quick
-reproduction of someone else's analysis, whose structure should
-control. It is the right weight for a collaborative analysis
-passed between team members, for one that must survive months or
-years after its lead analyst has moved on, and for any analysis
-subject to the federal requirements of @sec-federal. A tool that
-makes the heavy path cheap shifts the answer toward more
-infrastructure at the margin, and the decision is still yours.
+technical debt. A compendium is more than is needed for
+interactive exploration, a one-off script, or a teaching example
+whose point is the code. The same holds for a quick reproduction
+of someone else's analysis, whose structure should control. A
+compendium is the right weight for a collaborative analysis
+passed between team members. It is also right for one that must
+survive months or years after its lead analyst has moved on, and
+for any analysis subject to the federal requirements of
+@sec-federal. A tool that makes the heavy path cheap shifts the
+answer toward more infrastructure at the margin. The decision is
+still yours.
 
-Whichever path you take, the group's conventions (a preferred
-database client, a set of in-house packages, a journal's Quarto
-template) are best written down once, in a template project or a
-shared lockfile, so that every new project inherits them rather
-than re-enumerating them.
+Whichever path you take, write the group's conventions down once.
+These include a preferred database client, a set of in-house
+packages, or a journal's Quarto template. A template project or a
+shared lockfile is the place for them. Every new project then
+inherits them rather than listing them again.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A colleague argues that adopting a framework makes
@@ -1190,7 +1201,7 @@ the pillar audit unnecessary, since the framework writes every
 file. What is wrong with the argument?
 
 **Answer.** A framework writes the pillars once, at scaffolding
-time; the audit checks them now. Lockfiles drift as packages are
+time. The audit checks them now. Lockfiles drift as packages are
 installed, a Dockerfile's base tag falls behind a lockfile
 snapshotted under a newer R, and data change after the manifest is
 written. Each failure in @tbl-five-pillars can occur in a
@@ -1206,28 +1217,29 @@ scaffolded project as easily as in a hand-built one.
    analysts; (c) a methods paper with a simulation study.
 
 ::: {.callout-note collapse='true' title='Solution'}
-(a) A script, with no compendium; if the abstract becomes a paper,
+(a) A script, with no compendium. If the abstract becomes a paper,
 promote it then. (b) A framework that makes every project in the
-group look alike, `zzcollab` or a group template, with the data
-pillar checked most often, because extracts arrive throughout the
-trial. (c) `rrtools` or a hand-built compendium; the pillar to
+group look alike, `zzcollab` or a group template. The data pillar
+is the one to check most often, because extracts arrive throughout
+the trial. (c) `rrtools` or a hand-built compendium. The pillar to
 watch is the environment (Dockerfile and lockfile together),
 because simulation results depend on the random-number generator
-and numerical libraries. Other defensible answers exist; the
+and numerical libraries. Other defensible answers exist. The
 reasoning should tie the approach to the project's lifetime and
-number of hands.
+the number of people who work on it.
 :::
 
 ## Optional: automating the assembly with zzcollab {#sec-zzcollab-optional}
 
 This section is optional. `zzcollab` is the author's in-house
-framework (@sec-lab-software), one way to automate the assembly
-beside `rrtools` and `workflowr`; nothing else in the book
-depends on it. It packages the ideas of `rrtools`, `renv`, and
-Docker into one command-line workflow, trading control over the
-layout for speed of setup and uniformity across a group's
-projects. It does not call `rrtools`; it writes its own layout,
-modeled on the same compendium.[^zzcollab-version]
+framework (@sec-lab-software). It is one way to automate the
+assembly, beside `rrtools` and `workflowr`, and nothing else in
+the book depends on it. It packages the ideas of `rrtools`,
+`renv`, and Docker into one command-line workflow. It trades
+control over the layout for speed of setup and uniformity across
+a group's projects. It does not call `rrtools`.
+Instead it writes its own layout, modeled on the same
+compendium.[^zzcollab-version]
 
 [^zzcollab-version]: Described as of the repository at
     `github.com/rgt47/zzcollab` in October 2026. Profiles, `make`
@@ -1264,26 +1276,27 @@ when Docker can resolve it, by digest (for example
 **`make r`** drops you into an interactive R session
 inside the container, with the project directory
 mounted, so files edited inside the container persist
-on the host. It does not build the image; if no image
-exists it asks whether to run R on the host instead,
-defaulting to No, so an unbuilt image stops you rather
-than silently substituting the host's R. Build first with
-`make docker-build` if you declined at scaffolding time.
+on the host. It does not build the image. If no image
+exists, it asks whether to run R on the host instead,
+and the default answer is No. An unbuilt image therefore
+stops you rather than silently substituting the host's R.
+Build first with `make docker-build` if you declined at
+scaffolding time.
 
 **`make check-renv`** runs
 `zzrenvcheck::check_packages(auto_fix = TRUE,
-strict = TRUE)` on the host; the first time it runs it
+strict = TRUE)` on the host. The first time it runs, it
 installs `zzrenvcheck` itself from the latest commit on
 GitHub, unpinned. It checks that the packages your code
-uses and the packages `DESCRIPTION` declares agree, and,
-separately, that `DESCRIPTION` and `renv.lock` agree; by
-default it does not follow indirect dependencies, so
-passing this check is not the same as `renv::status()`
-reporting no issues (@sec-renv). With `auto_fix` it
-*edits* `DESCRIPTION` and `renv.lock` to add what is
-missing, which can take two runs: the first pass adds a
-package to `DESCRIPTION`, and the lockfile update follows
-on the next. It is not a read-only audit; use
+uses and the packages `DESCRIPTION` declares agree.
+Separately, it checks that `DESCRIPTION` and `renv.lock`
+agree. By default it does not follow indirect
+dependencies, so passing this check is not the same as
+`renv::status()` reporting no issues (@sec-renv). With
+`auto_fix` it *edits* `DESCRIPTION` and `renv.lock` to add
+what is missing. This can take two runs: the first pass
+adds a package to `DESCRIPTION`, and the lockfile update
+follows on the next. It is not a read-only audit. Use
 `make check-renv-no-fix` for a report that changes
 nothing. It does not build the Dockerfile or inspect
 `.Rprofile` or the data.
@@ -1296,8 +1309,8 @@ default.)
 
 ### The project `Makefile`
 
-Every `zzcollab` project gets a `Makefile` with many targets;
-`make help` lists them. The ones used most:
+Every `zzcollab` project gets a `Makefile` with many targets, and
+`make help` lists them. The ones used most are these:
 
 | Target | Action |
 |---|---|
@@ -1318,22 +1331,22 @@ Every `zzcollab` project gets a `Makefile` with many targets;
 `make hash-data` writes `data-manifest.sha256` in the same
 `shasum` format as the manifest in @sec-zzcollab-audit, so
 `audit_pillars()` reads either. `make docker-build` rebuilds the
-image after you add packages or system dependencies; `make r`
-silently uses the old image until you do. `make clean` removes
-package build artifacts (`*.tar.gz` and `*.Rcheck`); it does not
-touch rendered reports or Quarto's `_freeze/` directory.
+image after you add packages or system dependencies. Until you do,
+`make r` silently uses the old image. `make clean` removes package
+build artifacts (`*.tar.gz` and `*.Rcheck`). It does not touch
+rendered reports or Quarto's `_freeze/` directory.
 
 `make rstudio` is for browser-based work. Open
 `http://localhost:8787` and log in as `rstudio` with the password
 `rstudio`, which the target prints. The target publishes port
-8787 on all of your machine's network interfaces, so with that
-fixed password, use it only on a trusted network (see
-@sec-docker for binding to `127.0.0.1` instead).
+8787 on all of your machine's network interfaces. With that fixed
+password, use it only on a trusted network (see @sec-docker for
+binding to `127.0.0.1` instead).
 
 ### Choosing a profile
 
 The command `zzc <profile>`, run inside an empty project
-directory, scaffolds a project using one of four profiles, and a
+directory, scaffolds a project using one of four profiles. A
 profile's main job is to choose the rocker base image:
 
 | Profile | Base image | Approximate size | Use |
@@ -1347,21 +1360,22 @@ profile's main job is to choose the rocker base image:
 
 The `tidyverse` profile was formerly called `analysis`, and
 `zzc analysis` still works as a deprecated alias. There are no
-modeling or Shiny profiles; for those needs the framework's own
+modeling or Shiny profiles. For those needs, the framework's own
 advice is to start from one of the four and add packages inside
-the container. The profile is a substantive choice: a manuscript
+the container. The profile is a substantive choice. A manuscript
 that must render to PDF needs LaTeX, which only the `publishing`
-profile's base image has, while a simple descriptive analysis in
-the `publishing` profile waits for a 4 GB image it does not need.
+profile's base image has. On the other hand, a simple descriptive
+analysis in the `publishing` profile waits for a 4 GB image it
+does not need.
 
 Modeling packages need no special profile. Install
 `lme4` or `survival` inside the container, record them
 with `make snapshot`, and rebuild with
 `make docker-build`. When zzcollab generates the
-Dockerfile it reads the packages your code, `DESCRIPTION`,
-and `renv.lock` mention and adds the system libraries
-they need, so a profile mismatch costs a rebuild rather
-than a hand-edited `apt-get` line.
+Dockerfile, it reads the packages that your code,
+`DESCRIPTION`, and `renv.lock` mention. It then adds the
+system libraries they need. A profile mismatch therefore
+costs a rebuild rather than a hand-edited `apt-get` line.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** You are scaffolding a project that will fit a Cox
@@ -1369,31 +1383,32 @@ proportional hazards model with `survival::coxph()` and a
 mixed-effects model with `lme4::glmer()`, then render the result
 as a PDF manuscript. Which profile?
 
-**Answer.** `publishing`, because the PDF manuscript is the one
-requirement a profile actually supplies: it is the only profile
-whose base image includes LaTeX. The modeling packages are not a
-profile question at all. Install `lme4` and `survival` inside the
-container, run `make snapshot` so that `renv.lock` and
-`DESCRIPTION` record them, and rebuild. Neither package needs an
-extra system library; `survival` is a recommended package that
-ships with R.
+**Answer.** `publishing`. The PDF manuscript is the one
+requirement a profile actually supplies, since `publishing` is the
+only profile whose base image includes LaTeX. The modeling
+packages are not a profile question at all. Install `lme4` and
+`survival` inside the container, run `make snapshot` so that
+`renv.lock` and `DESCRIPTION` record them, and rebuild. Neither
+package needs an extra system library. `survival` is a
+recommended package that ships with R.
 :::
 
 ### Bundles and extension
 
 Profiles are defined in the repository's
-`templates/bundles.yaml`, which has three sections:
+`templates/bundles.yaml`, which has three sections.
 `library_bundles` name sets of system packages, `package_bundles`
 name sets of R packages, and `profiles` combine a base image with
 one bundle of each. There is no `inherits` key, and the quickstart
 command accepts only the four built-in profile names. A group that
 wants different defaults can add a profile entry in a fork and
-select it with `zzc docker --profile <name>`, but the Dockerfile
-generator reads only the entry's `base_image`; system libraries
-come from the packages the project uses, and R packages are added
-inside the container and recorded with `make snapshot`. Group
-conventions therefore belong in a template project or a shared
-`renv.lock`, as for any other approach, not in a new profile.
+select it with `zzc docker --profile <name>`. However, the
+Dockerfile generator reads only the entry's `base_image`. System
+libraries come from the packages the project uses. R packages are
+added inside the container and recorded with `make snapshot`.
+Group conventions therefore belong in a template project or a
+shared `renv.lock`, as for any other approach, not in a new
+profile.
 
 ### Exercises
 
@@ -1404,32 +1419,32 @@ conventions therefore belong in a template project or a shared
    on your machine.)
 
 ::: {.callout-note collapse='true' title='Solution'}
-A complete scaffold passes every row except, until you commit, the
-source-code row's Git check (`zzc git` or `git init`). If the
-Dockerfile row fails, compare its `FROM` line with the lockfile's
-`R$Version`: the two were written at different times, and the fix
-is to rebuild with `make docker-build` after a snapshot, not to
-edit the tag by hand. Run `make check-renv-no-fix` as well; unlike
-`make check-renv`, it changes nothing.
+A complete scaffold passes every row except one. Until you commit,
+the source-code row's Git check fails (`zzc git` or `git init`).
+If the Dockerfile row fails, compare its `FROM` line with the
+lockfile's `R$Version`. The two were written at different times.
+The fix is to rebuild with `make docker-build` after a snapshot,
+not to edit the tag by hand. Run `make check-renv-no-fix` as well.
+Unlike `make check-renv`, it changes nothing.
 :::
 
 ## Analysis code as a package, without zzcollab {#sec-zzcollab-diy-package}
 
 `zzc tidyverse` writes a `DESCRIPTION`, an `R/` directory, and a
-Dockerfile in one command, but none of what makes that backbone
-*useful* is specific to `zzcollab`, or to `rrtools`, or to any
-framework. A function documented with `roxygen2`, checked with
-`R CMD check`, and loadable by name instead of by `source()` is
-ordinary R package development, available to a repository that
-uses no framework at all. This section does that development by
-hand on one function from this chapter's own examples, so that
-adopting a scaffolding tool becomes a question of convenience
-alone.
+Dockerfile in one command. However, none of what makes that
+backbone *useful* is specific to `zzcollab`, or to `rrtools`, or
+to any framework. Consider a function documented with `roxygen2`,
+checked with `R CMD check`, and loadable by name instead of by
+`source()`. That is ordinary R package development, available to
+a repository that uses no framework at all. In this section we do
+that development by hand on one function from this chapter's own
+examples. Adopting a scaffolding tool then becomes a question of
+convenience alone.
 
-The function is the composite-outcome derivation the rest of this
-book writes inline wherever it needs HF-HOME's primary endpoint:
-30-day readmission or death, with the outcome set to missing when
-the patient was never ascertained.
+The function is the composite-outcome derivation that the rest of
+this book writes inline wherever it needs HF-HOME's primary
+endpoint. The endpoint is 30-day readmission or death, with the
+outcome set to missing when the patient was never ascertained.
 
 ```{r}
 #| label: zzcollab-diy-function
@@ -1451,16 +1466,16 @@ c(events = sum(composite$composite_30d, na.rm = TRUE),
   unascertained = sum(is.na(composite$composite_30d)))
 ```
 
-Written this way, in a script, the function is reused by copying
-it (and silently diverging) into every script that needs it, it is
-documented only by whatever comment sits above it, and nothing
-checks that its argument or return value still match what a caller
-assumes six months later. Turning it into a package function fixes
-all three problems.
+Written this way, in a script, the function has three problems.
+It is reused by copying it (and silently diverging) into every
+script that needs it. It is documented only by whatever comment
+sits above it. And nothing checks that its argument or return
+value still match what a caller assumes six months later. Turning
+it into a package function fixes all three problems.
 
 ### A minimal `DESCRIPTION` by hand
 
-A package needs a `DESCRIPTION` file at its root; `usethis` and
+A package needs a `DESCRIPTION` file at its root. `usethis` and
 `rrtools` write one for you, but the file itself is nine lines of
 plain text, no different from one you type:
 
@@ -1478,18 +1493,19 @@ Encoding: UTF-8
 ```
 
 `Imports:` is the field that matters most and is easiest to let
-drift: every package a function in `R/` calls with `::` belongs
-here, and `R CMD check` (below) is what notices when it does not.
+drift. Every package a function in `R/` calls with `::` belongs
+here, and `R CMD check` (below) is what notices when one is
+missing.
 
 ### Documenting with `roxygen2`
 
 `roxygen2` [@wickham2024roxygen2] turns a comment block directly
-above a function into its help page, keeping the documentation and
-the code in the file a reader already has open instead of in a
+above a function into its help page. The documentation stays with
+the code, in the file a reader already has open, instead of in a
 separate `.Rd` file that drifts out of sync. The block below would
-sit above `derive_composite_outcome()` in `R/derive.R` (display-only;
-it edits a package source tree that does not exist on this
-machine):
+sit above `derive_composite_outcome()` in `R/derive.R`. It is
+display-only, because it edits a package source tree that does
+not exist on this machine:
 
 ```r
 #' Derive the HF-HOME composite outcome
@@ -1515,9 +1531,10 @@ derive_composite_outcome <- function(outcomes) {
 }
 ```
 
-Running `devtools::document()` reads every such block in `R/` and
+Running `devtools::document()` reads every such block in `R/`. It
 writes `man/derive_composite_outcome.Rd` and the `export()` lines
-in `NAMESPACE`; nobody edits either file directly (display-only):
+in `NAMESPACE`, and nobody edits either file directly
+(display-only):
 
 ```r
 devtools::document()
@@ -1525,20 +1542,19 @@ devtools::document()
 #> Writing derive_composite_outcome.Rd
 ```
 
-`?derive_composite_outcome` now works
-from any script that loads the package, the `@examples` block is
-code that can be run (and, in `R CMD check`, is run), and a
-function whose documented `@param` no longer matches its signature
-is something the next step catches rather than something a reader
-discovers by trial and error.
+`?derive_composite_outcome` now works from any script that loads
+the package. The `@examples` block is code that can be run (and,
+in `R CMD check`, is run). A function whose documented `@param` no
+longer matches its signature is caught by the next step. A reader
+no longer has to discover the mismatch by trial and error.
 
 ### Checking the package
 
-`R CMD check`, run through `devtools::check()`, is what `roxygen2`
-comments alone cannot give you: a battery of structural tests
-against the whole package, not just the one function you are
-looking at (display-only; it requires the package tree and is not
-installed in this environment):
+`R CMD check`, run through `devtools::check()`, gives what
+`roxygen2` comments alone cannot. It runs a battery of structural
+tests against the whole package, not just the one function you are
+looking at. The call is display-only, because it requires the
+package tree, which is not installed in this environment:
 
 ```r
 devtools::check()
@@ -1554,21 +1570,22 @@ devtools::check()
 ```
 
 The warning above is deliberately left in to show what the check
-is for: it would have caught a `@param` line typed for the wrong
+is for. It would have caught a `@param` line typed for the wrong
 argument name, which no amount of careful reading of the function
-body would. `R CMD check` also verifies that every package named
-after `::` in `R/` is declared in `Imports:`, that the examples run
-without error, that the `NAMESPACE` matches what `roxygen2` wrote,
-and that the package installs cleanly in a fresh session. It is
-the same check CRAN runs on every submission, available to any
-package whether or not it is ever submitted.
+body would catch. `R CMD check` also verifies that every package
+named after `::` in `R/` is declared in `Imports:` and that the
+examples run without error. It verifies that the `NAMESPACE`
+matches what `roxygen2` wrote, and that the package installs
+cleanly in a fresh session. It is the same check CRAN runs on
+every submission. It is available to any package whether or not
+the package is ever submitted.
 
 ### Optional: a browsable site with `pkgdown`
 
 `pkgdown` [@wickham2024pkgdown] renders every `man/*.Rd` page,
-along with the `README`, into a static website, which is worth the
-one extra command when more than one person reads the functions
-(display-only):
+along with the `README`, into a static website. The site is worth
+the one extra command when more than one person reads the
+functions (display-only):
 
 ```r
 pkgdown::build_site()
@@ -1576,10 +1593,11 @@ pkgdown::build_site()
 usethis::use_pkgdown_github_pages()
 ```
 
-For a one-author analysis this is usually not worth the setup; for
-a package that a team imports across several studies, a site that
-`?derive_composite_outcome` cannot show in a chat message is often
-what gets it actually read.
+For a one-author analysis this is usually not worth the setup.
+Consider instead a package that a team imports across several
+studies. A site can be linked in a chat message, which
+`?derive_composite_outcome` cannot, and that is often what gets
+the documentation actually read.
 
 @tbl-zzcollab-diy-vs-framework lines up what each layer costs
 against what it buys, continuing the comparison of
@@ -1602,10 +1620,10 @@ row and the file layout around it. {#tbl-zzcollab-diy-vs-framework}
 The practical reading of the table is that `rrtools` and
 `zzcollab` save you the `DESCRIPTION` boilerplate and the decision
 about where files go, and nothing more. The work that makes a
-package worth having, writing the documentation and reading what
-the check reports, is the same work with or without them, and it
-is the work most worth learning by hand once, as @sec-zzcollab-assemble
-argued for the pillars generally.
+package worth having is writing the documentation and reading what
+the check reports. That work is the same with or without them. It
+is also the work most worth learning by hand once, as
+@sec-zzcollab-assemble argued for the pillars generally.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A colleague says there is no point documenting
@@ -1613,15 +1631,15 @@ argued for the pillars generally.
 going on CRAN. Is that right?
 
 **Answer.** No. `roxygen2` and `R CMD check` are useful to any
-package, submitted anywhere or nowhere; CRAN simply runs the same
-check on what it receives. An
-in-house package that only two analysts ever install still benefits
-from `?derive_composite_outcome` working, from the check catching a
-`@param` that drifted from the signature, and from the examples
-block running as a test every time `devtools::check()` runs. CRAN
-submission adds a few more checks (URLs, spelling, package size);
-it does not add the value of documenting and checking in the first
-place.
+package, submitted anywhere or nowhere. CRAN simply runs the same
+check on what it receives. An in-house package that only two
+analysts ever install still benefits in three ways. The help page
+`?derive_composite_outcome` works, and the check catches a
+`@param` that drifted from the signature. The examples block also
+runs as a test every time `devtools::check()` runs. CRAN
+submission adds a few more checks (URLs, spelling, package size).
+It does not add the value of documenting and checking in the
+first place.
 :::
 
 ### Exercises
@@ -1656,24 +1674,24 @@ readmission_rate <- function(composite) {
 }
 ```
 
-It adds nothing to `Imports:`: `mean()` and the comparison
+It adds nothing to `Imports:`. `mean()` and the comparison
 operator are base R, and the function never calls another package
 with `::`. The example line uses a vector with a missing value on
-purpose, so the check exercises the same `na.rm = TRUE` branch the
-real data uses.
+purpose. The check then exercises the same `na.rm = TRUE` branch
+that the real data uses.
 :::
 
 ## Rules of thumb
 
 1. **Habit 1: the compendium is the unit.** Code, data,
    environment, and paper travel together in one directory with a
-   convention a stranger knows; audit all five pillars, not the
-   ones a tool happens to write, and tag what you submit, because
-   the fresh clone of that tag is the test.
+   convention a stranger knows. Audit all five pillars, not the
+   ones a tool happens to write. Tag what you submit, because the
+   fresh clone of that tag is the test.
 2. **Habit 2: raw data are evidence; derived data are a build
-   product.** Never write to `raw_data/`, commit a checksum
-   manifest and change it only when new data arrive deliberately,
-   and regenerate everything else from code.
+   product.** Never write to `raw_data/`. Commit a checksum
+   manifest and change it only when new data arrive deliberately.
+   Regenerate everything else from code.
 3. **Habit 4: pin the environment.** The lockfile and the
    Dockerfile pin different layers, and they must agree on the
    R version.
@@ -1717,11 +1735,11 @@ round(100 * tapply(hf$event_30d, hf$arm, mean, na.rm = TRUE), 1)
 
 The chunk reads `outcomes.csv` from the HF-HOME directory, because
 the Pitfall in @sec-rrtools-layout edited the toy compendium's
-copy; in your compendium, both files come from `raw_data/`, and
+copy. In your compendium, both files come from `raw_data/`, and
 `check_raw()` runs first. If the audit's Dockerfile row fails, the
-base tag and the lockfile's R version disagree; set the tag from
+base tag and the lockfile's R version disagree. Set the tag from
 `renv::lockfile_read("renv.lock")$R$Version`. A passing audit is
-still a structural check; the fresh-clone render is the test.
+still a structural check. The fresh-clone render is the test.
 :::
 
 ## Cheat sheet
@@ -1767,7 +1785,7 @@ still a structural check; the fresh-clone render is the test.
    directory for the data and the paper, which holds the study;
    and a Dockerfile which, with `renv.lock`, gives environment
    reproducibility. A regular R package exports functions for
-   reuse by others and has no data or narrative; the compendium
+   reuse by others and has no data or narrative. The compendium
    repurposes the package structure as infrastructure, not for
    distribution on CRAN.
 2. The Five Pillars are: (1) a Dockerfile (captures the
@@ -1787,7 +1805,7 @@ still a structural check; the fresh-clone render is the test.
    answer, which is why the audit in @sec-zzcollab-audit checks
    for them explicitly.
 3. A framework is worth adopting when many projects should look
-   alike or the setup will be repeated often; for a single paper,
+   alike or the setup will be repeated often. For a single paper,
    assembling by hand or with `rrtools` is enough. Every framework
    writes the pillars once. Keeping them consistent afterwards
    (lockfile, Dockerfile tag, data manifest) is still yours, and

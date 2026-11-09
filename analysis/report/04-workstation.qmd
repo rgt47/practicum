@@ -2,16 +2,15 @@
 
 A workstation is the one piece of infrastructure in this book that
 nobody will ever ask you about. No reviewer inspects it, no funder
-requires it, and no collaborator sees it, so it tends to stay in
-whatever state it arrived in. Its defects appear as friction: a
-path that works here and
-not there, a package that is a different version than you thought,
-a script that runs in your session only because yesterday's
-objects were quietly restored into it. This chapter installs the
-minimum a professional biostatistician needs (R, an editor,
-Quarto, and Git), on macOS, Windows, or Linux, and ends with a
-checklist that tells you in four commands whether your machine is
-ready for the rest of the book.
+requires it, and no collaborator sees it. As a result, it tends to
+stay in whatever state it arrived in. Its defects appear as small
+failures. A path works here and not there. A package is a
+different version than you thought. A script runs in your session
+only because yesterday's objects were quietly restored into it.
+This chapter installs the minimum a professional biostatistician
+needs (R, an editor, Quarto, and Git) on macOS, Windows, or Linux.
+It ends with a checklist of four commands that tells you whether
+your machine is ready for the rest of the book.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -90,14 +89,13 @@ answers are in @sec-quiz-answers-04.
 
 ## The essentials {#sec-workstation-essentials}
 
-The goal is a legible machine: a configuration that is written
-down, restorable, and separable from the projects that run on it,
-so that the analysis you run on Tuesday gives the same result on
+The goal is a machine whose configuration is written down,
+restorable, and separate from the projects that run on it. Then
+the analysis you run on Tuesday gives the same result on
 Wednesday, and the one you run at home gives the same result as
-in the office. Comfort is a matter of taste this book has no
-standing to legislate.
-@tbl-workstation-essentials is the whole of what the rest of the
-book assumes.
+the one in the office. Comfort is a matter of taste, and this book
+does not try to settle it. @tbl-workstation-essentials is the
+whole of what the rest of the book assumes.
 
 | Tool | What it is for | Taught in |
 |---|---|---|
@@ -112,8 +110,8 @@ optional. {#tbl-workstation-essentials}
 
 Two judgments matter more than any choice of product. First,
 **pin the foundational toolchain.** Know which version of R and
-Quarto you run, change it deliberately, and record it per project;
-casual updates are how reproducibility breaks silently. `rig`, the
+Quarto you run, change it deliberately, and record it per project.
+Casual updates are how reproducibility breaks without notice. `rig`, the
 R installation manager, keeps several R versions side by side on
 macOS, Windows, and Linux, and Docker (@sec-docker) pins the rest.
 Second, **install each tool by one route.** Two installers for the
@@ -122,13 +120,13 @@ then depends on the order of your `PATH`.
 
 ### Choosing an IDE
 
-The choice of IDE matters much less than fluency in it. The productivity you gain by knowing one editor thoroughly
-exceeds anything available by switching to a better one, and a
-year spent shallowly in three of them is worse than a year spent
-deeply in any one. What the choice does turn on is fit, along two
-axes: whether your work is R-only or spans several languages, and
-whether it happens on your own machine or on a server you reach
-over SSH (Secure Shell).
+The choice of IDE matters much less than fluency in it. Knowing
+one editor thoroughly gains you more than switching to a better
+one. A year spent shallowly in three editors is worse than a year
+spent deeply in any one. The choice does turn on fit, along two
+axes. The first is whether your work is R-only or spans several
+languages. The second is whether it happens on your own machine or
+on a server you reach over SSH (Secure Shell).
 
 | IDE | What it is | Choose it when |
 |---|---|---|
@@ -157,10 +155,10 @@ details.
 
 ::: {.callout-note collapse='true' title='Solution'}
 They should match. If the IDE reports a different R from the
-terminal, two R installations are present and the IDE and the
-terminal find different ones first; that is the competing-routes
+terminal, two R installations are present, and the IDE and the
+terminal find different ones first. That is the competing-routes
 problem above. In RStudio, Tools > Global Options > General shows
-which R it uses (on Windows it can be changed there); with `rig`,
+which R it uses (on Windows it can be changed there). With `rig`,
 `rig list` shows every installed version and `rig default` sets
 the one both find. Remove the installation you did not mean to
 have rather than living with two.
@@ -184,7 +182,7 @@ tool, and use `rig` when you genuinely need several versions.
 
 Install in the order of the tabs' steps: Git first (on macOS and
 Windows it brings tools that later steps use), then R, then the
-IDE and Quarto. Download links change; the pages named below are
+IDE and Quarto. Download links change. The pages named below are
 the stable entry points as of 2026-10.
 
 ::: {.panel-tabset}
@@ -208,10 +206,10 @@ the stable entry points as of 2026-10.
    rig default 4.4.0
    ```
 
-   Choose one of the two routes, not both; installing R through
+   Choose one of the two routes, not both. Installing R through
    the cask and again through `rig` leaves two installers
    competing for the same framework directory. Both use
-   Homebrew (`brew.sh`); without it, the CRAN installer from
+   Homebrew (`brew.sh`). Without Homebrew, the CRAN installer from
    `cran.r-project.org` is the first route.
 3. **The IDE and Quarto.** `brew install --cask rstudio quarto`,
    or the installers from `posit.co/download/rstudio-desktop/`,
@@ -224,14 +222,14 @@ On Apple Silicon, use the `arm64` build of R; Homebrew lives in
 
 1. **Git for Windows** from `git-scm.com/download/win`. It also
    installs Git Bash, the `bash` terminal that @sec-shell uses.
-   Its installer asks how to treat line endings; the default
-   (check out Windows-style, commit Unix-style) is right, and
+   Its installer asks how to treat line endings. The default
+   (check out Windows-style, commit Unix-style) is right.
    @sec-git-teams shows how a repository makes the rule explicit.
 2. **R** from `cran.r-project.org` (Download R for Windows, then
    'base'), or `rig` from its releases page, which also manages
-   versions. Install **Rtools** as well, whose version must match
-   R's minor version (Rtools44 for R 4.4); it is needed whenever a
-   package has to be compiled from source.
+   versions. Install **Rtools** as well. Its version must match
+   R's minor version (Rtools44 for R 4.4), and it is needed
+   whenever a package has to be compiled from source.
 3. **The IDE and Quarto** from the installers at
    `posit.co/download/rstudio-desktop/` (or Positron or VS Code)
    and `quarto.org/docs/get-started/`.
@@ -243,9 +241,9 @@ R on Windows accepts forward slashes in paths
 ### Windows with WSL
 
 WSL (the Windows Subsystem for Linux) runs a real Linux system
-inside Windows, so that the commands in this book, the Docker
-images of @sec-docker, and the servers you will later use all
-behave the same way. In an administrator PowerShell:
+inside Windows. The commands in this book, the Docker images of
+@sec-docker, and the servers you will later use then all behave
+the same way. In an administrator PowerShell:
 
 ```bash
 wsl --install
@@ -272,11 +270,11 @@ sudo apt update
 sudo apt install --no-install-recommends r-base r-base-dev git
 ```
 
-The distribution's R can lag the current release; for the latest
+The distribution's R can lag the current release. For the latest
 version, add the CRAN apt repository (see
 `cran.r-project.org/bin/linux/ubuntu/`), or use `rig`, which also
 runs on Linux. Packages from CRAN are compiled from source on
-Linux by default, which is slow and needs system libraries;
+Linux by default, which is slow and needs system libraries.
 Posit Public Package Manager serves prebuilt Linux binaries, and
 its setup page gives the repository URL for your
 distribution.[^p3m-04] Install the IDE and Quarto from their
@@ -312,14 +310,14 @@ quarto --version
 # quarto-required: ">= 1.5.55"
 ```
 
-The `quarto-required` key does not install anything; it makes a
-render on the wrong version fail loudly instead of succeeding
-quietly with different output.
+The `quarto-required` key does not install anything. It makes a
+render on the wrong version stop with an error, instead of
+succeeding quietly with different output.
 
 ::: {.callout-important title='LLM prompt'}
-A model can draft a bootstrap script for a new machine; the
-check is the checklist in @sec-workstation-ready, not the model's
-assurance.
+A model can draft a bootstrap script for a new machine. The test
+of the script is the checklist in @sec-workstation-ready, not the
+model's assurance.
 
 > **Context.** I am setting up [macOS 15 on Apple Silicon | Windows
 > 11 with WSL 2 and Ubuntu 24.04 | Ubuntu 24.04]. I need R
@@ -353,13 +351,13 @@ yourself. The prompt contains no data, only your platform.
 
 ::: {.callout-note collapse='true' title='Solution'}
 Start each version (`rig default <version>`, then `R`) and run
-`.libPaths()[1]`: the user library's path ends in the R minor
+`.libPaths()[1]`. The user library's path ends in the R minor
 version, for example `.../4.4/library` on macOS or
 `~/R/x86_64-pc-linux-gnu-library/4.4` on Linux. After
 `install.packages("praise")` in one version,
-`find.package("praise")` succeeds there and fails with 'there is
-no package called' in the other. Packages are built for one minor
-version of R, which is why each keeps its own library.
+`find.package("praise")` succeeds there. In the other version it
+fails with 'there is no package called'. Packages are built for
+one minor version of R, which is why each keeps its own library.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -368,11 +366,11 @@ version of R, which is why each keeps its own library.
 too. What does that cost?
 
 **Answer.** Speed and, potentially, line endings. Every file
-operation crosses from Linux to the Windows filesystem, which is
-much slower for the many small files a project with a package
-library contains, and Windows editors that touch the files may
-write CRLF endings that the Linux tools then read (@sec-shell
-shows what a stray carriage return does to a count). Keep the
+operation crosses from Linux to the Windows filesystem. That is
+much slower for the many small files that a project with a package
+library contains. In addition, Windows editors that touch the
+files may write CRLF endings that the Linux tools then read
+(@sec-shell shows what a stray carriage return does to a count). Keep the
 project in `~/` inside WSL and edit it with an IDE that reaches
 into WSL.
 :::
@@ -396,8 +394,8 @@ adding to them.
 %%| fig-cap: "The library search path. R takes the first match it
 %%|   finds, and installs into the first entry. Activating `renv`
 %%|   puts the project library first and removes the user and site
-%%|   libraries, which is why the same `install.packages()` call
-%%|   lands in different places depending on where you ran it."
+%%|   libraries. That is why the same `install.packages()` call
+%%|   installs to different places depending on where you ran it."
 flowchart TD
   Q["library(dplyr)"] --> A{"project renv library<br/><i>present and active?</i>"}
   A -->|"yes"| B["renv/library/...<br/><i>project-pinned version</i>"]
@@ -421,9 +419,9 @@ R looks for packages in the directories returned by `.libPaths()`
 The first is your user library; later entries are system
 libraries. `install.packages()` installs into `.libPaths()[1]` by
 default. The paths shown are for the CRAN build of R 4.4 on an
-Apple Silicon Mac; yours will differ by platform, R version, and
+Apple Silicon Mac. Yours will differ by platform, R version, and
 installer (a Homebrew-built R, for example, reports directories
-under `/opt/homebrew/`), so run the call rather than trust the
+under `/opt/homebrew/`). Run the call rather than trust the
 listing.
 
 With `renv` active in a project, the project's `renv/library/`
@@ -435,9 +433,9 @@ takes precedence:
 #> [2] "/Users/you/Library/Caches/org.R-project.R/R/renv/sandbox/..."
 ```
 
-Your user library is no longer on the list at all; the second
+Your user library is no longer on the list at all. The second
 entry is a sandboxed view of the system library. This is what
-`renv` does: each project has its own package library, isolated
+`renv` does. Each project has its own package library, isolated
 from other projects and from your user library (@sec-renv covers
 `renv` in depth). The pattern that follows:
 
@@ -458,10 +456,10 @@ from other projects and from your user library (@sec-renv covers
 Outside the project, `find.package("<pkg>")` returns a path under
 your user library, the first entry of `.libPaths()`. Inside the
 `renv` project, the first entry is the project library, and the
-package lands there; your user library does not change.
-`renv.lock` records nothing until you run `renv::snapshot()`, and
-`renv::status()` meanwhile reports the package as installed but
-not recorded once the project's code uses it.
+package is installed there. Your user library does not change.
+`renv.lock` records nothing until you run `renv::snapshot()`. In
+the meantime, once the project's code uses the package,
+`renv::status()` reports it as installed but not recorded.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -472,11 +470,11 @@ the lockfile change?
 **Answer.** Into the project's `renv/library/` directory, not the
 user library. `renv` modifies `.libPaths()` so that the first
 entry is the project library, and `install.packages()` installs
-to the first entry. The lock file (`renv.lock`) is *not* updated:
-it changes only when you run `renv::snapshot()`, and until then
-`renv::status()` flags the package as installed but not recorded
-once the project's code uses it. This isolation is the point of
-`renv`: a package update inside one project does not affect any
+to the first entry. The lock file (`renv.lock`) is *not* updated.
+It changes only when you run `renv::snapshot()`. Until then, once
+the project's code uses the package, `renv::status()` flags it as
+installed but not recorded. This isolation is the point of
+`renv`. A package update inside one project does not affect any
 other project's packages.
 :::
 
@@ -485,10 +483,11 @@ other project's packages.
 Anything in a user-level `.Rprofile` runs at the start of every
 session and changes its behavior. A heavy one (loading
 `tidyverse`, setting global options, defining helpers) makes your
-sessions different from a colleague's, and lets a script that does
-not load what it needs run on your machine and fail on theirs.
-Keep the user-level file nearly empty; a project-level `.Rprofile`
-is part of the project and runs for anyone who opens it.
+sessions different from a colleague's. It also lets a script that
+does not load what it needs run on your machine and fail on
+theirs. Keep the user-level file nearly empty. A project-level
+`.Rprofile`, by contrast, is part of the project and runs for
+anyone who opens it.
 
 Things that *are* fine in `~/.Rprofile`:
 
@@ -532,9 +531,9 @@ deliberate, because every collaborator runs it.
 R can save every object in a session to a file named `.RData` when
 it quits, and restore them when it next starts in that directory.
 RStudio offers to do both by default. The chunk below makes the
-consequence concrete: it saves a `cohort` object into an `.RData`
-file in a temporary directory, then starts R there twice, once as
-an IDE does and once with `--vanilla`, which skips the restore.
+consequence concrete. It saves a `cohort` object into an `.RData`
+file in a temporary directory. It then starts R there twice, once
+as an IDE does and once with `--vanilla`, which skips the restore.
 
 ```{r}
 #| label: workstation-restore-demo
@@ -557,20 +556,20 @@ unlink(proj, recursive = TRUE)
 ```
 
 The first session finds `cohort` although no code in it created
-the object; the second, a clean start, does not. (The first also
+the object. The second, a clean start, does not. (The first also
 skips your `.Rprofile`, so that the workspace is the only
 difference.)
 
 ::: {.callout-warning title='Pitfall'}
-**A restored workspace makes a broken script run.** If a script
-uses an object it never creates, because you deleted the line that
-built it or built it by hand in the console last week, the
-restored `.RData` supplies it and the script runs, on stale data,
-in your session only. A collaborator, a fresh clone, or a render
-fails, or worse, runs on a different object of the same name.
-Turn the restore off once: `usethis::use_blank_slate()` sets
-RStudio never to save or restore the workspace (in Tools > Global
-Options > General), and running `R --vanilla`, or Session >
+**A restored workspace makes a broken script run.** Suppose a
+script uses an object it never creates, because you deleted the
+line that built it or built it by hand in the console last week.
+The restored `.RData` supplies the object, and the script runs on
+stale data, in your session only. A collaborator, a fresh clone,
+or a render fails. Worse, it may run on a different object of the
+same name. Turn the restore off once. `usethis::use_blank_slate()`
+sets RStudio never to save or restore the workspace (in Tools >
+Global Options > General). Running `R --vanilla`, or Session >
 Restart R before a final run, gives a clean start.
 :::
 
@@ -591,13 +590,13 @@ keyring::key_set("redcap")   # prompts; stores in the keychain
 keyring::key_get("redcap")
 ```
 
-`~/.Renviron` is read at startup and its variables are available
-through `Sys.getenv()`; it lives in your home directory, outside
-every project, and a project-level `.Renviron` must be listed in
+`~/.Renviron` is read at startup, and its variables are available
+through `Sys.getenv()`. It lives in your home directory, outside
+every project. A project-level `.Renviron` must be listed in
 `.gitignore` (@sec-git-solo). The `keyring` package stores the
 secret in the macOS Keychain, the Windows Credential Manager, or
-the Linux Secret Service, so that it is never in a plain-text file
-at all (display-only: both change your machine's state).
+the Linux Secret Service. The secret is then never in a plain-text
+file at all (display-only: both change your machine's state).
 
 ::: {.callout-important title='LLM prompt'}
 When R fails at startup or behaves differently in your IDE than in
@@ -619,10 +618,10 @@ startup evidence.
 > `renv` project. Give the command that would confirm it.
 
 *Failure mode.* A generic answer ('reinstall the package') that
-treats the symptom, or a diagnosis that ignores the workspace: a
+treats the symptom, or a diagnosis that ignores the workspace. A
 restored `.RData` is a common cause of 'works in my session only',
 and models rarely raise it unprompted. *Check.* Run R with
-`--vanilla`, which skips both startup files and the restore; if
+`--vanilla`, which skips both startup files and the restore. If
 the problem disappears, add them back one at a time. Startup files
 can contain secrets, so redact before sending, and send no data
 (@sec-ai-governance).
@@ -637,14 +636,14 @@ can contain secrets, so redact before sending, and send no data
    do the two sessions print?
 
 ::: {.callout-note collapse='true' title='Solution'}
-The output of the demonstration chunk above is the key: the
+The output of the demonstration chunk above is the key. The
 session that restores the workspace prints `TRUE`, and the
-`--vanilla` session prints `FALSE`. Anything in your `.Rprofile`
-that loads packages, defines functions, or sets options that
-change results (`digits` aside) belongs in the project that needs
-it, written as code the project runs. `usethis::use_blank_slate()`
-reports that it set the two workspace options; check them in
-RStudio's General options.
+`--vanilla` session prints `FALSE`. Some lines in your `.Rprofile`
+may load packages, define functions, or set options that change
+results (`digits` aside). These belong in the project that needs
+them, written as code the project runs.
+`usethis::use_blank_slate()` reports that it set the two workspace
+options. Check them in RStudio's General options.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -654,7 +653,7 @@ RStudio's General options.
 **Answer.** Only if the project's `.gitignore` lists `.Renviron`
 and the file was never committed. A project-level `.Renviron` sits
 in the repository's working tree, so `git add .` stages it like
-any other file, and a password in any earlier commit is exposed for
+any other file. A password in any earlier commit is exposed for
 good (@sec-git-solo). The user-level `~/.Renviron`, outside every
 project, or the system keychain through `keyring`, avoids the
 question.
@@ -674,9 +673,9 @@ Later chapters point back here when they assume a working setup.
 
 : The 'Is my machine ready?' checklist. {#tbl-workstation-ready}
 
-The last row needs a project; the book's own repository, or the
-practice repository of @sec-git-solo once you have initialized
-`renv` in it, will do. `install.packages("renv")` installs the
+The last row needs a project. The book's own repository will do,
+as will the practice repository of @sec-git-solo once you have
+initialized `renv` in it. `install.packages("renv")` installs the
 package into your user library first.
 
 ::: {.callout-tip title='Verification'}
@@ -693,11 +692,11 @@ the R section, which says it cannot find R, although `R --version`
 works in the same terminal. What is the likely cause?
 
 **Answer.** Quarto looks for R through the `PATH` and, on some
-systems, through `QUARTO_R`; a second installation, or an R the
+systems, through `QUARTO_R`. A second installation, or an R the
 IDE knows about but the `PATH` does not, produces exactly this
 split. Run `which R` (or `where R` on Windows) to see which
 executable the terminal finds. If you use `rig`, `rig default`
-makes one version the one both find; otherwise, set `QUARTO_R` to
+makes one version the one both find. Otherwise, set `QUARTO_R` to
 the R you mean.
 :::
 
@@ -711,20 +710,20 @@ a new machine.
 
 ### Editors beyond the IDE
 
-Neovim, with an R plugin, is the keyboard-driven modal editor:
-highly customizable, fast, and usable over SSH without
-modification, with a steep learning curve. The capability that
-makes it viable for analysis rather than merely for editing is a
-link to a live R session: `R.nvim` is the established choice, and
-the in-house `zzvim-R` is the lighter one used in this book's own
-development, sending the current line, a visual selection, or a
-whole Quarto chunk to an embedded terminal. Its render command
-calls `rmarkdown::render()` rather than `quarto render`, so a
-`@fig-` cross-reference stays as literal text in the output;
-render from the terminal, or with a dedicated Quarto editor
-integration, when cross-references matter. Choose it if you
-already use vi or Neovim for other languages, or do most of your
-work over SSH.
+Neovim, with an R plugin, is the keyboard-driven modal editor. It
+is highly customizable, fast, and usable over SSH without
+modification, and it has a steep learning curve. What makes it
+usable for analysis, and not only for editing, is a link to a
+live R session. `R.nvim` is the established choice. The in-house
+`zzvim-R` is a lighter one, used in this book's own development.
+It sends the current line, a visual selection, or a whole Quarto
+chunk to an embedded terminal. Its render command calls
+`rmarkdown::render()` rather than `quarto render`, so a `@fig-`
+cross-reference stays as literal text in the output. When
+cross-references matter, render from the terminal or with a
+dedicated Quarto editor integration. Choose Neovim if you already
+use vi or Neovim for other languages, or do most of your work over
+SSH.
 
 ### Shell and terminal
 
@@ -760,8 +759,8 @@ fi
 
 `starship` (`starship.rs`, `brew install starship`) gives a fast
 prompt that shows the Git branch. `tmux` is worth learning if you
-work on servers over SSH: its sessions survive disconnection, with
-several panes and named windows. A minimal `.tmux.conf`:
+work on servers over SSH. Its sessions survive disconnection, and
+they can hold several panes and named windows. A minimal `.tmux.conf`:
 
 ```
 set -g default-terminal "screen-256color"
@@ -824,7 +823,7 @@ stow zsh git R nvim    # symlinks ~/.zshrc -> ~/dotfiles/zsh/.zshrc, etc.
 Push the dotfiles repository to GitHub as a *private* repository.
 Shell histories, `.gitconfig` email addresses, internal hostnames,
 and the occasional token pasted into `.zshrc` all end up in
-dotfiles; make the repository public only after you have audited
+dotfiles. Make the repository public only after you have audited
 every file for them. Keep secrets out of it entirely, in
 `~/.Renviron` or the keychain (@sec-workstation-rprofile). On a
 new machine:
@@ -872,8 +871,9 @@ The first command downloads a script and pipes it straight into
 `bash`, which runs whatever the server returns with your
 privileges. That is the installation method Homebrew documents,
 and it is acceptable for a source you have decided to trust, over
-HTTPS (an encrypted, authenticated connection); it is not a pattern to copy for an arbitrary URL. When in
-doubt, download the script, read it, and then run it. The
+HTTPS (an encrypted, authenticated connection). It is not a
+pattern to copy for an arbitrary URL. When in doubt, download the
+script, read it, and then run it. The
 `brew shellenv` line is needed on Apple Silicon, where Homebrew
 lives in `/opt/homebrew` and is not yet on the `PATH` of the shell
 running the script. Refine the script each time you set up a new
@@ -889,7 +889,7 @@ machine, and end it with the checklist in @tbl-workstation-ready.
    your memory; start clean and let the project load what it uses.
 3. **Habit 8: a bug that produces a plausible number is the
    expensive kind.** A restored workspace turns a broken script
-   into a working one with stale data; turn the restore off.
+   into a working one with stale data. Turn the restore off.
 
 ## Cumulative practice
 
@@ -935,10 +935,10 @@ It omits `set -e` on purpose, so that one failure does not hide
 the others, and keeps `-u` and `pipefail`. `git config` with a key
 exits non-zero when the key is unset, which makes it a check
 rather than a listing. `Rscript -e 'renv::status()'` alone prints
-its report but exits zero even when it finds issues, so the last
-check tests the `synchronized` element of the result, which turns
-a report into an exit status. Run the script from a project
-directory so that the `renv` check has a lockfile to read;
+its report but exits zero even when it finds issues. The last
+check therefore tests the `synchronized` element of the result,
+which turns a report into an exit status. Run the script from a
+project directory so that the `renv` check has a lockfile to read.
 `PATH=/usr/bin:/bin bash check-machine.sh` makes the Quarto check
 fail.
 :::
@@ -980,9 +980,9 @@ fail.
    isolating the project's package versions from the
    user library and from other projects.
 2. It supplies, from the previous session, every object the
-   script uses but never creates, so the script runs in your
+   script uses but never creates. The script then runs in your
    session and fails (or runs on different objects) everywhere
-   else. The script only appears to run from a clean start. Turn
+   else. It only appears to run from a clean start. Turn
    the restore off (`usethis::use_blank_slate()`) and test with
    `R --vanilla`.
 3. `R --version`, `quarto check`, `git config --list`, and, inside

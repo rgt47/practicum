@@ -2,15 +2,15 @@
 
 R-only graduates of this program have reported being screened out
 of industry positions before an interview, because the
-application asked for SAS. That failure is at least loud. The
-quiet one comes after you are hired: a SAS program and an R
-program that fit 'the same model' to the same data and report
-different numbers, because the two languages chose different
-defaults (a reference level, a coding scheme, a censoring code, a
-method for tied event times) and neither said so. This chapter
-gives you enough SAS to read a program and its log, to move data
-across the boundary without losing anything, and to reproduce the
-procedures that fill most clinical study reports, with a table of
+application asked for SAS. That failure is at least visible. The
+quiet one comes after you are hired. A SAS program and an R
+program fit 'the same model' to the same data and report different
+numbers. The two languages chose different defaults (a reference
+level, a coding scheme, a censoring code, a method for tied event
+times), and neither said so. This chapter gives you enough SAS to
+read a program and its log, and to move data across the boundary
+without losing anything. It also shows how to reproduce the
+procedures that fill most clinical study reports. A table lists
 the defaults you must set on both sides before the numbers agree.
 
 ::: {.bookepigraph}
@@ -61,7 +61,7 @@ library(palmerpenguins)
 ```
 
 No SAS installation is needed. Every SAS block in this chapter is
-display-only and has not been run for this edition; the R code
+display-only and has not been run for this edition. The R code
 beside it runs.
 
 **You'll be able to.**
@@ -109,34 +109,35 @@ version 5) transport format, structured to CDISC (Clinical Data
 Interchange Standards Consortium) standards as the FDA Data
 Standards Catalog specifies. XPT is an open, documented format
 that R writes as readily as SAS does. FDA does not require SAS
-software: its Statistical Software Clarifying Statement (2015)
-says sponsors may use any suitable software, and R Consortium
-pilots have since carried R-based submission packages through FDA
-review (@sec-cdisc-industry). SAS nonetheless remains the
-incumbent in sponsors and contract research organizations (CROs),
-so it is what most industry teams expect you to read and write.
+software. Its Statistical Software Clarifying Statement (2015)
+says sponsors may use any suitable software. R Consortium pilots
+have since carried R-based submission packages through FDA review
+(@sec-cdisc-industry). Nevertheless, SAS remains the incumbent in
+sponsors and contract research organizations (CROs). It is
+therefore what most industry teams expect you to read and write.
 
-The division between sectors follows the deliverable, not the
-merits of the languages. Where the deliverable is a regulatory
+The division between sectors follows the deliverable rather than
+the merits of the languages. Where the deliverable is a regulatory
 artifact, changing tools means revalidating a pipeline a regulator
-has already accepted and retraining a department audited on its
-documented procedures; that cost keeps SAS in most sponsor-driven
-trials, much CRO work, and many government agencies. Where the
-deliverable is a paper, the ecosystem, cost, and collaborators
-favor R: academic biostatistics, investigator-initiated trials,
-cohort epidemiology, and most young biotechnology companies.
-Industry positions will expect SAS with R as a second skill;
-academic positions the reverse. A graduate who reads both is
-eligible for all of them.
+has already accepted. It also means retraining a department
+audited on its documented procedures. That cost keeps SAS in most
+sponsor-driven trials, much CRO work, and many government
+agencies. Where the deliverable is a paper, the ecosystem, cost,
+and collaborators favor R. This holds in academic biostatistics,
+investigator-initiated trials, cohort epidemiology, and most young
+biotechnology companies. Industry positions will expect SAS with R
+as a second skill, and academic positions the reverse. A graduate
+who reads both is eligible for all of them.
 
 ### Getting access
 
 SAS OnDemand for Academics (ODA), at
 <https://welcome.oda.sas.com/>, is the free route. It runs SAS
-Studio in a browser for students and independent learners, needs
-no installation, and is enough for every SAS block in this
-chapter; register, note the user ID it assigns (your home folder
-is `/home/<user-id>/`), and upload data through the file pane.[^oda]
+Studio in a browser for students and independent learners. It
+needs no installation, and it is enough for every SAS block in
+this chapter. Register, note the user ID it assigns (your home
+folder is `/home/<user-id>/`), and upload data through the file
+pane.[^oda]
 
 [^oda]: As of 2026-10. ODA sessions have memory and storage limits
     (about 5 GB each when last checked) and time out after a period
@@ -148,19 +149,20 @@ is `/home/<user-id>/`), and upload data through the file pane.[^oda]
 **Question.** A classmate says R is useless for an FDA submission
 because the FDA requires SAS. What is right and wrong in that?
 
-**Answer.** Wrong about the requirement: the FDA requires the
-datasets as XPT version 5 transport files in CDISC structure, not
-SAS software, and R writes XPT (`haven::write_xpt()`, `xportr`).
-Right about the market: most sponsors and CROs run validated SAS
-pipelines, so most industry teams expect you to read and write
-SAS, and the screening filter reflects that.
+**Answer.** The classmate is wrong about the requirement. The FDA
+requires the datasets as XPT version 5 transport files in CDISC
+structure. It does not require SAS software, and R writes XPT
+(`haven::write_xpt()`, `xportr`). The classmate is right about
+the market. Most sponsors and CROs run validated SAS pipelines, so
+most industry teams expect you to read and write SAS. The
+screening filter reflects that.
 :::
 
 ## SAS basics for R users {#sec-sas-basics}
 
 ### The DATA step and the PROC step
 
-SAS has two constructs, the DATA step and the PROC step, and an R
+SAS has two constructs, the DATA step and the PROC step. An R
 programmer who understands the difference between them has learned
 most of what makes the language feel foreign. The difference is in
 the unit of computation. R is vectorized: you write an expression
@@ -168,11 +170,11 @@ over a whole column. A DATA step reads one observation, runs every
 statement against it, writes it out, and loops back for the next.
 The loop is implicit, which is why the code looks vectorized when
 it is not. Variables persist across statements within a row but
-reset between rows; a subsetting `if` discards the observation
-rather than returning a filtered copy; and `retain` and `lag`
-exist because the row-at-a-time model gives no other way to see a
-neighboring observation. A PROC step works the other way,
-consuming a whole dataset and producing listings, tables, or
+reset between rows. A subsetting `if` discards the observation
+rather than returning a filtered copy. `retain` and `lag` exist
+because the row-at-a-time model gives no other way to see a
+neighboring observation. A PROC step works the other way. It
+consumes a whole dataset and produces listings, tables, or
 statistical output. An idiomatic program alternates: a DATA step
 to shape the data, then a PROC to analyze it.
 
@@ -209,10 +211,10 @@ adults <- demo |>
 adults
 ```
 
-And PROC steps on the result. Each procedure has its own syntax,
-but most share an `OUT =` option to capture results as a dataset
-and some combination of `BY`, `CLASS`, and `MODEL` statements to
-say which variables partition the data and which enter the
+And PROC steps on the result. Each procedure has its own syntax.
+Most share an `OUT =` option to capture results as a dataset. Most
+also use some combination of `BY`, `CLASS`, and `MODEL` statements
+to say which variables partition the data and which enter the
 analysis.
 
 ```sas
@@ -239,9 +241,9 @@ data mylib.demo_archive;
 run;
 ```
 
-A format controls how a value displays (`1` as `'Male'`); an
-informat controls how input is read. `PROC FORMAT` defines them,
-and the R analog is a factor with explicit labels:
+A format controls how a value displays (`1` as `'Male'`). An
+informat controls how input is read. `PROC FORMAT` defines them.
+The R analog is a factor with explicit labels:
 
 ```sas
 proc format;
@@ -263,7 +265,7 @@ Six procedures cover most data-cleaning code you will read:
 ::: {.callout-warning title='Pitfall'}
 **In SAS, a missing number is smaller than every number.** The
 subsetting `if age < 18;` keeps subjects whose age is missing,
-because SAS compares a missing value as lower than any value; in
+because SAS compares a missing value as lower than any value. In
 R, `filter(age < 18)` drops them, because the comparison is `NA`.
 The same condition therefore selects different subjects in the two
 languages, with no message in either. Test for missing values
@@ -276,11 +278,12 @@ explicitly on both sides (`if not missing(age) and age < 18;`).
 fix?
 
 **Answer.** A DATA step resets non-retained variables to missing at
-the start of each row, so `total` is missing when the statement
-runs, and missing plus a number is missing. `retain total 0;` (or
-the sum statement `total + dose;`, which retains implicitly) keeps
-the running value across rows. In R the whole computation is one
-vectorized call, `cumsum(dose)`, usually within `group_by()`.
+the start of each row. `total` is therefore missing when the
+statement runs, and missing plus a number is missing.
+`retain total 0;` keeps the running value across rows, as does the
+sum statement `total + dose;`, which retains implicitly. In R the
+whole computation is one vectorized call, `cumsum(dose)`, usually
+within `group_by()`.
 :::
 
 ## Procedures and the defaults that differ {#sec-sas-procs}
@@ -335,15 +338,15 @@ emmeans::emmeans(fit, "species", contr = "pairwise",
 ```
 
 The `lsmeans` statement produces estimated marginal means
-(least-squares means); the `emmeans` package is the R counterpart.
+(least-squares means). The `emmeans` package is the R counterpart.
 Marginal means do not depend on which level is the reference,
 which makes them the right quantities to compare across the two
-languages. The coefficients do depend on it: `PROC GLM` uses a
+languages. The coefficients do depend on it. `PROC GLM` uses a
 less-than-full-rank parameterization whose `solution` reports each
-`species` level against the *last* sorted level (Gentoo), whereas
-`lm()` reports each against the *first* (Adelie). The
+`species` level against the *last* sorted level (Gentoo). By
+contrast, `lm()` reports each against the *first* (Adelie). The
 `flipper_length_mm` slope, the overall fit, and the fitted values
-match exactly; to make the `species` rows match term for term,
+match exactly. To make the `species` rows match term for term,
 relevel in R with `relevel(species, ref = 'Gentoo')`.
 
 ### `PROC LOGISTIC` and reference coding
@@ -378,25 +381,26 @@ fit <- glm(outcome ~ treatment + age + sex,
 broom::tidy(fit, exponentiate = TRUE, conf.int = TRUE)
 ```
 
-Three settings in the SAS code exist only to match R. `param = ref`
-requests reference coding, which is R's default; without it,
-`PROC LOGISTIC` uses effect coding (sum-to-zero), whose
-coefficients are deviations from the average over levels. `ref =`
-names the reference level; SAS otherwise takes the *last* level in
-sort order and R the *first*, so for `active` and `placebo` the
-defaults pick opposite references and report the same effect with
-opposite signs. And `event = '1'` makes SAS model the probability
-that `outcome` is 1; by default `PROC LOGISTIC` models the lowest
-ordered value, here 0, which flips the sign of every coefficient.
-`PROC GENMOD` defaults instead to the less-than-full-rank
-`PARAM = GLM` coding, which behaves like reference coding with the
-last level as reference; `PROC GLM` and `PROC MIXED` use their own
+Three settings in the SAS code exist only to match R. First,
+`param = ref` requests reference coding, which is R's default.
+Without it, `PROC LOGISTIC` uses effect coding (sum-to-zero),
+whose coefficients are deviations from the average over levels.
+Second, `ref =` names the reference level. SAS otherwise takes the
+*last* level in sort order and R the *first*. For `active` and
+`placebo`, the defaults therefore pick opposite references and
+report the same effect with opposite signs. Third, `event = '1'`
+makes SAS model the probability that `outcome` is 1. By default
+`PROC LOGISTIC` models the lowest ordered value, here 0, which
+flips the sign of every coefficient. `PROC GENMOD` defaults
+instead to the less-than-full-rank `PARAM = GLM` coding. That
+coding behaves like reference coding with the last level as
+reference. `PROC GLM` and `PROC MIXED` use their own
 less-than-full-rank coding and do not take `param =`.
 
 ### The defaults that differ
 
 @tbl-sas-defaults collects the defaults that make an R fit and a
-SAS fit of 'the same model' disagree. Each is silent: both
+SAS fit of 'the same model' disagree. Each is silent. Both
 programs run and print a plausible table.
 
 | Setting | R default | SAS default | Set both sides to |
@@ -436,16 +440,17 @@ table as the acceptance criteria.
 > it does not apply. Name the output table (`ODS OUTPUT`) whose
 > estimates I should compare with `broom::tidy()` in R.
 
-*Failure mode.* Models translate the syntax and leave the defaults:
-no `EVENT =`, no `REF =`, Breslow ties against R's Efron, and, for
-survival models, the event and censoring codes confused. In R's
-`Surv()`, a status of 1 marks an event; SAS's
-`TIME aval*cnsr(1)` lists the values that mark *censoring*; and
-the CDISC `CNSR` variable codes 0 as the event. A model that
-writes `aval*cnsr(0)` for an ADaM dataset has inverted the
-analysis. *Check.* Run both programs on the same data and compare
-estimates to four decimal places; trace any disagreement to a row
-of @tbl-sas-defaults before accepting either.
+*Failure mode.* Models translate the syntax and leave the defaults
+unchanged. The result has no `EVENT =`, no `REF =`, and Breslow
+ties against R's Efron. For survival models, the event and
+censoring codes are often confused. In R's `Surv()`, a status of 1
+marks an event. SAS's `TIME aval*cnsr(1)` lists the values that
+mark *censoring*. The CDISC `CNSR` variable codes 0 as the event.
+A model that writes `aval*cnsr(0)` for an ADaM dataset has
+inverted the analysis. *Check.* Run both programs on the same data
+and compare estimates to four decimal places. Trace any
+disagreement to a row of @tbl-sas-defaults before accepting
+either.
 :::
 
 ### A side-by-side example
@@ -477,14 +482,14 @@ run;
 quit;
 ```
 
-The slope, the overall fit, and the fitted values agree; the
+The slope, the overall fit, and the fitted values agree. The
 `species` rows differ by reference level, as in the `PROC GLM`
-example above. One more difference can hide in the import: R's
-`read.csv()` reads the text `NA` as missing, while `PROC IMPORT`
-treats it as an ordinary value and may read a numeric column that
-contains it as character, so `cmiss()` may count different rows
-as complete. Compare the number of observations used before
-comparing estimates.
+example above. One more difference can hide in the import. R's
+`read.csv()` reads the text `NA` as missing. `PROC IMPORT` treats
+it as an ordinary value and may read a numeric column that
+contains it as character. As a result, `cmiss()` may count
+different rows as complete. Compare the number of observations
+used before comparing estimates.
 
 ### Exercises
 
@@ -499,16 +504,17 @@ These need no SAS. Predict first, then check the prediction in R.
    the SAS defaults in R to confirm.
 
 ::: {.callout-note collapse='true' title='Solution'}
-Three defaults differ. SAS models `P(event30 = 0)`, the lowest
-ordered value, so every coefficient changes sign. SAS uses effect
-coding, so a two-level `CLASS` variable gets one column coded `+1`
-and `-1`, and its coefficient is half the difference between the
-levels. And SAS sorts `trt01p` levels alphabetically
-(`'Home health'` before `'Usual care'`), as R does, but codes the
-first level `+1`. The prediction: SAS's `AGE` coefficient is the
-negative of R's, and SAS's treatment coefficient is half of R's
-`TRT01PUsual care` coefficient, with the same sign. R reproduces
-SAS's defaults with `contr.sum` and the outcome reversed:
+Three defaults differ. First, SAS models `P(event30 = 0)`, the
+lowest ordered value, so every coefficient changes sign. Second,
+SAS uses effect coding. A two-level `CLASS` variable gets one
+column coded `+1` and `-1`, and its coefficient is half the
+difference between the levels. Third, SAS sorts `trt01p` levels
+alphabetically (`'Home health'` before `'Usual care'`), as R does,
+but codes the first level `+1`. The prediction is as follows.
+SAS's `AGE` coefficient is the negative of R's. SAS's treatment
+coefficient is half of R's `TRT01PUsual care` coefficient, with
+the same sign. R reproduces SAS's defaults with `contr.sum` and
+the outcome reversed:
 
 ```{r}
 #| label: soln-22-1
@@ -544,9 +550,9 @@ stopifnot(
 )
 ```
 
-This reproduces what SAS's defaults imply, by construction; it is
+This reproduces what SAS's defaults imply, by construction. It is
 not a SAS run. SAS's log would say which outcome it modeled
-('Probability modeled is event30=0.'), which is the line to look
+('Probability modeled is event30=0.'). That is the line to look
 for when two answers have opposite signs.
 :::
 
@@ -556,11 +562,12 @@ for when two answers have opposite signs.
    whether the hazard ratios differ in the second decimal place.
 
 ::: {.callout-note collapse='true' title='Solution'}
-The prediction: times are recorded in whole days, so many events
-are tied, and Breslow's approximation pulls the coefficient toward
-zero relative to Efron's. With about a fifth of subjects having an
-event, the approximation error is small: expect agreement to two
-decimal places and a difference in the third or fourth.
+The prediction is as follows. Times are recorded in whole days, so
+many events are tied. Breslow's approximation pulls the
+coefficient toward zero relative to Efron's. With about a fifth of
+subjects having an event, the approximation error is small. We
+expect agreement to two decimal places and a difference in the
+third or fourth.
 
 ```{r}
 #| label: soln-22-2
@@ -577,11 +584,11 @@ round(c(efron = exp(coef(efron)), breslow = exp(coef(breslow))), 4)
 ```
 
 The two hazard ratios differ by
-`r sprintf("%.4f", abs(exp(coef(breslow)) - exp(coef(efron))))`:
-too little to change any conclusion, and enough to fail a
+`r sprintf("%.4f", abs(exp(coef(breslow)) - exp(coef(efron))))`.
+That is too little to change any conclusion, but enough to fail a
 validation that compares results to four decimal places.
 `PROC PHREG` without `TIES = EFRON` reproduces the second number,
-not the first. Neither is wrong; the specification should name
+not the first. Neither is wrong. The specification should name
 one, and both programs should use it.
 :::
 
@@ -591,12 +598,12 @@ set `param = ref`, and the treatment coefficient now has the same
 magnitude as R's but the opposite sign. Name the two settings that
 could each explain it.
 
-**Answer.** The reference level (SAS takes the last level, R the
-first, so `ref =` must name the same level on both sides) and the
-modeled outcome (SAS models the lowest ordered value unless
-`event = '1'`). Either alone flips the sign; both together flip it
-back, which is why a sign that agrees is not evidence that the
-settings do.
+**Answer.** The first is the reference level. SAS takes the last
+level and R the first, so `ref =` must name the same level on both
+sides. The second is the modeled outcome. SAS models the lowest
+ordered value unless `event = '1'`. Either alone flips the sign,
+and both together flip it back. That is why a sign that agrees is
+not evidence that the settings do.
 :::
 
 ## Mixed models and MMRM in both languages {#sec-sas-mixed}
@@ -641,28 +648,28 @@ fit <- lmer(y ~ treatment * visit + (1 | subject), data = long)
 summary(fit)$coefficients
 ```
 
-Both fit the same model: `visit` is categorical on both sides
+Both fit the same model. `visit` is categorical on both sides
 (`CLASS` in SAS, a factor in R), and both estimate by REML
 (restricted maximum likelihood). The fixed-effect tables still
-differ term for term, because `PROC MIXED` zeroes the *last* level
-of each `CLASS` variable (visit 3, and `placebo`, which sorts
-after `active`) while R zeroes the first. Placebo is the reference
-on both sides; for `visit`, compare fitted means (`LSMEANS` in
-SAS, `emmeans` in R) rather than coefficients. `PROC MIXED`'s
-default covariance for a `RANDOM` statement is variance components
-(`VC`), which for a random intercept matches `lme4`'s default; a
+differ term for term. `PROC MIXED` zeroes the *last* level of each
+`CLASS` variable (visit 3, and `placebo`, which sorts after
+`active`), while R zeroes the first. Placebo is the reference on
+both sides. For `visit`, compare fitted means (`LSMEANS` in SAS,
+`emmeans` in R) rather than coefficients. `PROC MIXED`'s default
+covariance for a `RANDOM` statement is variance components
+(`VC`). For a random intercept, that matches `lme4`'s default. A
 random slope with an unstructured covariance needs
 `random intercept visit / subject = subject type = un;`.
 
 ### MMRM: a mixed model for repeated measures
 
 The primary analysis of a continuous endpoint measured at
-scheduled visits in a trial is usually an MMRM: visit, treatment,
-and their interaction as fixed effects, and no random effects at
-all, but an unstructured covariance among a subject's visits, so
-that each visit has its own variance and each pair its own
-correlation. In SAS this is `PROC MIXED` with a `REPEATED`
-statement; in R it is the `mmrm` package
+scheduled visits in a trial is usually an MMRM. Visit, treatment,
+and their interaction enter as fixed effects. There are no random
+effects at all. Instead, an unstructured covariance links a
+subject's visits, so that each visit has its own variance and each
+pair its own correlation. In SAS this is `PROC MIXED` with a
+`REPEATED` statement. In R it is the `mmrm` package
 [@sabanesbove2026mmrm], written by an industry working group to
 reproduce SAS's results.
 
@@ -690,14 +697,15 @@ emmeans::emmeans(fit_mmrm, ~ treatment | visit) |>
 ```
 
 The two sides agree on the fitted model only because three
-settings were made to agree: the covariance (`TYPE = UN` and
-`us()`), the estimation method (REML in both), and the denominator
-degrees of freedom (`DDFM = KR` and `method = "Kenward-Roger"`).
-Leave out `DDFM = KR` and SAS uses the between-within method,
-which with `TYPE = UN` and no `RANDOM` statement gives every
-effect the between-subject degrees of freedom; leave out `method =` and `mmrm` uses Satterthwaite's. The
-estimates agree either way; the confidence intervals and p-values
-do not.
+settings were made to agree. These are the covariance (`TYPE = UN`
+and `us()`), the estimation method (REML in both), and the
+denominator degrees of freedom (`DDFM = KR` and
+`method = "Kenward-Roger"`). If you leave out `DDFM = KR`, SAS
+uses the between-within method. With `TYPE = UN` and no `RANDOM`
+statement, that method gives every effect the between-subject
+degrees of freedom. If you leave out `method =`, `mmrm` uses
+Satterthwaite's. The estimates agree either way. The confidence
+intervals and p-values do not.
 
 ::: {.callout-tip title='Verification'}
 Without SAS, check the MMRM against an independent R
@@ -718,7 +726,7 @@ cbind(mmrm = coef(fit_mmrm), gls = coef(fit_gls))
 ```
 
 Agreement between two R packages is evidence that `mmrm` fit the
-model you specified; agreement with SAS still has to be checked
+model you specified. Agreement with SAS still has to be checked
 on SAS output, against the same three settings.
 :::
 
@@ -729,19 +737,19 @@ confidence intervals. The SAS code has `repeated visit / subject =
 subject type = un;` and no `DDFM =`. What do you change?
 
 **Answer.** The degrees of freedom. Without `DDFM =`, a model with
-only a `REPEATED` statement uses the between-within method, while
-your `mmrm` fit used Kenward-Roger or Satterthwaite. Add
-`DDFM = KR` in SAS (or choose the same method in `mmrm`), and the
-intervals should then agree. Equal estimates with unequal
-intervals point at the degrees of freedom or the covariance
-structure, not the mean model.
+only a `REPEATED` statement uses the between-within method. Your
+`mmrm` fit used Kenward-Roger or Satterthwaite. Add `DDFM = KR` in
+SAS (or choose the same method in `mmrm`), and the intervals
+should then agree. Equal estimates with unequal intervals point at
+the degrees of freedom or the covariance structure, not the mean
+model.
 :::
 
 ## Survival analysis on the HF-HOME ADTTE {#sec-sas-survival}
 
 This section reuses the HF-HOME `ADSL` and `ADTTE` built in
-@sec-cdisc-worked. The chunk that rebuilds them here is hidden; it
-is the derivation of that section, run again so that this chapter
+@sec-cdisc-worked. The chunk that rebuilds them here is hidden. It
+repeats the derivation of that section, so that this chapter
 renders on its own.
 
 ```{r}
@@ -840,11 +848,11 @@ stopifnot(fit_cox$n == nrow(analysis))
 Each line of the SAS code answers a row of @tbl-sas-defaults.
 `cnsr(1 2)` lists every censoring value, the counterpart of R's
 `CNSR == 0`. `ties = efron` matches `coxph()`. `ref = 'Usual care'`
-matches the factor level order set in `ADSL`. And `sex` appears in
-the `CLASS` statement because `PROC PHREG` stops with an error on
-a character variable in `MODEL` that is not declared there; its
-reference, `'F'`, is the level R chooses by default (first
-alphabetically).
+matches the factor level order set in `ADSL`. Finally, `sex`
+appears in the `CLASS` statement because `PROC PHREG` stops with
+an error on a character variable in `MODEL` that is not declared
+there. Its reference, `'F'`, is the level R chooses by default
+(first alphabetically).
 
 ::: {.callout-warning title='Pitfall'}
 **`time aval*cnsr(1)` on a dataset with `CNSR = 2` counts the
@@ -863,10 +871,10 @@ event count in the `PROC LIFETEST` summary against
 do you check first?
 
 **Answer.** The `MODEL` statement's censoring list. 671 is 508
-plus the 163 subjects lost to follow-up, which is what
+plus the 163 subjects lost to follow-up. That is what
 `aval*cnsr(1)` produces when `CNSR` also takes the value 2. A
 difference in the event count is always a data or coding
-difference, never a default of the estimator, so check it before
+difference, never a default of the estimator. Check it before
 comparing any estimate.
 :::
 
@@ -919,20 +927,21 @@ NOTE: The data set WORK.ANALYTIC has 6330 observations and 12  (4)
    Make the lengths equal before the merge.
 2. Both datasets have more than one row for some `patient_id`.
    Within such a group, `MERGE` pairs rows one to one in order and
-   repeats the last row of the shorter dataset, rather than
-   forming every combination as an SQL join would; the result is
-   wrong and the step 'completes'. A demographics file should have
-   one row per patient, so this NOTE means it does not.
+   repeats the last row of the shorter dataset. It does not form
+   every combination as an SQL join would. The result is wrong,
+   and the step 'completes'. A demographics file should have one
+   row per patient, so this NOTE means it does not.
 3. The subtraction on line 4 met a missing `sbp` or `dbp` 41
    times. Line 5 compared the same missing values with 140 and
-   produced no message at all: a missing value is smaller than any
+   produced no message at all. A missing value is smaller than any
    number, so `sbp_high` is 0, not missing, and those visits are
    counted as not high. The NOTE on line 4 is the only sign of the
    silent comparison on line 5.
 4. More rows than either input. Without `IN=` flags, `MERGE` is a
-   full outer join, keeping unmatched rows from both datasets, so
-   the count can rise from unmatched keys as well as from repeats.
-   6,330 against 6,317 visits means 13 rows to account for.
+   full outer join that keeps unmatched rows from both datasets.
+   The count can therefore rise from unmatched keys as well as
+   from repeats. 6,330 against 6,317 visits means 13 rows to
+   account for.
 
 Read the log end to end after every run, not only the last lines.
 For automated checking, `PROC SQL` can assert a row count and
@@ -963,13 +972,13 @@ quit;
 > would produce it and what check would confirm it.
 
 *Failure mode.* Models explain the ERRORs well and pass over the
-NOTEs, which is where the merge and missing-value problems are,
-and they suggest suppressing a WARNING rather than finding its
+NOTEs, which is where the merge and missing-value problems are.
+They also suggest suppressing a WARNING rather than finding its
 cause. *Check.* Confirm each flagged message against the data (a
 `count()` of duplicated keys, a comparison of variable lengths with
-`PROC CONTENTS`), fix the cause, rerun, and require a log with no
+`PROC CONTENTS`). Fix the cause, rerun, and require a log with no
 WARNING and no merge or missing-value NOTE. Logs can contain data
-values; replace identifiers before sending one
+values, so replace identifiers before sending one
 (@sec-ai-governance).
 :::
 
@@ -1000,18 +1009,18 @@ values; replace identifiers before sending one
 `sbp_discharge` arrived as character, and line 14 used it in a
 numeric expression, so SAS converted it implicitly. The text `'NA'`
 (and any other non-numeric code) became missing, with an 'Invalid
-numeric data' note for each such value; SAS prints only the first
+numeric data' note for each such value. SAS prints only the first
 several of these notes, so the log does not say how many there
 were. Line 15 then produced missing results 78 times, which is the
 affected count for that expression. The row count is unchanged,
 which is why the step looks fine.
 
-The fix is to convert deliberately: read the column as character,
-recode the site's missing-value codes (`'NA'`, `'-99'`, empty) to
-missing explicitly, then convert with `input(sbp_discharge, best.)`
-and count the missing values before and after. HF-HOME's
-`crf_export.csv` uses exactly these codes; @sec-missing gives the R
-side.
+The fix is to convert deliberately. Read the column as character,
+and recode the site's missing-value codes (`'NA'`, `'-99'`, empty)
+to missing explicitly. Then convert with
+`input(sbp_discharge, best.)` and count the missing values before
+and after. HF-HOME's `crf_export.csv` uses exactly these codes;
+@sec-missing gives the R side.
 :::
 
 4. A colleague's log ends with
@@ -1022,17 +1031,18 @@ side.
 
 ::: {.callout-note collapse='true' title='Solution'}
 A count equal to the number of subjects rules out neither of the
-failures @sec-joins describes. Some subjects may have failed to
-match (a full outer `MERGE` without `IN=` keeps them, with missing
-values in the other dataset's variables), and a repeated key may
-have been paired row by row and replaced a correct value with a
-wrong one, which leaves the count unchanged. The checks: count
-missing values in a variable that comes from each input
-(`PROC MEANS NMISS` or `PROC FREQ`), and confirm one row per key in
-each input before the merge (`PROC SORT NODUPKEY` into a separate
-dataset and compare counts, or `PROC SQL` with
-`GROUP BY ... HAVING COUNT(*) > 1`). The absence of a WARNING is
-not evidence: the repeats NOTE is a NOTE.
+failures @sec-joins describes. First, some subjects may have
+failed to match. A full outer `MERGE` without `IN=` keeps them,
+with missing values in the other dataset's variables. Second, a
+repeated key may have been paired row by row and replaced a
+correct value with a wrong one, which leaves the count unchanged.
+For the first, count missing values in a variable that comes from
+each input (`PROC MEANS NMISS` or `PROC FREQ`). For the second,
+confirm one row per key in each input before the merge
+(`PROC SORT NODUPKEY` into a separate dataset and compare counts,
+or `PROC SQL` with `GROUP BY ... HAVING COUNT(*) > 1`). The
+absence of a WARNING is not evidence, because the repeats NOTE is
+a NOTE.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -1049,9 +1059,9 @@ of @sec-joins, without the warning `dplyr` gives.
 
 ## Moving data between SAS and R {#sec-sas-transport}
 
-A mixed-language project goes wrong at the boundary between the
-languages. @fig-sas-boundary marks it, with the
-properties to check every time something crosses.
+A mixed-language project tends to go wrong at the boundary between
+the languages. @fig-sas-boundary marks it, with the properties to
+check every time something crosses.
 
 ```{mermaid}
 %%| echo: false
@@ -1083,11 +1093,11 @@ flowchart LR
 
 XPT version 5 allows variable names of at most eight characters
 and has no factor type. `haven::write_xpt()` handles both without
-an error, in ways you need to know: it truncates a longer name to
-eight characters (two names that share their first eight then
-collide), and it writes a factor as its integer codes, so
-`TRT01P` arrives in SAS as 1 and 2. Convert factors to character
-and check name lengths before writing:
+an error, in ways you need to know. It truncates a longer name to
+eight characters, so two names that share their first eight
+collide. It also writes a factor as its integer codes, so `TRT01P`
+arrives in SAS as 1 and 2. Convert factors to character and check
+name lengths before writing:
 
 ```{r}
 #| label: sas-write-xpt
@@ -1118,12 +1128,12 @@ libname x clear;
 ### SAS to R, and the round trip
 
 `haven::read_xpt()` and `haven::read_sas()` (for `.sas7bdat`)
-bring SAS data back, keeping each variable's label as an attribute
-and converting variables that carry a SAS date format to `Date`.
-SAS stores a date as days since 1 January 1960 and R counts from
-1 January 1970, so a date that arrives as a bare number, without a
-format, is ten years wrong unless converted with
-`as.Date(x, origin = "1960-01-01")`.
+bring SAS data back. They keep each variable's label as an
+attribute and convert variables that carry a SAS date format to
+`Date`. SAS stores a date as days since 1 January 1960, and R
+counts from 1 January 1970. A date that arrives as a bare number,
+without a format, is therefore ten years wrong unless converted
+with `as.Date(x, origin = "1960-01-01")`.
 
 ::: {.callout-tip title='Verification'}
 Read the transport file back and compare it with what was written:
@@ -1146,10 +1156,10 @@ str(back[c("USUBJID", "TRT01P", "ADT", "AVAL", "CNSR")])
 ```
 
 `CNSR` comes back as a double, because XPT stores every number as
-one; `all.equal()` compares values, so that change passes, and it
+one. `all.equal()` compares values, so that change passes, and it
 is harmless. `TRT01P` comes back as character with its levels in
-no particular order, so set the reference level again before
-fitting anything (@tbl-sas-defaults).
+no particular order. Set the reference level again before fitting
+anything (@tbl-sas-defaults).
 :::
 
 For workflows in which R prepares the data, SAS fits the models,
@@ -1173,8 +1183,8 @@ libname out clear;
 ```
 
 `HazardRatio` is renamed because version 5 names are limited to
-eight characters. The R side reads the file and builds the table;
-below, a file written from R's own fit stands in for the one SAS
+eight characters. The R side reads the file and builds the table.
+Below, a file written from R's own fit stands in for the one SAS
 would write, so that the R side runs here.
 
 ```{r}
@@ -1216,10 +1226,10 @@ table(fixed$TRT01P)
 stopifnot(identical(sort(unique(fixed$TRT01P)), sort(arms)))
 ```
 
-The first export writes the factor's integer codes, so the arms
-arrive as 1 and 2 with nothing to say which is which; a SAS
-program that sets `ref = 'Usual care'` then fails to find the
-level, and one that does not silently uses 2 as the reference.
+The first export writes the factor's integer codes. The arms
+therefore arrive as 1 and 2, with nothing to say which is which. A
+SAS program that sets `ref = 'Usual care'` then fails to find the
+level. One that does not set it silently uses 2 as the reference.
 Converting to character writes the labels. In R, re-create the
 factor with explicit levels after reading.
 :::
@@ -1232,8 +1242,8 @@ roughly, and how do you convert them?
 **Answer.** Days since 1 January 1960, so about 64 years after
 1960, in 2024. `as.Date(RANDDT, origin = "1960-01-01")` converts
 them. Converting with R's default origin would place them in 2034,
-ten years late, and every derived duration would still be right,
-which is why the error survives until someone reads a date.
+ten years late. Every derived duration would still be right, which
+is why the error survives until someone reads a date.
 :::
 
 ## Rules of thumb
@@ -1278,13 +1288,13 @@ stopifnot(nrow(reread) == nrow(analysis),
 round(exp(cbind(HR = coef(refit), confint(refit))), 3)
 ```
 
-The rows that matter here are the reference level (re-created as
-`Usual care` after the round trip, matching `ref = 'Usual care'`),
-the coding of `SEX` (reference `F` on both sides), the ties method
-(Efron, stated in both), and the censoring codes (`CNSR == 0` in R,
-`cnsr(1 2)` in SAS). The SAS program is the `PROC PHREG` block of
+Four rows matter here. The reference level is re-created as
+`Usual care` after the round trip, matching `ref = 'Usual care'`.
+`SEX` has reference `F` on both sides. The ties method is Efron,
+stated in both. The censoring codes are `CNSR == 0` in R and
+`cnsr(1 2)` in SAS. The SAS program is the `PROC PHREG` block of
 @sec-sas-survival with `libname x xport` and `proc copy` in front
-of it. That the refit equals the original fit is the check that
+of it. The refit equals the original fit. That is the check that
 the round trip lost nothing the model uses.
 :::
 
@@ -1325,7 +1335,7 @@ the round trip lost nothing the model uses.
 1. A DATA step reads, creates, or transforms a SAS dataset row by
    row, using an implicit loop over records. PROC steps consume
    existing datasets and produce listings, tables, graphs, or
-   statistical output; a PROC step does not create new
+   statistical output. A PROC step does not create new
    observations (with rare exceptions). The typical workflow
    alternates: DATA step to shape the data, PROC step to analyze
    it.

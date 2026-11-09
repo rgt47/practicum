@@ -2,17 +2,17 @@
 
 The first email from Dr. X, a cardiologist, is four lines long.
 The hospital's data warehouse holds about five thousand
-heart-failure discharges; some patients had a home-health visit
-within a week and some did not; could you 'run the numbers'
+heart-failure discharges. Some patients had a home-health visit
+within a week and some did not. Could you 'run the numbers'
 showing that the visits cut 30-day readmissions, in time for an
 abstract due next month? As posed, the comparison has a flaw no
-software will report: a patient readmitted on day 3 never had
-the chance of a day-5 visit, so the sickest patients are counted
-as unvisited, and home health looks protective whether or not it
-does anything. The analysis would run, the estimate would be
-precise, and the paper would be wrong. A conversation held before
-any code is written prevents it, and this chapter follows that
-conversation from the email to the HF-HOME trial whose plan,
+software will report. A patient readmitted on day 3 never had
+the chance of a day-5 visit. The sickest patients are therefore
+counted as unvisited, and home health looks protective whether or
+not it does anything. The analysis would run, the estimate would
+be precise, and the paper would be wrong. A conversation held
+before any code is written prevents it. This chapter follows that
+conversation from the email to the HF-HOME trial, whose plan,
 data, and report the rest of the book uses.
 
 ::: {.bookepigraph}
@@ -100,9 +100,9 @@ share their vocabulary. Working across that gap is a learned
 skill, so it can be taught. A statistician described as
 'difficult to work with' has usually not been rude to anyone.
 They have failed to establish, in writing and early, what was
-being asked and what would be delivered, and every later
-disagreement has been argued without a shared record of what was
-agreed. Nearly every collaboration failure in this chapter
+being asked and what would be delivered. Every later
+disagreement has then been argued without a shared record of what
+was agreed. Nearly every collaboration failure in this chapter
 traces to that missing document.
 
 The first thing to establish is the role. An investigator who
@@ -123,11 +123,12 @@ appropriate level of pushback differ for each
 : The collaboration spectrum. Authority, time, and credit rise
 together down the table. {#tbl-team-science-spectrum}
 
-The common source of tension is mismatch: a statistician treated
-as a consultant who sees themselves as a collaborator, or the
-reverse. Dr. X's email reads like a consulting request ('run the
-numbers'), but the question inside it, whether home health
-changes outcomes, needs a collaborator from design onward.
+The common source of tension is mismatch. A statistician may be
+treated as a consultant while seeing themselves as a
+collaborator, or the reverse. Dr. X's email reads like a
+consulting request ('run the numbers'). However, the question
+inside it, whether home health changes outcomes, needs a
+collaborator from design onward.
 Naming the position out loud at intake is the first step in
 avoiding the mismatch.
 
@@ -148,18 +149,19 @@ conversation is a dispute about work already done.
 
 ## The intake conversation {#sec-team-science-intake}
 
-The first meeting with a new collaborator sets the trajectory of
-the collaboration, and it does so mostly through what is not
-asked. An investigator arrives with a dataset and a question, the
-statistician takes the work, and the terms nobody raised (what
-the deliverable is, when it is due, whether there will be
-authorship) become assumptions that each party holds privately
-and differently. They surface months later, during the only week
-in which everyone is busy.
+The first meeting with a new collaborator sets the direction of
+the collaboration. It does so mostly through what is not asked.
+An investigator arrives with a dataset and a question, and the
+statistician takes the work. The terms nobody raised (what the
+deliverable is, when it is due, whether there will be authorship)
+become assumptions that each party holds privately and
+differently. They surface months later, usually in a week when
+everyone is busy.
 
 The remedy is a structured intake, which is less formal than it
-sounds: a fixed set of questions asked in the first conversation
-and written down afterward (@tbl-team-science-intake). Sending
+sounds. It is a fixed set of questions asked in the first
+conversation and written down afterward
+(@tbl-team-science-intake). Sending
 the questions before the meeting often resolves half the issues
 without the meeting.
 
@@ -255,12 +257,13 @@ the red flags that remain.
 > if EHR data quality is worse than expected at first
 > exploration.
 
-The document removed the immortal time from the question, and
-its second red flag told Dr. X what the cohort could not
-deliver: if the question is whether home health *causes* fewer
+The document removed the immortal time from the question. Its
+second red flag also told Dr. X what the cohort could not
+deliver. If the question is whether home health *causes* fewer
 readmissions, the answer needs randomization. That decision
-turned the project into HF-HOME, the randomized trial whose statistical
-analysis plan (SAP) is the worked example of @sec-analysis-plan.
+turned the project into HF-HOME, the randomized trial whose
+statistical analysis plan (SAP) is the worked example of
+@sec-analysis-plan.
 
 ::: {.callout-tip title='Verification'}
 Read your intake document as a stranger would, and confirm that
@@ -362,13 +365,13 @@ observation rather than as analysis.
 
 Reading a red-flag list is not the same skill as producing one in
 real time, in a room, while a collaborator is talking. The intake
-conversation is a performance, and like any performance it
-improves with rehearsal against a script you have not seen before.
-The role-play below asks you to supply the client's half from a
-realistic transcript and your own half from scratch; do it against
-a clock (fifteen minutes), and resist the urge to revise the
-client's words into a cleaner version of the problem than the one
-a client actually hands you.
+conversation is a performance. Like any performance, it improves
+with rehearsal against a script you have not seen before. The
+role-play below supplies the client's half from a realistic
+transcript and asks you to write your own half from scratch. Do
+it against a clock (fifteen minutes). Resist the urge to revise
+the client's words into a cleaner version of the problem than
+the one a client actually hands you.
 
 2. **Client-intake role-play.** A program manager at a community
    health system calls about HF-HOME's home-health arm. There is
@@ -411,16 +414,16 @@ Next, the population and the comparison: 'Is there a group of
 patients from the same period who did not get visits, or did
 everyone discharged with heart failure get offered one?' Without a
 comparison group, no causal claim about the visits is possible at
-all, only a description of what happened to the visited group.
-Then the protocol change: 'The safety walkthrough started four
-months ago; do you want one answer covering the whole year, or do
-you want the two protocol periods kept separate?' Then dose: 'Is
-"at least one visit" the exposure you care about, or does the
-number of visits matter to the budget decision?' Then data access
-and timeline, last because they gate feasibility rather than the
-question itself: 'What exactly can the hospital share, in what
-form, under what agreement, and by when could I have it in hand
-given the 15th?'
+all. Only a description of what happened to the visited group is
+possible. Then the protocol change: 'The safety walkthrough
+started four months ago; do you want one answer covering the
+whole year, or do you want the two protocol periods kept
+separate?' Then dose: 'Is "at least one visit" the exposure you
+care about, or does the number of visits matter to the budget
+decision?' Data access and timeline come last, because they gate
+feasibility rather than the question itself: 'What exactly can
+the hospital share, in what form, under what agreement, and by
+when could I have it in hand given the 15th?'
 
 **(b) The restated question.** 'Among heart-failure patients
 discharged from this system in [a defined period], is having
@@ -429,50 +432,50 @@ received at least one home-health visit associated with lower
 the same period who received no visit, after accounting for the
 measured differences between the two groups (and, if the data
 permit, analyzed separately before and after the protocol
-change)?' This is deliberately narrower than 'is it working': it
+change)?' This is deliberately narrower than 'is it working'. It
 names a population, an exposure defined at a fixed time
 (discharge, not some point during follow-up), a comparator, an
-outcome, and a window, and it drops '% reduction leadership can
-act on' because that is a format for the answer, not the question
+outcome, and a window. It drops '% reduction leadership can act
+on', because that is a format for the answer, not the question
 itself.
 
 **(c) Design decisions disguised as data questions.** Three stand
 out. First, 'can the hospital pull readmissions for us' sounds
-like a data-access logistics question, but it is actually a
-design decision about outcome ascertainment: if the hospital can
-only see readmissions to its own facilities, the program will look
+like a data-access logistics question. It is actually a design
+decision about outcome ascertainment. If the hospital can only
+see readmissions to its own facilities, the program will look
 better than it is, because readmissions elsewhere are invisible,
 not absent. Second, 'does it matter that some got one visit and
-some got six' sounds like a request for a dose-response analysis,
-but answering it requires deciding, before looking at outcomes,
-whether dose is a study variable at all or a confounder: patients
-healthy enough to attend six visits are not comparable to patients
-who received one, likely for reasons related to their own
-prognosis. Treating 'number of visits' as an exposure to be
-compared invites exactly the same immortal-time and
+some got six' sounds like a request for a dose-response analysis.
+However, answering it requires deciding, before looking at
+outcomes, whether dose is a study variable at all or a
+confounder. Patients healthy enough to attend six visits are not
+comparable to patients who received one, likely for reasons
+related to their own prognosis. Treating 'number of visits' as an
+exposure to be compared invites the same immortal-time and
 confounding-by-indication problems as Dr. X's original request
 elsewhere in this chapter. Third, 'does the protocol change make
-it a different program' is phrased as a labeling question but is a
-design decision about whether one pooled analysis or two
-period-specific analyses is the right unit of inference; pooling
-without checking for an interaction between period and the visit
-effect would silently average over two different programs and
-report neither correctly. A strong answer flags that none of these
-three can be settled with more data alone; each needs a decision,
-made before analysis and recorded, about what the study is
-actually asking.
+it a different program' is phrased as a labeling question. It is
+in fact a design decision about whether one pooled analysis or
+two period-specific analyses is the right unit of inference.
+Pooling without checking for an interaction between period and
+the visit effect would silently average over two different
+programs and report neither correctly. A strong answer notes that
+none of these three can be settled with more data alone. Each
+needs a decision, made before analysis and recorded, about what
+the study is actually asking.
 :::
 
 ## The scope of work {#sec-team-science-sow}
 
 For any non-trivial collaboration, a written scope of work (SOW)
 turns the intake into commitments. It records a shared
-understanding and has no legal force. When the project drifts, as projects
-do, the SOW is the document everyone returns to, and the document
-is what you defend when expectations diverge. Verbal agreements
-about scope, deadlines, authorship, and analytic decisions
-evaporate; send an email summary after every meeting, and write
-the analysis plan before any analysis runs (Habit 5).
+understanding and has no legal force. When the project drifts, as
+projects do, the SOW is the document everyone returns to. It is
+also what you defend when expectations diverge. Verbal agreements
+about scope, deadlines, authorship, and analytic decisions are
+soon forgotten. Send an email summary after every meeting, and
+write the analysis plan before any analysis runs (Habit 5).
 @tbl-team-science-sow is a template, filled in for the HF-HOME
 trial that grew out of Dr. X's intake.
 
@@ -534,11 +537,10 @@ its own authorship agreement, even though the data are the same.
 
 ## Handling disagreement {#sec-team-science-disagreement}
 
-Not every methodological choice is worth a confrontation, and a
+Not every methodological choice is worth a confrontation. A
 statistician who cannot tell preference from principle comes
-across as pedantic. When you and a
-collaborator disagree, the response depends on what is at stake
-(@tbl-team-science-tiers).
+across as pedantic. When you and a collaborator disagree, the
+response depends on what is at stake (@tbl-team-science-tiers).
 
 | Tier | What it covers | HF-HOME example | Your response |
 |---|---|---|---|
@@ -553,8 +555,9 @@ The middle tier is where most disagreements live and where
 judgment is most consequential. Picking too many fights makes you
 a difficult collaborator; picking none makes you complicit in bad
 analyses. Withdrawing, at the third tier, means declining to put
-your name or your analysis to the result, said plainly and once;
-@sec-ethics catalogs the cases where it is warranted.
+your name or your analysis to the result. It should be said
+plainly and once. @sec-ethics catalogs the cases where it is
+warranted.
 
 ### Talking about results
 
@@ -564,13 +567,14 @@ response to reviewers. Three points belong here, because they
 come up in every collaboration before anything is written.
 
 **Report the quantity the listener will act on.** That is an
-effect size with its uncertainty, not a p-value: 'the treatment
-reduced HbA1c (glycated hemoglobin) by 0.6 percentage points (95%
-confidence interval [CI] 0.3 to 0.9)' says more than 'the effect
-was significant at p < 0.001', which is the p-value that interval
-implies. In a meeting, lead with the conclusion and give the
-support if asked; in a paper, write the conclusion in plain
-language and include the quantitative support.
+effect size with its uncertainty, not a p-value. Consider 'the
+treatment reduced HbA1c (glycated hemoglobin) by 0.6 percentage
+points (95% confidence interval [CI] 0.3 to 0.9)'. It says more
+than 'the effect was significant at p < 0.001', which is the
+p-value that interval implies. In a meeting, lead with the
+conclusion and give the support if asked. In a paper, write the
+conclusion in plain language and include the quantitative
+support.
 
 **Match the verb to the evidence** (Habit 11). The three
 registers in @tbl-team-science-verbs are different claims, and
@@ -589,11 +593,11 @@ HF-HOME supports the second and third, not the first.
 **Say which kind of interval it is.** 'For 60-year-old patients
 with baseline HbA1c of 8%, the model estimates an average of about
 7.4% under treatment (95% CI 7.1 to 7.7%)' describes the *average*
-patient like this; a single patient's value is far less certain.
+patient like this. A single patient's value is far less certain.
 With a residual standard deviation of 0.6 points, the 95%
 prediction interval for one such patient runs from about 6.2 to
-8.6%, and a clinician who reads the narrower interval as a
-forecast for the patient in front of them has been misinformed.
+8.6%. A clinician who reads the narrower interval as a forecast
+for the patient in front of them has been misinformed.
 
 ::: {.callout-warning title='Pitfall'}
 **A disagreement settled by phone leaves no record, and the
@@ -647,9 +651,9 @@ palette is legible to color-blind readers.
 ## Authorship and credit {#sec-team-science-authorship}
 
 Authorship allocates credit in an academic system where credit
-allocates grants, promotions, and standing, and unresolved
-authorship disputes sour collaborations and sometimes end them.
-The ICMJE defines authorship by four criteria, all four of which must be
+allocates grants, promotions, and standing. Unresolved authorship
+disputes sour collaborations and sometimes end them. The ICMJE
+defines authorship by four criteria, all four of which must be
 met [@icmje2026]:
 
 1. Substantial contributions to the conception or design of the
@@ -689,7 +693,7 @@ the 'Decision' column; CRediT only describes.
 {#tbl-team-science-authorship}
 
 In practice the lead statistician on a clinical trial is
-routinely an author; a statistician who wrote the analysis but
+routinely an author. A statistician who wrote the analysis but
 did not see the manuscript before submission is in a weak
 position, because criteria 3 and 4 cannot be met after the fact.
 Discussing authorship at the start of the project, in writing,
@@ -715,8 +719,8 @@ authorship.
 
 *Failure mode.* The model assigns generous roles (Conceptualization
 for everyone, Writing for anyone who commented) or vague ones
-('contributed to the project'), which is how ghost and gift
-authorship look on paper; asked a question about authorship, it
+('contributed to the project'). That is how ghost and gift
+authorship look on paper. Asked a question about authorship, it
 answers with CRediT roles as if they settled it. *Check.* Confirm
 every role name against the CRediT list, and send each author
 their own line to confirm before submission; an author who cannot
@@ -772,24 +776,24 @@ each person in every case; the decision column comes from ICMJE.
 ## Managing a portfolio of projects {#sec-team-science-portfolio}
 
 The intake conversation and the scope of work govern a single
-collaboration, and a collaborative biostatistician never has
-only one. You will
-carry five to fifteen active projects at once, at different
-stages, for different investigators, each of whom is convinced
-theirs is the one you are working on today. Survey evidence ranks
-managing multiple simultaneous projects among the most essential
-skills in the work, second only to coding for those in their
-first five years [@slade2023team]. No software installs it.
+collaboration, and a collaborative biostatistician never has only
+one. You will carry five to fifteen active projects at once, at
+different stages, for different investigators. Each investigator
+is convinced that their project is the one you are working
+on today. Survey evidence ranks managing multiple simultaneous
+projects among the most essential skills in the work, second only
+to coding for those in their first five years [@slade2023team].
+It is a skill that no software provides.
 
-**The unit of work is the portfolio.** A junior
-statistician experiences the job as a queue: finish project A,
-then start project B. Projects instead arrive on the
-investigators' schedules, block on data and approvals you do not
-control, and then unblock several at once. The competence asked
-of you is to hold many partly finished projects in a legible
-state and move each when it is movable, not to drive one to
-completion while the rest decay. @tbl-team-science-portfolio
-is what a legible portfolio looks like.
+**The unit of work is the portfolio.** A junior statistician
+experiences the job as a queue: finish project A, then start
+project B. Projects instead arrive on the investigators'
+schedules, block on data and approvals you do not control, and
+then unblock several at once. What is asked of you is to hold
+many partly finished projects in a legible state and move each
+when it is movable. It is not to drive one to completion while
+the rest stall. @tbl-team-science-portfolio is what a legible
+portfolio looks like.
 
 | Project | Investigator | Stage | Next deliverable | Blocked on (owner) | Hours this week |
 |---|---|---|---|---|---|
@@ -804,8 +808,8 @@ column names a person, not a state.
 {#tbl-team-science-portfolio}
 
 **Estimate, then double.** Statisticians are systematically
-optimistic about how long an analysis takes, because the estimate
-imagines the clean path and the work is mostly the mess: the
+optimistic about how long an analysis takes. The estimate assumes
+the clean path, but the work is mostly the mess. There is the
 merge that reveals duplicated IDs, the outcome coded three ways
 across sites, the model that will not converge. Estimate the
 clean path, double it, and add the one review cycle you forgot.
@@ -815,40 +819,40 @@ than promising month 1 and delivering in month 3.
 **Make blocking visible, to yourself and to them.** Much of a
 statistician's calendar is spent waiting: for the data extract,
 for the IRB amendment, for the collaborator to say which of two
-outcomes is primary. A blocked project is a debt that comes due,
+outcomes is primary. A blocked project becomes a problem later,
 usually at the worst moment. For every active project, track the
 single thing it is waiting on and who owns it. When a PI asks
 why their analysis has not moved, 'I am waiting on the corrected
 data file I requested on the 3rd' is an answer; silence is not.
 
-**Protect the cost of re-entry.** The expensive part of juggling
-projects is the reconstruction paid each time you return to a
-project set down three weeks ago. A project
-that rebuilds with one command (@sec-rrtools, @sec-zzcollab),
-whose analytic decisions are fixed in an analysis plan
+**Keep the cost of re-entry low.** The expensive part of working
+on many projects is the reconstruction paid each time you return
+to a project set down three weeks ago. Consider a project that
+rebuilds with one command (@sec-rrtools, @sec-zzcollab), whose
+analytic decisions are fixed in an analysis plan
 (@sec-analysis-plan), and whose history is legible in Git
-(@sec-git-solo) can be put down and picked up in minutes; one
-held together in your head and an untracked script cannot.
-Reproducible infrastructure is usually justified as a courtesy to
-reviewers and future replicators. Its more immediate payoff is
-that it lets you carry fifteen projects without
+(@sec-git-solo). It can be put down and picked up in minutes. A
+project held together in your head and an untracked script
+cannot. Reproducible infrastructure is usually justified as a
+courtesy to reviewers and future replicators. Its more immediate
+benefit is that it lets you carry fifteen projects without
 dropping any (Habit 1).
 
-**Batch the switches you can; price the ones you cannot.**
-Context switching is not free, and the statistician who answers
-every email the instant it arrives pays the re-entry cost a
-hundred times a day. Where the work allows, batch it: a block for
-one project's analysis, a separate block for correspondence
-across all projects. A few switches are forced by genuine urgency
-and earn their cost; most are not, and the skill is telling the
+**Batch the switches you can; budget for the ones you cannot.**
+Context switching is not free. The statistician who answers every
+email the instant it arrives pays the re-entry cost a hundred
+times a day. Where the work allows, batch it: a block for one
+project's analysis, a separate block for correspondence across
+all projects. A few switches are forced by genuine urgency and
+are worth their cost. Most are not, and the skill is telling the
 two apart.
 
 **Capacity is finite, and saying so is part of the job.** The
 boundaries row of the scope of work declines work within a
-project. The same discipline operates across projects: a
+project. The same discipline operates across projects. A
 statistician who never says 'I can start this in three weeks, not
 this week' ends up doing everything late rather than some things
-on time. Deferring is not a failure of collaboration; committing
+on time. Deferring is not a failure of collaboration. Committing
 to a deadline you cannot meet is.
 
 None of this requires a particular tool. A single list like
@@ -863,13 +867,14 @@ no deadline whose PI emailed this morning asking for an update. D
 is a reviewer response due tomorrow and is half drafted. In what
 order do you work, and what do you send before you start?
 
-**Answer.** Before starting, send two messages: a reminder to B's
-data owner that you remain blocked on the corrected file, and a
-one-line reply to C's PI with a realistic date, because an
-unanswered ask silently curdles into a grievance. Then work D
-first: it is due tomorrow, and its remaining cost is the best
-known because it is half done. Then A: due Friday, unblocked, and
-the larger unknown, so it wants the fresh part of the day. B
+**Answer.** Before starting, send two messages. The first is a
+reminder to B's data owner that you remain blocked on the
+corrected file. The second is a one-line reply to C's PI with a
+realistic date, because an unanswered request tends to become a
+grievance. Then work D first. It is due tomorrow, and its
+remaining cost is the best known because it is half done. Then
+A: it is due Friday, unblocked, and the larger unknown, so it
+deserves the fresh part of the day. B
 cannot move until the file arrives, so the reminder was your only
 move on it today. C waits until A and D are clear. The queue
 model's error here is working C because its email sits on top of
@@ -888,12 +893,12 @@ the inbox.
    what you defer, and what you send to whom.
 
 ::: {.callout-note collapse='true' title='Solution'}
-Doubled, the estimates are 16, 8, 2, and 6 hours: 32 hours of
-work against 20 available, so something must be deferred, and
-saying so on Monday is the job. Commit to the HF-HOME results (16
-hours, due Friday) and the intake meeting (2 hours, because a new
-collaborator's first impression is set by whether you make
-time). That leaves 2 hours, not enough for the reviewer
+Doubled, the estimates are 16, 8, 2, and 6 hours. That is 32
+hours of work against 20 available, so something must be
+deferred, and saying so on Monday is the job. Commit to the
+HF-HOME results (16 hours, due Friday) and the intake meeting (2
+hours). A new collaborator's first impression is set by whether
+you make time. That leaves 2 hours, not enough for the reviewer
 response, which is due in three weeks and can start next week.
 Dr. W's power calculation cannot start at all; send Dr. W a
 one-line message that the calculation is waiting on the choice
@@ -911,13 +916,14 @@ relationship to a collaborator and a dataset that already exists.
 A trial the size of HF-HOME also needs someone to decide, before
 the first patient is enrolled, who is allowed to type data in, who
 is allowed to look at it, and who is allowed to declare it final.
-That is data-management operations, and on most teams the
-biostatistician does not own it but is the person who most needs
-it to be right, because every downstream number depends on it.
-Getting pulled into fixing it after the fact, once a coordinator
-has quietly corrected a value in a locked field or a site has kept
-enrolling after a stopping rule triggered, is a far worse use of
-your time than naming the rules at intake.
+That is data-management operations. On most teams the
+biostatistician does not own it. They are, however, the
+person who most needs it to be right, because every downstream
+number depends on it. Suppose a coordinator has quietly corrected
+a value in a locked field, or a site has kept enrolling after a
+stopping rule triggered. Being pulled in to fix that after the
+fact is a far worse use of your time than naming the rules at
+intake.
 
 ### A roles matrix
 
@@ -943,13 +949,13 @@ having shaped the data it analyzes. {#tbl-team-science-roles-matrix}
 
 A statistician who can edit source data, even to fix an obvious
 typo, has compromised the separation between the people who
-collect a result and the people who evaluate it; the correct
+collect a result and the people who evaluate it. The correct
 channel is a query back to the site, resolved by the coordinator,
-with both the error and the correction on record. This is the same
-principle as Habit 2 (raw data are evidence, derived data are a
-build product) applied to people instead of files: the
-statistician's privileged access is to copies and queries, never
-to the record of what happened.
+with both the error and the correction on record. This is the
+same principle as Habit 2 (raw data are evidence, derived data
+are a build product), applied to people instead of files. That
+is, the statistician's privileged access is to copies and
+queries, never to the record of what happened.
 
 ### Participant tracking
 
@@ -960,21 +966,21 @@ what happened to them. Two logs do most of this work.
 **The enrollment log** records every patient who was approached,
 in the order they were approached, independent of whether they
 enrolled. Patient-level enrollment counts by site and week are
-what a data safety monitoring board asks for first, and they are
-unrecoverable after the fact if the only record of 'approached but
-declined' lived in a coordinator's memory. For HF-HOME, the
-enrollment log is what makes it possible to report, in the
-consolidated standards of reporting trials (CONSORT) flow diagram,
-how many patients were assessed for eligibility before the number
-who were randomized (@sec-communicating covers the diagram itself;
-this chapter is about the log that feeds it).
+what a data safety monitoring board asks for first. They cannot
+be recovered after the fact if the only record of 'approached but
+declined' was in a coordinator's memory. For HF-HOME, the
+enrollment log makes it possible to report how many patients were
+assessed for eligibility before the number who were randomized.
+That count appears in the consolidated standards of reporting
+trials (CONSORT) flow diagram. (@sec-communicating covers the
+diagram itself; this chapter is about the log that feeds it.)
 
 **Screen-fail tracking** records everyone who was assessed for
 eligibility and excluded, with the specific criterion that
-excluded them. This log is the only way to answer the question a
-reviewer eventually asks: are the patients who were excluded
-systematically different from the patients who were randomized, in
-a way that limits who the trial's result applies to? Without
+excluded them. This log is the only way to answer a question a
+reviewer eventually asks. Are the patients who were excluded
+systematically different from the patients who were randomized,
+in a way that limits who the trial's result applies to? Without
 screen-fail tracking the question cannot be answered, because
 the excluded patients leave no trace. @tbl-team-science-screenfail
 sketches what the log needs to hold.
@@ -993,34 +999,34 @@ sketches what the log needs to hold.
 ### REDCap's role
 
 Most trials of HF-HOME's size run their data collection in REDCap
-(Research Electronic Data Capture) [@harris2009redcap], and
-REDCap's user-role feature
-is the usual mechanism for enforcing the matrix above: each named
-role (data entry, data manager, read-only) is configured with a
-specific combination of form-level access, export rights, and the
-ability to apply or remove a data-entry lock on a completed form.
-The lock is the operational equivalent of the 'Lock fields' column
-in @tbl-team-science-roles-matrix: once a form is locked, a role
-without unlock privilege cannot change it, which is what makes
-'the primary outcome field was locked before any analysis ran' a
-verifiable claim about the system rather than a procedural promise
-about people's intentions. REDCap's Application Programming
-Interface (API), which this book covers as a way to pull data
-programmatically into a reproducible pipeline, is a separate layer
-from this one: @sec-apis and @sec-databases treat REDCap as a data
-source to be queried; this section treats it as the system that
-decides who was allowed to put the data there in the first place
-and when it became unchangeable. A statistician setting up a new
-study's REDCap project should not configure the roles alone;
-decide the matrix with the data manager and the PI first, as part
-of the scope of work (@tbl-team-science-sow), and then configure
-the system to match the decision rather than the reverse.
+(Research Electronic Data Capture) [@harris2009redcap]. REDCap's
+user-role feature is the usual mechanism for enforcing the matrix
+above. Each named role (data entry, data manager, read-only) is
+configured with a specific combination of form-level access,
+export rights, and the ability to apply or remove a data-entry
+lock on a completed form. The lock is the operational equivalent
+of the 'Lock fields' column in @tbl-team-science-roles-matrix.
+Once a form is locked, a role without unlock privilege cannot
+change it. That is what makes 'the primary outcome field was
+locked before any analysis ran' a verifiable claim about the
+system, rather than a procedural promise about people's
+intentions. REDCap's Application Programming Interface (API) is
+a separate layer from this one. This book covers the API as a way
+to pull data programmatically into a reproducible pipeline.
+@sec-apis and @sec-databases treat REDCap as a data source to be
+queried. This section treats it as the system that decides who
+was allowed to put the data there in the first place, and when
+the data became unchangeable. A statistician setting up a new
+study's REDCap project should not configure the roles alone.
+Decide the matrix with the data manager and the PI first, as part
+of the scope of work (@tbl-team-science-sow). Then configure the
+system to match the decision, rather than the reverse.
 
 ::: {.callout-warning title='Pitfall'}
 **A locked field unlocked for a convenience edit, and relocked,
 leaves no visible difference from a field that was never
 touched.** The audit trail (REDCap logs every unlock-edit-relock
-cycle with a timestamp and user) is the only record; if nobody
+cycle with a timestamp and user) is the only record. If nobody
 ever reviews it, the lock controls nothing. Reviewing the audit
 trail at prespecified points (database lock, before unblinding)
 belongs in the data-management plan.
@@ -1037,14 +1043,14 @@ manager.' What do you do, and which row of
 ::: {.callout-note collapse='true' title='Solution'}
 Decline, and route the correction back to the coordinator through
 the documented query process. The statistician's row has no
-'Edit after entry' permission for exactly this reason: an edit made
-by the person who will later analyze the data, however well
+'Edit after entry' permission for exactly this reason. An edit
+made by the person who will later analyze the data, however well
 intentioned, erases the separation between data collection and
-data evaluation that gives the analysis its credibility. The
-correct sequence is a query to the site, a source-verified
-correction by the coordinator with an audit trail, and, if the
-field was locked, an unlock authorized under the matrix's rules
-before the edit and a relock after.
+data evaluation. That separation is what gives the analysis its
+credibility. The correct sequence is a query to the site, then a
+source-verified correction by the coordinator with an audit
+trail. If the field was locked, an unlock authorized under the
+matrix's rules comes before the edit and a relock after.
 :::
 
 ### Exercises
@@ -1059,18 +1065,19 @@ before the edit and a relock after.
 
 ::: {.callout-note collapse='true' title='Solution'}
 The remote data-entry temp should have entry rights scoped to a
-named set of forms and no export or query rights at all; a
+named set of forms and no export or query rights at all. A
 temporary role with broad export access is the kind of permission
-that outlives the person holding it if offboarding is not tied to
-study milestones. The unblinded statistician preparing the
-monitoring report needs query access to unblinded data but must
-not have access to the forms the blinded statistician's pipeline
-reads, or the separation that protects the primary analysis from
-knowledge of the interim result collapses. The blinded
-statistician should have no path to treatment assignment at all,
-enforced by the system, not by instruction. The auditor needs
-read-only export with no edit or lock rights, and an audit trail of its own showing what was exported and when, since
-an auditor's own access must be auditable.
+that outlives the person holding it, if offboarding is not tied
+to study milestones. The unblinded statistician preparing the
+monitoring report needs query access to unblinded data. They
+must not have access to the forms the blinded statistician's
+pipeline reads. Otherwise the separation that protects the
+primary analysis from knowledge of the interim result collapses.
+The blinded statistician should have no path to treatment
+assignment at all, enforced by the system, not by instruction.
+The auditor needs read-only export with no edit or lock rights.
+The auditor also needs an audit trail showing what was exported
+and when, since an auditor's own access must be auditable.
 :::
 
 ## Rules of thumb
@@ -1095,15 +1102,15 @@ an auditor's own access must be auditable.
 
 ::: {.callout-note collapse='true' title='Solution'}
 A strong reply concedes the deadline, refuses the shortcut, and
-offers what can be done. It names the cost in Dr. X's terms: an
-abstract result produced outside the plan is one that cannot be
-reproduced for the paper, and a number that changes between the
-abstract and the paper is the event @sec-why describes. It cites
-the SOW's Outputs and Boundaries rows (a locked SAP before
-outcomes; no analyses outside the agreed environment), so the
-refusal rests on an agreement rather than a preference. And it
-offers an alternative: the pre-specified baseline table, which
-needs no outcome data, or a submission at the next deadline.
+offers what can be done. It names the cost in Dr. X's terms. An
+abstract result produced outside the plan cannot be reproduced
+for the paper, and a number that changes between the abstract and
+the paper is the event @sec-why describes. It cites the SOW's
+Outputs and Boundaries rows (a locked SAP before outcomes; no
+analyses outside the agreed environment). The refusal then rests
+on an agreement rather than a preference. Finally, it offers an
+alternative: the pre-specified baseline table, which needs no
+outcome data, or a submission at the next deadline.
 :::
 
 8. *On your own work (no key).* List every project you currently

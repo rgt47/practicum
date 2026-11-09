@@ -34,17 +34,19 @@ that the analysis survives scrutiny.
 ## What this book covers
 
 The book is organized into eight parts, and every
-chapter belongs to one of them. @tbl-intro-parts names, for each part, the
-question it answers, its chapters, and the tools it
-teaches. Parts I to III are the first quarter of the
-two-quarter sequence: why the work is done this way,
-the tools it is done with, and the path from raw files
-to a dataset you can trust. Parts IV to VIII are the
-second quarter: the document and environment that make
-the analysis rebuildable, the plan and tests that make
-it defensible, the industrial conventions it may have
-to meet, its delivery to an audience, and a capstone
-that does all of it on one study.
+chapter belongs to one of them. @tbl-intro-parts names,
+for each part, the question it answers, its chapters,
+and the tools it teaches. Parts I to III are the first
+quarter of the two-quarter sequence. They cover why the
+work is done this way, the tools it is done with, and
+the path from raw files to a dataset you can trust.
+Parts IV to VIII are the second quarter. They cover the
+document and environment that make the analysis
+rebuildable and the plan and tests that make it
+defensible. They also cover the industrial conventions
+the analysis may have to meet, its delivery to an
+audience, and a capstone that does all of it on one
+study.
 
 | Part | The question it answers | Chapters | Key tools |
 |---|---|---|---|
@@ -64,33 +66,34 @@ number a part or chapter carries in your hands. {#tbl-intro-parts}
 
 The order is a dependency order. The first quarter ends
 with data in hand because everything in the second
-quarter acts on a dataset: a Quarto document reports on
+quarter acts on a dataset. A Quarto document reports on
 it, a container pins the environment that built it, a
 plan constrains what may be done with it, and a deposit
-archives it. In this ordering, ethics and deposition come
-late, deliberately. Deposition is instruction about
-handing over something you have not built until then.
-The ethics chapter argues that the entire infrastructural
-apparatus of this book is orthogonal to whether an
-analysis misleads, and that argument can only land once
-the apparatus has been built. (A print volume may place
-the ethics chapter earlier, beside de-identification, as a
-prerequisite rather than a conclusion; either order
-teaches the same argument.)
+archives it. In this ordering, ethics and deposition
+come late, and deliberately so. Deposition is
+instruction about handing over something you have not
+built until then. The ethics chapter argues that the
+infrastructure of this book is orthogonal to whether an
+analysis misleads. That argument is only persuasive
+once the infrastructure has been built. (A print volume
+may place the ethics chapter earlier, beside
+de-identification, as a prerequisite rather than a
+conclusion. Either order teaches the same argument.)
 
-Eight appendices follow: alternative wrangling
-paradigms for reading code that is not tidyverse
-(@sec-alternative-wrangling), the peer-program survey
-on which several chapters rest their case for existing
-(@sec-peer-survey), an inventory of the lab's own
-software, which several chapters use and which we
-disclose rather than distribute quietly
-(@sec-lab-software), a glossary (@sec-glossary), an
-instructor guide (@sec-instructor-guide), the
-AI-tooling landscape as of this edition (@sec-tooling),
-a guide to migrating R Markdown projects
-(@sec-rmd-migration), and an index to every chapter's
-cheat sheet (@sec-cheat-sheets).
+Eight appendices follow. The first covers alternative
+wrangling paradigms, for reading code that is not
+tidyverse (@sec-alternative-wrangling). The second is
+the survey of peer programs on which several chapters
+base their case for existing (@sec-peer-survey). The
+third is an inventory of the lab's own software
+(@sec-lab-software). Several chapters use this
+software, and we disclose it rather than distribute it
+quietly. The remaining five are a glossary
+(@sec-glossary), an instructor guide
+(@sec-instructor-guide), a survey of AI tooling as of
+this edition (@sec-tooling), a guide to migrating R
+Markdown projects (@sec-rmd-migration), and an index to
+every chapter's cheat sheet (@sec-cheat-sheets).
 
 @fig-book-map shows the shape of the whole. A reader
 who skips ahead will find the later parts assuming
@@ -210,10 +213,10 @@ following:
    responses against your own work.
 
 The book is, we grant, somewhat dense. Reading two
-chapters per week is a sustainable pace, which makes
-the whole book a two-quarter sequence, Parts I to
-III in the first quarter and Parts IV to VIII in the
-second; a one-quarter core path of twenty chapters is
+chapters per week is a sustainable pace. At that pace
+the whole book is a two-quarter sequence, with Parts I
+to III in the first quarter and Parts IV to VIII in the
+second. A one-quarter core path of twenty chapters is
 laid out in the preface. Most of the learning happens
 in the exercises; the chapters support them.
 
@@ -333,13 +336,13 @@ Claude Code, that reads a project's files and edits
 them directly. @sec-ai-coding treats the distinction
 and when each is the right tool.
 
-The position the books take is consistent: large
+The position the books take is consistent. Large
 language models, and the coding agents built on them,
-amplify analyst productivity rather than replace
+increase analyst productivity. They do not replace
 analyst judgment. The chapters argue this by
-demonstration. We encourage the reader to use the AI assistance the book
-describes, to verify it the way the book describes,
-and to form his or her own view.
+demonstration. We encourage the reader to use the AI
+assistance the book describes, to verify it the way the
+book describes, and to form their own view.
 
 ## What this book is, in three sentences
 
@@ -349,8 +352,7 @@ parts: why and with whom the work is done, the
 toolkit, data in hand, documents and environments,
 analysis practice, industry, analysis to audience,
 and a capstone. The test of the book, in our view, is
-whether, after working through it, the reader can
-produce a
-reproducible, defensible analysis on a real
+whether the reader who has worked through it can
+produce a reproducible, defensible analysis of a real
 biomedical question with an interdisciplinary team,
 using AI assistance without being misled by it.

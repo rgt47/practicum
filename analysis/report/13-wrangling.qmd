@@ -17,19 +17,19 @@ opening_others <- round(
 
 The HF-HOME case report form (CRF) export arrives from five
 hospitals, and each wrote its own conventions into the file. Read
-it with the defaults, summarize systolic blood pressure at
-discharge by site, and Site D's mean is `r opening_d` mmHg against
-`r opening_others[1]` to `r opening_others[2]` at the other four:
-a site difference large enough to earn a sentence in the methods
-section and a covariate in the model. Nothing in the patients
-supports it. Site D writes a missing measurement as `-99`, the
-default read accepted it as a pressure, and the mean did what
-means do. Every decision a cleaning script makes (what a code
-means, which rows are excluded, which of two conflicting values
-survives) is a decision about what the analysis is of, made before
-any model and rarely questioned afterward. This chapter makes
-those decisions in code, where a reader can see them and count
-what each one did.
+it with the defaults and summarize systolic blood pressure at
+discharge by site. Site D's mean is `r opening_d` mmHg, against
+`r opening_others[1]` to `r opening_others[2]` at the other four.
+That site difference is large enough to earn a sentence in the
+methods section and a covariate in the model. Nothing in the
+patients supports it. Site D writes a missing measurement as
+`-99`, the default read accepted it as a pressure, and the mean
+included it. Every decision a cleaning script makes is a decision
+about what the analysis is of. That includes what a code means,
+which rows are excluded, and which of two conflicting values
+survives. These decisions are made before any model and are rarely
+questioned afterward. This chapter makes them in code, where a
+reader can see them and count what each one did.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -149,10 +149,10 @@ the rest. Neither raised a message.
 
 ### Read everything as text first
 
-A first read for discovery keeps every value as text and turns off
-`readr`'s own idea of what is missing, so that the empty strings,
-the `NA` strings, and the `-99` all arrive as written and can be
-counted.
+A first read for discovery keeps every value as text. It also
+turns off `readr`'s own idea of what is missing. The empty
+strings, the `NA` strings, and the `-99` then all arrive as
+written and can be counted.
 
 ```{r}
 #| label: wrangle-raw-read
@@ -367,11 +367,12 @@ crf_clean |>
 ```
 
 Site D's mean now sits with the others. The range check is an
-assertion, not a filter: when it fails, query the site and record
-the answer, rather than dropping the row. Where a protocol does
-exclude values, 'removed implausible values' is not a documented
-rule; 'removed SBP above 250 or below 50', with the number and
-percentage of patients computed by the script beside it, is.
+assertion, not a filter. When it fails, query the site and record
+the answer, rather than dropping the row. Some protocols do
+exclude values. In that case 'removed implausible values' is not a
+documented rule. A documented rule reads 'removed SBP above 250 or
+below 50', with the number and percentage of patients computed by
+the script beside it.
 
 ::: {.callout-tip title='Verification'}
 The running study ships the clean tables the export was written
@@ -420,8 +421,8 @@ sum(reversed$sex != demographics$sex[key])
 ```
 
 Every Site D patient disagrees, and nothing else in the script
-notices: there is no `NA`, so the `stopifnot()` passes. Only the
-cross-tabulation read against the codebook catches it, which is why
+notices. There is no `NA`, so the `stopifnot()` passes. Only the
+cross-tabulation read against the codebook catches it. That is why
 the codebook, not memory, is the source of the mapping.
 :::
 
@@ -450,7 +451,7 @@ recode written as `if_else(sex %in% c("M", "Male", "m"), "M",
 
 **Answer.** The `case_when()` above has no `.default`, so
 `Unknown` becomes `NA` and `stopifnot(!anyNA(sex))` halts the
-script, which is the loud failure you want. The `if_else()` version
+script. That is the loud failure you want. The `if_else()` version
 assigns `F` to every value that is not a spelling of male, so
 `Unknown` silently becomes female. Listing what each value means,
 and refusing everything else, is what makes a new code visible.
@@ -557,7 +558,7 @@ A condition that combines tests within a patient (low sodium *and*
 abnormal potassium) wants the wide form, where both values sit in
 one row. A trajectory plot wants long again, with visit as a
 column to map to the x-axis (@sec-graphics). Pivot only when the
-operation requires it; on a large file, a long table is many times
+operation requires it. On a large file, a long table is many times
 the size of the wide one.
 
 ### Writing your own verbs
@@ -583,13 +584,14 @@ count_by_name(crf_clean, "sex")
 **Question 1.** `labs.csv` repeats `unit` on every row. Which tidy
 rule does that bend, and is it worth fixing?
 
-**Answer.** Rule 3. The unit is a property of the test: N-terminal
-pro-B-type natriuretic peptide (NT-proBNP) is in pg/mL for every
-patient, so the unit belongs in a lookup table keyed by
-`test_code`, and repeating it on every row is duplication that can
-drift. Many analysts leave it in place and accept the risk, which
-is a defensible choice when it is made deliberately and checked
-(`count(labs, test_code, unit)` should give one row per test).
+**Answer.** Rule 3. The unit is a property of the test. For
+example, N-terminal pro-B-type natriuretic peptide (NT-proBNP) is
+in pg/mL for every patient. The unit therefore belongs in a lookup
+table keyed by `test_code`. Repeating it on every row is
+duplication that can drift. Many analysts leave it in place and
+accept the risk. That is a defensible choice when it is made
+deliberately and checked (`count(labs, test_code, unit)` should
+give one row per test).
 
 **Question 2.** What does `count_by(crf_clean, "site")`, with the
 name passed as a string, return?
@@ -599,8 +601,8 @@ and every patient counted in it. `{{ }}` embraces whatever it is
 given, and a string is a constant, so the function counts by a
 constant. There is no error, and the result has the right shape
 with a meaningless number in it. `count_by_name(crf_clean, "site")`
-is the string version; the rule is that `{{ }}` takes what the
-caller types and `.data[[ ]]` takes a name your code computed.
+is the string version. The rule is that `{{ }}` takes what the
+caller types, and `.data[[ ]]` takes a name your code computed.
 :::
 
 ### Exercises
@@ -626,16 +628,17 @@ The condition compares two tests for the same patient, so both
 values must sit in one row. In the long form it needs a grouped
 filter across rows, which is harder to read and easier to get
 wrong. The one patient with a missing potassium is the queried
-re-run; `na.rm = TRUE` leaves that patient out of the counts, which
-the `potassium_missing` column makes visible rather than silent.
+re-run. `na.rm = TRUE` leaves that patient out of the counts. The
+`potassium_missing` column makes the omission visible rather than
+silent.
 :::
 
 ## Worked example: from CRF export to derived baseline {#sec-wrangling-worked}
 
-The script below is the chapter in one place: it reads the export
-as text, recodes each site's conventions, asserts the result, adds
-derived variables, counts what each filter removes, and writes the
-derived data to its own directory. It reuses `parse_site_date()`
+The script below is the chapter in one place. It reads the export
+as text, recodes each site's conventions, and asserts the result.
+It then adds derived variables, counts what each filter removes,
+and writes the derived data to its own directory. It reuses `parse_site_date()`
 from @sec-wrangling-recode.
 
 ```{r}
@@ -701,16 +704,16 @@ write_csv(flow, file.path(derived_dir, "crf_flow.csv"))
 The flow table answers a reviewer's first question about any
 subset, which is how many patients each rule removed and why. In a
 compendium, `derived_dir` is `analysis/data/derived_data/`
-(@sec-rrtools); the chunk writes to a temporary directory so that
-rendering the book leaves the repository unchanged.
+(@sec-rrtools). Here the chunk writes to a temporary directory, so
+that rendering the book leaves the repository unchanged.
 
 Two judgments in the script belong to the analysis rather than to
 the code. First, the flow does not define the analysis population.
 HF-HOME is analyzed as randomized, so the primary analysis includes
 all `r format(nrow(on_list), big.mark = ",")` patients on the
 list. The last two steps describe the subset with complete vital
-signs that a covariate-adjusted sensitivity analysis would use, and
-reporting its
+signs that a covariate-adjusted sensitivity analysis would use.
+Reporting its
 `r format(nrow(on_list) - nrow(with_vitals), big.mark = ",")`
 exclusions is what lets a reader judge it. @sec-missing explains
 why dropping them is not a neutral act.
@@ -749,7 +752,7 @@ it confirms that the script read the evidence without changing it.
 ::: {.callout-important title='LLM prompt'}
 An agentic version: a coding agent writes and runs the recode, and
 you review the evidence it reports. HF-HOME is synthetic, so the
-agent may run against it; on a real export it would see the
+agent may run against it. On a real export it would see the
 codebook and synthetic rows only.
 
 > **Context.** `analysis/data/raw_data/hfhome/crf_export.csv` is a
@@ -772,12 +775,12 @@ codebook and synthetic rows only.
 > fails, stop and report it instead of fixing it.
 
 *Failure mode.* The agent maps Site D's 1 and 2 from a convention
-it has seen elsewhere, or converts the numeric columns with
-`as.numeric()`, so that `-99` survives as a value; both pass every
-structural check. *Check.* Read the cross-tabulation against the
-codebook line by line, compare per-site means of `sbp_discharge`,
-and search the diff for `as.numeric(`, `.default`, and
-`parse_date_time(`. The governance rules are in
+it has seen elsewhere. Or it converts the numeric columns with
+`as.numeric()`, so that `-99` survives as a value. Both errors
+pass every structural check. *Check.* Read the cross-tabulation
+against the codebook line by line, and compare per-site means of
+`sbp_discharge`. Search the diff for `as.numeric(`, `.default`,
+and `parse_date_time(`. The governance rules are in
 @sec-ai-governance.
 :::
 
@@ -788,9 +791,9 @@ table ends at `r format(nrow(with_vitals), big.mark = ",")`. What
 do you answer?
 
 **Answer.** The flow table describes a subset, not the analysis
-population. The trial is analyzed as randomized, so every
-randomized patient is in the primary analysis whether or not a
-discharge vital sign was recorded; excluding patients by a
+population. The trial is analyzed as randomized. Every randomized
+patient is therefore in the primary analysis, whether or not a
+discharge vital sign was recorded. Excluding patients by a
 post-randomization measurement would break the comparison that
 randomization created. The subset with complete vital signs serves
 a sensitivity analysis, and the table reports what it lost.
@@ -861,8 +864,8 @@ stopifnot(
 
 The sex recode is left out to keep the key short; add it, with its
 assertion, in your own version. Comparing the derived files by
-checksum is stricter than comparing the data frames: it fails if
-anything about the serialization changes, which is what you want
+checksum is stricter than comparing the data frames. It fails if
+anything about the serialization changes. That is what you want
 before you claim that a rerun reproduced a file.
 :::
 

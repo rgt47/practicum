@@ -8,10 +8,11 @@ fits, and every downstream number is wrong by a factor of 86,400.
 No amount of rereading your code will find the problem, because
 your code is not what changed. A one-line test asserting that
 length of stay falls in a plausible range fails on the first run
-after the change; this chapter is about writing that line, about
-finding out whether the tests you already have would notice
-anything at all, and about running them, through continuous
-integration, on a clean machine every time the code changes.
+after the change. This chapter is about writing that line. It is
+also about finding out whether the tests you already have would
+notice anything at all. Finally, it is about running them, through
+continuous integration, on a clean machine every time the code
+changes.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -114,16 +115,17 @@ answers are in @sec-quiz-answers-20.
 
 Analysis code rarely gets tested, and the reason is a respectable
 one. Software is written to run on inputs its author has never
-seen; an analysis script is written to run on one dataset, once.
-The reasoning has two holes. The script does not run once: it runs
-every time an extract is refreshed, an exclusion is revised, or a
-reviewer asks for a sensitivity analysis, and by then its author
-has forgotten which branches were ever exercised. And the failures
-that matter in analysis code do not stop it running. A filter that
-removes the wrong rows, a join that duplicates a patient, a unit
-conversion applied twice: all produce output. The question a test
-answers is not 'did it run' but 'would I have noticed if it were
-wrong', and for most analysis scripts the honest answer is no.
+seen. An analysis script is written to run on one dataset, once.
+The reasoning has two holes. First, the script does not run once.
+It runs every time an extract is refreshed, an exclusion is
+revised, or a reviewer asks for a sensitivity analysis. By then
+its author has forgotten which branches were ever exercised.
+Second, the failures that matter in analysis code do not stop it
+running. A filter that removes the wrong rows, a join that
+duplicates a patient, and a unit conversion applied twice all
+produce output. The question a test answers is 'would I have
+noticed if it were wrong', not merely 'did it run'. For most
+analysis scripts the honest answer is no.
 
 Three ordinary occasions make the case concrete
 (@tbl-testing-occasions).
@@ -138,7 +140,7 @@ Three ordinary occasions make the case concrete
 
 Tests come in layers that catch different failures
 (@fig-test-layers). For analysis code the pyramid familiar from
-software engineering is flatter: the integration layer, a small
+software engineering is flatter. The integration layer, a small
 synthetic dataset run through the whole pipeline, does more work
 here than in most applications.
 
@@ -174,13 +176,13 @@ the test have asserted?
 **Answer.** The integration layer, and only if the synthetic
 dataset contained a `-1`. A unit test of the filter passes: given
 ages 17, 25, and 40 it correctly keeps two. The function is not
-broken; the *data* violated an assumption the function never
+broken. The *data* violated an assumption the function never
 stated. Two assertions are worth writing, and they fail at
 different times. One on the input, that `age` falls in a plausible
 range before the filter runs, fails the day the export changes.
 One on the output, that the number of rows dropped is what the
 codebook predicts, fails the day the meaning changes. The first is
-a claim about the data; the second is a claim about your
+a claim about the data. The second is a claim about your
 understanding of it.
 :::
 
@@ -188,9 +190,9 @@ understanding of it.
 
 The book uses `tinytest`. It has no dependencies of its own, which
 matters when the surrounding chapters are about pinning an
-environment; each test file runs on its own; and its assertion
-vocabulary is small enough to hold in your head. If you will work
-in a `testthat` project, @sec-testing-testthat translates.
+environment. Each test file runs on its own. Its assertion
+vocabulary is also small enough to hold in your head. If you will
+work in a `testthat` project, @sec-testing-testthat translates.
 
 For a function in `R/clean.R`:
 
@@ -235,11 +237,12 @@ expect_error(age_group("twenty"),
 ```
 
 Each `expect_*()` call is one test, and its `info=` string says
-what it checks; a failure reports the file and line beside it. The
-tests above follow the rule that edge cases are where bugs live:
-boundaries, missing values, and the wrong type. For other
-functions the list includes empty input, a single observation, a
-group with one member, zero variance, and perfect collinearity.
+what it checks. A failure reports the file and line beside it. The
+tests above follow the rule that edge cases are where bugs live.
+Here those are boundaries, missing values, and the wrong type.
+For other functions the list includes empty input, a single
+observation, a group with one member, zero variance, and perfect
+collinearity.
 
 Run every test file from the project root, or a package's tests
 by name (display-only; both need a project with an
@@ -251,7 +254,7 @@ tinytest::test_package("practicum")
 ```
 
 `tinytest` expects the test files in `inst/tinytest/` and a
-one-line `tests/tinytest.R` that runs them, which is the layout
+one-line `tests/tinytest.R` that runs them. This is the layout
 `tinytest::setup_tinytest()` creates and the one `zzcollab`
 scaffolds. Tests under `inst/` are installed with the package, so
 someone who has your compendium can run its tests without your
@@ -265,7 +268,7 @@ the function, beyond the test?
 
 **Answer.** Bare `NA` is logical, and `cut()` requires a numeric
 argument, so `age_group(NA)` stops with `'x' must be numeric`. The
-same input arises in production: a column that is empty in every
+same input arises in production. A column that is empty in every
 row is read by `read.csv()` as logical, and the function then fails
 on it. The test has found a real input the function does not
 handle.
@@ -288,10 +291,10 @@ as.character(age_group(c(-5, 0, 200)))
 A negative age returns `NA`, because the breaks begin at 0 and
 `cut()` places anything below the first break outside every
 interval. An age of 200 is absorbed into `65+`, because the last
-break is `Inf`. The asymmetry is the finding: an impossible age at
-the top of the range is silently accepted, and an impossible age
-at the bottom becomes the same `NA` a genuinely missing age
-produces. Pinning the current behavior:
+break is `Inf`. The asymmetry is the finding. An impossible age at
+the top of the range is silently accepted. An impossible age at
+the bottom becomes the same `NA` a genuinely missing age produces.
+Pinning the current behavior:
 
 ```{r}
 #| label: soln-20-1b
@@ -299,8 +302,8 @@ expect_true(is.na(age_group(-5)),
             info = "age below the first break gives NA")
 ```
 
-Preferring an error instead, the test comes first and the function
-changes to satisfy it:
+If we prefer an error instead, the test comes first and the
+function changes to satisfy it:
 
 ```{r}
 #| label: soln-20-1c
@@ -386,9 +389,10 @@ expect_equal(clean$bp[clean$patient_id == 1 & clean$visit == 1],
 
 The dataset has four patients and two visits, but it exercises
 each cleaning rule: the age exclusion (patient 4) and a missing
-value (patient 3, visit 2). The rule generalizes: for each filter,
+value (patient 3, visit 2). The rule generalizes. For each filter,
 derivation, pivot, and recode, the fixture has at least one row
-that exercises it, including the branches you do not think exist.
+that exercises it. This includes the branches you do not think
+exist.
 
 ### Reference tests
 
@@ -428,8 +432,8 @@ first run accepts whatever the code produced.
 and it passes. Does this mean the result is correct?
 
 **Answer.** No. It says nothing about which rows, what values, or
-whether the right rows were filtered; 100 rows of the wrong
-patients pass. Add assertions on content:
+whether the right rows were filtered. One hundred rows of the
+wrong patients pass. Add assertions on content:
 
 ```{r}
 #| label: test-structural-vs-correct
@@ -444,8 +448,8 @@ expect_equal(result$age, expected_ages)
 ```
 
 'Looks right at the surface, wrong underneath' is the most common
-testing failure in data analysis, and a structural test alone is
-built to miss it.
+testing failure in data analysis. A structural test alone will
+miss it.
 :::
 
 ### Exercises
@@ -502,30 +506,32 @@ Every assertion so far is a line of code: `stopifnot()`,
 `expect_equal()`, a comparison written against a value you worked
 out by hand or derived independently. That style fits a function
 with a handful of expected outputs. It fits less well a different
-kind of claim, common in a data-cleaning pipeline, that is really
-about an entire column at once: every `arm` value is one of two
-strings, every `visit_day` is non-negative, every `patient_id` is
-unique. Writing each of these as a hand-rolled loop over rows is
-possible and unpleasant to read; the loop obscures the rule inside
-the machinery that checks it, and a failure reports only that
-*something* was wrong, not which rows or how many.
+kind of claim, common in a data-cleaning pipeline. Such a claim is
+really about an entire column at once. Examples are that every
+`arm` value is one of two strings, every `visit_day` is
+non-negative, and every `patient_id` is unique. Writing each of
+these as a hand-rolled loop over rows is possible but unpleasant to
+read. The loop obscures the rule inside the machinery that checks
+it. A failure also reports only that *something* was wrong, not
+which rows or how many.
 
 A declarative validation package turns the rule itself into the
 unit you write and read. `pointblank` [@iannone2026pointblank] is
-the package this section uses; `validate` is a close alternative
-with a more compact rule syntax, shown at the end, and either is a
+the package this section uses. `validate` is a close alternative
+with a more compact rule syntax, shown at the end. Either is a
 reasonable choice for a project that does not already use the
-other. Both are NOT installed in this environment, so every chunk
+other. Neither is installed in this environment, so every chunk
 below is display-only.
 
 ### An agent of checks
 
-`pointblank`'s central object is a validation *agent*: you attach a
+`pointblank`'s central object is a validation *agent*. You attach a
 table, add one validation step per rule, and `interrogate()` the
-whole set in one call, producing a report of which rows passed each
-rule and which did not. On HF-HOME's randomization table, the
-rule that `arm` holds only the two protocol values, and the rule
-that `patient_id` is unique within it:
+whole set in one call. The result is a report of which rows passed
+each rule and which did not. On HF-HOME's randomization table, we
+check two rules. The first is that `arm` holds only the two
+protocol values. The second is that `patient_id` is unique within
+the table:
 
 ```r
 library(pointblank)
@@ -541,12 +547,13 @@ all_passed(rand_agent)
 ```
 
 `col_vals_in_set()` asserts that every value in the column belongs
-to the stated set; it does not by itself assert that both values of
-a two-level factor actually occur, so a column that happened to
-contain only `"Usual care"` would still pass. Where the number of
-distinct values matters, not only their membership, pair the agent
-with a plain count, the same habit @sec-testing-correctness teaches
-for structural versus correctness checks:
+to the stated set. It does not by itself assert that both values of
+a two-level factor actually occur. A column that happened to
+contain only `"Usual care"` would therefore still pass. Where the
+number of distinct values matters, not only their membership, pair
+the agent with a plain count. This is the same habit
+@sec-testing-correctness teaches for structural versus correctness
+checks:
 
 ```r
 stopifnot(length(unique(hf_rand$arm)) == 2)
@@ -566,21 +573,21 @@ visits_agent
 ```
 
 Each validation step is readable on its own, independent of the
-others, and independent of how the table was produced; that
+others, and independent of how the table was produced. That
 independence is what a hand-written loop checking several rules at
 once loses. `get_agent_report(visits_agent)` returns the per-step
-pass and fail counts as a data frame, which is what you want when a
+pass and fail counts as a data frame. This is what you want when a
 step fails and the next question is 'how many rows, and which
 ones', not only 'did it pass'.
 
 ### Severity, not just pass or fail
 
 A validation step can be more than a binary gate. `action_levels()`
-sets thresholds, for example warn at any failure but stop the
-pipeline only once failures exceed a fraction of the rows, which
-matches the way a real data-cleaning pipeline tolerates a handful of
-exceptions it will route to manual review while still refusing to
-proceed on wholesale corruption:
+sets thresholds. For example, it can warn at any failure but stop
+the pipeline only once failures exceed a fraction of the rows. This
+matches the way a real data-cleaning pipeline works. It tolerates a
+handful of exceptions, which it routes to manual review, while
+still refusing to proceed on wholesale corruption:
 
 ```r
 al <- action_levels(warn_at = 1, stop_at = 0.05)
@@ -591,29 +598,30 @@ create_agent(tbl = hf_visits, actions = al) |>
 ```
 
 This is the same idea CI applies at the level of a whole test suite
-(@sec-ci): a check that can only ever pass completely or fail
+(@sec-ci). A check that can only ever pass completely or fail
 completely either blocks every minor exception or hides every major
-one, and a graded response lets the two be treated differently
-without turning the check off.
+one. A graded response lets the two be treated differently without
+turning the check off.
 
 ### Where a validation agent belongs in a pipeline
 
 A `pointblank` or `validate` check is not a replacement for the
-`tinytest` suite; it answers a different question at a different
+`tinytest` suite. It answers a different question at a different
 point in the pipeline. A unit test asserts that a function, given
-known input, returns a known output; it runs once, in CI, against
+known input, returns a known output. It runs once, in CI, against
 fixtures you wrote. A validation agent asserts that *the data in
 hand*, on today's run, satisfies the rules the downstream code
-assumes; it belongs inside the cleaning script itself, run every
-time the script runs, against whatever extract arrived that day.
-Placed right after a raw file is read and before anything
-downstream depends on its shape, it catches the HF-HOME equivalent
-of @sec-testing-why's opening story, a column whose coding changed
-upstream, at the earliest possible point rather than three
-transformations later where the error is harder to trace back.
+assumes. It belongs inside the cleaning script itself. There it
+runs every time the script runs, against whatever extract arrived
+that day. We place it right after a raw file is read and before
+anything downstream depends on its shape. There it catches the
+HF-HOME equivalent of @sec-testing-why's opening story, a column
+whose coding changed upstream. It does so at the earliest possible
+point, rather than three transformations later where the error is
+harder to trace back.
 
 Failing loudly matters here exactly as it does for a test suite's
-exit status (@sec-testing-ci): an agent that reports failures but
+exit status (@sec-testing-ci). An agent that reports failures but
 lets the script continue is a check nobody reads until something
 downstream breaks anyway.
 
@@ -628,14 +636,14 @@ stopifnot(all_passed(rand_agent))
 ```
 
 Wrapped in `stopifnot()`, a failed validation step stops the script
-exactly as a failed `expect_equal()` stops a test file, and the
-same `quit(status = ...)` pattern @sec-testing-ci teaches for a
-test suite turns a failed interrogation into a red CI run rather
-than a silently truncated dataset three steps downstream. The two
-checks do different work: the unit tests
-prove the cleaning function is correct on the cases you anticipated,
-and the validation agent proves that today's input still matches
-the assumptions those tests were written against.
+exactly as a failed `expect_equal()` stops a test file. The same
+`quit(status = ...)` pattern @sec-testing-ci teaches for a test
+suite turns a failed interrogation into a red CI run. Without it
+the result would be a silently truncated dataset three steps
+downstream. The two checks do different work. The unit tests show
+that the cleaning function is correct on the cases you anticipated.
+The validation agent shows that today's input still matches the
+assumptions those tests were written against.
 
 ### `validate`, in brief
 
@@ -655,12 +663,13 @@ out <- confront(hf_rand, rules)
 summary(out)
 ```
 
-`confront()` returns one logical result per rule per row, and
-`summary()` collapses that into the pass and fail counts
+`confront()` returns one logical result per rule per row.
+`summary()` collapses that into the pass and fail counts that
 `pointblank`'s report gives directly. Choose one package for a
-project rather than mixing both, for the same reason @sec-testing-unit
-gives for choosing one test framework: the discipline is identical
-under either, and switching costs more than either tool saves.
+project rather than mixing both. The reason is the same one
+@sec-testing-unit gives for choosing one test framework. The
+discipline is identical under either, and switching costs more than
+either tool saves.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A `pointblank` agent reports that `col_vals_gte(columns
@@ -670,14 +679,14 @@ that the full claim the check supports?
 
 **Answer.** Close, but the check is about the file as loaded, not
 about the file's provenance. It proves that no `visit_day` value in
-this snapshot of `visits.csv` is negative; it says nothing about
+this snapshot of `visits.csv` is negative. It says nothing about
 whether `visit_day` was computed correctly from `visit_date` and
-`discharge_date` in the first place, which a value could get wrong
-in a way that is still non-negative (an off-by-one day, for
-example). A declarative check and a comparison with an
-independently derived value answer different questions, and a
-pipeline typically needs both, the same lesson
-@sec-testing-correctness draws for hand-written assertions.
+`discharge_date` in the first place. A value could be wrong in a
+way that is still non-negative (an off-by-one day, for example). A
+declarative check and a comparison with an independently derived
+value answer different questions. A pipeline typically needs both.
+This is the same lesson @sec-testing-correctness draws for
+hand-written assertions.
 :::
 
 ### Exercises
@@ -714,18 +723,18 @@ stopifnot(
 ```
 
 For a fixed, small set of rules run once, the two are about equally
-concise; `stopifnot()` wins slightly on `ascertained`, a single
+concise. `stopifnot()` wins slightly on `ascertained`, a single
 `anyNA()` call. The uniqueness rule is where the declarative version
-pulls ahead: `rows_distinct()` names the intent directly, and its
-report, unlike `anyDuplicated()`'s single index, lists every
-duplicated value when the check fails, which is what you want on
-the day it does.
+pulls ahead. `rows_distinct()` names the intent directly. Its
+report also lists every duplicated value when the check fails,
+unlike `anyDuplicated()`'s single index. That is what you want on
+the day it does fail.
 :::
 
 ## Test smells {#sec-testing-smells}
 
 Some tests look like tests and produce only confidence. Two run
-below; @tbl-testing-smells lists the common kinds.
+below, and @tbl-testing-smells lists the common kinds.
 
 ```{r}
 #| label: test-antipattern-tautology
@@ -744,10 +753,11 @@ result <- 0.9                                # nowhere near 0.5
 expect_equal(result, 0.5, tolerance = 0.5)   # passes for 0 to 1
 ```
 
-The tolerance example passes for any value from 0 to 1. With an
-expected value no larger than the tolerance, `all.equal()`, which
-`expect_equal()` uses, compares the absolute difference, so a
-tolerance of 0.5 around 0.5 accepts every proportion there is.
+The tolerance example passes for any value from 0 to 1.
+`expect_equal()` uses `all.equal()`. When the expected value is no
+larger than the tolerance, `all.equal()` compares the absolute
+difference. A tolerance of 0.5 around 0.5 therefore accepts every
+proportion there is.
 
 | Smell | Example | Why it misleads | Fix |
 |---|---|---|---|
@@ -770,7 +780,7 @@ harder to write by accident than under `testthat`'s
 `expect_equal(risk_difference(d), risk_difference(d), tolerance = 1e-8)`.
 They point out that the tolerance is tight. Is the test any good?
 
-**Answer.** No. It is a tautology with a tight tolerance: the
+**Answer.** No. It is a tautology with a tight tolerance. The
 expected value comes from calling the function under test, so it
 passes whatever the function returns. The tolerance is irrelevant.
 The fix is an expected value computed another way, for example
@@ -804,13 +814,13 @@ repairs that.
 ## Style and lint checks {#sec-testing-style}
 
 A test suite checks what code does. Style and lint checks catch a
-different kind of problem: code that runs correctly but is hard
+different kind of problem. The code runs correctly but is hard
 enough to read that the next check, a person's own review of the
 diff, is weaker than it should be. @sec-ai-coding makes the point
-that a diff you cannot read is a diff you cannot audit, which
+that a diff you cannot read is a diff you cannot audit. That
 matters more now that a coding agent can produce a diff faster than
-anyone reads one; this section is the mechanics behind that point.
-Both tools below are NOT installed in this environment, so the
+anyone reads one. This section covers the mechanics behind that
+point. Neither tool below is installed in this environment, so the
 chunks are display-only.
 
 ### `styler` and `lintr`
@@ -827,8 +837,8 @@ lintr::lint_dir("R")
 ```
 
 `styler` rewrites whitespace, indentation, and assignment to a
-canonical form, so that the diff a reviewer reads shows what
-changed rather than whose keyboard it came from. `lintr` is a
+canonical form. The diff a reviewer reads then shows what changed,
+not whose keyboard it came from. `lintr` is a
 static analyzer that flags what `styler` cannot fix, including some
 genuine bugs:
 
@@ -838,20 +848,20 @@ lintr::lint(text = "m <- mean(x, na.rm = T)\n",
 ```
 
 Run over generated code, `lintr` catches a useful fraction of the
-mechanical mistakes in @tbl-ai-failures before you spend attention
-on the substantive ones; `T` for `TRUE` is exactly the kind of
-planted bug a linter is built to flag.
+mechanical mistakes in @tbl-ai-failures. It does so before you
+spend attention on the substantive ones. `T` for `TRUE` is exactly
+the kind of planted bug a linter is built to flag.
 
 ### `Air`, a faster formatter
 
 `Air` [@vaughan2026air] is a newer, Rust-based formatter and
-language server for R from Posit, built for speed: it formats a
+language server for R from Posit, built for speed. It formats a
 file in milliseconds rather than the fraction of a second `styler`
-needs, which matters most as a save-on-type action in an editor
-rather than as a batch job. As of this writing `Air` is in beta,
-and its formatting choices and command-line interface can still
-change between releases; check the project's own documentation
-before adopting it on a project you cannot easily re-format later.
+needs. That matters most as a save-on-type action in an editor,
+less so in a batch job. As of this writing `Air` is in beta, and
+its formatting choices and command-line interface can still change
+between releases. Check the project's own documentation before
+adopting it on a project you cannot easily re-format later.
 `usethis::use_air()` wires a project to format with `Air` on save in
 supporting editors (RStudio, Positron, VS Code) and from the command
 line (display-only):
@@ -865,21 +875,21 @@ air format R/
 ```
 
 `Air` and `styler` are not required to agree on every formatting
-choice, so pick one as the project's formatter rather than running
-both and reconciling the diffs; `lintr`'s checks are independent of
+choice. Pick one as the project's formatter rather than running
+both and reconciling the diffs. `lintr`'s checks are independent of
 either and are worth keeping regardless of which formatter you use.
 
 ### Automating the check with pre-commit
 
 A style or lint check that someone has to remember to run is a
-check that eventually does not run, the same argument
-@sec-testing-ci makes for tests. The `precommit` package wires
-`styler`, `lintr`, and other R checks into
-[pre-commit](https://pre-commit.com), a language-agnostic framework
-that runs configured hooks on every `git commit` and refuses the
-commit if a hook fails or rewrites a file. A minimal configuration
-for an R project (display-only; `precommit` and `pre-commit` are
-not installed here):
+check that eventually does not run. @sec-testing-ci makes the same
+argument for tests. The `precommit` package wires `styler`,
+`lintr`, and other R checks into
+[pre-commit](https://pre-commit.com), a language-agnostic
+framework. It runs configured hooks on every `git commit` and
+refuses the commit if a hook fails or rewrites a file. A minimal
+configuration for an R project follows (display-only; `precommit`
+and `pre-commit` are not installed here):
 
 ```yaml
 # .pre-commit-config.yaml
@@ -898,12 +908,12 @@ precommit::use_precommit()
 `use_precommit()` writes the configuration above and installs the
 git hook that runs it. Check the `precommit` package's current hook
 list for whether it has added an `Air` hook by the time you read
-this; if not, a hook that simply shells out to `air format` belongs
-in the same file. Either way, the effect is the same one CI gives
-the test suite: the check happens on every commit, not only on the
-commits where someone remembered to run it by hand, and a commit
-that fails the hook never reaches the history for a reviewer to
-read in its unformatted form.
+this. If not, a hook that shells out to `air format` belongs in the
+same file. Either way, the effect is the same one CI gives the test
+suite. The check happens on every commit, not only on the commits
+where someone remembered to run it by hand. A commit that fails the
+hook never reaches the history for a reviewer to read in its
+unformatted form.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A pull request shows a 400-line diff, and the author
@@ -912,13 +922,13 @@ change. How does a reviewer verify that, and why does it matter?
 
 **Answer.** Run `styler::style_file()` (or `air format`) on the
 pre-change version of the file and diff that against the
-post-change version; what remains is the substantive change.
+post-change version. What remains is the substantive change.
 Without a pre-commit hook, exactly this situation recurs on every
 pull request that touches a file nobody has run the formatter on
-yet, and a reviewer who skips the check because the diff 'looks
-like formatting' is trusting the author's unverified claim about
-their own diff, the same shortcut @sec-ai-governance warns against
-for a model's unverified claim about its own code.
+yet. A reviewer who skips the check because the diff 'looks like
+formatting' is trusting the author's unverified claim about their
+own diff. This is the same shortcut @sec-ai-governance warns
+against for a model's unverified claim about its own code.
 :::
 
 ### Exercises
@@ -941,27 +951,27 @@ repos:
       - id: lintr
 ```
 
-Once active, every commit is formatted before it is recorded: a
+Once active, every commit is formatted before it is recorded. A
 hook that rewrites a file on a failed check (as `style-files` does)
-aborts the commit and leaves the reformatted file staged for the
-author to commit again, so a reformatted-and-changed file can never
+aborts the commit. It leaves the reformatted file staged for the
+author to commit again. A reformatted-and-changed file can therefore never
 reach the branch in a single, mixed commit. Pull-request diffs then
-show only the lines a contributor meant to change, because every
-commit already in the history was formatted at the moment it was
-made rather than reformatted wholesale later.
+show only the lines a contributor meant to change. Every commit
+already in the history was formatted at the moment it was made,
+not reformatted wholesale later.
 :::
 
 ## Worked example: testing the HF-HOME CRF cleaner {#sec-testing-worked}
 
 The HF-HOME CRF (case report form) export,
 `analysis/data/raw_data/hfhome/crf_export.csv`, comes from five
-site systems that each write the same fields differently: Site D
-codes sex as `1` and `2`, Site C writes dates month first, Site E
-has lost the leading zeros of its patient IDs, and the site labels
-vary in case and spacing. The function below puts four fields into
-canonical form. Each site's coding lives in a lookup table passed
-as an argument with a default, so that the codebook is in one place
-and a change to it is a one-line change.
+site systems that each write the same fields differently. Site D
+codes sex as `1` and `2`, and Site C writes dates month first.
+Site E has lost the leading zeros of its patient IDs, and the site
+labels vary in case and spacing. The function below puts four
+fields into canonical form. Each site's coding lives in a lookup
+table passed as an argument with a default. The codebook is then
+in one place, and a change to it is a one-line change.
 
 ```{r}
 #| label: test-crf-fn
@@ -1078,10 +1088,11 @@ passing <- run_test_file(test_file, verbose = 0, set_env = hf_env)
 passing
 ```
 
-Every test passes. That shows the tests agree with the function;
-it does not yet show that they would notice if the function were
-wrong. To find out, plant a bug a reviewer could plausibly miss,
-here Site D's sex codes swapped, and run the same tests again:
+Every test passes. That shows the tests agree with the function.
+It does not yet show that they would notice if the function were
+wrong. To find out, we plant a bug a reviewer could plausibly miss
+and run the same tests again. Here the bug is that Site D's sex
+codes are swapped:
 
 ```{r}
 #| label: test-crf-mutant
@@ -1096,15 +1107,15 @@ mutant
 clean_crf <- clean_crf_correct
 ```
 
-Both layers catch it: the fixture's Site D row, and the comparison
-with the registration record, which disagrees for every Site D
-patient. The swapped function returns a plausible data frame, with
-two sexes in plausible proportions, which is exactly the kind of
-bug that survives inspection (Habit 8).
+Both layers catch it. The fixture's Site D row fails, and so does
+the comparison with the registration record, which disagrees for
+every Site D patient. The swapped function returns a plausible
+data frame, with two sexes in plausible proportions. This is
+exactly the kind of bug that survives inspection (Habit 8).
 
 This check has a name: [**mutation testing**](F-glossary.qmd#gloss-mutation-testing)
-[@demillo1978hints]. Each planted bug is a *mutant*; a test that
-fails on it *kills* it; and the share of mutants killed measures
+[@demillo1978hints]. Each planted bug is a *mutant*, and a test
+that fails on it *kills* it. The share of mutants killed measures
 how much the suite can see. Tools for other languages generate
 mutants automatically (flipped comparisons, swapped constants,
 deleted lines). By hand, plant one mutant per rule in the codebook,
@@ -1147,15 +1158,15 @@ and you review the evidence rather than only the code.
 > suite against it, and report a table of mutant, killed or
 > survived, and the test that killed it.
 
-*Failure mode.* An agent told to make tests pass will weaken them:
-it widens a tolerance, replaces a value check with a shape check,
+*Failure mode.* An agent told to make tests pass will weaken them.
+It widens a tolerance, replaces a value check with a shape check,
 or edits the expected value to match the output. That is why the
-instruction forbids touching existing tests, and why the rule that
-tests are off-limits to an agent is part of the book's governance
-rules (@sec-ai-governance). *Check.* Run
+instruction forbids touching existing tests. It is also why the
+rule that tests are off-limits to an agent is part of the book's
+governance rules (@sec-ai-governance). *Check.* Run
 `git diff --stat -- inst/tinytest/ R/` and confirm that only the
-new test file changed; read every `expect_*()` in it for a
-hand-derived expected value; then run one mutant yourself, as in
+new test file changed. Read every `expect_*()` in it for a
+hand-derived expected value. Then run one mutant yourself, as in
 the chunk above, and confirm that the suite fails. The codebook
 and synthetic files hold no patient data.
 :::
@@ -1167,7 +1178,7 @@ by hand, rather than five rows sampled from the export?
 **Answer.** Every pathology in the export is per site, so a test
 must exercise every site to exercise every branch. Five sampled
 rows can easily miss Site D, whose numeric sex codes are the branch
-most likely to be wrong, and a sample changes when the export
+most likely to be wrong. A sample also changes when the export
 does. A hand-built row per site exercises each branch on purpose,
 and its expected values come from the codebook rather than from the
 function.
@@ -1206,10 +1217,10 @@ clean_crf <- clean_crf_correct
 
 The fixture's date test and the comparison with the baseline table
 both kill the mutant. The counts show why the comparison is
-needed: dates whose day is above 12 become `NA`, which is loud, but
-every date whose day is 12 or below, and differs from its month,
-parses to a valid date in the wrong month. Those dates, the third
-count, pass every check except a comparison with something
+needed. Dates whose day is above 12 become `NA`, which is loud.
+However, every date whose day is 12 or below, and differs from its
+month, parses to a valid date in the wrong month. Those dates, the
+third count, pass every check except a comparison with something
 independent.
 :::
 
@@ -1247,11 +1258,11 @@ c(missing_crf = sum(is.na(clean_sbp(both$sbp_discharge_crf))),
 ```
 
 `na.strings = character()` keeps the raw codes as text, so that the
-function, not `read.csv()`, decides what is missing; with the
-default, `NA` is converted on reading and `-99` is not, and the
-test would no longer exercise the function's handling of either. A
+function, not `read.csv()`, decides what is missing. With the
+default, `NA` is converted on reading and `-99` is not. The test
+would then no longer exercise the function's handling of either. A
 version that forgot `-99` would leave impossible pressures of -99
-mmHg in the data, which a mean would absorb without complaint; the
+mmHg in the data, which a mean would absorb without complaint. The
 comparison with the baseline table fails on it.
 :::
 
@@ -1260,7 +1271,7 @@ comparison with the baseline table fails on it.
 Tests that run only when someone remembers to run them catch
 regressions late. Continuous integration (CI) runs them on every
 push. This section sets up the minimal workflow and shows why its
-exit status matters; the four sections that follow, from
+exit status matters. The four sections that follow, from
 @sec-ci, cover what a green check proves, how a workflow is
 built, how to read a red run, and how to secure the workflow.
 For an R package,
@@ -1269,7 +1280,7 @@ Actions to run `R CMD check`, which runs the tests, on several
 operating systems and R versions. For an analysis project, the
 equivalent is a workflow that runs the tests. It assumes a
 `DESCRIPTION` file listing the project's dependencies, as a
-research compendium has; without one, replace `local::.` with the
+research compendium has. Without one, replace `local::.` with the
 packages the tests need:
 
 ```yaml
@@ -1351,12 +1362,12 @@ You install `janitor` in March to clean column names, the analysis
 renders on your laptop, and you never run `renv::snapshot()`. In
 June you open a pull request, and a red cross appears beside it.
 The log ends with `Error: Process completed with exit code 1.`,
-which tells you nothing; a dozen lines above it is the line that
+which tells you nothing. A dozen lines above it is the line that
 tells you everything, `there is no package called 'janitor'`. Your
-laptop remembered the package and the lockfile did not, so without
-the red cross a collaborator would have found out at submission.
+laptop remembered the package and the lockfile did not. Without
+the red cross, a collaborator would have found out at submission.
 Continuous integration runs the analysis on a machine that is not
-yours, from a clean state, on every push; this section and the
+yours, from a clean state, on every push. This section and the
 three after it are about making it check what matters and reading
 what it reports.
 
@@ -1364,7 +1375,7 @@ Continuous integration (CI) is the practice of building and
 checking a project automatically every time it changes. When you
 push a commit, a fresh machine in the cloud checks out the code,
 reconstructs the environment, runs the tests, and renders the
-report; if anything fails, you are told within minutes. This
+report. If anything fails, you are told within minutes. This
 chapter uses GitHub Actions, the CI system built into GitHub,
 because it is free for public repositories and the R community
 maintains ready-made steps for it. Triggers, jobs, and steps on a
@@ -1372,12 +1383,12 @@ clean machine transfer unchanged to GitLab CI and the other
 systems.
 
 A passing test suite says the code does what its tests check. A
-passing CI run says more: that the analysis reconstructs from
-`renv.lock` on a machine that is not yours and produces the
+passing CI run says more. It says that the analysis reconstructs
+from `renv.lock` on a machine that is not yours and produces the
 report. That second guarantee is what a reviewer, or you in a
-year, relies on to rerun the work. The workflow file is boilerplate and can be
-copied; what it checks, and therefore what a green check entitles
-you to claim, is a decision.
+year, relies on to rerun the work. The workflow file is
+boilerplate and can be copied. What it checks is a decision, and
+that decision sets what a green check entitles you to claim.
 
 ### What a green check is worth
 
@@ -1398,17 +1409,17 @@ compiles, not that it is correct. {#tbl-ci-checklist}
 
 The first row has a gap that the `janitor` story falls into. A
 restore installs what the lockfile lists, so a package the
-lockfile omits does not fail the restore; it fails the first later
-step that loads it. That is why a workflow needs all four rows:
-the test and render steps are what discover that the restore was
-incomplete.
+lockfile omits does not fail the restore. Instead, it fails the
+first later step that loads it. That is why a workflow needs all
+four rows. The test and render steps are what discover that the
+restore was incomplete.
 
 Fail loudly and early. Humble and Farley's advice for software
 delivery, 'if it hurts, do it more frequently, and bring the pain
 forward' [@humble2010continuous], applies unchanged to research
-code. The purpose of CI is to surface a break at
-the commit that introduced it, when the cause is one small diff,
-rather than at submission, when the cause is buried in months of
+code. The purpose of CI is to surface a break at the commit that
+introduced it, when the cause is one small diff. The alternative is
+to find it at submission, when the cause is buried in months of
 history. Every step must fail the job when its check fails, not
 warn and continue.
 
@@ -1419,13 +1430,13 @@ figure differs from yours. What does the green check tell you, and
 what does it not?
 
 **Answer.** It tells you that the analysis reconstructs from
-`renv.lock` on a clean machine and that the report renders, so the
-discrepancy is not a missing package or an uncommitted file. It
-does not tell you the figure is correct, because nothing in the
-workflow tests the figure's content. Suspect an unseeded random
-step, a different data version, or a genuine analytic difference,
-and add a test that pins the figure's underlying numbers so that CI
-catches the change next time.
+`renv.lock` on a clean machine and that the report renders. The
+discrepancy is therefore not a missing package or an uncommitted
+file. It does not tell you the figure is correct, because nothing
+in the workflow tests the figure's content. Suspect an unseeded
+random step, a different data version, or a genuine analytic
+difference. Then add a test that pins the figure's underlying
+numbers so that CI catches the change next time.
 :::
 
 ### Exercises
@@ -1442,11 +1453,11 @@ catches the change next time.
 
 ::: {.callout-note collapse='true' title='Solution'}
 (a) Not the restore, which succeeds because it installs only what
-the lockfile lists; the run turns red at the first step that loads
-`janitor`, the tests if they call it, otherwise the render. (b) The
-render: the file exists on your machine and not on the runner. (c)
-Nothing; the run stays green, because the only test checks the
-shape of the data, not a value (Habit 9). (d) Nothing; the run
+the lockfile lists. The run turns red at the first step that loads
+`janitor`: the tests if they call it, otherwise the render. (b) The
+render. The file exists on your machine and not on the runner. (c)
+Nothing. The run stays green, because the only test checks the
+shape of the data, not a value (Habit 9). (d) Nothing. The run
 stays green, and the token is now in the Git history of a
 repository that may be public. Revoke it, then move it to the
 platform's encrypted secrets. Two of the four failures pass every
@@ -1531,19 +1542,19 @@ runs on a fresh Ubuntu runner. Its steps check out the code,
 install R, restore the exact package versions in `renv.lock`,
 install Quarto, run the test suite, and render the report. If any
 step exits with a nonzero status, the job fails and GitHub marks
-the commit with a red cross; if every step exits zero, a green
-check.
+the commit with a red cross. If every step exits zero, the commit
+gets a green check.
 
 ### Three details that decide the result
 
 **The runner has only what the workflow installs.** R is there
-because `setup-r` installed it and Quarto because
-`quarto-actions/setup` did; drop the Quarto step and the render
+because `setup-r` installed it, and Quarto because
+`quarto-actions/setup` did. Drop the Quarto step and the render
 fails with 'command not found'.
 
 **The test step must fail on a failed test.** The second `-e`
 expression turns 'any test failed' into a nonzero exit status,
-which is the only signal CI reads; without it the job stays green
+which is the only signal CI reads. Without it the job stays green
 however many tests fail, as the demonstration in @sec-testing-ci
 showed.
 
@@ -1558,17 +1569,16 @@ and a workflow uses one or the other:
 
 The minimal workflow of @sec-testing-ci uses
 `setup-r-dependencies`, which suits a package that must work with
-current versions. A compendium with a lockfile wants `setup-renv`,
-and every package
-the tests call, `tinytest` included, must therefore be in the
-lockfile.
+current versions. A compendium with a lockfile wants `setup-renv`.
+Every package the tests call, `tinytest` included, must therefore
+be in the lockfile.
 
 ::: {.callout-warning title='Pitfall'}
 **`continue-on-error: true` turns a red step green.** The setting
 is sometimes added to a test step 'until the tests are fixed'. The
-step still fails, but the job is reported as passing, so the
-commit gets a green check, branch protection lets the pull request
-merge, and nobody opens the log. Remove the setting and fix or
+step still fails, but the job is reported as passing. The commit
+gets a green check, branch protection lets the pull request merge,
+and nobody opens the log. Remove the setting and fix or
 delete the failing test instead.
 :::
 
@@ -1595,8 +1605,8 @@ run turns green. What has the green check stopped proving?
 
 **Answer.** That the analysis reproduces with the package versions
 in `renv.lock`. The run now tests whatever versions CRAN serves
-today, so a result that changed because a dependency changed would
-pass without notice, which is the silent regression @sec-renv
+today. A result that changed because a dependency changed would
+pass without notice. That is the silent regression @sec-renv
 exists to prevent. Find out why the restore failed (usually a
 system library, @sec-ci-reading) and fix that instead.
 :::
@@ -1621,7 +1631,7 @@ on:
 
 The five fields are minute, hour, day of month, month, and day of
 week (1 is Monday), in UTC. A pinned lockfile does not mean
-nothing changes: the runner image is updated, archived package
+nothing changes. The runner image is updated, archived package
 sources move, and an external data source or URL the report reads
 can disappear. A weekly run finds these on a quiet Monday rather
 than on the day you need to rerun the analysis.
@@ -1630,14 +1640,14 @@ than on the day you need to rerun the analysis.
 ## Reading a failing run {#sec-ci-reading}
 
 When a run fails, GitHub shows the job's log with the failing step
-expanded. Read it from the first error, not from the bottom: the
+expanded. Read it from the first error, not from the bottom. The
 first error is usually the cause, and everything below it is
 consequence. The chunk below reproduces the `janitor` story of
-@sec-ci. It
-builds a two-file test suite in which one file uses `janitor`,
-then runs the CI test step in a fresh R process whose library
-holds `tinytest` and nothing else, as a runner restored from a
-lockfile that omits `janitor` would.
+@sec-ci. It builds a two-file test suite in which one file uses
+`janitor`. It then runs the CI test step in a fresh R process
+whose library holds `tinytest` and nothing else. That is the
+situation of a runner restored from a lockfile that omits
+`janitor`.
 
 ```{r}
 #| label: ci-red-log
@@ -1716,7 +1726,7 @@ step, and read up to three lines around it.
 ### The fix belongs in the lockfile
 
 The cause is that `renv.lock` omits a package the code uses, so the
-fix is on your machine: `renv::status()` reports the package as
+fix is on your machine. `renv::status()` reports the package as
 used but not recorded, `renv::snapshot()` records it, and you
 commit the lockfile (@sec-renv-honest). The run turns green
 because the environment is now pinned, not because CI was made to
@@ -1727,9 +1737,9 @@ tolerate it.
 green and the analysis irreproducible.** A step such as
 `Rscript -e 'install.packages("janitor")'` before the tests fixes
 the red cross in one line. The runner now has a package the
-lockfile does not record, at whatever version CRAN serves that day,
-and the green check proves exactly what it was meant to disprove:
-that the analysis depends on something outside `renv.lock`. Fix
+lockfile does not record, at whatever version CRAN serves that day.
+The green check then hides exactly what it was meant to catch,
+namely that the analysis depends on something outside `renv.lock`. Fix
 the lockfile, never the workflow.
 :::
 
@@ -1745,9 +1755,9 @@ the lockfile, never the workflow.
 
 : Reading a red run. {#tbl-ci-failures}
 
-The book you are reading is built this way: its workflow,
-`.github/workflows/render-book.yml`, restores its packages,
-provisions R and Python when the book needs them, and renders the
+The book you are reading is built this way. Its workflow,
+`.github/workflows/render-book.yml`, restores its packages and
+provisions R and Python when the book needs them. It renders the
 whole book on every push and pull request, so that a broken chunk
 is caught before it reaches the published site.
 
@@ -1815,12 +1825,12 @@ cat(render_log, sep = "\n")
 
 ::: {.callout-note collapse='true' title='Solution'}
 The first error, `cannot open the connection`, does not name the
-file; the backtrace beneath it does: `readRDS()` could not find
+file. The backtrace beneath it does: `readRDS()` could not find
 `data/derived/cohort.rds`, in the chunk labeled `load-cohort`.
 The file exists on the author's machine because they built it
-once, by hand or with a script the document does not run, and it
-is a derived file, so it is (correctly) not committed. The fix is
-to make the pipeline build it: run the script that writes it in a
+once, by hand or with a script the document does not run. It is a
+derived file, so it is (correctly) not committed. The fix is to
+make the pipeline build it. Run the script that writes it in a
 step before the render, or have the document call that script, so
 that a clean checkout can produce it (Habit 2). Committing the
 `.rds` file instead would make the run green while leaving a build
@@ -1853,9 +1863,9 @@ pins R packages, not the system libraries beneath them.
 ## Securing the workflow {#sec-ci-security}
 
 A workflow file is code that runs with access to your repository
-and to any secrets you give it, and it is version-controlled and
+and to any secrets you give it. It is also version-controlled and
 often public. Credentials, tokens, and any protected data belong in
-the platform's encrypted secrets, never in the workflow file; the
+the platform's encrypted secrets, never in the workflow file. The
 de-identification discipline of @sec-deident applies to the
 pipeline as much as to the data. Three further habits come from
 software supply-chain security, and each is a few lines of YAML.
@@ -1871,7 +1881,7 @@ hash algorithm identifier) cannot be moved.
 **Grant the workflow token the least permission that works.** Each
 run receives a `GITHUB_TOKEN` whose default permissions depend on
 repository and organization settings. A `permissions:` block at the
-top of the workflow sets them explicitly; a workflow that only
+top of the workflow sets them explicitly. A workflow that only
 reads code and runs checks needs `contents: read`.
 
 **Use OIDC instead of stored cloud keys.** A workflow that uploads
@@ -1976,9 +1986,9 @@ an empty `unpinned` and `TRUE` are what you want.
 `@v2`, the actions come from well-known organizations, and none of
 your secrets has leaked. Why pin by SHA anyway?
 
-**Answer.** Because a tag is a pointer its owner, or anyone who
-compromises the owner's account, can move, and your workflow
-follows it without a change to your repository. The
+**Answer.** A tag is a pointer that its owner can move, and so can
+anyone who compromises the owner's account. Your workflow follows
+it without a change to your repository. The
 `tj-actions` compromise reached many repositories that had never
 changed a line. A SHA pin means the code that runs is the code you
 pinned, and Dependabot turns each update into a pull request you
@@ -2002,25 +2012,25 @@ if (file.exists(book_wf)) audit_workflow(book_wf)
 ```
 
 At the time of writing every action in the file is pinned by tag,
-not SHA, and there is no `permissions:` block; the output above
+not SHA, and there is no `permissions:` block. The output above
 shows the current state. The workflow runs on a push to `main`, on
 a pull request against `main`, and on manual dispatch
 (`workflow_dispatch`). If a `Dockerfile` is present it builds the
-project's image and renders inside it; otherwise a detection step
-searches `analysis/report` and provisions R when any file contains
+project's image and renders inside it. Otherwise a detection step
+searches `analysis/report`. It provisions R when any file contains
 an `{r}` chunk or a `renv.lock` exists, and Python when any file
-contains a `{python}` chunk.
-The step named 'Render book (host)' or 'Render book (container)'
-runs `quarto render analysis/report --to html`. The deploy step,
-which runs only on a push to `main`, is the one that receives the
-Netlify secrets, and it is a third-party action: the strongest
-case in the file for a SHA pin.
+contains a `{python}` chunk. The step named 'Render book (host)'
+or 'Render book (container)' runs
+`quarto render analysis/report --to html`. The deploy step runs
+only on a push to `main`. It is the one that receives the Netlify
+secrets, and it is a third-party action. That makes it the
+strongest case in the file for a SHA pin.
 :::
 
 ## For testthat readers {#sec-testing-testthat}
 
-`testthat` is the framework you are most likely to meet elsewhere,
-and where a project already depends on it, stay with it; mixing
+`testthat` is the framework you are most likely to meet elsewhere.
+Where a project already depends on it, stay with it. Mixing
 frameworks in one suite buys nothing. The discipline of this
 chapter is the same under either, and most of the translation is
 mechanical (@tbl-testing-testthat).
@@ -2037,13 +2047,13 @@ mechanical (@tbl-testing-testthat).
 
 : The same tests in both frameworks. {#tbl-testing-testthat}
 
-`tinytest` omits these functions by design: each is a plain
-comparison whose failure prints the two values. Visual
-regression testing of `ggplot2` output is the one place the two
-ecosystems differ in maturity. `vdiffr`, which stores an SVG
-(Scalable Vector Graphics) file of the plot and compares later
-renders with it, runs only inside `testthat`; `tinysnapshot` is the
-`tinytest` equivalent, younger and less widely used.
+`tinytest` omits these functions by design. Each is a plain
+comparison whose failure prints the two values. Visual regression
+testing of `ggplot2` output is the one place the two ecosystems
+differ in maturity. `vdiffr` stores an SVG (Scalable Vector
+Graphics) file of the plot and compares later renders with it. It
+runs only inside `testthat`. `tinysnapshot` is the `tinytest`
+equivalent, younger and less widely used.
 
 
 ## Rules of thumb
@@ -2170,25 +2180,26 @@ secrets at all, which is the best case.
 
 ## Prerequisites answers {#sec-quiz-answers-20}
 
-1. Even a one-off analysis benefits from tests: they catch
-   regressions when you refactor mid-analysis, they serve as
-   executable documentation of expected behavior, and they detect
+1. Even a one-off analysis benefits from tests. They catch
+   regressions when you refactor mid-analysis. They serve as
+   executable documentation of expected behavior. They also detect
    silent failures when upstream data change format. The cost of
-   writing a handful of tests is small; the cost of silently
+   writing a handful of tests is small, and the cost of silently
    mis-analyzing data is much larger.
 2. A unit test exercises a single function with known inputs and
    checks the output. An integration test runs a pipeline segment
    (multiple functions) on synthetic data and checks the
    pipeline's output. An end-to-end test runs the full analysis
    pipeline from raw data to final figures and tables. Unit tests
-   are fast and narrow; end-to-end tests are slow and broad;
-   integration tests sit in between, with good cost-benefit for
+   are fast and narrow, and end-to-end tests are slow and broad.
+   Integration tests sit in between, with good cost-benefit for
    analytic pipelines.
 3. Continuous integration automatically builds and checks a
-   project on every change: it reconstructs the environment, runs
+   project on every change. It reconstructs the environment, runs
    the tests, and renders the report. It automates the clean-state
-   rerun that a disciplined analyst might do by hand occasionally,
-   but does it on every push and on a machine that is not theirs.
+   rerun that a disciplined analyst might do by hand occasionally.
+   However, it does so on every push and on a machine that is not
+   theirs.
    'It renders on my machine' depends on packages, files, and
    manual steps that exist only on your machine and may not be
    recorded. CI reconstructs the analysis from the committed

@@ -2,7 +2,7 @@
 
 Several chapters of this book justify their inclusion by
 reference to a survey of the graduate curricula of peer United
-States biostatistics programs: @sec-shell on the command
+States biostatistics programs. These are @sec-shell on the command
 line, @sec-deident on de-identification, @sec-databases on SQL,
 @sec-missing on missing data, @sec-targets on pipeline tools,
 @sec-ci on continuous integration, and @sec-sas on SAS. This
@@ -21,9 +21,8 @@ cite the syllabus in preference, because it states the
 software and the topics rather than merely the title.
 
 Two properties of the evidence base limit what the survey can
-support. First, a public
-catalog records what a program says it teaches, not what is
-taught. A topic covered in a single lecture and a topic given a
+support. First, a public catalog records what a program says it
+teaches, not what is taught. A topic covered in a single lecture and a topic given a
 whole course both appear as a line in a syllabus, and the
 survey cannot distinguish them except where the syllabus is
 detailed. Second, curricula change annually, and the sources
@@ -91,7 +90,7 @@ counting it as a curriculum understates it. The Vanderbilt
 University Department of Biostatistics publishes, without
 charge or registration, the largest body of biomedical
 statistical-computing teaching material that this survey
-encountered anywhere: *R Workflow* [@harrell2025rworkflow],
+encountered. It includes *R Workflow* [@harrell2025rworkflow],
 the *Biostatistics for Biomedical Research* course notes
 [@harrell2025bbr], the *Regression Modeling Strategies* course
 and its accompanying book [@harrell2015rms], the author
@@ -104,13 +103,13 @@ loss and on displaying distributions, @sec-missing on
 missing-data reporting, and @sec-analysis-plan and
 @sec-communicating on the author checklist.
 
-Two differences bound how far that material can be adopted
-here rather than merely cited. The first is dialect: *R
+Two differences limit how far that material can be adopted
+here rather than merely cited. The first is dialect. *R
 Workflow* is built on `data.table` and `Hmisc`, and this book
-is tidyverse-first, so its arguments are borrowed and its code
-is not. @sec-alternative-wrangling exists partly so that a
-reader who follows the citation is not stranded. The second is
-altitude: BBR and RMS teach statistical methods, which this
-book deliberately does not, and they are therefore cited as the
-place to go for the reasoning behind a computing practice
-rather than as sources for the practice itself.
+is tidyverse-first, so we borrow its arguments but not its code.
+@sec-alternative-wrangling exists partly so that a reader who
+follows the citation can read that code. The second is scope.
+BBR and RMS teach statistical methods, which this book
+deliberately does not. We therefore cite them as the place to go
+for the reasoning behind a computing practice, not as sources
+for the practice itself.

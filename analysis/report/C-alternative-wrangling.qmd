@@ -5,9 +5,9 @@
 
 The practicum teaches the tidyverse as its default wrangling
 stack, because that is the idiom most biostatistics students
-and collaborators read and write in 2026. A meaningful
-fraction of R code in the wild, however, uses different
-tools: base R (always), `data.table` (industry,
+and collaborators read and write in 2026. However, a
+meaningful fraction of R code in the wild uses different
+tools. These are base R (always), `data.table` (industry,
 performance-critical code, several CRAN packages internally),
 `arrow` (Parquet and Python interop), and, more recently,
 `polars` for R.
@@ -32,9 +32,9 @@ investment that this appendix does not attempt.
 ## base R wrangling
 
 Before the tidyverse stabilized in 2016, essentially all R
-data manipulation was base R. It is still the lingua franca
-of package development, and a student who cannot read it is
-cut off from most of CRAN.
+data manipulation was base R. It is still the common
+language of package development. A student who cannot read
+it is cut off from most of CRAN.
 
 Four idioms cover most of it:
 
@@ -69,12 +69,11 @@ precedence surprises, and you can always fall back to
 ## `data.table`
 
 `data.table` [@barrett2026datatable] is the
-high-performance alternative. Its
-syntax is a compressed `DT[i, j, by]` form that takes
-roughly a week to become fluent in but is dramatically
-faster than base or dplyr on any dataset above a few
-million rows. It is common in industry code and inside a
-number of CRAN packages. The pharmaverse is not among
+high-performance alternative. Its syntax is a compressed
+`DT[i, j, by]` form that takes roughly a week to become
+fluent in. In return, it is much faster than base R or dplyr
+on any dataset above a few million rows. It is common in
+industry code and inside a number of CRAN packages. The pharmaverse is not among
 them: `admiral` and its companions are built on `dplyr`,
 `tidyr`, and `purrr`, so `data.table` fluency is not a
 prerequisite for reading them.
@@ -108,29 +107,29 @@ dt[, .(mean_bmi = mean(bmi, na.rm = TRUE)), by = sex]
 dt[age >= 18][, .(mean_bmi = mean(bmi)), by = sex]
 ```
 
-Four features of this syntax repay explanation. First,
-the `:=` operator assigns *by reference*: it modifies the
-`data.table` in place rather than returning a copy, which
-is what lets `data.table` avoid the copy-on-modify cost
-that both `dplyr` and base R pay on every mutation. On a
+Four features of this syntax need explanation. First, the
+`:=` operator assigns *by reference*. That is, it modifies
+the `data.table` in place rather than returning a copy. This
+is what lets `data.table` avoid the copy-on-modify cost that
+both `dplyr` and base R pay on every mutation. On a
 million-row cohort this is the difference between an
 instantaneous update and a multi-second one. Second,
-`keyby` behaves like `by` but additionally sorts the
-result by the grouping variable and sets it as a key,
-which speeds subsequent joins on that key. Third, the
-`.SD` idiom ('Subset of Data') is how one applies a
-function across many columns at once, as in
-`dt[, lapply(.SD, mean), by = sex, .SDcols = is.numeric]`;
-it is the `data.table` analog of `across()`. Fourth, a
-gotcha worth internalizing early: what `j` returns
-decides the class of the result. A bare column name,
-`dt[, age]`, returns a vector, just as `df$age` does;
-wrapping it in `.()` or passing a character vector,
-`dt[, .(age)]` or `dt[, 'age']`, returns a one-column
-`data.table`. Selecting rows alone, `dt[age >= 18]`,
-always returns a `data.table`. Code that needs one or the
-other should ask for it explicitly rather than rely on
-which form a colleague happened to write.
+`keyby` behaves like `by` but also sorts the result by the
+grouping variable and sets it as a key. This speeds
+subsequent joins on that key. Third, the `.SD` idiom
+('Subset of Data') is how one applies a function across many
+columns at once, as in
+`dt[, lapply(.SD, mean), by = sex, .SDcols = is.numeric]`.
+It is the `data.table` analog of `across()`. Fourth, there
+is a trap worth learning early: what `j` returns decides the
+class of the result. A bare column name, `dt[, age]`,
+returns a vector, just as `df$age` does. Wrapping it in
+`.()` or passing a character vector, `dt[, .(age)]` or
+`dt[, 'age']`, returns a one-column `data.table`. Selecting
+rows alone, `dt[age >= 18]`, always returns a `data.table`.
+Code that needs one or the other should ask for it
+explicitly rather than rely on which form a colleague
+happened to write.
 
 ## Side-by-side: eight common operations
 
@@ -148,13 +147,13 @@ which form a colleague happened to write.
 ## `arrow`
 
 The `arrow` package [@richardson2026arrow] provides a lazy,
-columnar back-end to the tidyverse. You write `dplyr` verbs against an Arrow
-`Dataset` object, which plans the computation as a
-directed acyclic graph and executes it only when you call
-`collect()`. This makes it possible to run `dplyr`-style
-pipelines over datasets that do not fit in memory, or to
-read Parquet files at speeds that exceed native
-`data.frame` for large data.
+columnar back-end to the tidyverse. You write `dplyr` verbs
+against an Arrow `Dataset` object. The object plans the
+computation as a directed acyclic graph and executes it only
+when you call `collect()`. This makes it possible to run
+`dplyr`-style pipelines over datasets that do not fit in
+memory. It also reads Parquet files, for large data, faster
+than a native `data.frame` can.
 
 ```{r}
 #| label: alt-arrow
@@ -188,18 +187,17 @@ summary
 Use `arrow` when: (a) data is stored as Parquet or
 partitioned Parquet, (b) total data exceeds RAM, (c) you
 work with a Python colleague who sends Arrow-native
-datasets. Skip `arrow` for small single-file analyses; the
-overhead exceeds the benefit.
+datasets. Skip `arrow` for small single-file analyses, where
+the overhead exceeds the benefit.
 
 ## `polars` for R
 
 `polars` is a Rust-based data-frame library, originally
 Python-first, with a younger R binding. As of early 2026
-the R binding is usable but
-not mature enough
-to recommend as a default. It is worth tracking for the
-combination of `data.table`-level speed with a syntax
-that is closer to dplyr.
+the R binding is usable but not mature enough to recommend
+as a default. It is worth tracking, because it combines
+`data.table`-level speed with a syntax that is closer to
+dplyr.
 
 ```r
 # Illustrative; API may change

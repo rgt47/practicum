@@ -9,27 +9,27 @@ nothing, because the chunk labels had kept their old R Markdown
 names. Nobody noticed for a week, because a clean render looks
 exactly like a correct one.
 
-Quarto (@sec-quarto) succeeds R Markdown, and a great deal of
+Quarto (@sec-quarto) succeeds R Markdown. However, a great deal of
 existing work, including most `bookdown` books, is written in the
 older format. This appendix is reference material for the work
-around a literate document rather than inside it: converting
-between formats, deciding whether to migrate a project and doing
-so without breaking its cross-references, and running other
-languages beside R. Placing floats in a PDF and diagnosing a
-render, which apply to every Quarto document, are in
-@sec-rmd-workflow-floats and @sec-rmd-workflow-troubleshoot. The
-code below uses `knitr`, which Quarto installs with R support,
-and calls each function with its namespace (`knitr::spin()`), so
-it needs no `library()` call.
+around a literate document rather than inside it. That work
+includes converting between formats, deciding whether to migrate a
+project, migrating it without breaking its cross-references, and
+running other languages beside R. Placing floats in a PDF and
+diagnosing a render apply to every Quarto document. They are
+covered in @sec-rmd-workflow-floats and
+@sec-rmd-workflow-troubleshoot. The code below uses `knitr`, which
+Quarto installs with R support. It calls each function with its
+namespace (`knitr::spin()`), so it needs no `library()` call.
 
 
 ## Converting between formats {#sec-rmd-workflow-convert}
 
 A project that mixes `.R` scripts, `.Rmd` reports, and `.qmd`
 papers is harder to maintain than any one of them. Pick a primary
-format (`.qmd` for new work) and convert to it, and convert early:
-a 100-line document converts in minutes, and a 1,000-line one
-takes an afternoon of checking. This section uses a short HF-HOME
+format (`.qmd` for new work), convert to it, and do so early. A
+100-line document converts in minutes, and a 1,000-line one takes
+an afternoon of checking. This section uses a short HF-HOME
 script, written to a temporary directory so that the conversions
 below run for real.
 
@@ -204,12 +204,12 @@ is whether to do it at all.
 
 The reflex is to say yes, on the grounds that Quarto is
 the successor and current tools are better than superseded
-ones. That reflex is often wrong. A finished analysis that renders correctly under a pinned
-environment already does everything this book asks of it.
-Migrating it produces the same output from newer
-machinery, and in exchange you accept a window in which
-the document does not render and the numbers have not yet
-been checked against the old ones. There is no
+ones. That reflex is often wrong. A finished analysis that
+renders correctly under a pinned environment already does
+everything this book asks of it. Migrating it produces the
+same output from newer software. In exchange, you accept a
+period in which the document does not render and the numbers
+have not yet been checked against the old ones. There is no
 reproducibility argument for the change, and there is a
 small reproducibility argument against it.
 
@@ -248,11 +248,11 @@ with the toolchain that produced it.
 
 Renaming the file and running
 `knitr::convert_chunk_header()` handles the chunk headers.
-Neither touches the YAML (`output:` still has to become
-`format:`), neither touches cross-references, neither knows
-that a project is a `bookdown` project, and neither audits
-what your packages assumed about knitr. Budget for those
-by hand.
+Neither step touches the YAML (`output:` still has to become
+`format:`) or the cross-references. Neither knows that a
+project is a `bookdown` project, and neither audits what your
+packages assumed about knitr. Budget time to do those by
+hand.
 
 Quarto is also stricter about labels than `bookdown` was.
 A figure is only referenceable if its label carries the
@@ -292,9 +292,9 @@ syntax you updated but whose target label you did not. Change
 `_book` to your project's output directory.
 :::
 
-Package assumptions are the cost least likely to announce
-itself. Code that reached around `knitr` rather than
-through it has nothing to convert; under Quarto it simply
+Package assumptions are the cost least likely to be
+noticed. Code that bypassed `knitr` rather than going
+through it has nothing to convert. Under Quarto it simply
 behaves differently. The recurring cases are
 `kableExtra`'s LaTeX-specific options, any output format
 in the `bookdown::` namespace, and custom `knit_hooks`.
@@ -308,31 +308,30 @@ migrate actually have.
 
 The mapping is mostly mechanical. `_bookdown.yml` and
 `_output.yml` collapse into the single `_quarto.yml` of
-@sec-quarto, chapter files are listed under `chapters:`
-rather than inferred from filenames, and `index.Rmd`
-becomes an ordinary `index.qmd` whose YAML carries the
-book metadata. Part divisions, which `bookdown` expressed
+@sec-quarto. Chapter files are listed under `chapters:`
+rather than inferred from filenames. `index.Rmd` becomes an
+ordinary `index.qmd` whose YAML carries the book metadata. Part divisions, which `bookdown` expressed
 as a specially formatted heading, become `part:` entries.
 
 What is not mechanical is the numbering. Cross-file
 references, chapter numbers appearing in prose, and any
 figure numbered by hand will all move, and they will move
 silently for the same reason described above. The
-discipline that makes this tractable is to convert one
+practice that keeps this manageable is to convert one
 chapter at a time and keep the `bookdown` build working
-until the Quarto build matches it. Render both and
-compare the outputs: a clean render means only that the
-document compiled.
+until the Quarto build matches it. Render both and compare
+the outputs. A clean render means only that the document
+compiled.
 
 ### The boundary you may not control
 
-Migration is rarely unilateral. A co-author may still be
-editing `.Rmd` in RStudio, a journal template you depend
-on may exist only as an `rticles` output format, and a
-continuous-integration workflow (@sec-ci) may invoke
-`rmarkdown::render` on a path that no longer exists. Each
-of these is a reason the sensible unit of migration is a
-project rather than a file: converting half of something
+Migration is rarely a decision you make alone. A co-author
+may still be editing `.Rmd` in RStudio. A journal template
+you depend on may exist only as an `rticles` output format.
+A continuous-integration workflow (@sec-ci) may invoke
+`rmarkdown::render` on a path that no longer exists. Each of
+these is a reason the sensible unit of migration is a
+project rather than a file. Converting half of something
 leaves two toolchains to maintain, which is worse than
 either one alone.
 
@@ -397,9 +396,9 @@ Record each break and whether any message reported it.
 
 Quarto chooses an engine from a document's executable cells. A
 document with any `{r}` cell runs under knitr, which also runs
-Python cells through the `reticulate` package; a document whose
-executable cells are all Python runs under Jupyter; and an
-`engine:` key in the YAML overrides the choice. `knitr` documents
+Python cells through the `reticulate` package. A document whose
+executable cells are all Python runs under Jupyter. An `engine:`
+key in the YAML overrides the choice. `knitr` documents
 support every chunk option you know from R Markdown, in either
 syntax. For most R work, the engine choice is invisible.
 
@@ -444,9 +443,9 @@ would have prevented it?
 
 **Answer.** `renv` pins R packages. It says nothing about Python,
 so the document depended on whatever interpreter and packages
-happened to be installed on your machine, which is exactly the
-ambient state the book argues against everywhere else. It worked
-for you by accident of history: you had `pandas` from some earlier
+happened to be installed on your machine. That is exactly the
+unrecorded machine state the book argues against everywhere else.
+It worked for you by chance: you had `pandas` from some earlier
 project.
 
 The fix is to declare the dependency in the document, so that
@@ -461,13 +460,14 @@ Modern `reticulate` reads those declarations and provisions an
 ephemeral environment, which means the requirement travels with
 the source.
 
-The alternative many projects reach for, a `requirements.txt` plus
-an instruction to run `pip install -r`, is weaker for a reason
-worth generalizing. It puts the requirement in a file the render
-does not read, so nothing enforces the connection, and the failure
-appears on someone else's machine rather than yours. A dependency
-the build declares is checked on every render; a dependency
-documented in a README is checked when someone reads the README.
+Many projects use a different approach: a `requirements.txt`
+plus an instruction to run `pip install -r`. It is weaker, for a
+reason worth generalizing. It puts the requirement in a file the
+render does not read, so nothing enforces the connection. The
+failure then appears on someone else's machine rather than yours.
+A dependency the build declares is checked on every render. A
+dependency documented in a README is checked only when someone
+reads the README.
 :::
 
 ### Exercises

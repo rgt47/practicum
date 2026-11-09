@@ -21,13 +21,14 @@ in memory, as though it had arrived there by itself. It did not.
 Read the HF-HOME case report form (CRF) export with base R's
 `read.csv()`, and `r format(opening_zeros, big.mark = ",")` of
 `r format(nrow(opening_base), big.mark = ",")` patient identifiers
-lose their leading zeros; read it with `readr`, and the zeros
-survive everywhere except in the `r opening_orphans` identifiers
-that one site's system had already stripped before the file was
-written. Neither reader warns, and a join to a randomization list
-that kept its zeros drops every one of those patients. No
-downstream test will catch a value misread at import, so this
-chapter treats getting data in as the first step of the analysis.
+lose their leading zeros. Read it with `readr`, and the zeros
+survive everywhere except in `r opening_orphans` identifiers. One
+site's system had already stripped those before the file was
+written. Neither reader warns. A join to a randomization list that
+kept its zeros then drops every one of those patients. No
+downstream test will catch a value misread at import. This chapter
+therefore treats getting data in as the first step of the
+analysis.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -103,11 +104,11 @@ answers are in @sec-quiz-answers-12b.
 
 ## Three ways data arrive {#sec-acquisition-routes}
 
-Data arrive as a file, through an interface, or off a web page,
-and the three differ in how much control you have over what
-arrives (@tbl-acquisition-routes). A **file** is a snapshot someone
-made for you; its pathologies are all present the moment you
-receive it. An **interface**, such as the application programming
+Data arrive as a file, through an interface, or off a web page.
+The three differ in how much control you have over what arrives
+(@tbl-acquisition-routes). A **file** is a snapshot someone made
+for you. Its pathologies are all present the moment you receive
+it. An **interface**, such as the application programming
 interface (API) of REDCap or of an institutional data warehouse, is
 a query against a living system, so the code is deterministic and
 the data source is not. A **scrape** is what you resort to when the
@@ -123,9 +124,9 @@ data exist but no interface does. This chapter reads files;
 : The three routes by which data arrive. The last column is the
 same discipline in three forms. {#tbl-acquisition-routes}
 
-The routes differ in almost everything except their ending, and
-@fig-acquisition-routes puts them side by side because the checking
-step they converge on is the step most often skipped.
+The routes differ in almost everything except their final step.
+@fig-acquisition-routes puts them side by side. We do so because
+the checking step they share is the step most often skipped.
 
 ```{mermaid}
 %%| echo: false
@@ -154,11 +155,11 @@ flowchart TD
 ### The raw-data rule
 
 The three routes converge on a single discipline, the **raw-data
-rule**: the data as received are read-only, and every change to
+rule**. The data as received are read-only, and every change to
 them lives in a script rather than in the file (Habit 2). At the
-acquisition step the rule has a second clause: whatever you
-acquire, write it down, date it, and never acquire it again in the
-same breath as analyzing it. @sec-wrangling applies the same rule
+acquisition step the rule has a second clause. Whatever you
+acquire, write it down and date it. Never acquire it again in the
+same step that analyzes it. @sec-wrangling applies the same rule
 to cleaning.
 
 The rule follows from treating acquisition as a step rather than a
@@ -176,8 +177,8 @@ fixes three obviously wrong site labels by hand, saves it, and
 sends it back. The fixes are correct. What has been lost?
 
 **Answer.** The evidence. The file you hold is no longer the file
-the sites produced, nothing records which three cells changed or
-why, and the next export from the sites will arrive with the same
+the sites produced. Nothing records which three cells changed or
+why. The next export from the sites will arrive with the same
 three errors and no script to correct them. The spreadsheet may
 also have rewritten other cells on save, for example by stripping
 leading zeros from identifiers. Under the raw-data rule the
@@ -189,7 +190,7 @@ cleaning script, run against the untouched export.
 Before assembling data from several routes, ask whether the
 people in it would be surprised to find their records joined.
 Linking sources that are each harmless can create a profile none
-of them disclosed; @sec-ethics-aggregation works through the
+of them disclosed. @sec-ethics-aggregation works through the
 argument, and @sec-apis applies it to scraping.
 :::
 
@@ -227,11 +228,12 @@ spec(naive_readr)
 
 Both reads succeed in silence, and both are wrong in ways the
 output does not show. `read.csv()` made the identifier an integer,
-so `0007` is now `7`. `readr` kept it as text, a property of
-`readr`'s guesser and not of R, and relying on it is a mistake: the
-day a collaborator uses `read.csv()`, or the file arrives through
-`readxl`, the zeros go. Both readers left the dates as text and
-read Site D's missing-value code, `-99`, as a blood pressure.
+so `0007` is now `7`. `readr` kept it as text. That is a property
+of `readr`'s guesser and not of R, and relying on it is a mistake.
+The day a collaborator uses `read.csv()`, or the file arrives
+through `readxl`, the zeros are lost. Both readers left the dates
+as text and read Site D's missing-value code, `-99`, as a blood
+pressure.
 
 ### The specified read
 
@@ -257,10 +259,10 @@ problems(crf)
 ```
 
 The dates stay as text on purpose. The sites wrote them in four
-formats, and a `col_date()` here would be a promise the file cannot
-keep; @sec-wrangling parses them site by site. One `na` list
-applies to every column, which is safe here only because no
-identifier or label in this file can legitimately read `-99`; the
+formats, and a `col_date()` here would be a promise the file
+cannot keep. @sec-wrangling parses them site by site. One `na`
+list applies to every column. That is safe here only because no
+identifier or label in this file can legitimately read `-99`. The
 assertions below check that assumption.
 
 Compute the difference between the reads instead of judging it
@@ -291,12 +293,13 @@ read_diffs
 ```
 
 The specification repairs what a read can repair (rows 1, 3, and
-4): the identifier stays text and the missing-value code becomes
-`NA`. Rows 2, 5, and 6 are facts about the file, which no reader
-can fix and a cleaning script must. The `r read_diffs$rows[2]` short identifiers
-are the ones Site E's system stripped before export; restoring them
-with `str_pad()` is safe only because the codebook says every
-identifier has four digits (@sec-wrangling).
+4). That is, the identifier stays text and the missing-value code
+becomes `NA`. Rows 2, 5, and 6 are facts about the file. No reader
+can fix them, so a cleaning script must. The
+`r read_diffs$rows[2]` short identifiers are the ones Site E's
+system stripped before export. Restoring them with `str_pad()` is
+safe only because the codebook says every identifier has four
+digits (@sec-wrangling).
 
 A specification is also an assertion. Declare the discharge date as
 an ISO 8601 date, which the codebook promises for the clean tables
@@ -316,11 +319,12 @@ strict |>
 ```
 
 Every failure is at Sites C, D, and E, the three that do not write
-ISO dates. When next month's extract changes, a full specification
-turns the change into a warning and a `problems()` table naming the
-row, the column, and what was expected, rather than a data frame
-that is quietly different from last month's. An empty `problems()`
-table is a passed assertion; inspect it after every read.
+ISO dates. Suppose next month's extract changes. A full
+specification turns the change into a warning and a `problems()`
+table naming the row, the column, and what was expected. Without
+it you get a data frame that is quietly different from last
+month's. An empty `problems()` table is a passed assertion;
+inspect it after every read.
 
 ::: {.callout-warning title='Pitfall'}
 **Whether an identifier survives depends on which reader you
@@ -328,8 +332,8 @@ call.** `readr` guesses `patient_id` as text here only because
 some values have leading zeros in its sample. `read.csv()`,
 `data.table::fread()`, and a spreadsheet opened and re-saved all
 make it a number. Two files read by coercing readers then join
-without error on integers, the row count is right, and every
-identifier that carried a leading zero no longer matches the
+without error on integers, and the row count is right. However,
+every identifier that carried a leading zero no longer matches the
 source system. Write `col_character()` for every identifier, on
 every read of a file you did not create.
 :::
@@ -356,12 +360,12 @@ than from the data.
 > range you state.
 
 *Failure mode.* A model infers types from the rows it sees, exactly
-as `read_csv()` does, so it inherits the guesser's blindness: shown
-rows without leading zeros, it makes the identifier an integer, and
-shown no `-99`, it omits the code. *Check.* Run the read, then
-`problems()`, then the checks in @sec-acquisition-checks; compare
-the model's `na` list with the missing-value table in
-@sec-wrangling. Send the codebook and synthetic rows, never the
+as `read_csv()` does. It therefore inherits the guesser's
+blindness. Shown rows without leading zeros, it makes the
+identifier an integer. Shown no `-99`, it omits the code.
+*Check.* Run the read, then `problems()`, then the checks in
+@sec-acquisition-checks. Compare the model's `na` list with the
+missing-value table in @sec-wrangling. Send the codebook and synthetic rows, never the
 export (@sec-ai-governance).
 :::
 
@@ -387,15 +391,15 @@ c(
 )
 ```
 
-`readr` removes the mark, and so does base R's `read.csv()` in a
-UTF-8 locale, the default on current macOS, Windows, and most Linux
-desktops. In the C (POSIX) locale, which R falls back to in a
-container or on a server where no locale has been set,
-`read.csv()` keeps the three
-bytes and `check.names` turns them into dots, so the first column is
-`X...patient_id` and `x$patient_id` returns `NULL`.[^bom-readers]
-The same script then works on your laptop and fails, or worse
-returns `NULL` into a check, in the container.
+`readr` removes the mark. So does base R's `read.csv()` in a UTF-8
+locale, the default on current macOS, Windows, and most Linux
+desktops. R falls back to the C (POSIX) locale in a container or
+on a server where no locale has been set. In that locale
+`read.csv()` keeps the three bytes, and `check.names` turns them
+into dots. The first column is then `X...patient_id`, and
+`x$patient_id` returns `NULL`.[^bom-readers] The same script works
+on your laptop and fails in the container. Worse, it may return
+`NULL` into a check.
 
 [^bom-readers]: As run for this edition (R 4.6.1, `readr` 2.2.0,
     `data.table` 1.18.4, macOS): `data.table::fread()` also removes
@@ -431,9 +435,10 @@ HF-HOME export; the last three are common elsewhere.
 
 ### Checks that run on every render {#sec-acquisition-checks}
 
-Every analyst checks data, but a check run at the console leaves
-nothing behind: it is not re-run when the extract is refreshed,
-and a reviewer cannot tell which pathologies were looked for.
+Every analyst checks data. However, a check run at the console
+leaves nothing behind. It is not re-run when the extract is
+refreshed, and a reviewer cannot tell which pathologies were
+looked for.
 Harrell's *R Workflow* [@harrell2025rworkflow] makes data checking
 and data overview numbered chapters of the workflow, with their
 output a section of the rendered report. A check that lives in the
@@ -472,9 +477,9 @@ tibble(
 
 The specified read passes every check a read can pass. The two
 failures it keeps, the identifier width and the site labels, are
-the repairs @sec-wrangling makes; the import script records them
-and asserts that they are confined to where the codebook says they
-are, so that a new kind of failure stops the build.
+the repairs @sec-wrangling makes. The import script records them.
+It also asserts that they are confined to where the codebook says
+they are, so that a new kind of failure stops the build.
 
 ::: {.callout-tip title='Verification'}
 The build-time form of the checks is a `stopifnot()` that prints
@@ -562,8 +567,8 @@ tibble(
   tail(2)
 ```
 
-All three reads have the codebook's columns in this locale; under
-the C locale `read.csv()` fails the `columns` check, because its
+All three reads have the codebook's columns in this locale. Under
+the C locale, `read.csv()` fails the `columns` check, because its
 first name is `X...patient_id`. Only the specified read passes
 `no_code`. The `-99` check is narrower than the range checks, so
 when it fails it names the cause as well as the symptom.
@@ -578,11 +583,11 @@ which is what you expected. What might still be wrong?
 **Answer.** If one file was read by a coercing reader and the other
 by `readr`, the join fails with a type error, which is the good
 case. If both were read by coercing readers, both identifiers are
-integers, the join succeeds, the row count is right, and every
-identifier that carried a leading zero no longer matches the source
-system. The analysis is internally consistent and externally wrong:
-the day someone asks you to re-identify a case for a data query,
-you cannot. The row count was never sensitive to the failure. Read
+integers. The join succeeds and the row count is right. However,
+every identifier that carried a leading zero no longer matches the
+source system. The analysis is internally consistent and
+externally wrong. The day someone asks you to re-identify a case
+for a data query, you cannot. The row count was never sensitive to the failure. Read
 identifiers as character, always, and assert it.
 :::
 
@@ -640,8 +645,8 @@ identifiers as character, always, and assert it.
    a number and enters the analysis as a measurement, dragging
    every mean it touches. Second, a column of dates in an
    ambiguous or site-specific format is guessed as character and
-   sorts as text, or is parsed under the wrong convention, so that
-   03/04/2026 is March in one file and April in another. A third
+   sorts as text. Or it is parsed under the wrong convention, so
+   that 03/04/2026 is March in one file and April in another. A third
    hazard is commonly misdescribed: whether an identifier with
    leading zeros survives depends on which reader you call.
    `readr` keeps `0007` as text when its sample shows the zeros;
@@ -650,9 +655,9 @@ identifiers as character, always, and assert it.
    specification and an explicit `na` argument, treated as
    assertions, with `problems()` checked after every read.
 2. Because the file is evidence and the corrections are not
-   recorded. Nothing says which cells changed or why, the next
+   recorded. Nothing says which cells changed or why. The next
    export will arrive with the same errors and no script to fix
-   them, and the spreadsheet may have rewritten other cells on
+   them. The spreadsheet may also have rewritten other cells on
    save, for example by stripping leading zeros. Keep the export
    as received and make the three corrections lines of the
    cleaning script.

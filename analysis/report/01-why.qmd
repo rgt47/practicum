@@ -2,8 +2,8 @@
 
 In 2006 a group at Duke University reported that gene-expression
 signatures derived from cancer cell lines could predict which
-patients would respond to which chemotherapy, and within a few
-years three clinical trials were using those signatures to choose
+patients would respond to which chemotherapy. Within a few years
+three clinical trials were using those signatures to choose
 patients' treatment. Two biostatisticians at the MD Anderson
 Cancer Center, Keith Baggerly and Kevin Coombes, tried to
 reproduce the analyses from the published data and could not.
@@ -12,9 +12,9 @@ lists offset by one row and the labels of sensitive and resistant
 cell lines reversed [@baggerly2009deriving]. None of these errors
 stopped any code from running, and each produced a signature that
 looked like a finding. The trials were halted in 2010 and the
-papers retracted [@iom2012omics]; what exposed the errors was not
-peer review but months of forensic reconstruction that a
-reproducible analysis would have made unnecessary.
+papers retracted [@iom2012omics]. Peer review did not expose the
+errors. Months of forensic reconstruction did, and a
+reproducible analysis would have made that work unnecessary.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -118,17 +118,17 @@ distinguishes three kinds by what is held fixed
 : Three kinds of reproducibility [@goodman2016what]. {#tbl-why-kinds}
 
 The kinds are progressively harder to secure. Inferential
-reproducibility is the broadest: two analysts can share the data
-and the code and still reach different conclusions, because they
-chose different exclusions, models, or thresholds of clinical
+reproducibility is the broadest. Two analysts can share the data
+and the code and still reach different conclusions. They may have
+chosen different exclusions, models, or thresholds of clinical
 importance, or weighed the same estimate against different prior
 evidence. The National Academies of Sciences, Engineering, and
 Medicine (NASEM) report on the subject [@nasem2019reproducibility]
-uses a simpler vocabulary for the first two rows: *reproducibility*
-means consistent results from the same data, code, and conditions
-of analysis, and *replicability* means consistent results from a
-new study that collected its own data. This book uses the NASEM
-words.
+uses a simpler vocabulary for the first two rows. In that report,
+*reproducibility* means consistent results from the same data,
+code, and conditions of analysis. *Replicability* means
+consistent results from a new study that collected its own data.
+This book uses the NASEM words.
 
 This book is about methods reproducibility. Without it the harder
 kinds are out of reach: if you cannot reproduce your *own*
@@ -178,18 +178,18 @@ such as row or column offsets, and that the simplest errors are
 the common ones [@baggerly2009deriving]. The second case comes
 from economics. In 2010 Carmen Reinhart and Kenneth Rogoff
 reported that countries with public debt above 90 percent of
-gross domestic product (GDP) had sharply lower growth, and the
+gross domestic product (GDP) had sharply lower growth. The
 result was cited widely in arguments for austerity. Thomas
 Herndon, a graduate student at the University of Massachusetts
-Amherst, could not reproduce it for a class assignment. With the
-authors' spreadsheet in hand, he and his professors found a
-formula whose range omitted five countries, the selective
+Amherst, could not reproduce it for a class assignment. He and
+his professors then obtained the authors' spreadsheet. In it they
+found a formula whose range omitted five countries, the selective
 exclusion of available years, and an unconventional weighting of
 the country averages. Corrected, average growth above the
 threshold was 2.2 percent, not the published -0.1 percent
-[@herndon2014does]. The spreadsheet error was the memorable part;
-most of the gap came from analyst choices that were invisible
-until someone had the file.
+[@herndon2014does]. The spreadsheet error is the part most people
+remember. However, most of the gap came from analyst choices that
+were invisible until someone had the file.
 
 | Case | What went wrong | How it was found | What would have made it loud |
 |---|---|---|---|
@@ -203,17 +203,18 @@ Cases like these led Congress to direct the National Science
 Foundation to commission the NASEM report
 [@nasem2019reproducibility]. Its central recommendation on
 computational work is that researchers report the data, code,
-and computational environment behind a published result clearly
-enough for others to repeat the analysis, which is the compendium
-of @sec-why-anatomy.
+and computational environment behind a published result. The
+report should be clear enough for others to repeat the analysis.
+That is the compendium of @sec-why-anatomy.
 
-In both cases the code ran, the output looked like a result, and
-the error surfaced only when an outsider rebuilt the analysis at
+In both cases the code ran and the output looked like a result.
+The error surfaced only when an outsider rebuilt the analysis, at
 great cost. Care caught neither error; a check that runs every
-time could have caught both. The book calls this idea **make silent failures loud**,
-and every tool in the chapters that follow is a way of doing it.
-The numbered habits that put the idea into practice are listed
-in @sec-habits; later chapters cite them by number.
+time could have caught both. The book calls this idea **make
+silent failures loud**, and every tool in the chapters that
+follow is a way of doing it. The numbered habits that put the
+idea into practice are listed in @sec-habits; later chapters
+cite them by number.
 
 ### Exercises
 
@@ -265,8 +266,8 @@ the team.
 
 Three things must travel together for an analysis to be
 methods-reproducible, shown in @fig-repro-legs. If any one of the
-three is missing, the analysis cannot be rerun, and the whole
-edifice falls in the manner of a stool missing a leg.
+three is missing, the analysis cannot be rerun. In this sense the
+three are like the legs of a stool.
 
 ```{mermaid}
 %%| echo: false
@@ -379,7 +380,7 @@ would recognize at the time. A package was updated between the
 analysis and the revision. A file was renamed. A step was done by
 hand on a Thursday afternoon and never written down, because on
 that Thursday it was obvious. Each is trivial and invisible on its
-own; together they make an analysis irreproducible six months
+own. Together they make an analysis irreproducible six months
 later, usually to the surprise of the person who wrote it.
 Vigilance does not scale and cannot be audited. The remedy is a
 small number of structural habits that make these failures
@@ -441,10 +442,10 @@ identical(run_1, run_2)
 
 Nothing failed. Both intervals are plausible, and they differ only
 in a late decimal place (the values change each time this page is
-built), which is why the omission survives: the analyst who reruns the script before a revision sees
-a slightly different number and has no way to tell drift from a
-change in the data. The fix is one line, and the check that
-proves it is another.
+built). That is why the omission survives. The analyst who reruns
+the script before a revision sees a slightly different number. He
+or she has no way to tell drift from a change in the data. The
+fix is one line, and the check that proves it is another.
 
 ```{r}
 #| label: why-fix-it
@@ -554,8 +555,9 @@ wrong number if an old copy is present.
 
 Most arguments for reproducibility are framed in terms of
 scientific virtue. They work for some audiences and not others.
-The selfish argument is more durable: reproducibility is for
-future you, and for the PI who will need the analysis again.
+The self-interested argument is more durable. Reproducibility
+serves the analyst six months from now, and the PI who will need
+the analysis again.
 @tbl-why-cost sets out three events that happen on most projects.
 
 | Event | Without a reproducible compendium | With one |
@@ -572,11 +574,12 @@ recur at every event.
 The argument now has a second, external form. Since 2023 the
 National Institutes of Health (NIH) has made a Data Management and
 Sharing Plan a term of its awards for research that generates
-scientific data, and federal public-access policy now reaches
-from publications to the data beneath them, which moves the work
+scientific data. Federal public-access policy also now reaches
+from publications to the data beneath them. As a result, the work
 of producing a reusable dataset, runnable code, and a declared
-environment from administrators to the analyst. @sec-federal takes up the specific
-policies and the practices that satisfy them.
+environment falls to the analyst rather than to administrators.
+@sec-federal takes up the specific policies and the practices
+that satisfy them.
 
 ### Exercises
 
@@ -614,18 +617,18 @@ implements the wrong test, you will reproducibly compute the wrong
 p-value. Reproducibility ensures only that running the code twice
 gives the same answer, not that the answer is right.
 
-Conversely, a correct analysis can fail reproducibility: if the
+Conversely, a correct analysis can fail reproducibility. If the
 seed was not set, the bootstrap interval differs between runs, as
-the worked example showed; if package versions are unpinned, a
+the worked example showed. If package versions are unpinned, a
 function's output may change. The analysis is correct in the
 methodological sense, but the published numbers are not exactly
 recoverable.
 
 The two qualities are independent, and both are necessary. Tools
 address reproducibility; statistical training addresses
-correctness. The Reinhart and Rogoff case shows both at once: the
-spreadsheet error was a reproducibility failure, and the weighting
-was a question of correctness that only became visible once the
+correctness. The Reinhart and Rogoff case shows both at once. The
+spreadsheet error was a reproducibility failure. The weighting was
+a question of correctness, and it only became visible once the
 analysis could be rebuilt.
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -649,10 +652,10 @@ makes the fix cheap: changing one line and rebuilding gives the
 corrected result in minutes.
 
 A fully reproducible pipeline can produce a *reliably* wrong
-answer, and its polish can read as authority. A reviewer impressed by the Docker image and
-the lockfile may look less hard at the model. That is why the book
-puts @sec-ethics last rather than treating the infrastructure as
-the destination.
+answer, and its polish can be mistaken for authority. A reviewer
+impressed by the Docker image and the lockfile may look less
+closely at the model. That is why the book puts @sec-ethics last
+rather than treating the infrastructure as the goal.
 :::
 
 ## Rules of thumb
@@ -675,62 +678,63 @@ The rest of this chapter has shown you two failures from the
 outside: what Baggerly and Coombes found in the Duke genomics
 case, and what Herndon found in Reinhart and Rogoff's spreadsheet.
 Both took months, because neither original team had made its
-compendium available, and the reconstruction itself was most of
-the cost. The exercise below puts you on the other side of that
-cost, against a paper that at least tried to avoid it, so that the
-obstacles you log are the residue left even when code and data are
-public.
+compendium available. The reconstruction itself was most of the
+cost. The exercise below puts you on the other side of that
+cost, against a paper that at least tried to avoid it. That is,
+the obstacles you log are those that remain even when code and
+data are public.
 
 Choose a published paper in your own field that deposits both its
 code and its data openly, as a condition of publication rather
 than an informal courtesy. The surest way to find one is to pick a
-venue that states this as a policy you can check: a Registered
-Report in a journal whose author guidelines require open data and
-code for that article type, a paper in a journal that mandates
-data and code availability statements with working repository
-links (not merely 'data available on request'), or an article
-from a repository that itself requires deposited materials as a
-condition of indexing. Verify the policy on the journal's or
-repository's own page before you commit to a paper; a data
-availability statement that turns out to mean 'contact the
-authors' is common enough that it is worth ruling out early,
-before you have invested an afternoon.
+venue that states this as a policy you can check. Three kinds of
+venue qualify. The first is a Registered Report in a journal
+whose author guidelines require open data and code for that
+article type. The second is a journal that mandates data and code
+availability statements with working repository links (not merely
+'data available on request'). The third is a repository that
+itself requires deposited materials as a condition of indexing.
+Verify the policy on the journal's or repository's own page
+before you commit to a paper. A data availability statement that
+turns out to mean 'contact the authors' is common. It is worth
+ruling out early, before you have invested an afternoon.
 
 With a paper in hand, reproduce one figure or one table, not the
 whole analysis. Pick one with enough numeric content that
-'matches' and 'does not match' are not matters of eyeballing: a
-table of coefficients, a Kaplan-Meier curve with numbers you can
-read off, a bar chart with labeled values. Work only from what the
-paper's own compendium provides: its code, its deposited data (or
-the access procedure it documents), and its stated software
-versions, in that order. Do not consult the authors, and do not
-patch a failure with a guess about what they must have meant; log
-a step you cannot complete from the deposited materials as an
-obstacle.
+'matches' and 'does not match' are not matters of eyeballing.
+Examples are a table of coefficients, a Kaplan-Meier curve with
+numbers you can read off, or a bar chart with labeled values.
+Work only from what the paper's own compendium provides. That
+means its code, its deposited data (or the access procedure it
+documents), and its stated software versions, in that order. Do
+not consult the authors, and do not patch a failure with a guess
+about what they must have meant. Log a step you cannot complete
+from the deposited materials as an obstacle.
 
-Keep a running log as you work, with one entry per obstacle, each
-tagged four ways: which leg of @fig-repro-legs it belongs to
-(code, data, or environment), the specific failure from
-@tbl-why-failures it resembles if any, what you did to get past it
-(or that you could not), and whether the final number you obtained
-matches the paper's reported figure or table, and if not, by how
-much and in which direction. An obstacle log that reads 'the
-script needed `dplyr`, which was not pinned to a version; I
-installed the current one and it ran' is far more useful later
-than one that reads only 'had some package issues'. Finish by
-classifying what you tested against @tbl-why-kinds: an exact
-reproduction from the authors' own data and code is a test of
-methods reproducibility, and nothing in this exercise tests
+Keep a running log as you work, with one entry per obstacle. Tag
+each entry four ways. The first tag is the leg of
+@fig-repro-legs it belongs to (code, data, or environment). The
+second is the specific failure from @tbl-why-failures it
+resembles, if any. The third is what you did to get past it (or
+that you could not). The fourth is whether the final number you
+obtained matches the paper's reported figure or table, and if
+not, by how much and in which direction. An obstacle log that
+reads 'the script needed `dplyr`, which was not pinned to a
+version; I installed the current one and it ran' is far more
+useful later than one that reads only 'had some package issues'.
+Finish by classifying what you tested against @tbl-why-kinds. An
+exact reproduction from the authors' own data and code is a test
+of methods reproducibility. Nothing in this exercise tests
 whether the finding would replicate in a new sample.
 
 There is no single correct result to check against, and the
 solution below describes a good log, not a target number. What
-counts as success varies by paper: some published compendia let you rebuild a figure to
-the pixel, some let you get within rounding error after fixing
-three unpinned versions, and some defeat you entirely despite a
-stated open-data policy, which is itself a finding worth
-reporting. Log each outcome with the same care; the obstacle log
-is the deliverable.
+counts as success varies by paper. Some published compendia let
+you rebuild a figure to the pixel. Some let you get within
+rounding error after fixing three unpinned versions. Some defeat
+you entirely despite a stated open-data policy, and that is
+itself a finding worth reporting. Log each outcome with the same
+care; the obstacle log is the deliverable.
 
 6. *Cumulative (uses the whole chapter).* Find a published paper
    in your field with public code and data, and try to reproduce

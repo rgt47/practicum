@@ -1,8 +1,8 @@
 # Documents and Environments
 
-This part asks how an analysis rebuilds, as a document, on someone
-else's machine. It opens the second quarter and assumes a dataset
-of the kind Part III produces.
+This part asks how an analysis can be rebuilt, as a document, on
+someone else's machine. It opens the second quarter and assumes a
+dataset of the kind Part III produces.
 
 - @sec-quarto writes the analysis as a Quarto document whose
   numbers are computed rather than typed.

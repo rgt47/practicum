@@ -1,19 +1,19 @@
 # Plotting with ggplot2 and purrr {#sec-graphics}
 
-A figure can mislead without printing a single false number. Draw
-discharge N-terminal pro-B-type natriuretic peptide (NT-proBNP) for
-the HF-HOME patients as one bar of means per ejection-fraction
-stratum, add standard-error whiskers, and the figure says two
-things: the reduced-ejection-fraction group is higher, and the
-difference is precise. Both are true of the means. The same values
-drawn as points show a spread of nearly three orders of magnitude,
-a mean pulled well above the typical patient by a long right tail,
-and two groups that overlap almost entirely. The bar
-chart passed every check its code could make; the failure is in
-what it lets the reader see. This chapter is about the judgments
-`ggplot2` cannot make for you, built around the figure a
-biostatistician is asked for most often: the trajectory of a
-repeated measure by treatment arm.
+A figure can mislead without printing a single false number.
+Suppose we draw discharge N-terminal pro-B-type natriuretic
+peptide (NT-proBNP) for the HF-HOME patients as one bar of means
+per ejection-fraction stratum, with standard-error whiskers. The
+figure then says two things: the reduced-ejection-fraction group
+is higher, and the difference is precise. Both are true of the
+means. The same values drawn as points show a spread of nearly
+three orders of magnitude. They also show a mean pulled well above
+the typical patient by a long right tail, and two groups that
+overlap almost entirely. The bar chart passed every check its code
+could make. The problem is in what it lets the reader see. This
+chapter is about the judgments `ggplot2` cannot make for you. It
+is built around the figure a biostatistician is asked for most
+often, the trajectory of a repeated measure by treatment arm.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -101,10 +101,10 @@ answers are in @sec-quiz-answers-16.
 `ggplot2` will draw whatever you specify, and the grammar that
 specifies it is taught well elsewhere.[^r4ds-ggplot] Whether the
 figure communicates or misleads is not something the package can
-check. The setup chunk below reads the running study, assembles
-one row per patient visit with an NT-proBNP result, and sets the
-house theme and arm colors that every figure in the chapter uses
-(@sec-graphics-export explains both).
+check. The setup chunk below reads the running study and
+assembles one row per patient visit with an NT-proBNP result. It
+also sets the house theme and arm colors that every figure in the
+chapter uses (@sec-graphics-export explains both).
 
 [^r4ds-ggplot]: R for Data Science [@wickham2023r4ds, chs. 1, 9,
     and 11] covers aesthetics, geoms, scales, and labels. For
@@ -220,13 +220,13 @@ Panel A reports two numbers per group. The reduced-EF bar is a mean
 of `r fmt(reduced$mean)` pg/mL; the median reduced-EF patient is at
 `r fmt(reduced$median)`, and the values run from
 `r fmt(reduced$min)` to `r fmt(reduced$max)`. None of that is
-visible in a bar. Its whiskers are standard errors, which shrink
-with the sample size and say nothing about how much patients vary,
-and most of its ink is a rectangle whose height is measured from a
-zero no patient is near. Harrell's chapter on descriptive graphics
-[@harrell2025bbr, ch. 4] and Weissgerber and colleagues
-[@weissgerber2015beyond] make the case at length: plot the data,
-with the summary overlaid rather than substituted for it.
+visible in a bar. Its whiskers are standard errors. These shrink
+with the sample size and say nothing about how much patients vary.
+Most of the bar's ink is a rectangle whose height is measured from
+a zero that no patient is near. Harrell's chapter on descriptive
+graphics [@harrell2025bbr, ch. 4] and Weissgerber and colleagues
+[@weissgerber2015beyond] make the case at length. That is, plot
+the data, with the summary overlaid rather than substituted for it.
 
 Three judgments produced panel B, and each recurs in every figure
 in this chapter:
@@ -245,11 +245,11 @@ in this chapter:
 ::: {.callout-warning title='Ethics'}
 The channel a reader decodes is also the channel a figure can
 distort. A bar whose axis starts above zero exaggerates a
-difference by the ratio of the visible lengths, and an area or
-bubble that scales a quantity by its radius rather than its area
-inflates it by a square. Neither is an error R will report;
-@sec-ethics-visual treats them as misrepresentation, which is
-how a reader who notices will judge them (@sec-ethics).
+difference by the ratio of the visible lengths. An area or bubble
+that scales a quantity by its radius rather than its area inflates
+it by a square. Neither is an error R will report.
+@sec-ethics-visual treats both as misrepresentation, which is how
+a reader who notices will judge them (@sec-ethics).
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -262,7 +262,7 @@ uncertainty about where the group's average lies. With about 1,200
 patients per stratum that uncertainty is small, so the whiskers
 are short. They do not show how much patients differ from one
 another, which is what a reader comparing two groups of patients
-usually wants to know, and they hide the skew that makes the mean
+usually wants to know. They also hide the skew that makes the mean
 a poor description of the typical patient. Panel B shows both the
 spread (the points) and a robust summary (median and interquartile
 range).
@@ -303,8 +303,8 @@ ggplot(creatinine, aes(arm, value)) +
 
 The arms look alike, as randomization intends. Creatinine is
 right-skewed but spans a far narrower range than NT-proBNP, so a
-linear scale shows the bulk of the data; a log scale is a choice to
-make from the spread you see, not a default.
+linear scale shows the bulk of the data. A log scale is a choice
+to make from the spread you see. It is not a default.
 :::
 
 ## The trajectory figure, layer by layer {#sec-graphics-trajectory}
@@ -312,7 +312,7 @@ make from the spread you see, not a default.
 A trajectory figure shows a repeated measure over time by arm, with
 the individual patients visible behind the group summaries. In
 HF-HOME, NT-proBNP is measured at discharge and at the day-30 clinic
-visit. The data are already long, one row per patient visit, which
+visit. The data are already long, one row per patient visit. This
 is the shape @sec-wrangling said a trajectory plot needs: visit is
 a column, so it can be mapped to the x-axis.
 
@@ -338,8 +338,9 @@ p_lines
 The individual lines show what a plot of means alone would hide:
 patients move in both directions, and the spread between patients
 is far larger than any change over 30 days. At this density each
-line must be nearly transparent, and color by arm would only mix
-two clouds into mud, so the arms are left to the next layer.
+line must be nearly transparent. Coloring the lines by arm would
+only blend two clouds into one indistinct mass, so the arms are
+left to the next layer.
 
 ### Layer 2: the summary and its uncertainty
 
@@ -367,10 +368,11 @@ p_summary
 ```
 
 `scale_y_log10()` transforms the data *before* the statistics are
-computed, so `mean` here is the mean of log values: the geometric
-mean, with a confidence interval computed on the log scale. For a
-right-skewed laboratory value that is usually the summary you
-want, and it matches an analysis of log NT-proBNP.
+computed. The `mean` here is therefore the mean of log values,
+that is, the geometric mean, with a confidence interval computed
+on the log scale. For a right-skewed laboratory value that is
+usually the summary you want, and it matches an analysis of log
+NT-proBNP.
 
 ::: {.callout-warning title='Pitfall'}
 **Where the log happens changes the summary.** With
@@ -409,9 +411,9 @@ bnp_discharge |>
 Patients readmitted or dead before day 30 have no clinic visit, so
 the day-30 point averages over the patients who were well enough
 to attend. In this draw the patients who missed the visit started
-only slightly higher, so the selection is small; in a trial where
-the sickest patients drop out, a falling mean line can be produced
-entirely by who left.
+only slightly higher, so the selection is small. However, in a
+trial where the sickest patients drop out, a falling mean line can
+be produced entirely by who left.
 
 ::: {.callout-warning title='Pitfall'}
 **A mean trajectory over a shrinking sample shows selection as
@@ -456,7 +458,7 @@ stopifnot(
 
 `layer_data()` returns what the layer actually drew, on the scale
 it drew it (log10 here). Comparing it with an independent `dplyr`
-computation is the figure's equivalent of a unit test: it confirms
+computation is the figure's equivalent of a unit test. It confirms
 that the caption's 'geometric mean and 95% CI' describes the
 points.
 :::
@@ -478,11 +480,10 @@ p_summary + completers
 
 Adding a data frame to a plot with `+` replaces its data and keeps
 every layer.[^plus-data] Here the completers' trajectory is close
-to the full version, which is consistent with the small difference
-at discharge between
-patients who did and did not attend the day-30 visit. Report the
-check either way; a sensitivity version that agrees is evidence,
-not wasted work.
+to the full version. This is consistent with the small difference
+at discharge between patients who did and did not attend the
+day-30 visit. Report the check either way, since a sensitivity
+version that agrees is still evidence.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -492,7 +493,7 @@ NT-proBNP?
 
 **Answer.** No. Overlapping intervals for two groups do not
 establish that the difference between them is zero, or even that
-it is not significant; the interval for the *difference* is the
+it is not significant. The interval for the *difference* is the
 quantity that answers the question (@sec-ethics returns to this
 fallacy). The figure is descriptive. The treatment comparison
 belongs to the pre-specified analysis in @sec-analysis-plan, and
@@ -549,16 +550,16 @@ p_summary + facet_wrap(vars(ef_stratum))
 ```
 
 `plot_annotation(tag_levels = "A")` letters the panels in layout
-order and keeps the letters right when panels are added or moved;
-letters typed into `labs(title = "A. ...")` have to be renumbered by
-hand. `plot_layout(guides = "collect")` gathers duplicate legends
-into one.
+order and keeps the letters correct when panels are added or
+moved. Letters typed into `labs(title = "A. ...")` have to be
+renumbered by hand. `plot_layout(guides = "collect")` gathers
+duplicate legends into one.
 
 ### One plot per group with purrr
 
-`split()` returns a named list, `imap()` passes each element and
-its name to a function, and `walk2()` writes files, a side effect,
-returning nothing:
+`split()` returns a named list, and `imap()` passes each element
+and its name to a function. `walk2()` then writes the files. This
+is a side effect, so `walk2()` returns nothing:
 
 ```{r}
 #| label: graphics-per-site
@@ -609,8 +610,8 @@ names(plot_by(bnp, "ef_stratum"))
 `data[[var]]` takes the column name as a string, which is right
 when the caller holds the name in a variable (@sec-wrangling).
 `imap()` rather than `map()` is what gives each plot its group name
-for the title, and `split()` names the list by level, in factor
-order for a factor and alphabetical order for a character column.
+for the title. `split()` names the list by level, in factor order
+for a factor and alphabetical order for a character column.
 :::
 
 ## Theme, color, and export {#sec-graphics-export}
@@ -620,20 +621,21 @@ order for a factor and alphabetical order for a character column.
 The setup chunk defined `theme_hfhome()` and called
 `theme_set(theme_hfhome())` once, at the top of the document, where
 anyone reading the source sees it before the first plot. That is
-the right place for it in an analysis script or report. It is also
-invisible state: a plot lifted into a slide deck or a colleague's
-session renders with `ggplot2`'s defaults, with no error. Anything
-whose pieces travel (a function that returns a plot, a figure
-prepared for slides) adds the theme explicitly, as the worked
-example's function does with `+ theme_hfhome()`. The explicit form
-also makes opting out possible, for a figure that must follow a
-journal's style instead of the house one.
+the right place for it in an analysis script or report. However,
+it is also invisible state. A plot lifted into a slide deck or a
+colleague's session renders with `ggplot2`'s defaults, with no
+error. Anything whose pieces travel (a function that returns a
+plot, a figure prepared for slides) should add the theme
+explicitly. The worked example's function does this with
+`+ theme_hfhome()`. The explicit form also makes opting out
+possible, for a figure that must follow a journal's style instead
+of the house one.
 
 ### Choose colors that survive color-vision deficiency
 
 About one man in twelve has a red-green color-vision deficiency.
 The arm colors come from the Okabe-Ito palette
-(`palette.colors(palette = "Okabe-Ito")` in base R), and they are
+(`palette.colors(palette = "Okabe-Ito")` in base R). They are
 named by arm level, so a subset or a reordered factor cannot attach
 the wrong color to an arm. Check a palette by simulating each
 deficiency and measuring how far apart the colors remain:
@@ -659,16 +661,17 @@ round(color_distance(c("#D62728", "#2CA02C")), 1)
 
 The numbers are CIEDE2000 color differences, on which a difference
 of a few units is near the limit of perception. The arm colors stay
-far apart under every simulation; the familiar red and green pair
-collapses under deuteranopia.
+far apart under every simulation. The familiar red and green pair,
+on the other hand, becomes nearly indistinguishable under
+deuteranopia.
 
 ### Export for the destination
 
 `ggsave()` picks the format from the file extension. Size the
 figure at the dimensions it will be printed, in the journal's
 units, so that text and line widths come out at the sizes you saw.
-@tbl-export summarizes the usual choices; the journal's author
-instructions govern.
+@tbl-export summarizes the usual choices. Where they differ, the
+journal's author instructions take precedence.
 
 | Destination | Format | `ggsave()` settings | Note |
 |---|---|---|---|
@@ -704,65 +707,68 @@ stopifnot(all(abs(actual - expected) <= 1))
 
 Pixels are millimeters divided by 25.4, times the dpi, so 85 mm
 at 300 dpi is about 1,004 pixels wide. A figure saved large and
-shrunk by the journal comes out with text too small to read;
-saving at the printed size is what keeps the 11-point base font
+shrunk by the journal comes out with text too small to read.
+Saving at the printed size is what keeps the 11-point base font
 at 11 points.
 :::
 
 ## Accessible figures {#sec-graphics-accessible}
 
 Every figure in this chapter carries a `fig-alt` string, but the
-chunks so far have not said what makes one good. A figure is
-inaccessible to three overlapping audiences: a reader using a
-screen reader, who never sees the pixels and depends entirely on
-the alt text; a reader with a color-vision deficiency, who sees the
-pixels but not the colors as drawn; and a reader with low vision or
-on a low-quality display, who sees the colors but not a weak
-contrast between them. Each has a specific, checkable fix.
+chunks so far have not said what makes one good. A figure can be
+inaccessible to three overlapping audiences. The first is a reader
+using a screen reader, who never sees the pixels and depends
+entirely on the alt text. The second is a reader with a
+color-vision deficiency, who sees the pixels but not the colors as
+drawn. The third is a reader with low vision or on a low-quality
+display, who sees the colors but not a weak contrast between them.
+Each has a specific, checkable fix.
 
 ### Alt text describes the claim, not the chart
 
 A screen reader announces the `fig-alt` text in place of the image.
 'Bar chart' or 'a plot of NT-proBNP' tells that reader a figure
-exists and nothing else: it names the picture and omits what
+exists and nothing else. It names the picture and omits what
 looking at it would tell a sighted reader. Good alt text states
-the pattern the figure makes its case with, in the same terms the
-caption's claim uses, and does not require the reader to infer the
-finding from chart-type vocabulary. Compare the chapter's own
-`@fig-bar-vs-points`: its alt text names the two panels, the fact
-that the clouds 'overlap almost entirely', and where the medians sit,
-which is the finding panel B exists to show; it would fail that test
-if it read only 'two panels of NT-proBNP by ejection-fraction
-stratum'. `@fig-trajectory`'s alt text goes further and states the
-direction of the arm summaries ('fall from discharge to day 30 and
-overlap at both visits'), because that direction is the figure's
-point.
+the pattern on which the figure rests its case, in the same terms
+the caption's claim uses. It does not require the reader to infer
+the finding from chart-type vocabulary. Compare the chapter's own
+`@fig-bar-vs-points`. Its alt text names the two panels, the fact
+that the clouds 'overlap almost entirely', and where the medians
+sit, which is the finding panel B exists to show. It would fail
+that test if it read only 'two panels of NT-proBNP by
+ejection-fraction stratum'. `@fig-trajectory`'s alt text goes
+further and states the direction of the arm summaries ('fall from
+discharge to day 30 and overlap at both visits'). It does so
+because that direction is the figure's point.
 
-Three practical rules follow. State the shape or trend before any
-decoration ('two clouds of points overlapping almost entirely',
-not 'a scatter plot with jittered points'). Do not merely restate
-the caption word for word; the caption is read alongside the image
-by a sighted reader and skipped by a screen reader moving past the
-figure, so the alt text is the only description some readers get
-and should stand alone. And reserve a short or empty alt text for a
-genuinely decorative figure, one that illustrates rather than
-reports a result; this chapter's pipeline diagrams (`fig-alt: !expr
+Three practical rules follow. First, state the shape or trend
+before any decoration ('two clouds of points overlapping almost
+entirely', not 'a scatter plot with jittered points'). Second, do
+not merely restate the caption word for word. A sighted reader
+reads the caption alongside the image, but a screen reader moving
+past the figure may skip it. The alt text is then the only
+description some readers get, so it should stand alone. Third,
+reserve a short or empty alt text for a genuinely decorative
+figure, one that illustrates rather than reports a result. This
+chapter's pipeline diagrams (`fig-alt: !expr
 pipeline_alt('report')`) name only the pipeline stage, which is all
 that figure is for.
 
 ### Color that survives color-vision deficiency
 
-@sec-graphics-export already builds the arm palette from Okabe-Ito
-and checks it under simulated deficiencies with `colorspace::deutan()`
-and friends; that check is the general method, and two further rules
-apply broadly. First, color should be redundant with position, a
-label, or a line type whenever the figure's claim depends on telling
-groups apart; the trajectory figure's arms differ in color *and* in
-dodge position, so a reader who cannot resolve orange from blue
-still separates them by where the point sits. Second, for an ordered
-or continuous variable, where Okabe-Ito's eight unordered colors do
-not apply, use a perceptually uniform, colorblind-safe sequential
-palette such as viridis, available in `ggplot2` without an extra
+@sec-graphics-export already builds the arm palette from Okabe-Ito.
+It checks the palette under simulated deficiencies with
+`colorspace::deutan()` and related functions. That check is the
+general method, and two further rules apply broadly. First, color
+should be redundant with position, a label, or a line type
+whenever the figure's claim depends on telling groups apart. The
+trajectory figure's arms differ in color *and* in dodge position.
+A reader who cannot tell orange from blue can still separate them
+by where the point sits. Second, Okabe-Ito's eight unordered colors
+do not suit an ordered or continuous variable. For such a variable,
+use a perceptually uniform, colorblind-safe sequential palette such
+as viridis, which is available in `ggplot2` without an extra
 package:
 
 ```{r}
@@ -786,19 +792,19 @@ bnp_discharge |>
 ```
 
 Viridis remains perceptually uniform and distinguishable under every
-common deficiency simulated above, unlike a rainbow or red-to-green
-scale, which both distort the data's apparent ordering and collapse
-under red-green deficiencies.
+common deficiency simulated above. A rainbow or red-to-green scale
+does not. Both distort the data's apparent ordering, and both lose
+their distinctions under red-green deficiencies.
 
 ### Contrast: the WCAG practical minimum
 
 The Web Content Accessibility Guidelines set numeric contrast
-minimums for level AA conformance [@w3c2018wcag21]; the two that apply
-to a figure are a 4.5:1 ratio for text (axis labels, titles) and a
-3:1 ratio for a graphical object or its boundary against its
-background (WCAG 1.4.3 and 1.4.11). The ratio is computed from each
-color's relative luminance, not from how different the colors look
-by eye:
+minimums for level AA conformance [@w3c2018wcag21]. Two of them
+apply to a figure. Text (axis labels, titles) needs a 4.5:1 ratio,
+and a graphical object or its boundary needs a 3:1 ratio against
+its background (WCAG 1.4.3 and 1.4.11). The ratio is computed from
+each color's relative luminance, not from how different the colors
+look by eye:
 
 ```{r}
 #| label: graphics-contrast
@@ -816,24 +822,24 @@ round(map_dbl(arm_colors, contrast_ratio, background = "white"), 2)
 
 Both arm colors clear 3:1 against the white panel background
 `theme_hfhome()` draws, so the point and line marks meet the
-graphical-object minimum; axis text, drawn in near-black by
+graphical-object minimum. Axis text, drawn in near-black by
 `theme_minimal()`, clears the stricter 4.5:1 text minimum by a wide
 margin. A pale color that passes a by-eye check often fails this
-ratio against a white background, which is why the house palette is
-checked by computation rather than by looking at it on one screen.
+ratio against a white background. For this reason the house
+palette is checked by computation rather than by looking at it on
+one screen.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A colleague proposes `"grey80"` for a reference line
 that must stay visible against the white panel background. Is that
 safe for a figure meant to meet WCAG AA?
 
-**Answer.** Compute it: `contrast_ratio("grey80", "white")` is about
-1.3, far below the 3:1 minimum for a graphical object, so the line
-would be close to invisible for a low-vision reader even though it
+**Answer.** Compute it. `contrast_ratio("grey80", "white")` is about
+1.3, far below the 3:1 minimum for a graphical object. The line
+would be close to invisible for a low-vision reader, even though it
 looks faint but present on a well-calibrated screen. A mid-gray
 closer to `"grey40"` or a line pattern (dashed, not merely lighter)
-clears the minimum and survives printing in black and white as
-well.
+clears the minimum. It also survives printing in black and white.
 :::
 
 ### Exercises
@@ -851,9 +857,9 @@ contrast_ratio("grey65", "white")
 ```
 
 The ratio is a little above 3:1, so the bars themselves are legible
-against the white background. Passing the contrast check says
-nothing about the chapter's earlier objection to panel A: a legible
-bar can still misrepresent the data it summarizes.
+against the white background. However, passing the contrast check
+says nothing about the chapter's earlier objection to panel A. A
+legible bar can still misrepresent the data it summarizes.
 :::
 
 ## Worked example: the trajectory figure, end to end {#sec-graphics-worked}
@@ -861,8 +867,8 @@ bar can still misrepresent the data it summarizes.
 The function below assembles the chapter's layers into the figure a
 report would carry. It takes the long data and returns a plot, so
 the same code draws the full trial, a site, or a sensitivity
-subset, and it adds the theme explicitly because the plot is meant
-to travel.
+subset. It adds the theme explicitly because the plot is meant to
+be reused elsewhere.
 
 ```{r}
 #| label: fig-trajectory
@@ -923,10 +929,10 @@ ggsave(file.path(fig_dir, "bnp-trajectory.png"), p_trajectory,
 The figure answers one descriptive question: how NT-proBNP moved
 over 30 days in each arm, and how much patients varied around that
 movement. It does not claim a treatment effect, and its intervals
-are not a test; the comparison between arms belongs to the
+are not a test. The comparison between arms belongs to the
 pre-specified analysis. The script writes the files to a temporary
 directory so that rendering the book leaves the repository
-unchanged; in a compendium, `fig_dir` is the project's `figures/`
+unchanged. In a compendium, `fig_dir` is the project's `figures/`
 directory, and the files are rebuilt whenever the data change.
 
 ::: {.callout-tip title='Verification'}
@@ -950,7 +956,7 @@ axis_labels
 ```
 
 The labels were computed inside the function, so the check
-compares them with an independent `count()`: each arm's count at
+compares them with an independent `count()`. Each arm's count at
 each visit must appear in that visit's label. Discharge shows every
 randomized patient in each arm, and day 30 fewer.
 :::
@@ -973,34 +979,36 @@ for a manuscript. {#tbl-figure-checklist}
 ### One way to automate this: zzlongplot
 
 The in-house `zzlongplot` package (@sec-lab-software, version
-0.6.0) draws this kind of figure from a formula, with the number
-measured at each point shown by default and a change-from-baseline
-panel included, which the hand-written `stat_summary()` version
-above needs extra code to add. It is optional: the `ggplot2`
-function above is the portable approach, and everything in this
-chapter works without `zzlongplot`. The package is installed from
-GitHub only (`github.com/rgt47/zzlongplot`), maintained by one
-person, and the block below is display-only because it is not in
-the book's lockfile.
+0.6.0) draws this kind of figure from a formula. It shows the
+number measured at each point by default and includes a
+change-from-baseline panel. The hand-written `stat_summary()`
+version above needs extra code to add either. The package is
+optional. The `ggplot2` function above is the portable approach,
+and everything in this chapter works without `zzlongplot`. The
+package is installed from GitHub only
+(`github.com/rgt47/zzlongplot`) and is maintained by one person.
+The block below is display-only because the package is not in the
+book's lockfile.
 
 Before it was presented here, `zzlongplot` was rerun against the
 HF-HOME discharge and day-30 NT-proBNP values (log10 scale) by arm
-and visit, and its output was compared with the `stat_summary()`
+and visit. Its output was compared with the `stat_summary()`
 figure above, which uses `mean_se` with `mult = 1.96`. The two
 agreed on the mean and the 95% interval bounds to three decimal
-places in all four arm-by-visit cells, checked once on 2026-10-10
-and again on 2026-10-11; with over a thousand patients per arm, the
-package's t interval and the figure's normal-approximation interval
-differ by far less than that. The package's
-312-test suite checks the interval arithmetic itself: the t
-interval, the standard error, and the coverage. One caveat is a property of
-the data, not of the package: as @sec-graphics-trajectory shows for
-the hand-written figure, `zzlongplot`'s day-30 means reflect only
-the patients who attended that visit, so a falling day-30 mean can
-reflect who stayed in the trial rather than a change in anyone's
-value. Its runnable example takes about 21 seconds, longer than the
-figures in this chapter, because it fits each panel's interval
-itself rather than reusing one already computed.
+places in all four arm-by-visit cells. This was checked once on
+2026-10-10 and again on 2026-10-11. With over a thousand patients
+per arm, the package's t interval and the figure's
+normal-approximation interval differ by far less than that. The
+package's 312-test suite checks the interval arithmetic itself:
+the t interval, the standard error, and the coverage. One caveat
+is a property of the data, not of the package. As
+@sec-graphics-trajectory shows for the hand-written figure,
+`zzlongplot`'s day-30 means reflect only the patients who attended
+that visit. A falling day-30 mean can therefore reflect who stayed
+in the trial rather than a change in anyone's value. Its runnable
+example takes about 21 seconds, longer than the figures in this
+chapter, because it fits each panel's interval itself rather than
+reusing one already computed.
 
 ```r
 bnp |>
@@ -1012,11 +1020,11 @@ bnp |>
                     xlab = "Day", ylab = "log10 NT-proBNP (pg/mL)")
 ```
 
-Reach for it when it saves you code on a standard longitudinal
-design and the comparison above has been run once for the data at
-hand, as Exercise 2 checks this chapter's hand-written figure;
-write your own when the encoding, the layout, or the summary is not
-one the package supports.
+Use it when it saves you code on a standard longitudinal design,
+and once the comparison above has been run for the data at hand
+(as Exercise 2 checks this chapter's hand-written figure). Write
+your own when the encoding, the layout, or the summary is not one
+the package supports.
 
 ::: {.callout-important title='LLM prompt'}
 Use a model to draft a figure, with the checklist as the
@@ -1050,14 +1058,14 @@ and types, not data (@sec-ai-governance).
 **Question.** A reviewer asks for the trajectory figure 'with the
 p-value on it'. What do you say?
 
-**Answer.** The figure is descriptive: its job is to show the
+**Answer.** The figure is descriptive. Its job is to show the
 data, their variation, and the attrition. The treatment comparison
 is the pre-specified analysis, reported with its estimate and
-interval in the results, and a p-value placed on a figure of
-per-visit summaries invites the reader to treat overlapping
-per-arm intervals as the test. Offer the estimate and interval of
-the pre-specified contrast in the text or a table, and keep the
-figure for what it shows.
+interval in the results. A p-value placed on a figure of per-visit
+summaries invites the reader to treat overlapping per-arm
+intervals as the test. Offer the estimate and interval of the
+pre-specified contrast in the text or a table, and keep the figure
+for what it shows.
 :::
 
 ## Rules of thumb
@@ -1112,16 +1120,16 @@ plot_trajectory(creatinine_long) +
   scale_y_continuous(name = "Creatinine (mg/dL)")
 ```
 
-The function needed no change, which is the payoff of writing it
-as a function of the data; only the y scale is replaced, because
+The function needed no change, which is the benefit of writing it
+as a function of the data. Only the y scale is replaced, because
 creatinine does not need the log axis. The middle time point is not
 a comparison of the arms. Home-health visits happen mostly in the
 home-health arm, so the few usual-care values there come from
-patients who received home health outside the protocol, and a
-patient with several home-health visits contributes several values,
+patients who received home health outside the protocol. A patient
+with several home-health visits also contributes several values,
 which the vertical strokes at the middle visit show. The count
-labels are what make that visible; without them the
-middle points read as a fair comparison.
+labels are what make this visible. Without them the middle points
+read as a fair comparison.
 :::
 
 ## Cheat sheet

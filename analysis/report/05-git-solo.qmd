@@ -3,16 +3,16 @@
 In March you write the cleaning script for a readmissions
 analysis, and it excludes patients with implausible blood
 pressures. In November a reviewer asks why 212 patients were
-excluded when the protocol implies fewer, and the person who must
+excluded when the protocol implies fewer. The person who must
 answer is you, eight months and three projects later, with no
 memory of the decision. Without a history, the answer is a
 reconstruction from memory and from files named
 `clean_final2.R`. With Git it is one command,
-`git log -p R/clean.R`, which shows when the exclusion rule
-changed, what it changed from, and, if the March analyst wrote a
-good commit message, why. Over the life of a project you
-collaborate, asynchronously, with your own earlier self, and Git
-supports that collaboration.
+`git log -p R/clean.R`. It shows when the exclusion rule changed
+and what it changed from. If the March analyst wrote a good commit
+message, it also shows why. That is, over the life of a project
+you work with your own earlier self, at a distance in time, and
+Git supports that work.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -93,8 +93,8 @@ answers are in @sec-quiz-answers-05.
 Nearly every argument for version control is an argument about
 collaboration: merging other people's work, reviewing their
 changes, avoiding the overwrite of a file two people edited at
-once. None of that applies to an analyst working alone, which is
-why solo Git is a harder sell than it looks, and why many
+once. None of that applies to an analyst working alone. For that
+reason, solo Git is harder to justify than it looks, and many
 statisticians postpone learning it until a project forces the
 issue.
 
@@ -113,10 +113,10 @@ November's questions has a Git answer (@tbl-git-solo-why).
 : What Git gives one analyst. {#tbl-git-solo-why}
 
 The cost is a few hours of learning and a few seconds per commit.
-The benefit recurs on every project for the rest of your career,
-and many 'solo' projects become team projects, at which point a
-repository that already exists is the difference between sharing
-code in an afternoon and scrambling for a week.
+The benefit recurs on every project for the rest of your career.
+In addition, many 'solo' projects become team projects. At that
+point, a repository that already exists is the difference between
+sharing code in an afternoon and scrambling for a week.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** You keep dated copies of the project folder
@@ -128,9 +128,10 @@ whole folder. It does not record *what* changed (you must diff
 folders by hand), *why* it changed (there is no message), or which
 copy was submitted (unless you remember the date). It also makes
 experiments expensive, since each one is another full copy, and
-nothing stops you from editing an old copy by mistake. A commit
-records a line-level change with a reason; a tag names the
-submitted state; a branch makes an experiment free.
+nothing stops you from editing an old copy by mistake. By
+contrast, a commit records a line-level change with a reason. A
+tag names the submitted state, and a branch makes an experiment
+free.
 :::
 
 ## The everyday cycle {#sec-git-solo-cycle}
@@ -153,50 +154,50 @@ git commit -m "Exclude SBP above 280 mmHg, per SAP section 6.2"
 git log --oneline -10
 ```
 
-`git diff` shows changes you have not yet staged; `git diff
+`git diff` shows changes you have not yet staged. `git diff
 --staged` shows what the next commit will contain. The
 distinction is between 'I have edited this' and 'I have marked
-this for the next commit', and the second command is the one to
-read before every commit.
+this for the next commit'. The second command is the one to read
+before every commit.
 
 ::: {.callout-warning title='Pitfall'}
 **`git add .` stages whatever is in the directory.** On an analysis
 project that is routinely more than you meant: a rendered PDF, a
 cache directory, a data extract you are not licensed to
-redistribute, an `.Renviron` holding a database password. Git has
-no opinion about any of it. Read `git status` before staging, list
+redistribute, an `.Renviron` holding a database password. Git does
+not distinguish among them. Read `git status` before staging, list
 derived and secret files in `.gitignore`, and consider a secret
 scanner such as `gitleaks` as a pre-commit hook.[^zzgit] A
 credential that reaches a pushed commit must be treated as
-compromised and rotated, even after the file is deleted, because
-the old commit still contains it.
+compromised and rotated, even after the file is deleted. The old
+commit still contains it.
 :::
 
 [^zzgit]: One way to automate part of this is the in-house `zzgit`
     zsh plugin (@sec-lab-software), which wraps staging and
     committing with a prompt for a Conventional Commits subject
     line and a confirmation before pushing to a protected branch.
-    Content scanning requires `gitleaks` to be installed separately;
-    without it, `zzgit` falls back to a filename check only and will
-    commit a secret in a file like `.Renviron` without warning, and
-    the protected-branch confirmation guards a push, not a commit.
+    Content scanning requires `gitleaks` to be installed separately.
+    Without it, `zzgit` falls back to a filename check only, and it
+    will commit a secret in a file like `.Renviron` without warning.
+    The protected-branch confirmation guards a push, not a commit.
     Install `gitleaks` as a pre-commit hook, with or without
     `zzgit`, for the content scan itself. `zzgit` is optional.
 
 ### Commits as units of reasoning
 
-Git's commands can be memorized in a week. What distinguishes a
-repository that answers questions from one that merely stores
-files is two habits the commands do not enforce.
+Git's commands can be memorized in a week. However, a repository
+that answers questions differs from one that only stores files in
+two habits, and the commands do not enforce either of them.
 
 **Each commit is one logical change.** 'Refactor data cleaning to
 use vectorized assignment' is a commit; 'Tuesday's work' is not.
-Atomic commits make `git bisect`, the binary search for the commit
-that introduced a bug (@sec-git-teams), feasible; large commits
-make it useless.
+Atomic commits make `git bisect` feasible. This is the binary
+search for the commit that introduced a bug (@sec-git-teams).
+Large commits make it useless.
 
-**The message says why.** The diff already shows what changed;
-only the message can say why (@tbl-git-solo-messages, in which
+**The message says why.** The diff already shows what changed.
+Only the message can say why (@tbl-git-solo-messages, in which
 SAP is the statistical analysis plan of @sec-analysis-plan).
 
 | A message that says what | A message that says why |
@@ -211,7 +212,7 @@ SAP is the statistical analysis plan of @sec-analysis-plan).
 A useful test is to write the message first. If it needs the word
 'and', or a list of unrelated items, the commit is doing too much.
 
-`git log` has many options; the useful subset is short.
+`git log` has many options, but the useful subset is short.
 
 ```bash
 git log --oneline -10
@@ -247,7 +248,7 @@ git commit -am 'Assert one row per visit'
 ::: {.callout-note collapse='true' title='Solution'}
 `git status` prints `On branch main` and `nothing to commit,
 working tree clean`. `git log --oneline` prints three lines,
-newest first; your seven-character hashes will differ, because a
+newest first. Your seven-character hashes will differ, because a
 hash depends on the author, time, and content:
 
 ```
@@ -259,7 +260,7 @@ fb2dbac Assert one row per visit
 The last commit used `git commit -am`, which stages every change
 to a file Git already tracks and commits it in one step. It does
 not pick up new files, which is why the first two commits needed
-`git add`. If `git log` shows fewer commits, run `git status`: a
+`git add`. If `git log` shows fewer commits, run `git status`. A
 commit that failed for want of a configured name and email
 (@sec-workstation) leaves the change staged.
 :::
@@ -271,15 +272,15 @@ script. How many commits is that, and what is the test?
 
 **Answer.** Several, and the test is whether you could revert one
 part without losing the others. Cleaning the data, fixing the
-README, and deleting the script are three unrelated intentions;
-bundled together, discovering next week that the cleaning rule was
-wrong means reverting the README fix too. The three model fits
-depend on intent: if they are alternatives you are choosing
-between, commit each, so that you can point at the one you kept;
-if they are one specification search you always meant to run
-together, they are one commit. Solo work needs this discipline
-more than it seems to, because you are the only reviewer you will
-ever get.
+README, and deleting the script are three unrelated intentions.
+If they are bundled together and you discover next week that the
+cleaning rule was wrong, reverting it means reverting the README
+fix too. The three model fits depend on intent. If they are
+alternatives you are choosing between, commit each, so that you
+can point at the one you kept. If they are one specification
+search you always meant to run together, they are one commit.
+Solo work needs this discipline more than it seems to, because you
+are the only reviewer you will ever get.
 :::
 
 ## Branches and merges {#sec-git-solo-branches}
@@ -287,9 +288,9 @@ ever get.
 A branch is a movable pointer to a commit. Creating a branch makes
 a new pointer, and the branch moves forward as you commit on it.
 @fig-git-branch shows the shape a solo analyst's history tends to
-take: a main line carrying the trustworthy analysis, with
-short-lived branches for experiments that are merged back if they
-work out and abandoned if they do not.
+take. A main line carries the trustworthy analysis. Short-lived
+branches hold experiments, which are merged back if they work out
+and abandoned if they do not.
 
 ```{mermaid}
 %%| echo: false
@@ -328,9 +329,9 @@ git merge sensitivity-analysis
 git branch -d sensitivity-analysis
 ```
 
-`git switch -c` creates a branch and moves to it; `git switch
-main` moves back; `git merge` brings the branch's commits into
-the current branch; `git branch -d` deletes a branch whose work
+`git switch -c` creates a branch and moves to it, and `git switch
+main` moves back. `git merge` brings the branch's commits into
+the current branch. `git branch -d` deletes a branch whose work
 has been merged.[^switch] MNAR (missing not at random) is the
 kind of sensitivity analysis a solo analyst most often wants to
 try without committing to it (@sec-missing).
@@ -339,16 +340,17 @@ try without committing to it (@sec-missing).
     (2019) to split the many jobs of `git checkout`, which still
     works and appears in older guides.
 
-For solo work, branches suit three kinds of work: experiments you
-might throw away, such as a risky refactor; side investigations,
-such as a sensitivity analysis you may or may not report; and
-separable pieces of a longer project. The discipline is to keep
+For solo work, branches suit three kinds of work. The first is an
+experiment you might throw away, such as a risky refactor. The
+second is a side investigation, such as a sensitivity analysis you
+may or may not report. The third is a separable piece of a longer
+project. The discipline is to keep
 `main` working at all times. If a branch is half-done, leave it on
 its branch.
 
 `git rebase` is an alternative to `merge` that produces a linear
-history. For solo work the difference rarely matters; pick one and
-use it consistently. `merge` is simpler to reason about.
+history. For solo work the difference rarely matters, so pick one
+and use it consistently. `merge` is simpler to reason about.
 
 ### When a merge conflicts
 
@@ -367,14 +369,14 @@ stopifnot(!anyDuplicated(visits$visit_id))
 ```
 
 The lines between `<<<<<<< HEAD` and `=======` are the current
-branch's version; those between `=======` and `>>>>>>> sbp-300`
-are the incoming branch's. Resolving the conflict means editing
-the file to the content you intend, which may be either side,
-both, or neither, deleting all three marker lines, then
+branch's version. Those between `=======` and `>>>>>>> sbp-300`
+are the incoming branch's. To resolve the conflict, edit the file
+to the content you intend, which may be either side, both, or
+neither, and delete all three marker lines. Then run
 `git add R/clean.R` and `git commit --no-edit`, which records the
 merge with Git's default message. For analysis code, both sides
-usually represent deliberate decisions: here one is the SAP's
-threshold and the other a sensitivity analysis, and the right
+usually represent deliberate decisions. Here one is the SAP's
+threshold and the other a sensitivity analysis. The right
 resolution keeps the SAP value in the primary script and moves the
 alternative to its own script.
 
@@ -387,8 +389,8 @@ git grep -n -e '<<<<<<<' -e '>>>>>>>'
 ```
 
 No output means no markers. A marker left in an R script stops
-the script with a parse error; a marker left in a CSV or a
-Markdown file is read as data or text without complaint.
+the script with a parse error. A marker left in a CSV or a
+Markdown file, however, is read as data or text without complaint.
 :::
 
 ### Exercises
@@ -436,9 +438,9 @@ Delete the merged branch with `git branch -d sbp-300`.
 the merged analysis is correct?
 
 **Answer.** No. Git detects only overlapping edits to the same
-lines. If the branch renamed a variable in one file and `main`
-added a use of the old name in another, the merge is clean and the
-script fails, or, worse, finds a stale object and runs. Rerun the
+lines. Suppose the branch renamed a variable in one file and
+`main` added a use of the old name in another. The merge is clean,
+and the script fails or, worse, finds a stale object and runs. Rerun the
 analysis after every merge. @sec-git-teams returns to these
 semantic conflicts, which become common once two people share a
 repository.
@@ -447,10 +449,10 @@ repository.
 ## Remotes and authentication {#sec-git-solo-remotes}
 
 A remote is a copy of the repository hosted elsewhere. GitHub is
-the dominant choice; GitLab is similar, and Gitea is a self-hosted
-alternative. Even for solo work, a remote is your off-site backup:
-a laptop fire ends a project that was never pushed, and is a
-setback for one that was.
+the dominant choice. GitLab is similar, and Gitea is a self-hosted
+alternative. Even for solo work, a remote is your off-site backup.
+A laptop fire ends a project that was never pushed. For one that
+was pushed, it is only a setback.
 
 ```bash
 gh repo create my-analysis --private --source=. --remote=origin
@@ -464,7 +466,7 @@ The first line creates a private repository with the GitHub
 command-line tool `gh` and registers it as the remote `origin`.
 The `-u origin main` on the first push sets the upstream, so that
 later `git push` and `git pull` need no arguments. Make
-repositories public deliberately, never by accident; a private
+repositories public deliberately, never by accident. A private
 repository costs nothing.
 
 GitHub stopped accepting account passwords for Git operations in
@@ -477,8 +479,8 @@ GitHub stopped accepting account passwords for Git operations in
 
 : Authenticating to GitHub. {#tbl-git-solo-auth}
 
-Either works; `gh auth login` handles the common case for both.
-GitHub's settings menus move from time to time, so if a path in
+Either works, and `gh auth login` handles the common case for
+both. GitHub's settings menus move from time to time. If a path in
 its documentation has changed, search for 'personal access token'
 or 'SSH keys'.
 
@@ -495,7 +497,7 @@ Then `git status` should include
 `Your branch is up to date with 'origin/main'`, and the hash
 `git ls-remote origin main` prints should equal the one
 `git rev-parse main` prints. `git status` compares against the
-last state Git fetched; `git ls-remote` asks the server now, which
+last state Git fetched. `git ls-remote` asks the server now, which
 is the stronger check. Delete the practice repository on GitHub
 when you finish the chapter (`gh repo delete git-practice`, which
 needs the `delete_repo` scope).
@@ -506,13 +508,13 @@ needs the `delete_repo` scope).
 database password to a private repository, then deleted the file
 in the next commit. Is the password safe?
 
-**Answer.** No. The earlier commit still contains the file, and
-anyone with access to the repository, now or after it is made
+**Answer.** No. The earlier commit still contains the file.
+Anyone with access to the repository, now or after it is made
 public or shared with a collaborator, can read it with
-`git show <hash>:.Renviron`. Rotate the password first; that is
-the step that protects the database. Removing the file from history
-requires rewriting it and force-pushing, which does not reach
-copies already cloned.
+`git show <hash>:.Renviron`. Rotate the password first, since that
+is the step that protects the database. Removing the file from
+history requires rewriting it and force-pushing, which does not
+reach copies already cloned.
 :::
 
 ## Tags and detached HEAD {#sec-git-solo-tags}
@@ -532,22 +534,22 @@ git switch main
 ```
 
 The `-a` makes an annotated tag, which records who tagged, when,
-and a message; prefer it to a lightweight tag. Tags are not pushed
+and a message. Prefer it to a lightweight tag. Tags are not pushed
 by `git push` alone, so push each one by name. Once a tag is
 pushed, treat it as permanent.
 
 ### Detached HEAD
 
 `git switch --detach v1.0` (or the older `git checkout v1.0`) puts
-the repository in a *detached HEAD* state: you are on a commit,
-not on a branch. Looking around, rerunning, and rendering are all
+the repository in a *detached HEAD* state. That is, you are on a
+commit, not on a branch. Looking around, rerunning, and rendering are all
 safe. A commit made there belongs to no branch, and it drops out
 of view when you switch away. To build on a tagged version, create
 a branch from it first: `git switch -c revision-1 v1.0`.
 
-This is how you answer the reviewer who asks, six months later,
-for a rerun with the original exclusion criterion: switch to the
-submission tag, rerun, compare with `main`, and switch back. The
+Suppose a reviewer asks, six months later, for a rerun with the
+original exclusion criterion. Switch to the submission tag, rerun,
+compare with `main`, and switch back. The
 tag is the record of which version was reported.
 
 ### Exercises
@@ -576,7 +578,7 @@ If you pushed the repository in Exercise 3, push the tag with
 Why also tag the commit?
 
 **Answer.** A commit hash such as `a3f9c8d` is unmemorable and
-looks like every other hash; in two years you will not know which
+looks like every other hash. In two years you will not know which
 one you submitted. The tag `v1.0-submission` is human-readable,
 records when and why it was made, and appears in the repository's
 list of tags on GitHub. A GitHub *Release* is a separate object
@@ -618,8 +620,8 @@ git reset HEAD~1
 git reset --hard HEAD~1
 ```
 
-The first undoes the last commit and keeps its changes staged; the
-second keeps them unstaged; the third discards them. `HEAD~1`
+The first undoes the last commit and keeps its changes staged. The
+second keeps them unstaged, and the third discards them. `HEAD~1`
 means 'one commit before the current one'.
 
 `git reflog` lists every move of `HEAD` in your local repository,
@@ -627,13 +629,13 @@ including the ones `reset` hides from `git log`. Commits that no
 branch reaches remain listed there for 30 days by default (the
 `gc.reflogExpireUnreachable` setting), and entries for commits
 still on a branch for 90 days. It is the recovery mechanism of
-last resort: if you deleted a commit in a panic, the reflog
+last resort. If you deleted a commit in a panic, the reflog
 probably still has it.
 
 `git stash` sets uncommitted work aside so that you can switch
 branches, and `git stash pop` brings it back. Prefer a commit for
-work that matters: a popped or dropped stash leaves the reflog,
-and survives only as an unreachable object that
+work that matters. A popped or dropped stash leaves the reflog. It
+survives only as an unreachable object, which
 `git fsck --no-reflogs --unreachable` lists until garbage
 collection prunes it, typically after two weeks.
 
@@ -641,8 +643,8 @@ collection prunes it, typically after two weeks.
 **`git reset --hard` deletes uncommitted work, and nothing brings
 it back.** The reflog records commits, not edits you never
 committed. Before any command marked 'Yes' in
-@tbl-git-solo-oh-no, run `git status`; if anything you want is
-listed, commit it (on a scratch branch if need be) first.
+@tbl-git-solo-oh-no, run `git status`. If anything you want is
+listed, commit it first (on a scratch branch if need be).
 :::
 
 ::: {.callout-important title='LLM prompt'}
@@ -665,15 +667,16 @@ destructive. Give it the evidence and forbid the shortcut.
 > you state which reflog entry you used.
 
 *Failure mode.* The model reaches for `git reset --hard` or
-`git push --force` first, which on a tree with uncommitted work
+`git push --force` first. On a tree with uncommitted work, that
 destroys exactly what the reflog cannot restore. A coding agent
-with a shell adds a second risk: it may run the command before you
-read it. Before any agent session that can edit the repository,
-commit, or start a branch (`git switch -c agent/<task>`), so that
-`git diff main` shows everything the agent did and
+with a shell adds a second risk, since it may run the command
+before you read it. Before any agent session that can edit the
+repository, make a commit or start a branch
+(`git switch -c agent/<task>`).
+Then `git diff main` shows everything the agent did, and
 `git switch main` abandons it. *Check.* Run the three criteria
 commands yourself. Status, log, and reflog output hold file names
-and messages, not data, so they may go to any approved tool; read
+and messages, not data, so they may go to any approved tool. Read
 the messages for identifiers first (@sec-ai-governance).
 :::
 
@@ -707,9 +710,9 @@ removed by `git reset --hard`; (b) edits you made and never
 committed, then discarded with `git restore`; (c) a commit on a
 branch you deleted with `git branch -D` last week?
 
-**Answer.** (a) and (c): both were commits, and the reflog records
+**Answer.** (a) and (c). Both were commits, and the reflog records
 every commit `HEAD` has visited for at least 30 days. (b) cannot be
-recovered by Git at all, because Git never saw the edits; only an
+recovered by Git at all, because Git never saw the edits. Only an
 editor's undo history or a backup can help. This asymmetry is the
 practical argument for committing early and often.
 :::
@@ -771,7 +774,7 @@ git log --oneline --decorate --graph -10
 git ls-remote --tags origin
 ```
 
-The first shows each tag beside its commit; the second lists the
+The first shows each tag beside its commit. The second lists the
 tags on GitHub. A tag that appears in the first and not the second
 was never pushed.
 :::
@@ -782,10 +785,10 @@ rather than reset `main` to it?
 
 **Answer.** Because the goal is to look, not to move. `--detach`
 leaves `main`, and every commit made since submission, exactly
-where it is; switching back restores the current state. Resetting
-`main` to the tag would move the branch backward and hide the
-post-submission work from `git log`, recoverable only through the
-reflog.
+where it is. Switching back restores the current state. Resetting
+`main` to the tag would move the branch backward. It would also
+hide the post-submission work from `git log`, so that it could be
+recovered only through the reflog.
 :::
 
 ## Rules of thumb
@@ -813,11 +816,11 @@ reflog.
    anyone.
 
 ::: {.callout-note collapse='true' title='Solution'}
-`git show --stat v1.1-compendium` lists `.gitignore` alone:
+`git show --stat v1.1-compendium` lists `.gitignore` alone.
 `output/table1.csv` and `.Renviron` were ignored, and
 `git status --ignored` lists them under 'Ignored files'. If either
 appears in the commit, a pattern is misspelled or the file was
-already tracked, which `.gitignore` does not undo;
+already tracked, which `.gitignore` does not undo.
 `git rm --cached <file>` untracks a file without deleting it.
 The same check belongs before the first commit of every real
 project.
@@ -850,13 +853,12 @@ project.
 
 ## Prerequisites answers {#sec-quiz-answers-05}
 
-1. Even for solo work, Git provides a time machine (roll back to
-   any prior state), a branching workflow (try risky refactors
-   without fear), a structured log of what you did, when, and why,
-   and an off-site backup if you push to a remote. The cost is a
-   one-time learning curve; the benefit compounds for the rest of
-   your career, especially when 'solo' projects become
-   collaborations.
+1. Even for solo work, Git lets you roll back to any prior state
+   and try risky refactors on a branch. It keeps a structured log
+   of what you did, when, and why. If you push to a remote, it is
+   also an off-site backup. The cost is a one-time learning
+   curve. The benefit accumulates for the rest of your career,
+   especially when 'solo' projects become collaborations.
 2. A commit is a snapshot of the repository at a point in time,
    with a parent commit, an author, a message, and a unique hash.
    A branch is a movable pointer to a commit, used to develop
@@ -865,9 +867,9 @@ project.
    deployments).
 3. You are in the middle of editing files but need to pull changes
    from the remote or switch to another branch urgently.
-   `git stash` puts your uncommitted work temporarily aside;
+   `git stash` puts your uncommitted work temporarily aside, and
    `git stash pop` restores it later. This avoids committing
-   half-finished work just to unblock a branch switch. Once popped
-   or dropped, a stash is no longer in any reflog; it can be found
+   half-finished work just to allow a branch switch. Once popped
+   or dropped, a stash is no longer in any reflog. It can be found
    for a short time with `git fsck --no-reflogs --unreachable`, but
    anything that matters should be committed instead.

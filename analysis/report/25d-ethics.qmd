@@ -4,16 +4,17 @@ In 2016 two researchers scraped some 70,000 profiles from the
 dating site OkCupid and posted them to an open research
 repository: usernames beside answers to intimate questions about
 sexuality, drug use, and politics. Asked about consent, they
-replied that the data were already public, which was true and
-beside the point [@zimmer2016okcupid]. Every user had disclosed
-each answer to an audience of their choosing; the release joined
-the disclosures into one permanent, searchable file attached to
-the names people use. No number in it was false, and no
-regulation the researchers recognized stopped them. This chapter
-is about failures of that kind, in which every rule is followed
-and every reader is still misled or harmed, and about why the
-statistician, not the institutional review board (IRB), is often
-the last person who can stop them.
+replied that the data were already public. That was true, but it
+did not answer the question [@zimmer2016okcupid]. Every user had
+disclosed each answer to an audience of their choosing. The
+release joined the disclosures into one permanent, searchable
+file attached to the names people use. No number in it was
+false, and no regulation the researchers recognized stopped
+them. This chapter is about failures of that kind, in which
+every rule is followed and readers or participants are still
+misled or harmed. It is also about why the statistician, not the
+institutional review board (IRB), is often the last person who
+can stop them.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -110,13 +111,14 @@ and nowhere near sufficient. The floor is written in terms of
 ### Five failures and where each is caught
 
 Five such failures recur in biomedical work, and they share a
-structure: at no point does anyone state a falsehood. The data are
-real, the computation is correct, the p-value is what the software
-returned, the figure plots the numbers it claims to plot. The
-misleading happens in the gap between what was computed and what
-the reader concludes. @tbl-ethics-caught is the map for the rest of
-the chapter: each failure enters the workflow at a different point,
-so each is caught at a different point.
+structure: at no point does anyone state a falsehood. The data
+are real, and the computation is correct. The p-value is what
+the software returned, and the figure plots the numbers it
+claims to plot. The reader is misled in the gap between what was
+computed and what the reader concludes. @tbl-ethics-caught is
+the map for the rest of the chapter. Each failure enters the
+workflow at a different point, so each is caught at a different
+point.
 
 | Failure | Introduced at | Caught by |
 |---|---|---|
@@ -130,22 +132,22 @@ so each is caught at a different point.
 None is caught by a test suite, a lockfile, or a container.
 {#tbl-ethics-caught}
 
-The infrastructure of this book is orthogonal to whether an
-analysis misleads: reproducibility guarantees only that a wrong
+The infrastructure of this book does not address whether an
+analysis misleads. Reproducibility guarantees only that a wrong
 conclusion can be regenerated exactly.
 
 ### You are the last person who can catch it
 
 The clinical collaborator cannot evaluate whether the confidence
-interval supports the sentence in the abstract; that is why they
+interval supports the sentence in the abstract. That is why they
 have you. The reviewer may or may not look, and the reader
-certainly will not. When the press release says 'exercise prevents
-cancer' and your analysis found an association in an observational
-cohort of volunteers, you are the last chance to correct that
-sentence.
+certainly will not. Suppose the press release says 'exercise
+prevents cancer', and your analysis found an association in an
+observational cohort of volunteers. You are then the last chance
+to correct that sentence.
 
 Distortion is usually accidental, which does not make it harmless.
-Almost nobody sets out to deceive with a truncated axis; they set
+Almost nobody sets out to deceive with a truncated axis. They set
 out to make the effect visible, and a truncated axis makes it
 visible. The standard is what a competent reader would conclude,
 whatever the intent.
@@ -159,13 +161,13 @@ correctly computed. The abstract concludes that the intervention
 'reduces 30-day readmission'. Has anything gone wrong?
 
 **Answer.** Yes, and nothing in the compliance apparatus was built
-to catch it. What is wrong is a verb: an observational design
+to catch it. What is wrong is a verb. An observational design
 licenses 'was associated with lower readmission', not 'reduces'.
-A guideline committee or a health
-system deciding where to spend money will act on 'reduces', and the
-evidence does not support the action. Reproducibility, compliance,
-and correct computation are each necessary and jointly
-insufficient; only the analyst can close the gap.
+A guideline committee or a health system deciding where to spend
+money will act on 'reduces', and the evidence does not support
+the action. Reproducibility, compliance, and correct computation
+are each necessary, but together they are not sufficient. Only
+the analyst can close the gap.
 :::
 
 ## Professional standards and misconduct {#sec-ethics-standards}
@@ -199,20 +201,21 @@ the full text; the middle column is a summary, not a quotation.
 [**Research misconduct**](F-glossary.qmd#gloss-research-misconduct) has a federal definition: fabrication,
 falsification, or plagiarism in proposing, performing, or reviewing
 research, or in reporting its results [@ostp2000misconduct].
-Fabrication is making up data or results; falsification is
-manipulating materials, processes, or data, or changing or omitting
-data or results, so that the research record misrepresents the
-research; plagiarism is taking another's ideas, processes, results,
-or words without credit. Honest error and differences of opinion
-are excluded. For a statistician, the clause to remember is
-'omitting data or results': dropping the patients who spoil an
-estimate, without disclosure, is falsification, however it is
-labeled in the code.
+Fabrication is making up data or results. Falsification is
+manipulating materials, processes, or data, or changing or
+omitting data or results, so that the research record
+misrepresents the research. Plagiarism is taking another's
+ideas, processes, results, or words without credit. Honest error
+and differences of opinion are excluded. For a statistician, the
+clause to remember is 'omitting data or results'. Dropping the
+patients who spoil an estimate, without disclosure, is
+falsification, however it is labeled in the code.
 
 Between misconduct and good practice lies a wider band of
-[**questionable research practices**](F-glossary.qmd#gloss-questionable-research-practices) (QRPs), which surveys of
-researchers find to be common [@john2012measuring]. They are rarely
-fraud and frequently decisive:
+[**questionable research practices**](F-glossary.qmd#gloss-questionable-research-practices)
+(QRPs). Surveys of researchers find them to be common
+[@john2012measuring]. They are rarely fraud, but they frequently
+decide the result:
 
 | Practice | What it looks like | What prevents it |
 |---|---|---|
@@ -229,16 +232,16 @@ before the data. {#tbl-ethics-qrp}
 ### Refusing is part of the job
 
 There is a point at which the correct professional act is to
-decline: to refuse to sign the manuscript, to refuse to produce the
-figure as specified, to say that the analysis as requested is not
-one you will perform. @sec-team-science distinguishes preference
-from principle so that you spend your credibility on the cases
-where it matters; @tbl-ethics-qrp and the five failures of this
-chapter are the catalog of those cases. Principle H of the ASA
-guidelines adds the harder obligation: when you suspect misconduct
-by someone else, raise it through your institution's research
-integrity office rather than either ignoring it or accusing anyone
-in public.
+decline. That may mean refusing to sign the manuscript, refusing
+to produce the figure as specified, or saying that you will not
+perform the analysis as requested. @sec-team-science
+distinguishes preference from principle so that you spend your
+credibility on the cases where it matters. @tbl-ethics-qrp and
+the five failures of this chapter are the catalog of those
+cases. Principle H of the ASA guidelines adds a harder
+obligation. When you suspect misconduct by someone else, raise
+it through your institution's research integrity office. Do not
+ignore it, and do not accuse anyone in public.
 
 ### Exercises
 
@@ -254,16 +257,16 @@ in public.
 
 ::: {.callout-note collapse='true' title='Solution'}
 (a) Falsification, if the removal is undisclosed: omitting data so
-that the record misrepresents the research. Disclosed, with a rule
-stated before the data, it would be an exclusion open to review;
-the difference is the disclosure. (b) HARKing, a QRP: the
-hypothesis is presented as a priori when it was not, so the
-reported p-value has no stated error rate. (c) Acceptable: the
+that the record misrepresents the research. Disclosed, with a
+rule stated before the data, it would be an exclusion open to
+review. The difference is the disclosure. (b) HARKing, a QRP.
+The hypothesis is presented as a priori when it was not, so the
+reported p-value has no stated error rate. (c) Acceptable. The
 analysis is reported and labeled for what it is
-(@sec-communicating-reviewers). (d) Plagiarism, which the federal
-definition names alongside fabrication and falsification; that the
-copied text describes a method rather than a result does not
-change it.
+(@sec-communicating-reviewers). (d) Plagiarism, which the
+federal definition names alongside fabrication and
+falsification. The fact that the copied text describes a method
+rather than a result does not change this.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -273,25 +276,26 @@ result'?
 
 **Answer.** Because each practice can produce a true result. What
 it destroys is the ability to say how often the procedure would
-produce a false one: a p-value from the fifth analysis tried is not
-a 5% test, and nobody, including the analyst, can say what test it
-is. The harm is to the evidence, which is why the remedy is a plan
-dated before the data.
+produce a false one. A p-value from the fifth analysis tried is
+not a 5% test, and nobody, including the analyst, can say what
+test it is. The harm is to the evidence. That is why the remedy
+is a plan dated before the data.
 :::
 
 ## Aggregation harm {#sec-ethics-aggregation}
 
-The OkCupid release is [**aggregation harm**](F-glossary.qmd#gloss-aggregation-harm), the same phenomenon
-that @sec-deident treats formally as quasi-identifiers, arriving
-from the other direction. There, no single ordinary variable
-identifies anyone but their conjunction can. Here, no single
-disclosure harms anyone but their conjunction can. Both are
-questions about joint distributions; what makes the second an
-ethical question is context. Information carries an implicit
-expectation about where it will travel, and moving it somewhere
-else is an act with consequences even when every datum was freely
-given. Public is not
-the same as consented, and available is not the same as ethical:
+The OkCupid release is an instance of
+[**aggregation harm**](F-glossary.qmd#gloss-aggregation-harm).
+It is the same phenomenon that @sec-deident treats formally as
+quasi-identifiers, seen from the other direction. There, no
+single ordinary variable identifies anyone, but their
+conjunction can. Here, no single disclosure harms anyone, but
+their conjunction can. Both are questions about joint
+distributions. What makes the second an ethical question is
+context. Information carries an implicit expectation about where
+it will travel. Moving it somewhere else has consequences, even
+when every datum was freely given. Public is not the same as
+consented, and available is not the same as ethical. That is,
 the question 'may I' has a legal answer and an ethical one. Ask
 what happens to a person in your data if the analysis is right,
 and then what happens if it is wrong.
@@ -323,14 +327,14 @@ questions in @tbl-ethics-aggregation.
 > in it could suffer, and say what, if anything, would make a
 > release defensible.
 
-*Failure mode.* This is the one the model will get wrong if you
-let it. It reasons from legality, because legality is what is
-written down, and concludes that public data may be republished;
-it is agreeable, and this is the territory where an agreeable
-collaborator is worse than none. The considerations exist in its
-training data, but it will not volunteer them unless the prompt
-forces them. *Check.* Take the question to your IRB and to a
-colleague who will tell you no (@sec-ai-governance).
+*Failure mode.* This is the question the model is most likely to
+get wrong. It reasons from legality, because legality is what is
+written down, and it concludes that public data may be
+republished. It also tends to agree, and here an agreeable
+collaborator is worse than none. The relevant considerations
+exist in its training data, but it will not volunteer them
+unless the prompt requires them. *Check.* Take the question to
+your IRB and to a colleague who will tell you no (@sec-ai-governance).
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -340,16 +344,17 @@ argue that no ethical review is needed because they disclosed
 nothing new. Where does the argument fail?
 
 **Answer.** It treats disclosure as a property of each field rather
-than of the combination, and the harm is in the combination. Each
-source has an implicit audience, and the people in it chose
+than of the combination, and the harm is in the combination.
+Each source has an implicit audience, and the people in it chose
 exposure to *that* audience. Joining them creates a fact that
 existed nowhere before: this named person, at this address, has
-this condition. The keys that make the join possible are exactly the
-quasi-identifiers of @sec-deident. 'Public' also describes access,
-not permission: readable data still carry terms of use, and
-scraping is a distinct act from reading. And if assembly needs no
-review because each piece was public, then no aggregation ever needs
-review, which nobody defends when it is stated plainly.
+this condition. The keys that make the join possible are exactly
+the quasi-identifiers of @sec-deident. 'Public' also describes
+access, not permission. Readable data still carry terms of use,
+and scraping is a distinct act from reading. Finally, if
+assembly needs no review because each piece was public, then no
+aggregation ever needs review. Nobody defends that position when
+it is stated plainly.
 :::
 
 ## Causal overclaiming {#sec-ethics-causal}
@@ -376,17 +381,18 @@ hierarchy of claims:
 : The verb the design licenses. {#tbl-ethics-verbs}
 
 The third row is the one to keep in view. People who exercise and
-report it differ systematically from people who do not, along
-dimensions (conscientiousness, health-seeking behavior, unmeasured
-comorbidity, the early symptoms of undiagnosed disease) that no
-covariate list captures. The adjustment cannot fix this, and
-stating that you adjusted for age and smoking implies to a reader
-that it did.
+report it differ systematically from people who do not. They
+differ along dimensions that no covariate list captures:
+conscientiousness, health-seeking behavior, unmeasured
+comorbidity, and the early symptoms of undiagnosed disease. The
+adjustment cannot fix this. Stating that you adjusted for age
+and smoking implies to a reader that it did.
 
 The transition from Results to Discussion is where the verb changes
 from 'was associated with' to 'reduces' without anyone noticing.
-Read your own discussion as a hostile reviewer would, and search it
-for causal verbs; the search is mechanical enough to run as code.
+Read your own discussion as a hostile reviewer would, and search
+it for causal verbs. The search is mechanical enough to run as
+code.
 
 ```{r}
 #| label: ethics-causal-verbs
@@ -411,10 +417,10 @@ flag_causal(discussion)
 ```
 
 The first flagged sentence is an association written with a
-comparative ('lower'), which is fine; the second and third are
+comparative ('lower'), which is fine. The second and third are
 causal claims the design does not license. The search finds
-candidates, and you decide; that division of labor is the right one
-for a model too.
+candidates, and you decide. That division of labor is the right
+one for a model too.
 
 ::: {.callout-important title='LLM prompt'}
 > **Context.** Below is the discussion section of an observational
@@ -431,34 +437,35 @@ for a model too.
 > register of @tbl-ethics-verbs that the actual design licenses.
 
 *Failure mode.* This works well, because it is a classification
-task rather than a judgment; expect a few false positives and an
-occasional miss where causation hides in a noun ('the protective
-effect of exercise'). *Check.* Run `flag_causal()` on the same text
-and reconcile the two lists; check each flagged sentence against
-@tbl-ethics-verbs yourself.
+task rather than a judgment. Expect a few false positives, and
+an occasional miss where causation hides in a noun ('the
+protective effect of exercise'). *Check.* Run `flag_causal()` on
+the same text and reconcile the two lists. Then check each
+flagged sentence against @tbl-ethics-verbs yourself.
 :::
 
 ### Causal foundations
 
 None of this means causal questions are off-limits for observational
-data. Hernán argues that the euphemism is the problem: researchers
-who want a causal answer but write 'associated with' have not
-avoided causal inference, only hidden its assumptions from the
-reader, and the remedy is to state the causal question and the
-assumptions under which the analysis answers it
-[@hernan2018cword]. Habit 11 and this argument agree once the
-question and the verb are separated: ask the causal question
+data. Hernán argues that the euphemism is the problem
+[@hernan2018cword]. Researchers who want a causal answer but
+write 'associated with' have not avoided causal inference. They
+have only hidden its assumptions from the reader. The remedy is
+to state the causal question and the assumptions under which the
+analysis answers it. Habit 11 and this argument agree once the
+question and the verb are separated. Ask the causal question
 openly, and let the verb in the conclusion match what the design
-and its stated assumptions support. Two tools make the assumptions
-explicit.
+and its stated assumptions support. Two tools make the
+assumptions explicit.
 
-A [**directed acyclic graph**](F-glossary.qmd#gloss-dag) (DAG) draws the assumed causal
-structure: nodes are variables, arrows are direct causal effects,
-and the adjustment set a design needs can be read off the graph
-[@greenland1999causal]. @fig-ethics-dag draws the exercise example.
-Adjusting for age and smoking closes two backdoor paths; the path
-through health-seeking behavior, which no one measured, stays open,
-and that is the third row of @tbl-ethics-verbs in a picture.
+A [**directed acyclic graph**](F-glossary.qmd#gloss-dag) (DAG)
+draws the assumed causal structure. Nodes are variables, and
+arrows are direct causal effects. The adjustment set a design
+needs can be read off the graph [@greenland1999causal].
+@fig-ethics-dag draws the exercise example. Adjusting for age
+and smoking closes two backdoor paths. The path through
+health-seeking behavior, which no one measured, stays open. That
+is the third row of @tbl-ethics-verbs in a picture.
 
 ```{mermaid}
 %%| echo: false
@@ -482,17 +489,19 @@ flowchart LR
   H --> C
 ```
 
-[**Target-trial emulation**](F-glossary.qmd#gloss-target-trial) asks what randomized trial you would run
-if you could, and then designs the observational analysis to
-emulate it, component by component: eligibility criteria, treatment
-strategies, assignment, the start and end of follow-up, the outcome,
-the causal contrast, and the analysis plan [@hernan2016target]. Its
-most practical benefit is the alignment of time zero. Eligibility,
-assignment, and the start of follow-up must coincide, as they do at
-randomization. The immortal-time trap of the HF-HOME intake
+[**Target-trial emulation**](F-glossary.qmd#gloss-target-trial)
+asks what randomized trial you would run if you could. It then
+designs the observational analysis to emulate that trial,
+component by component: eligibility criteria, treatment
+strategies, assignment, the start and end of follow-up, the
+outcome, the causal contrast, and the analysis plan
+[@hernan2016target]. Its most practical benefit is the alignment
+of time zero. Eligibility, assignment, and the start of
+follow-up must coincide, as they do at randomization. Consider
+the immortal-time trap of the HF-HOME intake
 (@sec-team-science), in which a patient readmitted on day 3 is
-counted as unvisited, is a failure of exactly that alignment, and
-writing down the target trial exposes it before any code runs.
+counted as unvisited. It is a failure of exactly that alignment.
+Writing down the target trial exposes it before any code runs.
 
 ### Exercises
 
@@ -514,16 +523,16 @@ comparison cannot establish whether the visits reduce readmission;
 a randomized comparison, or an emulated trial that aligns time zero,
 would be needed to estimate the effect of expanding the program.'
 
-The changes are three. 'Prevent' becomes 'had a lower rate', the
-register the design licenses. The projection ('would reduce by a
-third') is removed, because it converts an association into the
-effect of an intervention that was never compared. And the reason
-the design falls short is named, including the immortal-time bias
-specific to this comparison (@sec-team-science), which is more
-useful to a reader than a generic 'causation cannot be inferred'.
-Run `flag_causal()` on your rewrite: what it still flags ('lower',
-'reduce') should appear only in comparative or explicitly
-conditional sentences.
+There are three changes. 'Prevent' becomes 'had a lower rate',
+the register the design licenses. The projection ('would reduce
+by a third') is removed, because it converts an association into
+the effect of an intervention that was never compared. Finally,
+the reason the design falls short is named, including the
+immortal-time bias specific to this comparison
+(@sec-team-science). That is more useful to a reader than a
+generic 'causation cannot be inferred'. Run `flag_causal()` on
+your rewrite. What it still flags ('lower', 'reduce') should
+appear only in comparative or explicitly conditional sentences.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -533,17 +542,19 @@ cohort. What is the error?
 
 **Answer.** The argument licenses stating the causal *question* and
 its assumptions, not dropping the assumptions from the conclusion.
-Here the assumption that matters, no unmeasured confounding by
-health-seeking behavior, is implausible and untested, so the
-honest conclusion is the causal question, the estimate under the
-stated assumptions, and the reason those assumptions may fail. A
+Here the assumption that matters (no unmeasured confounding by
+health-seeking behavior) is implausible and untested. The honest
+conclusion is therefore the causal question, the estimate under
+the stated assumptions, and the reason those assumptions may
+fail. A
 causal verb with the assumptions removed is the overclaim the
 argument was meant to expose.
 :::
 
 ## Visual misrepresentation {#sec-ethics-visual}
 
-The third failure needs no numbers at all, only their encoding.
+The third failure involves no wrong numbers, only the way they
+are encoded.
 @fig-truncated plots the same two group means twice.
 
 ```{r}
@@ -594,16 +605,17 @@ p_honest + p_truncated
 
 The difference is `r round(diff(d$mean), 1)` points on a 100-point
 scale. Panel A tells you that. Panel B draws the treatment bar
-about `r round(bar_ratio, 1)` times as tall as the control bar,
-which suggests a difference the data do not contain, without
-printing a single incorrect value. The three standard distortions:
+about `r round(bar_ratio, 1)` times as tall as the control bar.
+It suggests a difference the data do not contain, without
+printing a single incorrect value. There are three standard
+distortions.
 
-**The truncated axis.** The rule is not 'always start at zero',
-because for many quantities zero is meaningless (body temperature,
-calendar year, pH) and forcing it wastes the panel. The rule is that
-*when the visual encoding is length or area*, as in a bar chart, the
-baseline must be zero, because the reader compares lengths and a
-truncated bar's length is not proportional to its value. For a
+**The truncated axis.** The rule is not 'always start at zero'.
+For many quantities zero is meaningless (body temperature,
+calendar year, pH), and forcing it wastes the panel. The rule is
+that *when the visual encoding is length or area*, as in a bar
+chart, the baseline must be zero. The reader compares lengths,
+and a truncated bar's length is not proportional to its value. For a
 point-and-interval plot, where the encoding is position, a
 truncated axis is legitimate and often necessary. The question is
 always what the reader's eye is measuring.
@@ -613,17 +625,18 @@ county encodes *land area*, and land does not vote. A bubble whose
 *radius* is proportional to a count exaggerates it, because the eye
 reads area, which goes as the square of the radius. In biomedicine
 the recurring case is a map of disease counts that is really a map
-of where people live; the fix is a rate, a denominator, and a
+of where people live. The fix is a rate, a denominator, and a
 cartogram or population-weighted encoding.
 
 **The dual axis.** Two series on two differently scaled y-axes can
 be made to cross, converge, or diverge at the analyst's choice,
-because the relative scaling is arbitrary. Avoid dual axes; to
+because the relative scaling is arbitrary. Avoid dual axes. To
 compare two series, index them to a common baseline or use two
 panels. A language model asked to critique a described figure
-identifies a truncated baseline reliably and is weaker on area
-encodings and denominators, which require knowing what the quantity
-means; render the figure both ways, as above, and compare.
+identifies a truncated baseline reliably. It is weaker on area
+encodings and denominators, which require knowing what the
+quantity means. Render the figure both ways, as above, and
+compare.
 
 ### Exercises
 
@@ -664,16 +677,17 @@ choice for ratios, so that 0.5 and 2 sit equally far from 1.)
 ## The overlapping-interval fallacy {#sec-ethics-overlap}
 
 The fourth failure is the one a biostatistician is most likely to
-commit personally, and it is a technical error rather than a
-rhetorical one. The reasoning goes: the 95% confidence intervals for
-the two group means overlap, therefore the difference is not
+commit personally. It is a technical error rather than a
+rhetorical one. The reasoning goes: the 95% confidence intervals
+for the two group means overlap, therefore the difference is not
 significant at the 5% level. This is wrong, and wrong in the
-direction of missing real effects. The interval for a *difference*
-depends on the standard error of the difference, which is smaller
-than the sum of the two individual standard errors, so intervals for
-the two means can overlap while the interval for their difference
+direction of missing real effects. The interval for a
+*difference* depends on the standard error of the difference.
+That standard error is smaller than the sum of the two
+individual standard errors. Intervals for the two means can
+therefore overlap while the interval for their difference
 excludes zero. A demonstration, on synthetic data constructed to
-make the point sharply:
+make the point clearly:
 
 ```{r}
 #| label: overlap-demo
@@ -705,14 +719,14 @@ reached the opposite conclusion from the one the data support.
 
 The overlap here is about
 `r round(ci_tab["group_a", "upper"] - ci_tab["group_b", "lower"], 1)`
-point, which is deliberate: the fallacy does its damage in exactly
-this regime, where the intervals graze each other and the difference
-is real. As the difference grows the intervals separate and the two
-readings agree; as it shrinks the test stops rejecting and they agree
-again. It is the middle, where an analyst most wants guidance from
-the figure, that the heuristic gets wrong. @fig-overlap shows the
-correct object: the interval for the difference, which answers the
-question actually asked.
+point, which is deliberate. The fallacy does its damage in
+exactly this range, where the intervals barely overlap and the
+difference is real. As the difference grows, the intervals
+separate and the two readings agree. As it shrinks, the test
+stops rejecting and they agree again. The heuristic fails in the
+middle, where an analyst most wants guidance from the figure.
+@fig-overlap shows the correct object: the interval for the
+difference, which answers the question actually asked.
 
 ```{r}
 #| label: fig-overlap
@@ -845,14 +859,14 @@ sweep
 Every row here rejects, so read the *first*: at
 $\delta = `r sweep[1, "delta"]`$ the test gives
 $p = `r sweep[1, "p"]`$ and the intervals still overlap by
-`r round(sweep[1, "overlap"], 2)` units, which is the widest overlap
-compatible with significance in this design. Reducing $\delta$
-further loses the rejection. Going the other way, the overlap
-shrinks steadily and turns negative by
+`r round(sweep[1, "overlap"], 2)` units. That is the widest
+overlap compatible with significance in this design. Reducing
+$\delta$ further loses the rejection. Going the other way, the
+overlap shrinks steadily and turns negative by
 $\delta = `r sweep[nrow(sweep), "delta"]`$, where the intervals
-have separated. The sweep also confirms the bounds computed above:
-the lower edge sits just under 2.2 and the upper just over 3.0,
-against the predicted 2.19 and 3.10.
+have separated. The sweep also confirms the bounds computed
+above. The lower edge sits just under 2.2 and the upper just
+over 3.0, against the predicted 2.19 and 3.10.
 
 Reading significance off the overlap on the left-hand panel of
 @fig-overlap is therefore not a conservative approximation. It is a
@@ -864,61 +878,65 @@ declaring 'no difference' when there is one.
 **Question.** Two arms' 95% intervals do *not* overlap. May you
 conclude that the difference is significant at the 5% level?
 
-**Answer.** Yes, for two independent estimates: non-overlap is a
+**Answer.** Yes, for two independent estimates. Non-overlap is a
 stricter criterion than the test, so it errs only toward missing
-real differences, never toward declaring false ones. The fallacy runs
-one way only, which is why it hides: the rule 'overlap means no
-difference' sounds like the mirror image of a correct rule and is
-not.
+real differences, never toward declaring false ones. The fallacy
+runs one way only, which is why it is easy to miss. The rule
+'overlap means no difference' sounds like the mirror image of a
+correct rule, but it is not.
 :::
 
 ## Unrepresentative samples {#sec-ethics-representation}
 
 The fifth failure is the one whose costs fall on people who are not
-in the room, and often not in the data. It is the failure of **fair
-representation**, and it is why a competent statistician asks who a
-sample contains before, not after, generalizing from it. The
-falsehood, once again, is in no number; it is in the silent step
-from 'this holds in the sample' to 'this holds', taken when the
-sample and the target are not the same population and no one has
-said so. This book's own source material shows the mechanism: the
-survey behind the team-science reading drew respondents who were
-82.8% White, and its authors state plainly that their conclusions
-may not transport to a more diverse workforce [@slade2023team].
-Their disclosure is the practice to copy, and the skew is the
-hazard it warns of.
+in the room, and often not in the data. It is the failure of
+**fair representation**. It is why a competent statistician asks
+who a sample contains before, not after, generalizing from it.
+Once again, no number is false. The error is the unstated step
+from 'this holds in the sample' to 'this holds'. That step is
+taken when the sample and the target are not the same population
+and no one has said so. This book's own source material shows
+the mechanism. The survey behind the team-science reading drew
+respondents who were 82.8% White. Its authors state plainly that
+their conclusions may not transport to a more diverse workforce
+[@slade2023team]. Their disclosure is the practice to copy, and
+the skew is the hazard it warns of.
 
 **A sample is evidence about the population it was drawn from, and
-no other.** A drug trial that enrolls at academic medical centers,
-among patients who can attend visits every two weeks, skews toward
-the younger, the insured, the urban, and those without other
-illnesses. Applied to the older, rural, multiply morbid patient to
-whom the drug will be prescribed, its estimate is an extrapolation
-[@rothwell2005external]. Adjusting for age does not repair this, for
-the reason it did not repair the volunteer cohort: the groups differ
-along dimensions no covariate list enumerates.
+no other.** Consider a drug trial that enrolls at academic
+medical centers, among patients who can attend visits every two
+weeks. Its sample skews toward the younger, the insured, the
+urban, and those without other illnesses. Applied to the older,
+rural patient with several illnesses to whom the drug will be
+prescribed, its estimate is an extrapolation
+[@rothwell2005external]. Adjusting for age does not repair this,
+for the same reason it did not repair the volunteer cohort. The
+groups differ along dimensions no covariate list enumerates.
 
 **Under-representation costs a subgroup both precision and bias.**
-When a subgroup is a small fraction of the sample, its estimate is
-imprecise, so an effect specific to them is the effect you are least
-able to detect; and if the effect genuinely differs there, the pooled
-estimate, dominated by the majority, is biased for them. A result
-reported as though it applied to everyone fails exactly the people
-the sample underweighted, and fails them silently, because the
-interval on the pooled estimate looks reassuringly tight.
+When a subgroup is a small fraction of the sample, its estimate
+is imprecise. An effect specific to that subgroup is therefore
+the effect you are least able to detect. If the effect genuinely
+differs there, the pooled estimate, dominated by the majority,
+is also biased for them. A result reported as though it applied
+to everyone fails exactly the people the sample underweighted.
+It fails them silently, because the interval on the pooled
+estimate looks reassuringly tight.
 
 **A model learns the sample's inequities and returns them as
-findings.** Where an analysis feeds a decision rule (a risk score, an
-eligibility threshold, a resource-allocation model), a biased
-training sample propagates the bias at scale. The canonical case is
-a health-system algorithm that used prior health-care spending as a
-proxy for health need and, because less had historically been spent
-on Black patients at equal levels of illness, systematically
-understated their need [@obermeyer2019dissecting]. Every number was
-correctly computed. The proxy was the error, and only someone asking
-what the variable *stood for* could have caught it.
+findings.** Some analyses feed a decision rule (a risk score, an
+eligibility threshold, a resource-allocation model). There, a
+biased training sample propagates the bias at scale. The
+standard example is a health-system algorithm that used prior
+health-care spending as a proxy for health need. Less had
+historically been spent on Black patients at equal levels of
+illness. The algorithm therefore systematically understated
+their need [@obermeyer2019dissecting]. Every number was
+correctly computed. The proxy was the error, and only someone
+asking what the variable *stood for* could have caught it.
 
-The discipline is cheap, and @tbl-ethics-representation lists it.
+The necessary practices are cheap, and
+@tbl-ethics-representation lists them.
 
 | Practice | What to do | Example sentence or check |
 |---|---|---|
@@ -935,11 +953,12 @@ subjects, is not the finished product it looks like.
 ::: {.callout-warning title='Pitfall'}
 **A subgroup row in Table 1 is reported; its uncertainty is not.**
 A Table 1 that lists a few dozen patients in a group invites a
-reader to treat the group as studied. A subgroup estimate for a few
-dozen patients has an interval so wide that it can neither show nor exclude any
-plausible effect, and a report that says 'no difference was observed
-in this group' has converted imprecision into a finding. Report the
-interval, or say that the group was too small to examine.
+reader to treat the group as studied. A subgroup estimate for a
+few dozen patients has an interval so wide that it can neither
+show nor exclude any plausible effect. A report that says 'no
+difference was observed in this group' has converted imprecision
+into a finding. Report the interval, or say that the group was
+too small to examine.
 :::
 
 ### Exercises
@@ -984,15 +1003,15 @@ by_race
 
 The smallest groups have half-widths of about
 `r round(max(by_race$half_width))` points, against an overall effect
-of a few points: they can support no subgroup claim at all, in
+of a few points. They can support no subgroup claim at all, in
 either direction. Only the largest group,
 `r by_race$race[nrow(by_race)]`, has a half-width
-(`r round(by_race$half_width[nrow(by_race)], 1)` points) below the
-5-point reduction the trial was designed to detect, and only just,
-because it holds about half the trial. The honest
-report gives the composition, says that the trial was not designed to
-estimate effects by race, and names the groups too small to examine,
-rather than reporting 'no difference' in each.
+(`r round(by_race$half_width[nrow(by_race)], 1)` points) below
+the 5-point reduction the trial was designed to detect. It does
+so only just, because it holds about half the trial. The honest
+report gives the composition and says that the trial was not
+designed to estimate effects by race. It names the groups too
+small to examine, rather than reporting 'no difference' in each.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -1001,12 +1020,12 @@ and validated with excellent overall discrimination. What question
 does the overall validation leave unanswered?
 
 **Answer.** Whether the model's errors are borne equally. Overall
-discrimination is dominated by the majority of the sample, and a
+discrimination is dominated by the majority of the sample. A
 model can rank well overall while systematically under- or
-over-predicting for a group, especially if a predictor is a proxy
-for something other than what it is named for. Validate by group,
-and ask what each predictor stands for, before the model acts on
-anyone.
+over-predicting for a group. This is especially likely if a
+predictor is a proxy for something other than what it is named
+for. Validate by group, and ask what each predictor stands for,
+before the model acts on anyone.
 :::
 
 ## Rules of thumb
@@ -1115,9 +1134,9 @@ estimates shown without the contrast that is the estimand.
 
 1. Because the harm of aggregation differs from the harm of
    disclosure. Each individual disclosed a fact to an audience of
-   their choosing, in a context they understood; assembling those
+   their choosing, in a context they understood. Assembling those
    disclosures into a single searchable, permanent, downloadable
-   artifact and attaching identifiers to it does something none of
+   artifact, with identifiers attached, does something none of
    them chose. The aggregate can reveal what no individual datum
    did, for example by linking a health disclosure in one forum to
    an employer named in another. This is the joint-distribution
@@ -1127,9 +1146,10 @@ estimates shown without the contrast that is the estimand.
    surprised to find themselves in it'.
 2. No. The confidence interval for the *difference* depends on the
    standard error of the difference, which is smaller than the sum
-   of the two individual standard errors, so two means can have
-   overlapping intervals while the interval for their difference
-   excludes zero and the two-sample test rejects. The error runs in
+   of the two individual standard errors. Two means can therefore
+   have overlapping intervals while the interval for their
+   difference excludes zero and the two-sample test rejects. The
+   error runs in
    the direction of missing real effects. Report and inspect the
    interval for the contrast, which is the estimand.
 3. (Any three of:) a truncated axis on a length-encoded chart, so

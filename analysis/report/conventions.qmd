@@ -7,8 +7,8 @@ them the same way in every chapter.
 
 Each chapter opens with the same diagram of a reproducible
 analysis, with the stage the chapter teaches highlighted. The
-six stages along the top are the order of work; the two bands
-beneath run under all of them.
+six stages along the top follow the order of work. The two bands
+beneath them apply to all six stages.
 
 ```{r}
 #| label: conventions-pipeline-setup
@@ -61,9 +61,10 @@ penguins |>                                       # <1>
 - `monospace` marks code, file paths, and package names.
 - `package::function()` disambiguates function ownership when
   the package is not obvious from context.
-- Asides, history, and version notes are footnotes, shown in
-  the margin of the web edition and at the foot of the page in
-  print, so that the main text carries only what you need.
+- Asides, history, and version notes are footnotes. They are
+  shown in the margin of the web edition and at the foot of the
+  page in print, so that the main text carries only what you
+  need.
 - 'Habit 6' and similar refer to the numbered habits in
   @sec-habits.
 
@@ -73,8 +74,8 @@ The book uses five kinds, so that each one means one thing.
 
 ::: {.callout-note collapse='true' title='Check'}
 A short question after a major section, with its answer
-folded inside. Try it before you open it: retrieving an idea
-is what fixes it in memory.
+folded inside. Try it before you open it: recalling an answer
+before reading it helps you retain the idea.
 :::
 
 ::: {.callout-tip title='Verification'}
@@ -84,8 +85,8 @@ before going on.
 :::
 
 ::: {.callout-warning title='Pitfall'}
-A silent failure that analysts actually hit: one that runs
-without error and produces a wrong answer.
+A silent failure that analysts meet in practice: code that
+runs without error and produces a wrong answer.
 :::
 
 ::: {.callout-important title='LLM prompt'}
@@ -102,7 +103,7 @@ data or mislead a reader, pointing to the fuller treatment in
 :::
 
 Exercise solutions sit in folded blocks titled 'Solution'
-directly beneath each exercise. In the printed edition, which
-cannot fold, Check answers and solutions are collected at the
+directly beneath each exercise. The printed edition cannot fold
+blocks. There, Check answers and solutions are collected at the
 end of each chapter instead, so that you can attempt a question
 before you see its answer.

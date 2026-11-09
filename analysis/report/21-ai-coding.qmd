@@ -3,14 +3,14 @@
 You ask a coding agent to fit the HF-HOME primary model. It returns
 clean code, a converged fit, and an odds ratio with a confidence
 interval. Nothing errors. The agent has also added discharge blood
-pressure as a covariate, because it looked clinically sensible, and
+pressure as a covariate, because it looked clinically sensible.
 `glm()` has silently dropped every patient whose pressure is
-missing; the analysis plan names neither the covariate nor the
-smaller cohort, and the output mentions neither. Language models now
-write working R for most exercises in this book, but what they
-optimize is plausibility, and plausible code can be wrong. Use
-them to amplify your own work, and treat every line of generated
-code as a hypothesis to test.
+missing. The analysis plan names neither the covariate nor the
+smaller cohort, and the output mentions neither. Language models
+now write working R for most exercises in this book. However,
+what they optimize is plausibility, and plausible code can be
+wrong. Use them to extend your own work, and treat every line of
+generated code as a hypothesis to test.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -50,20 +50,21 @@ pipeline_diagram('analyze')
 **You'll need.** @sec-git-solo for commits, branches, and
 `git diff`, and @sec-shell for running commands in the project
 directory. The chapter comes before the data chapters on purpose,
-so that you use a model with these habits from the start; its
+so that you use a model with these habits from the start. Its
 planted-bug examples touch column types, joins, and tests, which
-you will meet in @sec-types, @sec-joins, and @sec-testing, and on
-first reading the pattern of each example is enough. The examples
-read the HF-HOME files with base R and call `dplyr` and `lintr`
-with their namespaces; one chunk attaches `dplyr`:
+you will meet in @sec-types, @sec-joins, and @sec-testing. On
+first reading, the pattern of each example is enough. The
+examples read the HF-HOME files with base R and call `dplyr` and
+`lintr` with their namespaces. One chunk attaches `dplyr`:
 
 ```r
 library(dplyr)
 ```
 
 No example calls a model. The commands for calling one from R and
-for setting up a coding agent are dated, and live in an appendix,
-@sec-tooling; they need an API key and are display-only.
+for setting up a coding agent are dated, so they are kept in an
+appendix, @sec-tooling. They need an API key and are
+display-only.
 
 **You'll be able to.**
 
@@ -104,13 +105,12 @@ answers are in @sec-quiz-answers-21.
 
 Getting code from a large language model (LLM) is easy. The
 skill is judging which code to trust, when, and why. A generation
-ago the bottleneck was producing
-code; now it is reading produced code with enough care to find the
-bugs, and the analyst who can audit generated code quickly is the
-one who benefits from it. Domain knowledge stays with you: a model
-cannot tell you whether to dichotomize a continuous outcome,
-whether to adjust for a baseline covariate, or which analysis the
-plan pre-specified.
+ago the bottleneck was producing code. Now it is reading
+generated code with enough care to find the bugs. The analyst who
+can audit generated code quickly is the one who benefits from it.
+Domain knowledge stays with you. A model cannot tell you whether
+to dichotomize a continuous outcome, whether to adjust for a
+baseline covariate, or which analysis the plan pre-specified.
 
 Every 'LLM prompt' callout in this book follows one protocol, the
 four Cs (@tbl-ai-four-cs). The first three are what you write
@@ -131,17 +131,17 @@ first three Cs. An example of input and output is context. 'Do not
 use a `for` loop' is a constraint. 'Return a tibble with columns
 `arm`, `n`, and `risk`', 'write three tests covering the typical
 case, `NA` input, and empty input', and 'explain in one paragraph
-why the implementation is correct' are criteria: if the
-explanation is shaky, the implementation is too. Save a prompt that
-worked with the code it produced. The prompt is the specification,
-and if you ever need to regenerate or revise the code, it is the
-context.
+why the implementation is correct' are criteria. If the
+explanation is shaky, the implementation is too. Save a prompt
+that worked with the code it produced. The prompt is the
+specification. If you ever need to regenerate or revise the code,
+it is also the context.
 
 ### Check: the verify-first loop
 
-The fourth C has a gate, and generated code does not pass it by
+The fourth C is a gate. Generated code does not pass it by
 looking plausible. @fig-verify-loop draws the protocol as a loop
-with the failure edge drawn in, because the failure edge is the
+with the failure edge included, because the failure edge is the
 part that gets skipped under deadline.
 
 ```{mermaid}
@@ -196,15 +196,15 @@ Before you commit any generated code:
 
 By 2026 the field has a name for the distinction that loop marks.
 'Vibe coding' is prompting an agent, accepting what it produces,
-and running it without reading the diff; it is a reasonable
-posture for a disposable script only you will use. 'Agentic
+and running it without reading the diff. It is a reasonable
+approach for a disposable script only you will use. 'Agentic
 coding' (or agentic engineering) is the same
 plan-write-execute-iterate loop with a human reviewing the diff
 against a real acceptance criterion before it is trusted. The two
-look identical from the terminal and differ only in whether anyone
-checked. Everything in this chapter is written for the
-second posture; treat the first as something you do only when
-being wrong costs nothing.
+look identical from the terminal. They differ only in whether
+anyone checked. Everything in this chapter is written for the
+second approach. Use the first only when being wrong costs
+nothing.
 
 ::: {.callout-important title='LLM prompt'}
 A fully specified request to a coding agent, in the four Cs.
@@ -231,14 +231,14 @@ A fully specified request to a coding agent, in the four Cs.
 > the number of patients used in each arm.
 
 *Failure mode.* The model indexes the arm summaries by position
-(`p[2] - p[1]`), which gives the right sign for one ordering of the
+(`p[2] - p[1]`). That gives the right sign for one ordering of the
 arm labels and the wrong sign for the other (@sec-ai-failures,
-Exercise 2), or silently drops unascertained patients without
-reporting how many. *Check.* Run the test yourself; confirm that
-the per-arm counts match `table()` of the ascertained patients;
-recompute the difference by name. The agent sees the codebook and
-the synthetic files, which hold no patient data
-(@sec-ai-governance).
+Exercise 2). Alternatively, it silently drops unascertained
+patients without reporting how many. *Check.* Run the test
+yourself; confirm that the per-arm counts match `table()` of the
+ascertained patients; recompute the difference by name. The agent
+sees the codebook and the synthetic files, which hold no patient
+data (@sec-ai-governance).
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -278,11 +278,10 @@ opening story's extra covariate would have appeared on that list.
 > `baseline.csv` for the same patient; report both checks.
 
 The context names the per-site formats so that the model need not
-guess; the constraint forbids the guessing parser, whose silent
+guess. The constraint forbids the guessing parser, whose silent
 day-month swap is the failure you will see planted in
-@sec-testing-worked; the
-criteria compare with an independent source rather than with the
-function's own output.
+@sec-testing-worked. The criteria compare with an independent
+source rather than with the function's own output.
 :::
 
 ## Failure modes, made loud {#sec-ai-failures}
@@ -290,13 +289,13 @@ function's own output.
 ### Readable code is auditable code
 
 The first step of the check, reading the code end to end, is only
-possible if the code is readable, so consistent style bears on
-correctness as well as taste. You cannot audit a diff you cannot
-read, and generated code has raised the volume of diff to audit.
-Style and
-lint checking are covered in @sec-testing; wire both into the
-continuous-integration workflow you will meet in @sec-ci, and the
-guarantee holds for every contributor, human or not.
+possible if the code is readable. Consistent style therefore bears
+on correctness as well as taste. You cannot audit a diff you
+cannot read, and generated code has raised the volume of diff to
+audit. Style and lint checking are covered in @sec-testing. If you
+wire both into the continuous-integration workflow you will meet
+in @sec-ci, the guarantee holds for every contributor, human or
+not.
 
 ### The catalog
 
@@ -332,8 +331,8 @@ fires, the chunk stops with its error, which is the behavior you
 want. The chunks read the HF-HOME files. Several rest on ideas the
 data chapters teach in full: column types (@sec-types), joins
 (@sec-joins), and missing values (@sec-missing). You need not
-follow every line yet; read each for its shape, which is the
-same every time: plausible code, a planted bug, and a one-line
+follow every line yet. Read each for its shape, which is the same
+every time: plausible code, a planted bug, and a one-line
 assertion that fails.
 
 ```{r}
@@ -352,10 +351,10 @@ data |> dplyr::summarise_groups(mean(x))
 ```
 
 An error that the function is not exported, or cannot be found, is
-the cheapest catch; the harder ones are functions that exist and do
-something other than what the model thinks. Before trusting an
-unfamiliar function, check that it exists and read its help page
-rather than another model's suggestion:
+the cheapest catch. The harder cases are functions that exist and
+do something other than what the model thinks. Before trusting an
+unfamiliar function, check that it exists. Then read its help
+page rather than another model's suggestion:
 
 ```{r}
 #| label: ai-corrected-api
@@ -383,9 +382,9 @@ does.
 
 **Look-alike default.** `cor()` defaults to
 `use = "everything"`, so one `NA` makes a correlation `NA`. Models
-often switch silently to `use = "pairwise.complete.obs"`, which
-returns a complete matrix in which every cell may rest on a
-different set of patients.
+often switch silently to `use = "pairwise.complete.obs"`. That
+returns a complete matrix, but every cell may rest on a different
+set of patients.
 
 ```{r}
 #| label: ai-plant-cor
@@ -405,8 +404,8 @@ imputation) and report the number of patients behind the matrix.
 **Outdated API.** Code learned from before `dplyr` 1.1.0 joins
 without `relationship =`. `labs.csv` contains one exact duplicate
 of a discharge NT-proBNP (N-terminal pro-B-type natriuretic
-peptide) result, so a join that should keep one row per discharge
-visit adds one.
+peptide) result. A join that should keep one row per discharge
+visit therefore adds a row.
 
 ```{r}
 #| label: ai-plant-join
@@ -422,7 +421,7 @@ stopifnot(nrow(with_bnp) == nrow(discharge))
 ```
 
 `relationship = "one-to-one"` on the join turns the same duplicate
-into an error at the join site; you will meet this in
+into an error at the join site. You will meet this in
 @sec-joins-cardinality.
 
 **Brittle regex.** The pattern works on the example the model saw,
@@ -467,8 +466,8 @@ stopifnot(!is.na(m))
 ```
 
 **Masked function.** Attaching `dplyr` masks `stats::filter`, a
-time-series filter with completely different semantics, so a model
-that meant the moving average gets an unhelpful error.
+time-series filter with completely different semantics. A model
+that meant the moving average then gets an unhelpful error.
 
 ```{r}
 #| label: ai-plant-filter
@@ -521,16 +520,16 @@ right, and on your data it returns plausible numbers with no
 errors or warnings. How much has that established?
 
 **Answer.** Almost nothing. A model optimizes for plausibility, in
-the output as much as the source: code that looks like correct
-code, producing numbers that look like correct numbers. Your three
-checks tested readability, execution, and plausibility, the three
-things a model is best at producing independently of correctness.
-You have ruled out syntax errors and crashes. Every row of
-@tbl-ai-failures except the first two survives them. Edge cases
-break plausible-but-wrong code where typical input does not, and a
-comparison with a reference you computed independently is the only
-check that does not route through your own judgment of how the
-code looks.
+the output as much as the source. It produces code that looks like
+correct code and numbers that look like correct numbers. Your
+three checks tested readability, execution, and plausibility.
+Those are the three things a model is best at producing
+independently of correctness. You have ruled out syntax errors and
+crashes. Every row of @tbl-ai-failures except the first two
+survives them. Edge cases break plausible-but-wrong code where
+typical input does not. A comparison with a reference you computed
+independently is the only check that does not depend on your own
+judgment of how the code looks.
 :::
 
 ### Exercises
@@ -578,13 +577,13 @@ stopifnot(all.equal(risk_difference_fixed(trial), by_name),
 
 `tapply()` orders its groups by the levels of the factor, or
 alphabetically for a character vector. Read as character,
-`Home health` comes first and `p[2] - p[1]` is usual care minus
-home health, the right sign by accident; stored as a factor with
-the codebook's level order, the same code returns the same
-magnitude with the opposite sign. Both look plausible, and the
-true difference is small enough that either sign seems credible.
-The assertion compares with a difference computed by name; the
-fix indexes by name.
+`Home health` comes first, and `p[2] - p[1]` is usual care minus
+home health. That is the right sign, by accident. Stored as a
+factor with the codebook's level order, the same code returns the
+same magnitude with the opposite sign. Both look plausible, and
+the true difference is small enough that either sign seems
+credible. The assertion compares with a difference computed by
+name, and the fix indexes by name.
 :::
 
 ## Data governance and agent safety {#sec-ai-governance}
@@ -594,8 +593,8 @@ They are stated once here and apply everywhere.
 
 ### Send structure, not data
 
-A prompt is a disclosure to whoever runs the model, and an agent
-that can read your project directory can read `data/raw/`, so the
+A prompt is a disclosure to whoever runs the model. An agent that
+can read your project directory can also read `data/raw/`, so the
 same rule decides where you run it. @tbl-ai-data-classes sorts
 what you might send.
 
@@ -632,8 +631,8 @@ Review any action it proposes after reading external content.
 **Tests are off-limits.** An agent asked to make the tests pass may
 weaken, skip, or delete them. Say in the instruction, and in the
 project instruction file (@sec-ai-practice), that tests in
-`inst/tinytest/` may not be changed, and review any diff that
-touches them separately from the rest:
+`inst/tinytest/` may not be changed. Review any diff that touches
+them separately from the rest:
 
 ```bash
 git diff --stat main -- inst/tinytest/
@@ -645,7 +644,7 @@ to write tests.
 ::: {.callout-warning title='Pitfall'}
 **A test edited until it passes reports green.** The agent widens a
 tolerance, replaces a value check with a shape check, or changes
-the expected value to the function's output, and then reports that
+the expected value to the function's output. It then reports that
 all tests pass, which is true. The suite now checks nothing, and
 the green result looks exactly like the one you wanted. Read the
 diff of `inst/tinytest/` before you read the agent's summary.
@@ -654,13 +653,13 @@ diff of `inst/tinytest/` before you read the agent's summary.
 ### Hallucinated package names
 
 Models sometimes recommend packages that do not exist, and they
-repeat the same invented names across sessions, so an attacker can
-register those names on CRAN, PyPI (the Python Package Index), or
-npm with malicious code and wait [@spracklen2025package]. The
-practice is called slopsquatting. Before installing anything a
-model proposes, confirm that the package exists, who maintains it,
-and how long it has been published (display-only, because it
-queries CRAN):
+repeat the same invented names across sessions. An attacker can
+therefore register those names on CRAN, PyPI (the Python Package
+Index), or npm with malicious code and wait
+[@spracklen2025package]. The practice is called slopsquatting.
+Before installing anything a model proposes, confirm that the
+package exists, who maintains it, and how long it has been
+published (display-only, because it queries CRAN):
 
 ```r
 pkg <- "ggsurvfit"
@@ -678,13 +677,13 @@ there is no harm in pasting rows of your real trial's export into
 a chat window 'to show the model the format'. What is wrong, and
 what do you send instead?
 
-**Answer.** The real export is protected health information, and
-pasting it discloses it to whoever runs the model, whatever the
-purpose. Send the structure: the column names and types, the
-codebook's description of each site's coding, and one or two
-synthetic rows in the same format, which are what the HF-HOME files
-exist to provide. The format is fully described without one real
-value.
+**Answer.** The real export is protected health information.
+Pasting it discloses it to whoever runs the model, whatever the
+purpose. Send the structure instead: the column names and types,
+the codebook's description of each site's coding, and one or two
+synthetic rows in the same format. Those rows are what the HF-HOME
+files exist to provide. The format is fully described without one
+real value.
 :::
 
 ### Exercises
@@ -714,11 +713,11 @@ or a project name you would not publish.
 ### A project instruction file
 
 Coding agents read a plain-text instruction file at the root of the
-project on every session: `AGENTS.md` is read by most agents, and
-`CLAUDE.md` by Claude Code. It states the book's habits in a form
-the agent reads, and writing one is the most useful single step
-you can take before using an agent on a compendium. A short
-one for the HF-HOME compendium (display-only):
+project on every session. `AGENTS.md` is read by most agents, and
+`CLAUDE.md` by Claude Code. The file states the book's habits in a
+form the agent reads. Writing one is the most useful single step
+you can take before using an agent on a compendium. A short one
+for the HF-HOME compendium (display-only):
 
 ```markdown
 # Instructions for coding agents: HF-HOME compendium
@@ -773,25 +772,25 @@ style list your instruction file cites.
 ### Live documentation
 
 A model writing from training data uses the version of a package
-it saw, which may predate the argument you need or include a
-function since removed. Tools that give the model the
+it saw. That version may predate the argument you need or include
+a function since removed. Some tools give the model the
 documentation of the packages actually installed, and access to
-the running R session, remove most hallucinated-API errors at the
-source. In R the `btw` package provides this, and the Model Context
-Protocol (MCP), an open standard for connecting models to tools,
-lets an agent call it; the dated appendix (@sec-ai-tooling) shows
-the setup as of October 2026. The check is unchanged:
-documentation tells the model what a function does, but not
+the running R session. These remove most hallucinated-API errors
+at the source. In R the `btw` package provides this. The Model
+Context Protocol (MCP), an open standard for connecting models to
+tools, lets an agent call it. The dated appendix (@sec-ai-tooling)
+shows the setup as of October 2026. The check is unchanged.
+Documentation tells the model what a function does, but not
 whether it was the right function to call.
 
 ### Provenance and disclosure
 
 For any model-produced code or text that reaches a deliverable,
-record the model identifier, the date, and the prompt, in the
-commit message or a log in the repository. Model outputs vary from
-run to run and model identifiers are retired, so an unrecorded
-model step cannot be reproduced. A commit message that records it
-(display-only):
+record the model identifier, the date, and the prompt. Put them in
+the commit message or in a log in the repository. Model outputs
+vary from run to run and model identifiers are retired, so an
+unrecorded model step cannot be reproduced. A commit message that
+records it (display-only):
 
 ```text
 Add observed-risk summary by arm
@@ -803,35 +802,35 @@ Reviewed line by line; tests in inst/tinytest/ unchanged.
 
 Follow the target journal's AI-disclosure policy. The ICMJE
 (International Committee of Medical Journal Editors)
-recommendations, updated January 2026 with a standalone section on
-AI in publishing [@icmje2026], and most publishers require
-disclosure of AI assistance in writing and analysis, and none
-accept an AI as an author: authorship requires accountability for
-the work, which a model cannot take.
+recommendations were updated in January 2026 with a standalone
+section on AI in publishing [@icmje2026]. They, and most
+publishers, require disclosure of AI assistance in writing and
+analysis. None accept an AI as an author. Authorship requires
+accountability for the work, which a model cannot take.
 
 This book discloses its own use. It was developed with extensive
-use of Claude Code, a command-line coding agent, and the exercise
-was deliberate: produce a usable book about statistical computing
+use of Claude Code, a command-line coding agent. The exercise was
+deliberate: to produce a usable book about statistical computing
 in the AI era while using AI tools to do so. Roughly 70% of the
-prose was drafted with LLM assistance, all of it reviewed and
-edited; roughly 30% of the code examples were generated, and the
-rest written by hand. Bugs caught: a steady stream, mostly
-variants of the failure modes in @tbl-ai-failures. The model
-amplified the author's throughput; the book is correct, to the
-extent it is, because the author verified every claim. Either
-alone would have been worse.
+prose was drafted with LLM assistance, and all of it was reviewed
+and edited. Roughly 30% of the code examples were generated, and
+the rest were written by hand. We caught a steady stream of bugs,
+mostly variants of the failure modes in @tbl-ai-failures. The
+model increased our throughput. The book is correct, to the extent
+it is, because every claim was verified by hand. Either alone
+would have been worse.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** Your instruction file says 'Do not edit tests', and
 the agent reports that all tests pass. Is the diff of
 `inst/tinytest/` still worth reading?
 
-**Answer.** Yes. An instruction file is a request, not an
-enforcement mechanism: an agent can misread it, lose it from a long
+**Answer.** Yes. An instruction file is a request. It does not
+enforce anything. An agent can misread it, lose it from a long
 context, or decide a change is a fix rather than an edit. The
-instruction lowers the rate of the failure; `git diff --stat main
--- inst/tinytest/` detects it. Enforce what matters with a check,
-as you would for a colleague.
+instruction lowers the rate of the failure, and `git diff --stat
+main -- inst/tinytest/` detects it. Enforce what matters with a
+check, as you would for a colleague.
 :::
 
 ### Exercises
@@ -859,8 +858,8 @@ re-derived by hand for two cells of the grid.
 ```
 
 The first rule turns Habit 5 into a stopping condition rather than
-a preference; the provenance line names the model, date, and
-prompt and says how the output was checked, which is what a reader
+a preference. The provenance line names the model, date, and
+prompt, and says how the output was checked. That is what a reader
 of the history needs.
 :::
 
@@ -869,67 +868,69 @@ of the history needs.
 Every example so far treats an LLM call the way @sec-ai-four-cs
 frames it: a one-off request, checked by a person, before a piece
 of code or text reaches a deliverable. A different use case is
-becoming common, and it needs a different kind of check. Instead of
-asking a model once to write a function, you ask it, in a loop,
+becoming common, and it needs a different kind of check. Instead
+of asking a model once to write a function, you ask it, in a loop,
 to turn one messy field into a structured one for every row of a
-dataset: an LLM step inside the pipeline, run on data it has never
-seen, with nobody reading each answer. That step is a component
-like any other in @fig-ai-pipeline's Analyze stage, a function with
-inputs and outputs, and it earns the same thing every other
-component in this book earns before it is trusted: a test suite,
-evaluated once and then run again whenever anything about the step
-changes.
+dataset. That is, the LLM becomes a step inside the pipeline. It
+runs on data it has never seen, and nobody reads each answer. That
+step is a component like any other in @fig-ai-pipeline's Analyze
+stage, a function with inputs and outputs. It needs what every
+other component in this book needs before it is trusted: a test
+suite, evaluated once and then run again whenever anything about
+the step changes.
 
 ### The difference between a prompt and a pipeline step
 
 The four Cs assume a human reads the answer before it is used.
 Context, constraints, and criteria are written once; a person runs
 the check once; the model is used once more for the next task. An
-LLM step inside a pipeline is used differently: the same prompt, or
-a function wrapping it, is applied to every row of a column, and no
-person reads most of the answers. The failure mode changes to
-match. A one-off answer that is wrong gets caught because you were
-looking at it. A pipeline step that is wrong 8% of the time runs
-unnoticed on thousands of rows, and the 8% is wrong in whatever
-way the model is biased to be wrong, not at random: a field left
-blank more often for one phrasing than another, a code assigned
-systematically to the more common class when the text is
-ambiguous. Nothing in that error pattern looks like a crash, and
-the wrong rows look like the other 92%.
+LLM step inside a pipeline is used differently. The same prompt,
+or a function wrapping it, is applied to every row of a column,
+and no person reads most of the answers. The failure mode changes
+to match. A one-off answer that is wrong gets caught because you
+were looking at it. A pipeline step that is wrong 8% of the time
+runs unnoticed on thousands of rows. Moreover, the 8% is not wrong
+at random. It is wrong in whatever way the model is biased to be
+wrong. A field may be left blank more often for one phrasing than
+another, or a code may be assigned systematically to the more
+common class when the text is ambiguous. Nothing in that error
+pattern looks like a crash, and the wrong rows look like the other
+92%.
 
-The fix is the same one you would reach for with any classifier,
-rule-based or statistical, that will run unsupervised on new data:
-build a small, labeled validation set where you already know the
-right answer, run the step on it, and compute how often it agrees.
-Only once you have a number, and have decided the number is good
-enough for the decision the field feeds, do you let the step run on
-data nobody will check row by row. This is Habit 8, write the
-assertion that makes the quiet failure loud, applied to a model
-step instead of a hand-written function, with the validation
-harness in the role of the assertion.
+The fix is the same one you would use with any classifier,
+rule-based or statistical, that will run unsupervised on new data.
+Build a small, labeled validation set where you already know the
+right answer. Run the step on it, and compute how often it agrees.
+First obtain a number, and decide whether it is good enough for
+the decision the field feeds. Only then let the step run on data
+nobody will check row by row. This is Habit 8 (write the assertion
+that makes the quiet failure loud) applied to a model step instead
+of a hand-written function. The validation harness plays the role
+of the assertion.
 
 ### A worked example: extracting a dosing frequency from free text
 
 HF-HOME's `medications.csv` has one row per discharge medication
 and a single free-text field, `med_text`, entered differently at
 each site: `Furosemide 40 mg BID`, `carvedilol 6.25mg BID`,
-`Entresto 24-26 mg twice daily`, `digoxin 125 mcg QD`, and the
+`Entresto 24-26 mg twice daily`, `digoxin 125 mcg QD`. The
 codebook lists more variants than any one site uses (mixed case,
 missing spaces, combination doses, and frequency written as a code
 or spelled out). Suppose the analysis plan calls for a dosing
 frequency category, `once daily`, `twice daily`, `as needed`, or
 `other`, for a medication-burden summary. A brittle regex is one
-way to get there and is exactly the failure mode of
-@tbl-ai-failures; an LLM call per row is another, and it inherits
-the same obligation to be checked that the regex does, not a
-different, looser one because the method sounds more capable.
+way to get there, and it is exactly the failure mode of
+@tbl-ai-failures. An LLM call per row is another. It must be
+checked just as the regex must. The method sounding more capable
+does not earn it a looser standard.
 
 Build the validation set first, before writing the extraction
-prompt. Twenty to fifty rows, sampled to cover the variants the
-codebook describes rather than drawn at random (a random sample of
-thousands of `BID` entries teaches you nothing about `b.i.d.` or
-`twice daily`), hand-labeled by reading each string once and
-writing down the category a person would assign:
+prompt. It should have twenty to fifty rows, sampled to cover the
+variants the codebook describes rather than drawn at random. (A
+random sample of thousands of `BID` entries teaches you nothing
+about `b.i.d.` or `twice daily`.) Label each row by hand, reading
+the string once and writing down the category a person would
+assign:
 
 ```{r}
 #| label: ai-eval-label-set
@@ -951,15 +952,16 @@ val_set <- data.frame(
 nrow(val_set)
 ```
 
-A real validation set is 20 to 50 rows, sampled by a person who
-reads the codebook's list of variants and picks rows that exercise
-each one, including the ones nobody has seen go wrong yet; ten
-appear here only so that the chunk below has something to run.
+A real validation set is 20 to 50 rows. A person reads the
+codebook's list of variants and picks rows that exercise each one,
+including the ones nobody has seen go wrong yet. Ten appear here
+only so that the chunk below has something to run.
 
 Run the extraction step on the labeled rows and score it against
-the hand labels, exactly as you would score any other classifier
-(display-only: `ellmer` is not installed in this environment, and
-the call needs an API key; @sec-ai-tooling has the setup):
+the hand labels, exactly as you would score any other classifier.
+The chunk is display-only: `ellmer` is not installed in this
+environment, and the call needs an API key (@sec-ai-tooling has
+the setup):
 
 ```r
 library(ellmer)
@@ -983,68 +985,69 @@ table(predicted = val_set$predicted, true = val_set$label)
 ```
 
 The confusion matrix matters more than the single accuracy number.
-An extraction step that is 90% accurate overall but confuses `as
-needed` with `other` every time is unusable for a PRN-use analysis
-and perfectly fine for a count of scheduled medications; the
-validation set has to be read for which errors it contains, not
-only how many. Decide the threshold before you see the result, the
-same discipline @sec-ai-four-cs asks of the written criteria: a
-field that feeds a sensitivity analysis can tolerate more error than
-one that feeds the primary outcome's covariate adjustment, and
-writing the threshold down first keeps you from lowering the bar
-once you see a disappointing number.
+Suppose an extraction step is 90% accurate overall but confuses
+`as needed` with `other` every time. It is unusable for a PRN-use
+analysis and entirely adequate for a count of scheduled
+medications. The validation set has to be read for which errors it
+contains, not only how many. Decide the threshold before you see
+the result, the same discipline @sec-ai-four-cs asks of the
+written criteria. A field that feeds a sensitivity analysis can
+tolerate more error than one that feeds the primary outcome's
+covariate adjustment. Writing the threshold down first keeps you
+from lowering the bar once you see a disappointing number.
 
 ### What the validation set does and does not establish
 
 An accuracy of 95% on fifty labeled rows is evidence about those
-fifty rows, extended to the rest of the column only by the
-assumption that the fifty are representative of the variation the
-column contains. That assumption is exactly the one a stratified
-sample is built to satisfy and a random sample of mostly-identical
-rows is built to violate. Three further limits apply.
+fifty rows. It extends to the rest of the column only under the
+assumption that the fifty represent the variation the column
+contains. A stratified sample is built to satisfy that assumption.
+A random sample of mostly identical rows tends to violate it.
+Three further limits apply.
 
 **The validation set is a snapshot of one model, one prompt, and
 one date.** A retried call, a changed prompt, or a retired model
-identifier is a new system, and the validation accuracy from before
-the change tells you nothing about after it; @sec-ai-tooling's point
-about model identifiers being retired on a schedule of months
-applies here with more force, because a silent change to a pipeline
-step is harder to notice than a silent change to a chat session. Re-run
-the validation set whenever the model, prompt, or extraction schema
-changes, and record which version of each produced which accuracy.
+identifier is a new system. The validation accuracy from before
+the change tells you nothing about after it. @sec-ai-tooling notes
+that model identifiers are retired on a schedule of months. That
+point applies here with more force, because a silent change to a
+pipeline step is harder to notice than a silent change to a chat
+session. Re-run the validation set whenever the model, prompt, or
+extraction schema changes. Record which version of each produced
+which accuracy.
 
 **Agreement with a human is not agreement with the truth.** The
-labels came from one person reading each string once; two
+labels came from one person reading each string once. Two
 different people may disagree with each other as often as the
 model disagrees with either. For a field where this risk is real,
-have a second person label a subset independently and report their
-agreement alongside the model's, so that the model's score has
-something to be compared with besides itself.
+have a second person label a subset independently. Report their
+agreement alongside the model's, so that the model's score has a
+point of comparison besides itself.
 
-**A validation set this size bounds confidence, it does not
-eliminate the need to look.** Fifty rows cannot rule out a failure
-mode that occurs in one case in a thousand; the HF-HOME medications
-table has nearly 17,000 rows, enough for a rare but systematic
-error to affect a count that still looks reasonable. Spot-check a
-further sample of the model's output after deployment, the way you
-would audit a rule-based pipeline's output on data you have not
-seen, and keep the harness so that a sharper validation set can be
-built later if the field turns out to matter more than it seemed to
-at first.
+**A validation set this size bounds confidence. It does not
+remove the need to look.** Fifty rows cannot rule out a failure
+mode that occurs in one case in a thousand. The HF-HOME
+medications table has nearly 17,000 rows, enough for a rare but
+systematic error to affect a count that still looks reasonable.
+Spot-check a further sample of the model's output after
+deployment, the way you would audit a rule-based pipeline's output
+on data you have not seen. Keep the harness, so that a sharper
+validation set can be built later if the field turns out to matter
+more than it seemed to at first.
 
-This pattern, a labeled validation set, a solver that runs the step,
-and a scorer that compares the two, is general enough that an
-evaluation harness for it looks the same whether the step is an
-LLM call, a rule-based parser, or a statistical classifier: a
-dataset, a function that produces an answer, and a function that
-grades it. Posit's `vitals` package [@couch2026vitals] builds
-exactly this structure around `ellmer` models (display-only; not
-installed in this environment), with a `Task` holding a labeled
-dataset, a solver that calls the model, and a scorer such as exact
-match or a second, model-graded judgment; the dated appendix,
-@sec-ai-tooling, has the specific code. Whether you use a package
-or write the three pieces yourself, as the chunk above did, compute
-the accuracy before the step runs on data nobody reads.
+This pattern has three parts: a labeled validation set, a solver
+that runs the step, and a scorer that compares the two. It is
+general. The harness looks the same whether the step is an LLM
+call, a rule-based parser, or a statistical classifier: a dataset,
+a function that produces an answer, and a function that grades it.
+Posit's `vitals` package [@couch2026vitals] builds exactly this
+structure around `ellmer` models (display-only; not installed in
+this environment). A `Task` holds a labeled dataset, a solver that
+calls the model, and a scorer such as exact match or a second,
+model-graded judgment. The dated appendix, @sec-ai-tooling, has
+the specific code. You may use a package or write the three pieces
+yourself, as the chunk above did. In either case, compute the
+accuracy before the step runs on data nobody reads.
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** A colleague extracts a visit's discharge reason from
@@ -1052,17 +1055,18 @@ free text with an LLM call, checks ten outputs by eye, finds them
 all correct, and ships the field. What is missing, and what number
 should exist before the field is used in an analysis?
 
-**Answer.** Ten rows chosen by looking, rather than by sampling the
-codebook's known variants, measure only that the ten rows the
-colleague happened to read were easy. What is missing is a labeled
-validation set built to cover the variants (abbreviations, site
-differences, ambiguous phrasing) and an accuracy or agreement
-number computed against it, with a threshold decided before the
-number is seen. 'I checked a few and they looked right' is the
-LLM-pipeline version of a structural test that never compares with
-an independently computed value (@sec-testing-correctness): it
-establishes that the output looks plausible, which is exactly what
-an LLM step is least informative about.
+**Answer.** The ten rows were chosen by looking, rather than by
+sampling the codebook's known variants. They show only that the
+ten rows the colleague happened to read were easy. What is missing
+is a labeled validation set built to cover the variants
+(abbreviations, site differences, ambiguous phrasing). Also
+missing is an accuracy or agreement number computed against it,
+with a threshold decided before the number is seen. 'I checked a
+few and they looked right' is the LLM-pipeline version of a
+structural test that never compares with an independently
+computed value (@sec-testing-correctness). It establishes that the
+output looks plausible, which is exactly what an LLM step is least
+informative about.
 :::
 
 ### Exercises
@@ -1085,23 +1089,24 @@ combination product (`sacubitril/valsartan` written out instead of
 `Entresto`), one dose-only string with an ambiguous or truncated
 drug name, and one string using an abbreviation not in the common
 list (for example a compounded or rarely prescribed agent that
-should map to `other`). The rows should be chosen to cover the
-codebook's description of the mess, not sampled at random, because
-a random sample of 17,000 mostly-ordinary rows under-represents
+should map to `other`). Choose the rows to cover the codebook's
+description of the variation; do not sample them at random. A
+random sample of 17,000 mostly ordinary rows under-represents
 exactly the strings most likely to be misclassified.
 
 For a medication-class summary used descriptively, a lower bar is
-defensible, for example 90% exact-match accuracy with no class
-confused with another class more than once, because an occasional
-misclassified row shifts a percentage by a fraction of a point. For
-a primary covariate (for example, 'on an MRA at discharge' used in
-an adjusted model), the bar is higher and the confusion matrix
-matters more than the overall number: a systematic confusion
-between two classes biases every patient's covariate in the same
-direction, which a random error would not. In that case, require
-near-perfect agreement on the classes the covariate uses and treat
-any other confusion as a reason to fall back to a short, explicit
-lookup table that a person reviews, rather than a model call.
+defensible. An example is 90% exact-match accuracy with no class
+confused with another class more than once. An occasional
+misclassified row shifts a percentage by a fraction of a point.
+For a primary covariate (for example, 'on an MRA at discharge'
+used in an adjusted model), the bar is higher. The confusion
+matrix also matters more than the overall number. A systematic
+confusion between two classes biases every patient's covariate in
+the same direction, which a random error would not. In that case,
+require near-perfect agreement on the classes the covariate uses.
+Treat any other confusion as a reason to fall back to a short,
+explicit lookup table that a person reviews, rather than a model
+call.
 :::
 
 ## When not to reach for an LLM {#sec-ai-when-not}
@@ -1110,12 +1115,12 @@ Reach for a model when evaluating its output costs less than
 writing the code yourself. Four kinds of task fail that test.
 
 **Functions you have written many times.** A simple
-`mutate(age_group = cut(...))` is faster typed than prompted; the
+`mutate(age_group = cut(...))` is faster typed than prompted. The
 round trip costs more than the typing.
 
-**Code whose correctness is hard to verify.** A complex regex for
-text you do not have full examples of: the output may be plausible
-and wrong on inputs you have not seen yet.
+**Code whose correctness is hard to verify.** Consider a complex
+regex for text you do not have full examples of. The output may be
+plausible and wrong on inputs you have not seen yet.
 
 **Domain-specific judgments.** Multiple imputation or complete
 case? Is this covariate a confounder? These depend on knowledge of
@@ -1123,8 +1128,9 @@ the study the model does not have. Solicit suggestions; do not
 delegate the judgment.
 
 **Code you cannot afford to ship without understanding.** A
-function in your inference code that other people will rely on:
-audit, test, and review it with full understanding. Write the
+function in your inference code that other people will rely on
+needs to be audited, tested, and reviewed with full
+understanding. Write the
 first draft of such a function yourself, and ask a model to refine
 it only once you can judge the refinement.
 
@@ -1193,10 +1199,10 @@ stopifnot(tinytest::any_fail(positional), !tinytest::any_fail(fixed))
 ```
 
 The fixture is built with the codebook's level order, the ordering
-under which the positional version is wrong, and its expected value
-is computed by hand rather than by either function. In a project,
-`rd_fun` would come from `R/`; here the helper writes each version
-into the test file so that the same test runs against both.
+under which the positional version is wrong. Its expected value is
+computed by hand rather than by either function. In a project,
+`rd_fun` would come from `R/`. Here the helper writes each version
+into the test file, so that the same test runs against both.
 :::
 
 7. *On your own work (no key).* Use a coding agent to refactor a
@@ -1251,6 +1257,6 @@ into the test file so that the same test runs against both.
    in agentic use, silent analytic choices and weakened tests.
 3. Writing the first draft yourself forces you to understand the
    problem. Without that understanding you cannot evaluate the
-   model's proposal: you will accept plausible-looking code whose
+   model's proposal. You will accept plausible-looking code whose
    bugs you cannot see. With it, you can judge the suggestion on
    its merits and spot the small differences that matter.

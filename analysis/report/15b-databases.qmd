@@ -1,18 +1,18 @@
 # Databases and SQL for Biostatisticians {#sec-databases}
 
-Your principal investigator (PI) hands you warehouse credentials,
-not a CSV file. The data you need sit in an institutional
-database, behind a login, and you reach them by writing a query.
-The query runs, returns a tidy table, and gives no sign of what
-it did wrong: a join that silently dropped a patient with no
-match, or one that counted a duplicated laboratory row twice, or
-a filter built by pasting text into SQL that returned every
-patient instead of one. The database does not warn you about any
-of these. The habits of @sec-joins, a stated row count checked
-against the actual one, apply here unchanged, and this chapter
-adds the two that are specific to databases: parameterized
-queries, and a dated extract that records what the warehouse
-returned on the day you asked.
+Suppose your principal investigator (PI) hands you warehouse
+credentials, not a CSV file. The data you need sit in an
+institutional database, behind a login, and you reach them by
+writing a query. The query runs and returns a tidy table. It gives
+no sign of what it did wrong. A join may have silently dropped a
+patient with no match, or counted a duplicated laboratory row
+twice. A filter built by pasting text into SQL may have returned
+every patient instead of one. The database does not warn you about
+any of these. The habits of @sec-joins, a stated row count checked
+against the actual one, apply here unchanged. In this chapter we
+add two habits that are specific to databases. The first is
+parameterized queries. The second is a dated extract that records
+what the warehouse returned on the day you asked.
 
 ::: {.bookepigraph}
 ```{=latex}
@@ -103,14 +103,14 @@ answers are in @sec-quiz-answers-15b.
 
 Clinical data rarely arrive as a file. They live in a REDCap
 (Research Electronic Data Capture) project, an institutional data
-warehouse, or an extract of the electronic health record (EHR),
-and they are usually too large, too sensitive, or too frequently
+warehouse, or an extract of the electronic health record (EHR).
+They are usually too large, too sensitive, or too frequently
 updated to be handed around as flat files. Querying at the source
-has three advantages: you pull only the rows and columns you need,
-you leave the authoritative copy untouched, and the query itself
-records how your analytic dataset was derived. This chapter
-teaches the subset of SQL (Structured Query Language) and of the
-R tooling that covers those needs; schema design, indexing, and
+has three advantages. You pull only the rows and columns you need.
+You leave the authoritative copy untouched. And the query itself
+records how your analytic dataset was derived. In this chapter we
+teach the subset of SQL (Structured Query Language) and of the R
+tooling that covers those needs. Schema design, indexing, and
 transactions belong to a database text and to your
 data-engineering colleagues. The generic tour of `DBI` and
 `dbplyr` is in R for Data Science [@wickham2023r4ds, ch. 21].
@@ -118,7 +118,7 @@ data-engineering colleagues. The generic tour of `DBI` and
 ### A database built from the running study
 
 The `DBI` package (database interface) defines one set of
-functions for every database; a driver package supplies the
+functions for every database. A driver package supplies the
 connection to a particular engine. For teaching, `RSQLite` gives a
 complete SQL database in memory, with no server to configure. The
 same code works against PostgreSQL (`RPostgres`), DuckDB
@@ -126,10 +126,10 @@ same code works against PostgreSQL (`RPostgres`), DuckDB
 `dbConnect()` line.
 
 The chunk below loads four HF-HOME tables into an in-memory
-database: one row per patient in `randomization` and `outcomes`,
-one row per contact in `visits`, and one row per visit and test in
-`labs`. The tables are read with `patient_id` as character, so
-that the leading zeros survive the trip into the database.
+database. `randomization` and `outcomes` have one row per patient,
+`visits` has one row per contact, and `labs` has one row per visit
+and test. The tables are read with `patient_id` as character, so
+that the leading zeros are preserved in the database.
 
 ```{r}
 #| label: db-setup
@@ -157,7 +157,7 @@ dbListTables(con)
 ```
 
 `extended_types = TRUE` makes `RSQLite` store and return dates as
-`Date` values; without it, a date column comes back as a number of
+`Date` values. Without it, a date column comes back as a number of
 days.
 
 ### Credentials and the warehouse boundary
@@ -178,21 +178,22 @@ con <- dbConnect(
 ```
 
 `keyring` stores the password in the operating system's credential
-store, and `Sys.getenv()` reads the user name from `.Renviron`,
-which stays out of Git. Where your institution offers single
-sign-on (SSO) or Kerberos authentication to the warehouse, prefer
-it, because then no password exists in your files at all.
+store. `Sys.getenv()` reads the user name from `.Renviron`, which
+stays out of Git. Where your institution offers single sign-on
+(SSO) or Kerberos authentication to the warehouse, prefer it. No
+password then exists in your files at all.
 
 You usually have read-only access to a warehouse, and that is
-correct: you are a consumer of the data, not its custodian. Do not
-write back. Extract, and do your derivations in your own project.
+correct. You are a consumer of the data, not its custodian. Do not
+write back. Extract the data, and do your derivations in your own
+project.
 
 ::: {.callout-warning title='Pitfall'}
 **A password typed into a script is published by the next
 commit.** Removing it in a later commit does not remove it from
 the repository's history, and a pushed history may already have
-been cloned. Treat any credential that reached Git as compromised:
-ask for it to be rotated, then fix the script.
+been cloned. Treat any credential that reached Git as compromised.
+Ask for it to be rotated, then fix the script.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -205,8 +206,8 @@ enough?
 store with `keyring`, or to SSO if the warehouse supports it, and
 have the password rotated. A private repository is readable by
 every collaborator, every clone, every backup, and anyone who is
-later given access; the history keeps the password after the line
-is deleted. The fix is not complete until the old password no
+later given access. The history also keeps the password after the
+line is deleted. The fix is not complete until the old password no
 longer works.
 :::
 
@@ -234,22 +235,21 @@ dbGetQuery(con, "
 ```
 
 The clauses run in a different order from the one in which they
-are written: `FROM` and `JOIN` assemble the rows, `WHERE` (absent
-here) filters them, `GROUP BY` partitions them, the aggregate
-functions summarize each partition, and `SELECT` names what comes
-back. `dbGetQuery()` returns the result as an ordinary data frame,
-which is what you want for a small summary.
+are written. `FROM` and `JOIN` assemble the rows, and `WHERE`
+(absent here) filters them. `GROUP BY` partitions them, the
+aggregate functions summarize each partition, and `SELECT` names
+what comes back. `dbGetQuery()` returns the result as an ordinary
+data frame, which is what you want for a small summary.
 
 ::: {.callout-warning title='Pitfall'}
 **SQL aggregates skip missing values without saying so.** `AVG()`
 above divides by the ascertained patients only, because the 163
 unascertained outcomes are `NULL`. In R, `mean()` on the same
-column returns `NA` and forces a decision; in SQL the decision has
+column returns `NA` and forces a decision. In SQL the decision has
 already been made, and it changes the denominator. `COUNT(*)`
-counts rows, `COUNT(column)` counts non-missing values, and the
-two disagree exactly when values are missing. State which
-denominator the analysis plan wants (@sec-missing) and count it
-explicitly.
+counts rows and `COUNT(column)` counts non-missing values. The two
+disagree exactly when values are missing. State which denominator
+the analysis plan wants (@sec-missing) and count it explicitly.
 :::
 
 ### The same query through `dbplyr`
@@ -271,8 +271,8 @@ summary_q <- tbl(con, "randomization") |>
 summary_q
 ```
 
-`summary_q` is *lazy*: the pipeline has been recorded, and the
-printout is a preview fetched from the database. `show_query()`
+`summary_q` is *lazy*. That is, the pipeline has been recorded, and
+the printout is a preview fetched from the database. `show_query()`
 prints the SQL that `dbplyr` generated, and `collect()` brings the
 result into R.
 
@@ -287,9 +287,9 @@ by_arm <- summary_q |> collect()
 by_arm
 ```
 
-`na.rm = TRUE` in the pipeline changes nothing in the SQL; it
+`na.rm = TRUE` in the pipeline changes nothing in the SQL. It
 acknowledges that SQL removes missing values whether you ask or
-not, and `dbplyr` warns when you leave it out.
+not. `dbplyr` warns when you leave it out.
 
 ::: {.callout-tip title='Verification'}
 The hand-written query and the `dbplyr` pipeline should agree
@@ -319,8 +319,8 @@ stopifnot(
 ### Translating between SQL and `dplyr`
 
 Most SQL you will read maps clause by clause onto a `dplyr` verb.
-@tbl-sql-dplyr is the translation card; `show_query()` is the way
-to check any row of it against your own database.
+@tbl-sql-dplyr is the translation card. `show_query()` lets you
+check any row of it against your own database.
 
 | SQL | `dplyr` | Note |
 |---|---|---|
@@ -394,10 +394,10 @@ stopifnot(all.equal(collect(first_q), as_tibble(sql_first),
 ```
 
 `dbplyr` writes the join as a subquery and selects every column of
-both tables inside it, where the hand-written version selects only
-what it needs. The database's planner usually makes the two
-equally fast; the generated version is longer, and `show_query()`
-means it is never hidden.
+both tables inside it. The hand-written version selects only what
+it needs. The database's planner usually makes the two equally
+fast. The generated version is longer, but `show_query()` means it
+is never hidden.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -408,10 +408,10 @@ then call `collect()`. How much data crosses into R, and what
 would have happened had you called `collect()` before the
 `filter()`?
 
-**Answer.** One number crosses: the database filters and averages,
+**Answer.** One number crosses. The database filters and averages,
 and returns a one-row result. Had you called `collect()` first, all
 fifty million rows would have been pulled into memory before R did
-any work, which on most laptops exhausts memory and fails. Collect
+any work. On most laptops that exhausts memory and fails. Collect
 as late as possible, after the database has reduced the data to
 the size you need.
 :::
@@ -419,16 +419,15 @@ the size you need.
 ## Joins in SQL fail as joins in R do {#sec-databases-joins}
 
 A join in SQL drops and multiplies rows exactly as a join in
-`dplyr` does, with one difference that makes it worse: SQL has no
-`relationship` argument and no many-to-many warning. The
-HF-HOME `labs` table carries the two planted defects that
-@sec-joins taught you to look for, and both pass through SQL
-without a message.
+`dplyr` does. One difference makes it worse. SQL has no
+`relationship` argument and no many-to-many warning. The HF-HOME
+`labs` table carries the two planted defects that @sec-joins
+taught you to look for. Both pass through SQL without a message.
 
 ### Auditing the keys
 
 Run the audits in the database, before the join. The first query
-looks for a key that should be unique and is not; the second is
+looks for a key that should be unique and is not. The second is
 the SQL anti-join, which lists lab patients with no randomization
 record.
 
@@ -451,16 +450,17 @@ dbGetQuery(con, "
 ```
 
 Two visit-test pairs repeat. The first is an exact duplicate (the
-minimum and maximum agree); the second is a potassium result that
-was re-run with a different value, which no rule in the data can
-resolve. Patient `2433` has laboratory results and was never
+minimum and maximum agree). The second is a potassium result that
+was re-run with a different value, and no rule in the data can
+resolve it. Patient `2433` has laboratory results and was never
 randomized.
 
 ### Two errors that nearly cancel
 
-Now the join a reader of the warehouse would write: the discharge
-NT-proBNP (N-terminal pro-B-type natriuretic peptide) result for
-every randomized patient. There should be one row per patient.
+Now consider the join a typical user of the warehouse would write.
+It asks for the discharge NT-proBNP (N-terminal pro-B-type
+natriuretic peptide) result for every randomized patient. There
+should be one row per patient.
 
 ```{r}
 #| label: db-join-count
@@ -481,9 +481,9 @@ c(patients = n_patients, rows = nrow(discharge_bnp))
 
 The inner join dropped patient `2433`, whose visit is not in
 `visits`, and kept the duplicated row for patient `0373`. One row
-lost and one row gained leave a count that is off by one, which
-is easy to dismiss as close enough. The assertion does not
-dismiss it:
+lost and one row gained leave a count that is off by one. That is
+easy to dismiss as close enough. The assertion does not dismiss
+it:
 
 ```{r}
 #| label: db-join-assert
@@ -495,15 +495,15 @@ stopifnot(nrow(discharge_bnp) == n_patients,
 ::: {.callout-warning title='Pitfall'}
 **A join that drops one row and duplicates another returns a
 count that looks right.** Here the errors leave the count off by
-one; on another extract they cancel exactly, and `nrow()` alone
+one. On another extract they may cancel exactly, and `nrow()` alone
 then passes. Check uniqueness of the key (`HAVING COUNT(*) > 1`)
 and coverage in both directions (the `LEFT JOIN ... IS NULL`
 anti-join) as separate audits, not only the final count. These
 are the first three rows of @tbl-join-checklist, written in SQL.
 :::
 
-The fix belongs in the query, with its rule stated: here,
-`SELECT DISTINCT` removes the exact duplicate, and an explicit
+The fix belongs in the query, with its rule stated. Here,
+`SELECT DISTINCT` removes the exact duplicate. An explicit
 anti-join records the orphan in a log rather than dropping it
 silently. The conflicting potassium pair needs a rule from the
 data manager, not from you.
@@ -564,9 +564,9 @@ stopifnot(all.equal(dup_sql, as.data.frame(dup_r),
                     check.attributes = FALSE))
 ```
 
-`HAVING` filters the groups after aggregation, which is why it,
+`HAVING` filters the groups after aggregation. For this reason it,
 and not `WHERE`, finds the duplicates. The classification decides
-the fix: an exact duplicate can be removed by rule, and a
+the fix. An exact duplicate can be removed by rule, and a
 conflicting one goes back to the data manager with both values.
 :::
 
@@ -608,9 +608,9 @@ stopifnot(all.equal(first_hh, in_memory,
 ```
 
 A database table has no inherent row order, so `window_order()`
-states it; omit it and `row_number()` numbers the rows in whatever
-order the engine reached them, with no warning. In memory,
-`min()` gives the same answer without a window, which is the
+states it. Without it, `row_number()` numbers the rows in whatever
+order the engine reached them, with no warning. In memory, `min()`
+gives the same answer without a window, and that serves as the
 independent check.
 :::
 
@@ -618,22 +618,24 @@ independent check.
 **Question.** SQL has no `relationship = "many-to-one"`. What do
 you write instead, and where in the script does it go?
 
-**Answer.** An audit query before the join (`GROUP BY key HAVING
-COUNT(*) > 1` on the side that should be unique, and a
-`LEFT JOIN ... WHERE key IS NULL` anti-join in each direction that
-matters), and a `stopifnot()` on the row count and on key
-uniqueness after the result reaches R. The audits go before the
-join so that a failure names the bad keys; the assertion goes
-after, so that nothing downstream runs on a multiplied table.
+**Answer.** Write an audit query before the join. It has two
+parts: `GROUP BY key HAVING COUNT(*) > 1` on the side that should
+be unique, and a `LEFT JOIN ... WHERE key IS NULL` anti-join in
+each direction that matters. Then write a `stopifnot()` on the row
+count and on key uniqueness after the result reaches R. The audits
+go before the join, so that a failure names the bad keys. The
+assertion goes after, so that nothing downstream runs on a
+multiplied table.
 :::
 
 ## Parameterized queries {#sec-databases-params}
 
-A query often needs a value from outside: a site, a date range, a
-list of patient identifiers. The tempting way to supply it is to
-paste the value into the query string. The safe way is a
-parameter, which the database driver passes separately from the
-SQL text, so that the value can never be read as SQL.
+A query often needs a value from outside, such as a site, a date
+range, or a list of patient identifiers. The tempting way to
+supply it is to paste the value into the query string. The safe
+way is a parameter. The database driver passes a parameter
+separately from the SQL text, so the value can never be read as
+SQL.
 
 ```{r}
 #| label: db-injection
@@ -652,7 +654,7 @@ dbGetQuery(con,
   params = list("0001"))
 ```
 
-The pasted query returned every randomized patient: the quote
+The pasted query returned every randomized patient. The quote
 inside `requested` closed the string, and `OR '1' = '1'` made the
 condition true for every row. The parameterized query looked for a
 patient whose identifier is that whole odd string, and found none.
@@ -660,11 +662,11 @@ patient whose identifier is that whole odd string, and found none.
 ::: {.callout-warning title='Pitfall'}
 **A pasted query string can return the wrong rows without an
 error.** The input above was deliberate, the classic SQL
-injection; the common accident is a site name or a free-text
-value that contains an apostrophe, which either breaks the query
-or changes what it selects. Pass values with `params =` in
-`dbGetQuery()`, or build the SQL with `glue::glue_sql()`, never
-with `paste0()` or `sprintf()`.
+injection. The common accident is a site name or a free-text
+value that contains an apostrophe. Such a value either breaks the
+query or changes what it selects. Pass values with `params =` in
+`dbGetQuery()`, or build the SQL with `glue::glue_sql()`. Never
+use `paste0()` or `sprintf()`.
 :::
 
 `glue::glue_sql()` quotes each value for the connected database,
@@ -704,12 +706,12 @@ or the connection.
 > one site.
 
 *Failure mode.* Models write an inner join where a left join was
-needed, drop the anti-join audit, and reach for `SELECT DISTINCT`
-to make a count come out right, which hides a conflicting
-duplicate. Models also echo back connection strings and passwords
-you paste, into a chat log you do not control. *Check.* Run the
-key audits of @sec-databases-joins first, then the query, and
-assert the row count you were promised. Send the schema and
+needed, and drop the anti-join audit. They also reach for
+`SELECT DISTINCT` to make a count come out right, which hides a
+conflicting duplicate. Models also echo back connection strings
+and passwords you paste, into a chat log you do not control.
+*Check.* Run the key audits of @sec-databases-joins first, then the
+query, and assert the row count you were promised. Send the schema and
 synthetic rows; never paste credentials, connection strings, or
 patient rows into a prompt (@sec-ai-governance).
 :::
@@ -729,10 +731,10 @@ Rewrite it with `params =` or `glue_sql()`.
 
 ## When to push and when to pull {#sec-databases-push}
 
-@fig-collect-boundary is the central idea of this chapter in one
-picture: `collect()` is a boundary, everything to its left runs in
-the database on the full data, and everything to its right runs in
-R on whatever crossed.
+@fig-collect-boundary shows the central idea of this chapter in one
+picture. `collect()` is a boundary. Everything to its left runs in
+the database on the full data. Everything to its right runs in R
+on whatever crossed.
 
 ```{mermaid}
 %%| echo: false
@@ -764,26 +766,27 @@ flowchart LR
 
 The database is good at set operations on large data: filtering,
 joining, grouping, aggregating. R is good at modeling, plotting,
-iteration, and anything else statistical. A useful test: if a step
-makes the data smaller, it usually belongs before `collect()`; if
-it needs R's statistical machinery (fitting a mixed model, drawing
-a figure), it belongs after.
+iteration, and anything else statistical. A useful test is the
+following. If a step makes the data smaller, it usually belongs
+before `collect()`. If it needs R's statistical machinery (fitting
+a mixed model, drawing a figure), it belongs after.
 
-Two cautions. Not every R function has a SQL translation; `dbplyr`
-says when it cannot translate a call, and you then rewrite it or
-collect earlier. And a query that is cheap to write can be
-expensive to run: on a shared warehouse, a careless cross-join
-slows every other user, so test on a `LIMIT`-ed subset first.
+Two cautions apply. First, not every R function has a SQL
+translation. `dbplyr` says when it cannot translate a call, and you
+then rewrite it or collect earlier. Second, a query that is cheap
+to write can be expensive to run. On a shared warehouse, a careless
+cross-join slows every other user, so test on a `LIMIT`-ed subset
+first.
 
 ### DuckDB and Parquet for larger-than-memory data
 
-When the data are files rather than a server, and too large to
-read into R comfortably, the default as of 2026 is DuckDB, an
-in-process analytical database, reading Parquet, a compressed
-columnar file format that `arrow` [@richardson2026arrow] writes.
-DuckDB queries the file where it lies and reads only the columns a
-query uses. The chunk below runs only if `duckdb` and `arrow` are
-installed.
+Sometimes the data are files rather than a server, and too large
+to read into R comfortably. The default tool for this case, as of
+2026, is DuckDB, an in-process analytical database. DuckDB reads
+Parquet, a compressed columnar file format that `arrow`
+[@richardson2026arrow] writes. It queries the file where it lies
+and reads only the columns a query uses. The chunk below runs only
+if `duckdb` and `arrow` are installed.
 
 ```{r}
 #| label: db-duckdb
@@ -803,9 +806,9 @@ dbDisconnect(duck, shutdown = TRUE)
 ```
 
 The same `DBI` and `dbplyr` code works against the DuckDB
-connection; only the `dbConnect()` line and the file-reading
+connection. Only the `dbConnect()` line and the file-reading
 function differ. The counts include the two duplicated rows and
-the orphan patient, because a file format fixes nothing about the
+the orphan patient. A change of file format does not correct the
 data in it.
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -824,15 +827,15 @@ whole extract in memory.
 ## Worked example: a reproducible extract {#sec-databases-worked}
 
 A committed query records how an extract was defined. It does not
-record what the extract contained, because a warehouse changes:
-records are corrected, late lab results arrive, a patient
+record what the extract contained, because a warehouse changes.
+Records are corrected, late lab results arrive, and a patient
 withdraws consent and their rows are purged. Run the same query
-six months later and you get a different table, with no error.
-So treat the extract, not the query, as the raw data
-(@sec-apis): run the query once, deliberately, write the
-result to a dated file, and keep the query text and a checksum of
-the file beside it. The analysis reads the file; the query stays
-as provenance.
+six months later and you get a different table, with no error. We
+therefore treat the extract, not the query, as the raw data
+(@sec-apis). Run the query once, deliberately, and write the result
+to a dated file. Keep the query text and a checksum of the file
+beside it. The analysis reads the file, and the query stays as
+provenance.
 
 ```{r}
 #| label: db-extract
@@ -868,7 +871,7 @@ list.files(extract_dir)
 ```
 
 The query is a left join from `randomization`, so every randomized
-patient appears whatever `outcomes` holds, and the assertions run
+patient appears, whatever `outcomes` holds. The assertions run
 before the file is written. On a real warehouse, add the
 warehouse's snapshot or refresh identifier to the provenance file
 if it publishes one.
@@ -897,12 +900,13 @@ provenance
 the hospital warehouse, and the query is committed. Is the
 analysis reproducible?
 
-**Answer.** The code is; the analysis is not. A committed query is
-an instruction whose result depends on when it ran, unlike a file
-in `data/raw/`. The dated extract with its query, row count, and
-checksum is what makes the analysis reproducible, and it is the
-file that gets archived. @sec-apis gives an acquisition script
-the same role for a different source.
+**Answer.** The code is reproducible, but the analysis is not. A
+committed query is an instruction whose result depends on when it
+ran. A file in `data/raw/` does not change in that way. The dated
+extract with its query, row count, and checksum is what makes the
+analysis reproducible, and it is the file that gets archived.
+@sec-apis gives an acquisition script the same role for a
+different source.
 :::
 
 ```{r}
@@ -914,24 +918,24 @@ dbDisconnect(con)
 ## Rules of thumb
 
 1. **Habit 6: count before and after every join, in SQL too.**
-   SQL has no `relationship` argument; audit uniqueness and
+   SQL has no `relationship` argument. Audit uniqueness and
    coverage with `HAVING` and an anti-join, and assert the count
    after the result reaches R.
 2. **Habit 2: raw data are evidence.** The dated extract is the
-   raw data and the query is its provenance; the analysis reads the
-   file, never the live warehouse.
+   raw data, and the query is its provenance. The analysis reads
+   the file, never the live warehouse.
 3. **Habit 8: a bug that produces a plausible number is the
    expensive kind.** A pasted query string and a silently skipped
-   `NULL` both return a tidy table; parameterize, and count the
+   `NULL` both return a tidy table. Parameterize, and count the
    denominator explicitly.
 
 ## Cumulative practice
 
-5. *Cumulative (uses @sec-joins).* Walk @tbl-join-checklist in SQL
-   for the join of `labs` to `visits` to `randomization` in this
-   chapter's database: write each audit as a query, predict the
-   row count of the join for the day-30 clinic creatinine, run it,
-   and assert the prediction in R.
+5. *Cumulative (uses @sec-joins).* Work through
+   @tbl-join-checklist in SQL for the join of `labs` to `visits` to
+   `randomization` in this chapter's database. Write each audit as
+   a query, and predict the row count of the join for the day-30
+   clinic creatinine. Then run it, and assert the prediction in R.
 6. *On your own work (no key).* Take a database you query, or a
    DuckDB file built from data you have. Replace one pasted query
    string with a parameterized one, and write the extract it feeds
@@ -978,10 +982,10 @@ dbDisconnect(con)
 The prediction is one row per day-30 clinic visit, because no
 creatinine at that visit is duplicated and every patient in
 `visits` was randomized. The orphan `2433` has a lab row but no
-visit, so it cannot enter a join that goes through `visits`; the
+visit, so it cannot enter a join that goes through `visits`. The
 anti-join that finds it is the one from `labs` to `randomization`
 in @sec-databases-joins. Not every patient has a day-30 visit, so
-the count is smaller than the number randomized, and that is the
+the count is smaller than the number randomized. That is the
 expected value, not a defect.
 :::
 
@@ -1019,14 +1023,14 @@ expected value, not a defect.
 
 ## Prerequisites answers {#sec-quiz-answers-15b}
 
-1. `dbGetQuery()` sends a query and returns only its result; a
-   `SELECT` with filtering and aggregation returns a small summary
-   regardless of table size. `dbReadTable()` reads an entire table
-   into memory, so on a ten-million-row table it pulls all ten
+1. `dbGetQuery()` sends a query and returns only its result. A
+   `SELECT` with filtering and aggregation returns a small summary,
+   whatever the table size. `dbReadTable()` reads an entire table
+   into memory. On a ten-million-row table it pulls all ten
    million rows across, which is slow and may exhaust memory. Use
    `dbGetQuery()` (or lazy `dbplyr`) to let the database do the
    reduction.
-2. A `dbplyr` pipeline builds a query lazily: each verb adds to a
+2. A `dbplyr` pipeline builds a query lazily. Each verb adds to a
    SQL statement that has not yet run. No computation crosses into
    R until you call `collect()` (or print, which fetches a
    preview). The computation happens in the database; R receives

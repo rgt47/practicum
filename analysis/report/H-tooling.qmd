@@ -9,29 +9,31 @@ calling a model from R, the model identifier, the names of the
 coding agents in common use, and the `btw` and Model Context
 Protocol (MCP) setup, each as it stood in October 2026. Package
 interfaces, product names, and model identifiers change on a
-schedule of months, so the chapter keeps the durable practice
-(the four Cs, the failure modes, governance, and provenance) and
-sends the reader here for the commands. When the commands below
-stop working, rewrite this appendix against the current
-documentation; nothing in the chapter should need to change.
+schedule of months. The chapter therefore keeps the durable
+practice (the four Cs, the failure modes, governance, and
+provenance) and sends the reader here for the commands. When the
+commands below stop working, rewrite this appendix against the
+current documentation. Nothing in the chapter should need to
+change.
 :::
 
 ## Models and agents from R {#sec-ai-tooling}
 
 Everything in this section is perishable. @sec-ai-coding does
-not depend on it, and every rule of
-@sec-ai-governance applies to each tool below.
+not depend on it, and every rule of @sec-ai-governance applies to
+each tool below.
 
 ### Calling a model from R with `ellmer`
 
 `ellmer` [@wickham2026ellmer], from Posit, provides an R interface
 to LLM APIs (application programming interfaces). A prompt in a
-script is versionable, where a copy-paste from a chat window is
-not; an LLM call can sit inside an R function that takes input
-from your pipeline and returns output to it; and `ellmer` supports
-tool use (the model calls R functions you provide), structured
-output (validated against a schema), and streaming. Display-only,
-because it needs an API key:
+script can be put under version control, whereas a copy-paste
+from a chat window cannot. An LLM call can sit inside an R
+function that takes input from your pipeline and returns output
+to it. In addition, `ellmer` supports tool use (the model calls R
+functions you provide), structured output (validated against a
+schema), and streaming. The following is display-only, because it
+needs an API key:
 
 ```r
 install.packages("ellmer")
@@ -51,10 +53,10 @@ stream <- chat$stream("Long analysis...")
 coro::loop(for (chunk in stream) cat(chunk))
 ```
 
-Older code and tutorials call `chat_claude()`; current `ellmer`
+Older code and tutorials call `chat_claude()`. Current `ellmer`
 names the function `chat_anthropic()`, after the provider rather
 than the model family. Keep the model identifier in one variable,
-as here, and record its value alongside your results: a script
+as here, and record its value alongside your results. A script
 that names a retired model stops running, and a result produced by
 an unrecorded model cannot be reproduced.
 
@@ -93,26 +95,28 @@ for review, checked against your own reading.
 ### Coding agents
 
 An interactive coding agent gives the model direct file-edit and
-shell access: it reads files, makes targeted edits, runs the
-tests, and iterates on the output. As of October 2026 the common
-ones are Claude Code, Codex CLI, Gemini CLI, and GitHub Copilot CLI
-in the terminal (CLI, command-line interface), and Cursor and
-Positron Assistant in the IDE (integrated development environment).
-Reach for one for multi-file refactors where the model needs the
-whole project, for iterative debugging where it needs to run the
-code and observe failures, and for large tasks where copy-paste
-would be tedious. Use a chat window for quick lookups, and write
-the code yourself where you want control of every edit. An agent
-is more capable and more dangerous than a chat window, and every
-rule in @sec-ai-governance applies to it.
+shell access. That is, it reads files, makes targeted edits, runs
+the tests, and iterates on the output. As of October 2026 the
+common ones in the terminal (CLI, command-line interface) are
+Claude Code, Codex CLI, Gemini CLI, and GitHub Copilot CLI. In the
+IDE (integrated development environment) they are Cursor and
+Positron Assistant. An agent is suited to multi-file refactors
+where the model needs the whole project. It is also suited to
+iterative debugging where the model needs to run the code and
+observe failures, and to large tasks where copy-paste would be
+tedious. Use a chat window for quick lookups, and write the code
+yourself where you want control of every edit. An agent is more
+capable and more dangerous than a chat window, and every rule in
+@sec-ai-governance applies to it.
 
 ### Live documentation with `btw`
 
 The `btw` package gives a model the documentation of your
-installed packages and a view of the R session, either by copying
-that context for a chat window or as an MCP server that an agent
-calls. As of October 2026 the setup is as follows (display-only;
-check the package README, because these interfaces change):
+installed packages and a view of the R session. It does this
+either by copying that context for a chat window or as an MCP
+server that an agent calls. As of October 2026 the setup is as
+follows. It is display-only; check the package README, because
+these interfaces change.
 
 ```r
 install.packages("btw")
@@ -124,11 +128,11 @@ claude mcp add -s user r-btw -- Rscript -e "btw::btw_mcp_server()"
 ```
 
 The first call gathers a package overview, a help page, and a
-description of a data frame for pasting into a chat; the second
-registers `btw`'s MCP server with Claude Code, and other agents
-have equivalent commands. A description of a data frame includes
-values from it, so the governance rules apply to what `btw` sends:
-point it at synthetic data.
+description of a data frame for pasting into a chat. The second
+registers `btw`'s MCP server with Claude Code; other agents have
+equivalent commands. A description of a data frame includes
+values from it, so the governance rules apply to what `btw` sends.
+Point it at synthetic data.
 
 ### Exercises
 
@@ -150,21 +154,21 @@ summarize_code <- function(code, model_id) {
 ```
 
 The identifier is an argument rather than a string inside the
-function, so it is set and recorded in one place, and the
-attributes carry the provenance with the result. The function
-sends code only; pass it nothing that contains data.
+function, so it is set and recorded in one place. The attributes
+carry the provenance with the result. The function sends code
+only; pass it nothing that contains data.
 :::
 
 ### The LLM-evaluation harness, as of October 2026 {#sec-tooling-eval}
 
-@sec-ai-eval describes the durable idea: before an LLM step runs
+@sec-ai-eval describes the durable idea. Before an LLM step runs
 unsupervised on a column of data, build a labeled validation set,
 score the step against it, and decide a threshold before you see
 the number. The code that implements that idea belongs in this
 appendix, because the function names on an LLM client change
-faster than the practice does. The script
-below is complete enough to run as written, given an API key and
-the packages installed; the HF-HOME `med_text` example is the one
+faster than the practice does. The script below is complete
+enough to run as written, given an API key and the packages
+installed. The HF-HOME `med_text` example is the one
 @sec-ai-eval walks through by hand.
 
 ```r
@@ -223,37 +227,36 @@ reasonable-looking first draft goes wrong.
 First, the model identifier is a parameter instead of a literal
 buried in the classifier function. `run_eval()` takes `model_id`
 and writes it into the log line alongside the date and the
-accuracy. When the
-identifier is retired, as @sec-ai-tooling's warning about
-`ellmer`'s model lifecycle describes, the log shows exactly which
-accuracy number belongs to which model, and re-running the harness
-against the replacement is a one-line change at the call site, not
-a search through the codebase for a hard-coded string.
+accuracy. Eventually the identifier is retired, as
+@sec-ai-tooling's warning about `ellmer`'s model lifecycle
+describes. When that happens, the log shows exactly which accuracy
+number belongs to which model. Re-running the harness against the
+replacement is then a one-line change at the call site, not a
+search through the codebase for a hard-coded string.
 
 Second, the threshold is enforced by a `stopifnot()` instead of
-stated in a comment. `accuracy >=
-0.90` is written here as a number chosen for illustration; in a
-real project it is the number decided in advance, per
-@sec-ai-eval's point about deciding the bar before seeing the
-result, and failing loudly, the same discipline
-@sec-testing-ci applies to a test suite's exit status, is what
-keeps a disappointing validation run from being quietly waved
-through.
+stated in a comment. Here `accuracy >= 0.90` is a number chosen
+for illustration. In a real project it is the number decided in
+advance, following @sec-ai-eval's point about deciding the bar
+before seeing the result. The script then fails loudly when the
+bar is missed. This is the same discipline @sec-testing-ci
+applies to a test suite's exit status, and it keeps a
+disappointing validation run from being quietly accepted.
 
 Third, the log is appended to, never overwritten.
-`eval-log.txt` accumulates one line per run, so that a later
-reader (including the harness's
-own author) can see the accuracy trend across model and prompt
-changes rather than only the most recent number. Commit this log
-alongside the code, the same provenance habit @sec-ai-practice
-teaches for a single generated function, extended to a step that
-runs many times.
+`eval-log.txt` accumulates one line per run. A later reader
+(including the harness's own author) can then see the accuracy
+trend across model and prompt changes rather than only the most
+recent number. Commit this log alongside the code. This is the
+same provenance habit @sec-ai-practice teaches for a single
+generated function, extended to a step that runs many times.
 
-For a project that wants the dataset-solver-scorer structure built
-for it rather than hand-rolled as above, `vitals` [@couch2026vitals]
-expresses the same harness as a `Task` (display-only; current as of
-October 2026, check the package's own vignette for the exact
-interface before relying on it):
+Some projects will want the dataset-solver-scorer structure built
+for them rather than written by hand as above. For those, `vitals`
+[@couch2026vitals] expresses the same harness as a `Task`. The
+code is display-only and current as of October 2026; check the
+package's own vignette for the exact interface before relying on
+it.
 
 ```r
 library(vitals)
@@ -266,10 +269,10 @@ freq_task <- Task$new(
 freq_task$eval(model = "claude-opus-5-5", epochs = 1)
 ```
 
-`vitals` writes its evaluation log in the same format Inspect uses,
-which is useful mainly if you expect to outgrow R for this task and
-want a log format the Python tooling can read; for a single
-column of a single compendium, the hand-written harness above is
-often the simpler choice, and it is the one that needs no further
+`vitals` writes its evaluation log in the same format Inspect uses.
+This is useful mainly if you expect to outgrow R for this task and
+want a log format the Python tooling can read. For a single column
+of a single compendium, the hand-written harness above is often
+the simpler choice. It is also the one that needs no further
 package to be understood.
 

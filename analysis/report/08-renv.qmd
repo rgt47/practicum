@@ -1,15 +1,15 @@
 # renv for Package Management {#sec-renv}
 
 A project that worked in January may fail in July because a
-dependency changed underneath it, and a failure is the easy case,
-because it is loud and gets fixed. The dangerous case is the one
-where nothing fails: the code still runs, the report still
+dependency changed underneath it. A failure is the easy case,
+because it is noticed and gets fixed. The dangerous case is the
+one where nothing fails. The code still runs, the report still
 renders, and one of the numbers is different, because a default
-changed or a tie is now broken the other way. The analyst who
-re-runs the old analysis and gets a slightly different table has
-no way, without a record of what was installed the first time, to
-tell a genuine correction from a silent regression. `renv`
-supplies that record: it pins the exact package versions a project
+changed or a tie is now broken the other way. Suppose an analyst
+re-runs the old analysis and gets a slightly different table.
+Without a record of what was installed the first time, the analyst
+cannot tell a genuine correction from a silent regression. `renv`
+supplies that record. It pins the exact package versions a project
 uses in a lockfile, so that any discrepancy can be traced to a
 specific change.
 
@@ -90,11 +90,11 @@ answers are in @sec-quiz-answers-08.
 ## The renv cycle {#sec-renv-cycle}
 
 `renv` [@ushey2026renv] succeeded `packrat`, now deprecated, and is
-maintained by Posit; it is the standard for project-level R
+maintained by Posit. It is the standard for project-level R
 package management. There are only three verbs to learn, and they
 behave exactly as documented. What `renv` cannot decide is when to
-use them, and a lockfile snapshotted at the wrong moments records
-a history nobody can read.
+use them. A lockfile snapshotted at the wrong moments records a
+history nobody can read.
 
 ### Initializing a project
 
@@ -116,7 +116,7 @@ renv::init()
 
 : The files `renv::init()` creates. {#tbl-renv-files}
 
-The `.Rprofile` bootstrap is the right default: it ensures that
+The `.Rprofile` bootstrap is the right default. It ensures that
 collaborators get the project library without thinking about it.
 Disable it only for a specific reason, such as a shared server
 project where users deliberately run different package versions.
@@ -132,22 +132,22 @@ not your global one. On macOS the result looks like this
 #> [2] "/Users/you/Library/Caches/org.R-project.R/R/renv/sandbox/..."
 ```
 
-The second entry is the *sandbox*: a read-only library holding only
-R's base and recommended packages, which keeps packages from your
-global library out of the project. The package *cache* does not
-appear in `.libPaths()` at all; it sits behind the project
-library, which links to it, and it is shared across projects on
-the same machine, so installing a package another project already
-has is fast.
+The second entry is the *sandbox*. It is a read-only library
+holding only R's base and recommended packages, and it keeps
+packages from your global library out of the project. The package
+*cache* does not appear in `.libPaths()` at all. It sits behind the
+project library, which links to it. The cache is shared across
+projects on the same machine, so installing a package another
+project already has is fast.
 
 ### Snapshot and restore
 
 The two verbs at the center of `renv` move in opposite directions
 across the same boundary, as @fig-renv-cycle shows. `snapshot()`
 reads the state of your project library and writes it to
-`renv.lock`; `restore()` reads `renv.lock` and rebuilds the library
-to match. The lockfile is the durable record that travels in Git;
-the library is the disposable build product it regenerates.
+`renv.lock`. `restore()` reads `renv.lock` and rebuilds the library
+to match. The lockfile is the durable record that travels in Git.
+The library is the disposable build product it regenerates.
 
 ```{mermaid}
 %%| echo: false
@@ -176,8 +176,8 @@ renv::snapshot()
 ```
 
 `renv::snapshot()` finds the packages your code references, by the
-static scan described in @sec-renv-honest, looks up the versions
-installed in the project library, and updates `renv.lock`. To
+static scan described in @sec-renv-honest. It looks up the versions
+installed in the project library and updates `renv.lock`. To
 recreate the environment elsewhere, clone the repository and run:
 
 ```r
@@ -189,11 +189,10 @@ library. The first restore takes a while (downloads and builds);
 later restores reuse the cache.
 
 Snapshot at meaningful moments, not after every
-`install.packages()`: at project start, when a dependency
-intentionally changes, and before each submission. A snapshot
-after every install produces noisy commits, and the lockfile's Git
-history is the story of the project's dependencies; keep it
-readable.
+`install.packages()`. These are project start, any intentional
+change to a dependency, and each submission. A snapshot after
+every install produces noisy commits. The lockfile's Git history
+is the record of the project's dependencies, so keep it readable.
 
 ### Reading `status()`
 
@@ -228,10 +227,10 @@ choose the direction for you.
 > or lockfile) is the truth and why, citing my situation above.
 > State what `git diff renv.lock` should show after your command.
 
-*Failure mode.* Models confuse the direction: `restore()` after a
-deliberate upgrade silently downgrades the package, and
-`snapshot()` on a fresh clone overwrites a collaborator's lockfile
-with whatever your machine happens to have. *Check.* Run
+*Failure mode.* Models confuse the direction. `restore()` after a
+deliberate upgrade silently downgrades the package. `snapshot()` on
+a fresh clone overwrites a collaborator's lockfile with whatever
+your machine happens to have. *Check.* Run
 `renv::status()` again, which should report no issues, and read
 `git diff renv.lock`, which should change only the packages you
 meant to change. A status report and a lockfile hold package
@@ -247,11 +246,11 @@ if you `restore()` instead of `snapshot()`?
 **Answer.** `restore()` reads the lockfile and installs *that*
 version, so it downgrades `dplyr` from 1.1.4 to 1.1.0. To keep
 1.1.4, `snapshot()` instead, which updates the lockfile to match
-what you have installed. Snapshot writes from library to lockfile;
-restore writes from lockfile to library. The disagreement
-`status()` flags means you have to decide which direction to go:
-restore when the lockfile is the truth (a fresh clone), snapshot
-when the library is the truth (a deliberate upgrade).
+what you have installed. Snapshot writes from library to lockfile,
+and restore writes from lockfile to library. When `status()` flags
+a disagreement, you have to decide which direction to go. Restore
+when the lockfile is the truth (a fresh clone). Snapshot when the
+library is the truth (a deliberate upgrade).
 :::
 
 ## What the lockfile records {#sec-renv-lockfile}
@@ -289,10 +288,10 @@ The fields that matter:
 
 Lockfiles written by earlier versions of `renv` also carry a
 `Hash` field, which `renv` uses to identify an installation in its
-cache; the lockfile above has none. The lockfile stores names,
-versions, and sources, never binaries, so it is portable between
-macOS and Linux by construction: each machine builds or downloads
-the binaries appropriate to its own architecture.
+cache. The lockfile above has none. The lockfile stores names,
+versions, and sources, never binaries. It is therefore portable
+between macOS and Linux by construction, since each machine builds
+or downloads the binaries appropriate to its own architecture.
 
 ### Which packages it records
 
@@ -320,7 +319,7 @@ renv::snapshot()
 
 The lockfile records the source (the GitHub commit, or the
 Bioconductor release), and `restore()` reinstalls from the same
-source. For GitHub packages the pin is exact: later commits to the
+source. For GitHub packages the pin is exact. Later commits to the
 repository do not reach your project unless you upgrade
 deliberately. The book's own lockfile holds one GitHub package:
 
@@ -361,7 +360,7 @@ In your own project, replace `"../../renv.lock"` above with
 a 40-character hexadecimal string, and `RemoteRef` names the branch
 or tag it came from. If `RemoteSha` is missing, the package was
 installed some other way (for example with `remotes` outside the
-project library); reinstall it with `renv::install()` and snapshot
+project library). Reinstall it with `renv::install()` and snapshot
 again. The Verification above is the general form of this check.
 :::
 
@@ -372,9 +371,9 @@ give them your R version?
 
 **Answer.** Neither. The lockfile records package names, versions,
 and sources, and each machine builds or downloads its own
-binaries, which is why the same lockfile works on both systems.
-It records your R version in `R$Version` but does not install it;
-a colleague on a different R gets your package versions on their
+binaries. That is why the same lockfile works on both systems.
+It records your R version in `R$Version` but does not install it.
+A colleague on a different R gets your package versions on their
 interpreter. Pinning R itself is the container's job
 (@sec-renv-docker).
 :::
@@ -382,29 +381,29 @@ interpreter. Pinning R itself is the container's job
 ## Keeping the lockfile honest {#sec-renv-honest}
 
 A lockfile is only as good as the moments at which it was written.
-Three practices keep it an accurate record: upgrade deliberately,
+Three practices keep it an accurate record. Upgrade deliberately,
 make sure it contains everything the code loads, and audit it
 before you tag a release.
 
 ### Upgrading deliberately
 
-`renv` does not update your packages unless you ask, which is a
-feature. When a security fix or a useful feature appears, upgrade
-one package deliberately, re-run the analysis, compare the results
-with the previous run, then snapshot and commit. Resist upgrading
-everything at once: if a number moves, you then cannot say which
-package moved it.
+`renv` does not update your packages unless you ask, and this is
+intended. When a security fix or a useful feature appears, upgrade
+one package deliberately and re-run the analysis. Compare the
+results with the previous run, then snapshot and commit. Resist
+upgrading everything at once. If a number moves, you then cannot
+say which package moved it.
 
 ::: {.callout-warning title='Pitfall'}
 **A snapshot after an unreviewed upgrade records the regression as
 the new truth.** Running `update.packages()` or `renv::update()`
 and then `renv::snapshot()` without re-running the analysis is
-exactly the January-to-July failure: the lockfile now pins the
+exactly the January-to-July failure. The lockfile now pins the
 versions that changed the number, and the old versions survive
 only in Git history. Compare the results before you snapshot.
 :::
 
-Restoring an old lockfile years later raises a second problem: the
+Restoring an old lockfile years later raises a second problem. The
 recorded versions may now be available only as source, which must
 be compiled. Posit Public Package Manager (P3M) serves CRAN as it
 stood on any given date, with prebuilt Linux binaries. Pointing the
@@ -428,9 +427,10 @@ renv::snapshot()
 For a project that has been using packages without `renv`, run
 `renv::init()` from inside it. `init()` calls
 `renv::dependencies()`, which scans the project's R, R Markdown,
-and Quarto files *statically*, without running them, for
-`library()`, `require()`, `requireNamespace()`, and `pkg::fn()`
-calls, installs what it finds, and writes an initial lockfile. If
+and Quarto files *statically*, without running them. The scan looks
+for `library()`, `require()`, `requireNamespace()`, and `pkg::fn()`
+calls. `init()` then installs what it finds and writes an initial
+lockfile. If
 the project has a `DESCRIPTION` file with `Imports:` declarations,
 `renv` uses those as well.
 
@@ -458,8 +458,8 @@ setdiff(c("dplyr", "survival", "ggplot2"), found$Package)
 
 The scan finds `dplyr` and `survival` and misses `ggplot2`, whose
 name is held in a variable. A lockfile built from this scan would
-omit it, and a collaborator's `restore()` would succeed and then
-the script would fail at the `library()` call.
+omit it. A collaborator's `restore()` would succeed, and then the
+script would fail at the `library()` call.
 
 ::: {.callout-tip title='Verification'}
 List every indirectly loaded package as a plain `library()` call in
@@ -485,7 +485,7 @@ Before a project is submitted for publication or deposited (for
 example to Zenodo), audit it with the community tools first.
 `renv::status()` confirms that the library and the lockfile agree
 and that every package the code uses is recorded
-(@tbl-renv-status); `renv::dependencies()` lists what the code
+(@tbl-renv-status). `renv::dependencies()` lists what the code
 loads. Together they catch the common drift: a forgotten
 `snapshot()`, a package added without a lockfile update, and a
 colleague's machine that ran `update.packages()` outside `renv`.
@@ -494,20 +494,20 @@ One way to automate part of the audit is the in-house `zzrenvcheck`
 package (@sec-lab-software), which `zzcollab` projects run through
 `make check-renv` (@sec-zzcollab). Its `check_packages()` compares
 the code against `DESCRIPTION` and, separately, `DESCRIPTION`
-against `renv.lock`; by default it does not include indirect
-dependencies, so it can report success while `renv::status()` still
-lists packages missing from the lockfile, and it does not flag a
-locked package nothing uses. It reads files only and never inspects
-the installed library, so it is a narrower, faster check to run
-often, not a replacement for `renv::status()`, which remains the
-authority before a release.
+against `renv.lock`. By default it does not include indirect
+dependencies. It can therefore report success while
+`renv::status()` still lists packages missing from the lockfile.
+Nor does it flag a locked package that nothing uses. It reads
+files only and never inspects the installed library. It is thus a
+narrower, faster check to run often. It is not a replacement for
+`renv::status()`, which remains the authority before a release.
 
 ```r
 zzrenvcheck::check_packages()
 ```
 
 Resolve every issue `check_packages()` reports, then run
-`renv::status()` to confirm; it checks more than `zzrenvcheck`
+`renv::status()` to confirm. It checks more than `zzrenvcheck`
 does.
 
 ### Exercises
@@ -523,21 +523,22 @@ found, and a `renv::dependencies()` list that contains every
 package you know the analysis loads. Each fix should appear as a
 small, readable change in `git diff renv.lock`. A diff that
 changes dozens of versions means a snapshot recorded an upgrade
-you did not intend; revert it and upgrade one package at a time.
+you did not intend. Revert it and upgrade one package at a time.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
 **Question.** In the toy project, why does the static scan miss
-`ggplot2`, and why is the failure that follows only *eventually*
-loud?
+`ggplot2`, and why does the failure that follows appear only
+*eventually*?
 
 **Answer.** `renv::dependencies()` reads the source without running
-it, so it sees `library(plot_pkg, character.only = TRUE)` but
-cannot know that `plot_pkg` holds `"ggplot2"`. On your machine
-nothing fails, because `ggplot2` is already installed. The failure
-appears only when someone restores the lockfile on a clean machine
-and runs the script, possibly months later and after the analysis
-has been reported. The `_dependencies.R` file makes it loud now.
+it. It sees `library(plot_pkg, character.only = TRUE)` but cannot
+know that `plot_pkg` holds `"ggplot2"`. On your machine nothing
+fails, because `ggplot2` is already installed. The failure appears
+only when someone restores the lockfile on a clean machine and
+runs the script. That may be months later, after the analysis has
+been reported. The `_dependencies.R` file makes the omission
+visible now.
 :::
 
 ## Worked example: a project's lifecycle {#sec-renv-worked}
@@ -579,8 +580,8 @@ git tag -a v1.0-submission \
 git push origin v1.0-submission
 ```
 
-The lockfile evolves through the project's life, recording each
-dependency change as a commit, and the tag captures the exact
+The lockfile changes over the project's life, and each dependency
+change is recorded as a commit. The tag captures the exact
 environment at submission for later reproduction.
 
 ::: {.callout-tip title='Verification'}
@@ -593,7 +594,7 @@ Rscript -e 'renv::status()'
 ```
 
 The first command prints the start of the lockfile as of the tag,
-including its R version; the second should report no issues.
+including its R version. The second should report no issues.
 :::
 
 ::: {.callout-note collapse='true' title='Check'}
@@ -605,7 +606,7 @@ differs in the fourth decimal place. What do you do before
 upgraded package's NEWS for a changed default or a fixed bug, and
 decide whether the new number is a correction or a regression. If
 it is a correction, snapshot, commit, and say in the commit
-message what changed and why; if it is a regression, `restore()`
+message what changed and why. If it is a regression, `restore()`
 returns the library to the recorded version. Either way the
 lockfile and its history record the decision.
 :::
@@ -613,10 +614,10 @@ lockfile and its history record the decision.
 ## renv inside a container {#sec-renv-docker}
 
 `renv` pins R packages. It does not pin R itself, the system
-libraries that packages link to, or the operating system, so the
-book pairs it with Docker in @sec-docker. The part of a Dockerfile
-that belongs to `renv` is four lines; the full file, with a
-digest-pinned base image and a `.dockerignore`, is in
+libraries that packages link to, or the operating system. For that
+reason the book pairs it with Docker in @sec-docker. The part of a
+Dockerfile that belongs to `renv` is four lines. The full file,
+with a digest-pinned base image and a `.dockerignore`, is in
 @sec-docker-canonical.
 
 ```dockerfile
@@ -626,9 +627,9 @@ RUN R -q -e "renv::restore(prompt = FALSE)"
 COPY . .
 ```
 
-Docker caches each layer, so copying the lockfile and its two
-small bootstrap files *before* the project means that edits to the
-project do not invalidate the slow package-installation layer.
+Docker caches each layer. Copying the lockfile and its two small
+bootstrap files *before* the project therefore means that edits to
+the project do not invalidate the slow package-installation layer.
 Only a change to `renv.lock` (or to the bootstrap files) rebuilds
 it, which is when it should rebuild.
 
@@ -651,7 +652,7 @@ it, which is when it should rebuild.
 
 *Failure mode.* The model writes a base-image tag from its
 training data, such as `rocker/r-ver:4.4.0` or `latest`, that does
-not match your lockfile, or copies the whole project before the
+not match your lockfile. Or it copies the whole project before the
 restore, so that every edit reinstalls every package. *Check.* Build
 twice with an edit in between and look for the cached restore
 step, then run `renv::status()` inside the container. Compare the
@@ -663,7 +664,7 @@ draft with @sec-docker-canonical.
 every package to an exact version. A colleague clones it and runs
 `renv::restore()`. Are you guaranteed the same numbers?
 
-**Answer.** No, and what is left over is the reason this book puts
+**Answer.** No. What remains unpinned is the reason this book puts
 Docker in the next chapter rather than stopping here. `renv` pins
 R packages. It does not pin:
 
@@ -679,12 +680,13 @@ R packages. It does not pin:
   line endings, or file-system case sensitivity.
 
 So `renv::restore()` gets you the same *package* versions, which
-removes the largest and most common source of drift, but not the
-same computational environment. That is the division of labor
-between the Five Pillars (Dockerfile, `renv.lock`, `.Rprofile`,
-source code, and data, defined in @sec-zzcollab): `renv.lock`
-handles the R layer and the Dockerfile handles everything beneath
-it. Either alone leaves a gap, so a project needs both.
+removes the largest and most common source of drift. It does not
+get you the same computational environment. That is the division
+of labor among the Five Pillars (Dockerfile, `renv.lock`,
+`.Rprofile`, source code, and data, defined in @sec-zzcollab).
+`renv.lock` handles the R layer, and the Dockerfile handles
+everything beneath it. Either alone leaves a gap, so a project
+needs both.
 :::
 
 ### Exercises
@@ -699,7 +701,7 @@ Inside the container, `Rscript -e 'renv::status()'` should report
 no issues, and `R --version` should print the version in the
 lockfile's `R$Version`. If `status()` lists packages as not
 installed, the restore layer failed partway, usually for a missing
-system library; the build log names it.
+system library. The build log names it.
 :::
 
 ## Rules of thumb
@@ -751,7 +753,7 @@ system library; the build log names it.
 1. `renv::init()` creates an `renv/` subdirectory (with an
    `activate.R` bootstrap script), an `.Rprofile` that calls it,
    and an initial `renv.lock`. From then on the project uses a
-   private library isolated from the user's global library;
+   private library isolated from the user's global library.
    `install.packages()` installs into the project library, not the
    user library.
 2. `renv.lock` is a JSON file listing the R version and the exact
@@ -760,7 +762,7 @@ system library; the build log names it.
    contains the actual installed binaries, which are large,
    platform-specific, and reproducible from the lockfile, so they
    are kept out of Git. The lockfile is the portable
-   specification; the library is a local build product.
+   specification, and the library is a local build product.
 3. `renv::snapshot()` finds the packages your code uses, reads
    their installed versions from the project library, and writes
    them into `renv.lock`. You call it after installing a new

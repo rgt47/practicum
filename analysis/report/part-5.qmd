@@ -3,8 +3,9 @@
 This part asks how you show that an analysis was planned in advance
 and that the code computes what it claims. It belongs to the second
 quarter. The previous part made the analysis rebuildable; this one
-makes it defensible, which is a different property: an analysis can
-rebuild perfectly and still answer a question nobody specified.
+makes it defensible. These are different properties. An analysis
+can rebuild perfectly and still answer a question nobody
+specified.
 
 - @sec-analysis-plan states the estimand, writes the statistical
   analysis plan and the data management and sharing plan, and uses
