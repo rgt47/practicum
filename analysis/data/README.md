@@ -1,158 +1,91 @@
 # Data Directory
+*2026-11-09 13:01 PST*
 
-This directory contains all data files for the project, organized by processing stage.
-
-## HF-HOME running study (`raw_data/hfhome/`)
-
-The synthetic HF-HOME trial used as the book's running study (refactoring
-plan Part 5.1) lives in `raw_data/hfhome/`: eight CSV exports
-(demographics, randomization, baseline, visits, labs, medications,
-outcomes, and a raw CRF export with planted file pathologies) and a
-codebook, `raw_data/hfhome/README.md`, that documents every column and
-every planted pathology. The files are generated, not collected:
-
-```
-Rscript analysis/scripts/make_hfhome.R
-```
-
-regenerates them from `practicum::hfhome_generate()` (seed 20260423).
-Do not edit them by hand.
-
-## Directory Structure
+This directory holds the data the book's chapters read. Everything
+in it is synthetic or generated. No file here contains data about
+real people.
 
 ```
 data/
-├── raw_data/           # Original, untouched data files
-├── derived_data/       # Cleaned and processed data files
-└── README.md          # This file - data documentation
+├── raw_data/
+│   └── hfhome/        # HF-HOME trial exports and codebook
+├── derived_data/      # build products; empty in the repository
+└── README.md          # this file
 ```
 
-## Raw Data (`raw_data/`)
+## HF-HOME, the running study (`raw_data/hfhome/`)
 
-**Source**: Palmer Station Antarctica LTER and K. Gorman (CSV export)  
-**Date collected**: 2007-2009  
-**Collected by**: Dr. Kristen Gorman, Palmer Station Antarctica LTER
+HF-HOME is a synthetic two-arm randomized trial that runs through
+the book and is the subject of the capstone (Chapter 35). It has
+2,432 patients discharged after a heart-failure admission at five
+sites, randomized 1:1 to usual care or to home-health visits
+within seven days of discharge. Randomization is stratified by
+site and ejection-fraction stratum. The primary outcome is
+readmission or death within 30 days.
 
-| File | Description | Size | Format |
-|------|-------------|------|---------|
-| `penguins.csv` | Palmer Penguins dataset with morphometric measurements | ~8 KB | CSV |
+| File | Rows | Contents |
+|---|---|---|
+| `demographics.csv` | 2,432 | One row per patient. Contains direct identifiers (names, MRNs, dates of birth, telephone numbers, ZIP codes). |
+| `randomization.csv` | 2,432 | Site, ejection-fraction stratum, sequence number, date, and arm. |
+| `baseline.csv` | 2,432 | Discharge date, ejection fraction, discharge medication count, blood pressure, and weight. |
+| `visits.csv` | 6,317 | One row per contact: discharge, home-health visits, and the day-30 clinic visit. |
+| `labs.csv` | 23,233 | Laboratory results, one row per visit and test. |
+| `medications.csv` | 16,927 | One row per discharge medication. |
+| `outcomes.csv` | 2,432 | Whether the outcome was ascertained, the 30-day composite event, and the first event. |
+| `crf_export.csv` | 2,432 | The raw case-report-form export, with each site's conventions for dates, sex codes, missing values, and identifiers. |
 
-### Important Notes:
-- **DO NOT MODIFY** files in `raw_data/` - these are the source of truth
-- Original data from palmerpenguins R package, exported as CSV
-- Missing values coded as: `NA`
-- Contains 344 observations of 8 variables
+The codebook, `raw_data/hfhome/README.md`, documents every column
+and every planted problem, with the chapter that teaches how to
+find it.
 
-## Derived Data (`derived_data/`)
+**Read the codebook with care.** Its Design section reports the
+observed event rate in each arm, because it documents the
+generator. A student doing the capstone should not read that
+section until their analysis plan is tagged (Chapter 35, 'The
+project').
 
-Processed data files created by analysis scripts. These can be regenerated from raw data.
+### Handling
 
-| File | Source Script | Description | Created |
-|------|---------------|-------------|---------|
-| `penguins_subset.csv` | `scripts/01_data_preparation.R` | First 50 records with log-transformed body mass | [Date] |
+- **Do not edit these files.** They are the evidence that the
+  analysis starts from. Cleaning happens in code, and its results
+  go to `derived_data/`.
+- **Treat `demographics.csv` as protected health information.**
+  The identifiers are synthetic, but they take the form real ones
+  do, so that the de-identification exercises behave realistically.
+  They must not leave the project, enter a prompt to a language
+  model, or appear in a deposit.
+- **Read every file with an explicit column specification.** Study
+  IDs and ZIP codes carry leading zeros that a default
+  `read.csv()` drops.
 
-### Processing Steps Applied:
-- Selected first 50 records from original dataset
-- Created log-transformed body mass variable (`log_body_mass_g`)
-- Retained all original variables for reference
-- Filtered out any records with missing body mass values
+### Regenerating the files
 
-## Data Dictionary
+The files are generated, not collected:
 
-### Raw Penguin Data Fields (`penguins.csv`)
-| Column | Type | Description | Valid Values | Missing Code |
-|--------|------|-------------|--------------|--------------|
-| `species` | character | Penguin species | Adelie, Chinstrap, Gentoo | NA |
-| `island` | character | Island in Palmer Archipelago | Biscoe, Dream, Torgersen | NA |
-| `bill_length_mm` | numeric | Bill length in millimeters | 32.1-59.6 | NA |
-| `bill_depth_mm` | numeric | Bill depth in millimeters | 13.1-21.5 | NA |
-| `flipper_length_mm` | integer | Flipper length in millimeters | 172-231 | NA |
-| `body_mass_g` | integer | Body mass in grams | 2700-6300 | NA |
-| `sex` | character | Penguin sex | male, female | NA |
-| `year` | integer | Study year | 2007, 2008, 2009 | None |
-
-### Derived Penguin Data Fields (`penguins_subset.csv`)
-| Column | Type | Description | Units | Range | Missing Code |
-|--------|------|-------------|-------|-------|--------------|
-| `species` | character | Penguin species (unchanged) | - | Adelie, Chinstrap, Gentoo | NA |
-| `island` | character | Island location (unchanged) | - | Biscoe, Dream, Torgersen | NA |
-| `bill_length_mm` | numeric | Bill length (unchanged) | mm | 32.1-59.6 | NA |
-| `bill_depth_mm` | numeric | Bill depth (unchanged) | mm | 13.1-21.5 | NA |
-| `flipper_length_mm` | integer | Flipper length (unchanged) | mm | 172-231 | NA |
-| `body_mass_g` | integer | Body mass (unchanged) | g | 2700-6300 | NA |
-| `log_body_mass_g` | numeric | Natural log of body mass | log(g) | ~7.9-8.7 | NA |
-| `sex` | character | Penguin sex (unchanged) | - | male, female | NA |
-| `year` | integer | Study year (unchanged) | - | 2007, 2008, 2009 | None |
-
-## Data Quality Notes
-
-### Known Issues:
-- Original dataset has some missing values in `bill_length_mm`, `bill_depth_mm`, `flipper_length_mm`, and `sex` variables
-- Missing body mass values are excluded from subset (log transformation requires non-missing, positive values)
-- Subset represents only first 50 records, may not be representative of full dataset
-
-### Quality Checks Performed:
-- Verified all body mass values are positive before log transformation
-- Confirmed subset maintains original data types and relationships
-- Validated log transformation produces reasonable values (7.9-8.7 range)
-
-## Example Usage
-
-### Load and explore subset data:
-```r
-library(here)
-library(dplyr)
-
-# Load processed data
-penguins_subset <- read.csv(here("data", "derived_data", "penguins_subset.csv"))
-
-# Quick summary
-summary(penguins_subset$log_body_mass_g)
-
-# Compare original vs log-transformed
-plot(penguins_subset$body_mass_g, penguins_subset$log_body_mass_g)
+```bash
+Rscript analysis/scripts/make_hfhome.R
 ```
 
-## Reproducibility
+The script calls `practicum::hfhome_generate()` with seed
+20260423 and writes the eight files and the codebook. Every
+number in the codebook is computed from the data it writes.
 
-To regenerate all derived data:
-```r
-source("scripts/01_data_preparation.R")
-```
+## Derived data (`derived_data/`)
 
-Example data preparation script:
-```r
-# scripts/01_data_preparation.R
-library(here)
-library(dplyr)
+Chapters and the capstone write cleaned and analysis-ready
+datasets here, for example `analytic.rds`. These files are build
+products. They can be rebuilt from `raw_data/` by the chapter or
+pipeline that makes them, so none is kept in the repository.
 
-# Read raw penguins data
-penguins_raw <- read.csv(here("data", "raw_data", "penguins.csv"))
+## Other datasets the book uses
 
-# Create subset with first 50 records and log transformation
-penguins_subset <- penguins_raw %>%
-  slice_head(n = 50) %>%                    # First 50 records
-  filter(!is.na(body_mass_g)) %>%           # Remove missing body mass
-  mutate(log_body_mass_g = log(body_mass_g)) # Add log transformation
+Two case studies use data that is not stored here:
 
-# Save processed data
-write.csv(penguins_subset, 
-         here("data", "derived_data", "penguins_subset.csv"),
-         row.names = FALSE)
-```
-
-## References
-
-- Gorman KB, Williams TD, Fraser WR (2014). Ecological sexual dimorphism and environmental variability within a community of Antarctic penguins (genus Pygoscelis). PLoS ONE 9(3):e90081. https://doi.org/10.1371/journal.pone.0090081
-- Horst AM, Hill AP, Gorman KB (2020). palmerpenguins: Palmer Archipelago (Antarctica) penguin data. R package version 0.1.0. https://allisonhorst.github.io/palmerpenguins/
-
-## Contact
-
-For questions about this data, contact:
-- **Original data source**: Dr. Kristen Gorman, kgorman@ucsd.edu  
-- **Data analyst**: [Your name, email]
-- **Project lead**: [Your name, email]
-
----
-*Last updated*: [YYYY-MM-DD]  
-*Generated by*: [Your name]
+- **Palmer penguins** (Chapter 30). The data come from the
+  `palmerpenguins` R package [Horst, Hill, and Gorman 2022],
+  loaded with `library(palmerpenguins)`.
+- **ADNI** (Chapter 31). The Alzheimer's Disease Neuroimaging
+  Initiative data are available only under a data-use agreement
+  and are not redistributed. The chapter runs its pipeline on a
+  synthetic stand-in, and explains how to run it on the real data
+  once access is granted.
