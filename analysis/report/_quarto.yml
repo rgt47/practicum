@@ -33,6 +33,8 @@ book:
   repo-url: https://github.com/rgt47/practicum
   repo-branch: main
   repo-actions: [edit, issue]
+  # Sidebar 'Download PDF' link; CI builds the PDF with the site.
+  downloads: [pdf]
 
   search: true
   page-navigation: true
