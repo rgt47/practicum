@@ -6,10 +6,11 @@ also published whole, as a single continuously numbered site, at
 three volumes only because a single bound book would be too long to
 handle comfortably.
 
-**This volume**, *Documents, Environments, and Communication*,
-covers documents and environments (Quarto, renv, Docker,
-compendium assembly, targets, and cloud compute), communicating a
-finished analysis, and federal requirements. It also carries the
+**This volume**, *Documents, Pipelines, and Communication*, covers
+Quarto documents, targets pipelines, and cloud compute,
+communicating a finished analysis, and federal requirements. It
+assumes the project environment (renv, Docker, and the compendium)
+set up in Volume 1. It also carries the
 book's full set of appendices. These are the glossary, cheat
 sheets, the instructor guide, the rgtlab software appendix, the
 tooling-as-of appendix, the R Markdown migration guide, interactive
@@ -19,7 +20,8 @@ place, instead of duplicating them in all three volumes.
 **Volume 1**, *Data, Toolkit, and a First Look*, opens with the
 two worked case studies and the HF-HOME capstone as a preview,
 then covers why reproducible research matters, team science, the
-toolkit, and working with data. It comes before this volume.
+toolkit (including renv, Docker, and the compendium), and working
+with data. It comes before this volume.
 
 **Volume 3**, *Industry Practice*, covers de-identification and
 ethics, statistical analysis plans, testing and continuous

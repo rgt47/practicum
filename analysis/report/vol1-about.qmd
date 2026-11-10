@@ -10,15 +10,15 @@ handle comfortably.
 two worked case studies (Palmer Penguins and ADNI) and the HF-HOME
 capstone, read first as a preview of where the book is going. It
 then covers why reproducible research matters and team science,
-the toolkit (shell, workstation, Git for solo and team work, and
-AI-assisted coding), and working with data (acquisition, APIs,
-wrangling, types, functions, joins, databases, graphics, and
-missing data).
+the toolkit (shell, workstation, Git for solo and team work, renv,
+Docker, compendium assembly, and AI-assisted coding), and working
+with data (acquisition, APIs, wrangling, types, functions, joins,
+databases, graphics, and missing data). Together these follow the
+first quarter of the two-quarter sequence.
 
-**Volume 2**, *Documents, Environments, and Communication*, covers
-documents and environments (Quarto, renv, Docker, compendium
-assembly, targets, and cloud compute), communicating a finished
-analysis, and federal requirements. It also carries the book's
+**Volume 2**, *Documents, Pipelines, and Communication*, covers
+Quarto documents, targets pipelines, and cloud compute,
+communicating a finished analysis, and federal requirements. It also carries the book's
 full reference apparatus: the glossary, cheat sheets, the
 instructor guide, the rgtlab software appendix, and the colophon.
 If you need any of those while reading this volume, they are in

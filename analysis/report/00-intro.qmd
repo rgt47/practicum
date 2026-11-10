@@ -56,7 +56,7 @@ study.
 | Why and with whom | Why work reproducibly, and what do you owe your collaborators and the people in the data? | @sec-why, @sec-team-science, @sec-deident | The three kinds of reproducibility, the intake conversation, the HIPAA pathways |
 | Your toolkit | What do you work with every day, how do you keep a history of it, and how does it run on another machine? | @sec-shell (optional), @sec-workstation, @sec-git-solo, @sec-git-teams, @sec-renv, @sec-docker, @sec-zzcollab, @sec-ai-coding | R and an IDE, Git and GitHub, `renv`, Docker, the research compendium, language models and coding agents |
 | Data in hand | How do raw files become an analysis dataset you can trust? | @sec-acquisition, @sec-apis, @sec-wrangling, @sec-types, @sec-joins, @sec-databases (optional), @sec-graphics, @sec-missing, @sec-deident-practice | `readr`, `dplyr`, `tidyr`, `forcats`, `stringr`, `lubridate`, `ggplot2`, `naniar`, `mice`; optionally SQL and `dbplyr` |
-| Documents and environments | How does the analysis become a document that rebuilds itself, and how does it scale beyond one laptop? | @sec-quarto, @sec-targets, @sec-cloud | Quarto, `targets`, remote compute |
+| Documents and pipelines | How does the analysis become a document that rebuilds itself, and how does it scale beyond one laptop? | @sec-quarto, @sec-targets, @sec-cloud | Quarto, `targets`, remote compute |
 | Analysis practice | How do you show that the analysis was planned in advance and computes what it claims? | @sec-analysis-plan, @sec-testing | The statistical analysis plan (SAP) and data management and sharing plan (DMSP), Git tags, `tinytest`, GitHub Actions |
 | Industry | How does the work meet the conventions of regulated drug development? | @sec-cdisc, @sec-sas | SDTM, ADaM, SAS |
 | Analysis to audience | How does a finished analysis reach its readers honestly, and in a form they can check? | @sec-penguins, @sec-adni, @sec-ethics, @sec-communicating, @sec-federal | Computed reports, the memo, the response to reviewers, repositories and DOIs |
@@ -109,7 +109,7 @@ the earlier ones.
 %%| fig-alt: "Flowchart of the book's eight parts in two groups,
 %%|   one per quarter. In the first quarter, Why and with whom leads
 %%|   to Your toolkit, which leads to Data in hand. Data in hand
-%%|   leads into the second quarter at Documents and environments,
+%%|   leads into the second quarter at Documents and pipelines,
 %%|   which leads to Analysis practice. Analysis practice branches
 %%|   to Industry and to Analysis to audience, and both converge on
 %%|   the Capstone."
@@ -126,7 +126,7 @@ flowchart TD
     P3["<b>Data in hand</b><br/><i>acquire, tidy, join,<br/>plot, impute,<br/>de-identify</i>"]
   end
   subgraph Q2["Second quarter"]
-    P4["<b>Documents and<br/>environments</b><br/><i>Quarto, targets,<br/>remote compute</i>"]
+    P4["<b>Documents and<br/>pipelines</b><br/><i>Quarto, targets,<br/>remote compute</i>"]
     P5["<b>Analysis practice</b><br/><i>SAP, DMSP, tests, CI</i>"]
     P6["<b>Industry</b><br/><i>CDISC, SAS</i>"]
     P7["<b>Analysis to audience</b><br/><i>case studies, ethics,<br/>communication, deposit</i>"]
@@ -354,7 +354,7 @@ book describes, and to form their own view.
 This is a graduate practicum in the daily work of
 biostatistical data analysis. It comprises eight
 parts: why and with whom the work is done, the
-toolkit, data in hand, documents and environments,
+toolkit, data in hand, documents and pipelines,
 analysis practice, industry, analysis to audience,
 and a capstone. The test of the book, in our view, is
 whether the reader who has worked through it can

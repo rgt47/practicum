@@ -24,6 +24,8 @@ Volume assignment is an editorial choice independent of the single
 book's part structure (the HTML site keeps its own, unchanged part
 order). As of 2026-10-13: Volume 1 opens with the two case studies
 and the capstone as a preview, before the toolkit and data parts;
+as of 2026-11-09 its toolkit part also holds renv, Docker, and the
+compendium, matching the single book's first quarter;
 the de-identification and ethics chapters moved to Volume 3's new
 'Compliance and Ethics' part, ahead of analysis plans and CDISC.
 
@@ -102,7 +104,7 @@ APPENDIX_INFO = [
 
 VOLUME_TITLE = {
     1: 'Data, Toolkit, and a First Look',
-    2: 'Documents, Environments, and Communication',
+    2: 'Documents, Pipelines, and Communication',
     3: 'Industry Practice',
 }
 
@@ -117,12 +119,13 @@ VOLUME_STRUCTURE = {
     1: [
         ('vol1-preview', ['23-penguins', '24-adni', '25-synthesis']),
         ('vol1-part-1', ['01-why', '03-team-science']),
-        ('part-2', ['04b-shell', '04-workstation', '05-git-solo', '05b-git-teams', '21-ai-coding']),
+        ('part-2', ['04b-shell', '04-workstation', '05-git-solo', '05b-git-teams',
+                    '08-renv', '09-docker', '10-zzcollab', '21-ai-coding']),
         ('vol1-part-3', ['12b-acquisition', '12c-apis', '13-wrangling', '14-types', '14b-functions',
                           '15-joins', '15b-databases', '16-graphics', '17-missing']),
     ],
     2: [
-        ('part-4', ['11-quarto', '08-renv', '09-docker', '10-zzcollab', '10b-targets', '06-cloud']),
+        ('part-4', ['11-quarto', '10b-targets', '06-cloud']),
         ('vol2-part-7', ['25b-communicating', '25c-federal']),
     ],
     3: [
