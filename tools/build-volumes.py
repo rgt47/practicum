@@ -32,9 +32,10 @@ the de-identification and ethics chapters moved to Volume 3's new
 Run from anywhere:
     python3 tools/build-volumes.py
 Then render each volume's PDF:
-    cd analysis/report-vol1 && RENV_CONFIG_AUTOLOADER_ENABLED=FALSE \\
-        quarto render
-(repeat for report-vol2, report-vol3). The generated directories are
+    cd analysis/report-vol1 && quarto render
+(repeat for report-vol2, report-vol3; render from inside the folder).
+CI does the same after each deploy and attaches the three PDFs to the
+'Latest PDF' release. The generated directories are
 gitignored; only this script, the three vol*-about.qmd files, and
 the two new part-blurb files below (real, authored content) are
 committed.
@@ -300,7 +301,11 @@ def main():
                 all_changes.append((vol, stem, anchor, src_file, target_vol))
             (vol_dir / f'{stem}.qmd').write_text(new_text, encoding='utf-8')
 
-        for item in ['_pipeline.R', '_habits.md', 'references.bib', '_filters', 'images']:
+        # .Rprofile points renv at the repository root ('../..' from any
+        # sibling of analysis/report), so each volume uses the project
+        # library without a hand-set R_LIBS_USER, locally and in CI.
+        for item in ['_pipeline.R', '_habits.md', 'references.bib', '_filters', 'images',
+                     '.Rprofile']:
             s = REPORT / item
             if s.exists():
                 (vol_dir / item).symlink_to(s)

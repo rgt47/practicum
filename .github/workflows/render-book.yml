@@ -186,3 +186,39 @@ jobs:
           gh release upload latest-pdf "$pdf" --repo "$repo" --clobber
           gh release edit latest-pdf --repo "$repo" --notes \
             "Draft PDF built from ${GITHUB_SHA::7} on $(date -u +%Y-%m-%d). The same file is served at the book's website."
+
+      # --- Print volumes: after the deploy, and never blocking it ---
+      # tools/build-volumes.py splits the book into three print
+      # volumes. Each volume reruns its own code (the volume folders
+      # are generated fresh, so there is no freeze to reuse). A failure
+      # here marks the step but leaves the site and the full PDF as
+      # already published.
+      - name: Render print volumes
+        id: volumes
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/main'
+          && steps.mode.outputs.backend == 'host'
+          && hashFiles('tools/build-volumes.py') != ''
+        continue-on-error: true
+        timeout-minutes: 45
+        run: |
+          sudo apt-get install -y -qq --no-install-recommends python3-yaml
+          python3 tools/build-volumes.py
+          # Render from inside each folder: run from the repository root,
+          # Quarto refuses to clean up the volume's figure directories.
+          for v in 1 2 3; do
+            echo "::group::Volume $v"
+            (cd "analysis/report-vol$v" && quarto render)
+            echo "::endgroup::"
+          done
+
+      - name: Publish volumes to the 'Latest PDF' release
+        if: steps.volumes.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload latest-pdf --repo "$GITHUB_REPOSITORY" --clobber \
+            analysis/report-vol*/_book/Biostatistics-Practicum-Volume-*.pdf
+          gh release edit latest-pdf --repo "$GITHUB_REPOSITORY" --notes \
+            "Draft PDFs built from ${GITHUB_SHA::7} on $(date -u +%Y-%m-%d): the full book, and the same content split into three print volumes. The full book is also served at the book's website."
