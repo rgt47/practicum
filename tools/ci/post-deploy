@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Print volumes, run by render-book.yml after the site and the full PDF
+# are published. tools/build-volumes.py splits the book into three print
+# volumes; each reruns its own code (the volume folders are generated
+# fresh, so there is no freeze to reuse). A failure is reported as a
+# warning and never fails the run: the site and full PDF are already out.
+set -uo pipefail
+
+build_volumes() {
+  sudo apt-get install -y -qq --no-install-recommends python3-yaml
+  python3 tools/build-volumes.py
+  # Render from inside each folder: run from the repository root,
+  # Quarto refuses to clean up the volume's figure directories.
+  for v in 1 2 3; do
+    echo "::group::Volume $v"
+    (cd "analysis/report-vol$v" && quarto render)
+    echo "::endgroup::"
+  done
+  gh release upload latest-pdf --repo "$GITHUB_REPOSITORY" --clobber \
+    analysis/report-vol*/_book/Biostatistics-Practicum-Volume-*.pdf
+  gh release edit latest-pdf --repo "$GITHUB_REPOSITORY" --notes \
+    "Draft PDFs built from ${GITHUB_SHA::7} on $(date -u +%Y-%m-%d): the full book, and the same content split into three print volumes. The full book is also served at the book's website."
+}
+
+# errexit is ignored inside an if condition, so run the subshell bare
+# and inspect its status afterward.
+(set -e; build_volumes)
+status=$?
+if [ "$status" -ne 0 ]; then
+  echo "::warning::Print volumes failed (exit $status); the site and full PDF are unaffected."
+fi
